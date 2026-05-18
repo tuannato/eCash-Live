@@ -57,18 +57,22 @@
 <meta property="og:type" content="website" />
 <meta property="og:title" content="eCash Live — every transaction, every block, live." />
 <meta property="og:description" content="A real-time visualizer for eCash (XEC). Watch Avalanche pre-consensus finalize transactions in ~3 seconds, then post-consensus lock blocks — live, side-by-side." />
-<meta property="og:image" content="assets/share-hero.svg" />
-<meta property="og:image:width" content="1200" />
-<meta property="og:image:height" content="630" />
+<meta property="og:image" content="/icon-512.png" />
+<meta property="og:image:width" content="512" />
+<meta property="og:image:height" content="512" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="eCash Live — every transaction, every block, live." />
 <meta name="twitter:description" content="Live Avalanche pre &amp; post-consensus, on the eCash network." />
-<meta name="twitter:image" content="assets/share-hero.svg" />
+<meta name="twitter:image" content="/icon-512.png" />
 
-<!-- Favicon (inline SVG): hexagonal eCash mark on a dark backdrop. -->
-<link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
-<link rel="alternate icon" type="image/png" href="assets/favicon-32.png" />
-<link rel="apple-touch-icon" href="assets/favicon-180.png" />
+<!-- Favicons. Files live at the site root so browsers and crawlers find
+     them without extra hops. The ICO bundles 16/32/48 sizes for legacy
+     consumers; PNG variants are referenced explicitly for modern targets. -->
+<link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+<link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/icon-180.png" />
+<link rel="manifest" href="/site.webmanifest" />
 
 <!-- Self-hosted fonts (no third-party IP leak, no third-party CSP entries).
      The @font-face declarations and woff2 files live under /vendor/. -->
