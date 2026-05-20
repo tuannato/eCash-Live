@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-12xo3ByfJVqozbW+sr7Zq7Oo/6Ov/Y44XNjSYI7rAD8=';
+  script-src 'self' 'sha256-/Kv4y9OEsGiN9n57xDS1LncC66zmO0s9/Aa4OZeHwuU=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -38,6 +38,7 @@
     https://chronik-native2.fabien.cash wss://chronik-native2.fabien.cash
     https://chronik-native3.fabien.cash wss://chronik-native3.fabien.cash
     https://chronik.pay2stay.com wss://chronik.pay2stay.com
+    https://chronik1.ecashlive.net wss://chronik1.ecashlive.net
     https://api.coingecko.com;
   frame-ancestors 'none';
   base-uri 'none';
@@ -3473,6 +3474,57 @@
     color: var(--text);
   }
   .footer .cell .v .u { font-size: 9px; color: var(--text-3); margin-left: 3px; font-weight: 400; }
+  /* TTF source indicators — shown inline BEFORE the seconds value in
+     both the footer avg-TTF cell and the detail panel TTF row. Three
+     possible states: nothing (clean number), eye (perceived TTF, feed
+     unavailable), or spinner (waiting for node-precise upgrade).
+
+     Indicator placement note (v1.1.2): moved from suffix → prefix so
+     the meta-information (data source) precedes the value, matching
+     typical UI conventions (icon → label).
+
+     Eye uses currentColor so it inherits the text color of its
+     container; the wrapping span keeps it baseline-aligned with the
+     surrounding text and carries the title= tooltip. Sized to fit
+     comfortably next to a 13–15px number. */
+  .ttf-eye-wrap {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 6px;
+    color: var(--text-3);
+    cursor: help;
+    vertical-align: -2px;
+  }
+  .ttf-eye {
+    width: 14px;
+    height: 14px;
+    display: inline-block;
+  }
+  .ttf-eye-wrap:hover { color: var(--text-2); }
+  /* Spinner: appears briefly while a freshly-finalized tx waits up to
+     3s for a node-precise upgrade. Inline SVG (v1.1.2, was unicode
+     glyph in 1.1.1) so the look is identical across platforms — no
+     font-substitution flicker when the page renders. Single thin arc
+     with rounded cap, currentColor like the eye, animated via CSS. */
+  .ttf-spinner-wrap {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 6px;
+    color: var(--text-3);
+    vertical-align: -2px;
+  }
+  .ttf-spinner {
+    width: 12px;
+    height: 12px;
+    display: inline-block;
+    animation: ttfSpin 0.9s linear infinite;
+    /* Subtle origin offset is unnecessary — SVG viewBox is square so
+       rotation stays centered. */
+  }
+  @keyframes ttfSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
   .footer .cell.flow .v {
     font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; font-weight: 600; font-size: 15px;
     color: var(--cyan);
@@ -5664,7 +5716,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.1.0">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.1.0</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.1.2">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.1.2</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -6557,9 +6609,283 @@ const CHRONIK_URLS = URL_PARAM_ENDPOINT
       'https://chronik-native2.fabien.cash',
       'https://chronik-native3.fabien.cash',
       'https://chronik.pay2stay.com/xec',
+      // Personal fallback node — listed last so traffic preferentially
+      // hits the public mirrors above (better availability, more
+      // geographically distributed). chronik1 still gets used when all
+      // public endpoints are unreachable. This is also the node that
+      // feeds /ttf-feed for node-precise TTF samples (see TTF feed
+      // module further down).
+      'https://chronik1.ecashlive.net',
     ];
 
 let activeEndpoint = CHRONIK_URLS[0];
+
+// =====================================================================
+// TTF FEED (node-precise time-to-finality)
+// =====================================================================
+// A custom WebSocket on the user's own VPS that tails bitcoind's
+// debug.log and emits the moment Avalanche pre-consensus finalizes
+// each tx. Lets us bypass the propagation+WS-latency overhead that the
+// client-side measurement carries (browser ↔ chronik ↔ network), and
+// surface a number closer to the true network TTF.
+//
+// Architecture:
+//   bitcoind debug.log
+//        ↓ (tail -F)
+//   ttf-relay.py on VPS
+//        ↓ (WebSocket /ttf-feed)
+//   nginx reverse proxy (wss:// + Let's Encrypt)
+//        ↓
+//   this browser
+//
+// The feed is "best effort": if it's unreachable (VPS down, network
+// blip), we fall back to the existing client-side timing path and
+// surface a small eye icon (👁) string in the footer + detail panel so
+// the user knows the displayed number is the perceived TTF, not the
+// node-precise one.
+const TTF_FEED_URL = 'wss://chronik1.ecashlive.net/ttf-feed';
+const TTF_RECONNECT_MIN_MS = 1000;
+const TTF_RECONNECT_MAX_MS = 30000;
+// How long a node-precise sample is kept in memory waiting for the
+// matching chronik tx data. In practice the buffer is rarely used —
+// chronik usually delivers the tx before the avalanche log line — but
+// the inversion does happen when the VPS is closer to the avalanche
+// quorum than the public chronik mirror the page is connected to.
+const TTF_PENDING_BUFFER_TTL_MS = 30000;
+// Hard cap on the pendingBuffer Map (node-precise samples that arrived
+// before chronik tx data). FIFO eviction past this size — a defensive
+// memory bound for the worst case where many TTF events arrive without
+// matching tx data (e.g. tx filtered out client-side, or chronik feed
+// degraded). 500 entries comfortably handles ~10x peak eCash throughput.
+const TTF_PENDING_BUFFER_MAX = 500;
+
+// Footer/detail string shown when the user is looking at perceived
+// (non-node-precise) TTF. Two variants depending on whether the feed
+// has ever connected this session — different wording because "feed
+// not available" reads naturally for both cases but "unavailable"
+// implies it was previously available.
+const TTF_FEED_DOWN_NOTE_DROPPED = 'Showing perceived TTF — node-precise feed unavailable';
+const TTF_FEED_DOWN_NOTE_NEVER   = 'Showing perceived TTF — node-precise feed not available';
+
+// Inline SVG for the eye indicator. Single-color (currentColor) so the
+// CSS .ttf-eye class fully controls the look, and monochromatic so it
+// renders identically on every platform/font (unlike the 👁 emoji,
+// which switches color/style between systems).
+const TTF_EYE_SVG = '<svg class="ttf-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+
+// Inline SVG spinner (v1.1.2): three-quarter circular arc with rounded
+// end-caps, currentColor, animated by the .ttf-spinner CSS class. We
+// switched from the unicode ⟳ glyph because font substitution made
+// the spinner look different across OSes (and sometimes monospaced,
+// breaking baseline). With SVG it's pixel-identical everywhere.
+const TTF_SPINNER_SVG = '<svg class="ttf-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>';
+
+const ttfFeedState = {
+  ws: null,
+  connected: false,
+  reconnectAttempt: 0,
+  reconnectTimer: null,
+  // Map<txid, { ttfMs, receivedAt }> — node-precise samples that arrived
+  // before chronik tx data. Applied when processNewTx runs.
+  pendingBuffer: new Map(),
+  bufferCleanupTimer: null,
+  // Has the feed ever connected this session? Used to phrase the eye
+  // tooltip differently (never-connected vs. dropped-mid-session).
+  // Intentionally never cleared after a disconnect — once we've seen
+  // the feed work, we phrase subsequent disconnections as "unavailable"
+  // (transient), not "not available" (never seen).
+  everConnected: false,
+  // rAF coalescer state (v1.1.2). Multiple TTF events arriving in the
+  // same animation frame produce a SINGLE render pass instead of N.
+  // Critical during burst events (feed reconnect, pendingBuffer drain
+  // on initial mempool load, sustained high TPS). See scheduleTtfRender.
+  renderRafId: 0,
+  renderPending: false,
+};
+
+// rAF-coalesced render. Multiple call sites (applyTtfFromNode, the
+// feed open/close, etc.) call this freely; the actual updateStats +
+// refreshDetailIfActive run at most once per animation frame (~16ms),
+// so a burst of 500 events on initial load triggers ~1 render per
+// frame instead of 500 synchronous render cycles.
+//
+// Why not setTimeout(0)?  rAF naturally aligns with the browser's
+// paint cycle and pauses when the tab is hidden — exactly what we
+// want for a visualization. setTimeout would keep firing in the
+// background and waste CPU on a tab no one's looking at.
+function scheduleTtfRender() {
+  if (ttfFeedState.renderPending) return;
+  ttfFeedState.renderPending = true;
+  ttfFeedState.renderRafId = requestAnimationFrame(() => {
+    ttfFeedState.renderPending = false;
+    ttfFeedState.renderRafId = 0;
+    if (typeof updateStats === 'function') {
+      try { updateStats(); }
+      catch (e) { console.warn('[ttf-feed] updateStats failed', e); }
+    }
+    try { refreshDetailIfActive(); }
+    catch (e) { console.warn('[ttf-feed] refreshDetailIfActive failed', e); }
+  });
+}
+
+// Debug-log gate (v1.1.2). Default OFF — production users opening
+// DevTools shouldn't see a stream of [ttf-feed] / [ava-debug] lines.
+// Turn on from the console with:
+//   window.__ecashLiveDebug.verbose = true
+// Honored by ttfLog() below. Plain console.log calls outside of hot
+// paths (one-shot events: connect, disconnect, init) are unchanged.
+let ttfVerboseLogs = false;
+function ttfLog(...args) {
+  if (ttfVerboseLogs) console.log(...args);
+}
+
+// "Upgrade window": when a tx finalizes via ws/poll/race we mark its
+// per-tx record with a deadline for receiving a node-precise upgrade.
+// While Date.now() < tx.ttfPendingUpgradeUntil the detail panel shows a
+// small spinner — a hint that the displayed value may sharpen in a
+// moment. After the deadline the spinner disappears and the perceived
+// value is treated as final. The window doesn't gate state.ttfSamples
+// at all (Architecture D, late-correction): samples land in the rolling
+// average immediately and get replaced in-place if a node-precise event
+// arrives later. No buffering, no flush timers, no per-tx setTimeout —
+// the flag is purely a render hint and self-expires by clock comparison.
+const TTF_UPGRADE_WINDOW_MS = 3000;
+
+// Push a TTF sample to state.ttfSamples with "skip-or-upgrade" semantics
+// and (for ws/poll/race sources) mark the matching tx with the upgrade
+// deadline. This is the ONLY entry point that mutates state.ttfSamples,
+// keeping the upgrade logic consistent across every code path that
+// produces a TTF reading.
+//
+// Skip-or-upgrade:
+//   - First sample for a txid → append to the rolling array.
+//   - Same txid seen again:
+//       * If new source is node-precise and existing is not → REPLACE.
+//       * Otherwise → ignore (don't double-count or downgrade).
+//
+// Race placeholders (999ms, source='race') are never pushed — they're
+// too synthetic to belong in the rolling average. They still affect the
+// per-tx detail panel (which shows '—' until a real value arrives).
+function pushTtfSample(txid, ttfMs, source) {
+  if (!txid || typeof ttfMs !== 'number') return;
+
+  // Drop synthetic 999ms race placeholders. Real race-backfilled values
+  // (source='race-backfilled') are fine and fall through.
+  if (source === 'race' && ttfMs === 999) {
+    // Still mark the per-tx upgrade window so the detail panel can
+    // render the spinner while we wait for backfill / node-precise.
+    _markTtfUpgradeWindow(txid, source);
+    return;
+  }
+
+  const idx = state.ttfSamples.findIndex(s =>
+    s && typeof s === 'object' && s.txid === txid);
+  if (idx === -1) {
+    state.ttfSamples.push({ txid, ttfMs, source });
+  } else {
+    const existing = state.ttfSamples[idx];
+    // Only upgrade ws/poll → node-precise; never downgrade.
+    if (existing.source !== 'node-precise' && source === 'node-precise') {
+      state.ttfSamples[idx] = { txid, ttfMs, source };
+    }
+  }
+  // Bound memory — rolling window is 50, we keep 200 for safety.
+  while (state.ttfSamples.length > 200) state.ttfSamples.shift();
+
+  // Set / clear the per-tx upgrade-window flag. node-precise CLEARS it
+  // (the upgrade has happened); any other source SETS it (we may still
+  // upgrade within the window).
+  _markTtfUpgradeWindow(txid, source);
+}
+
+// Internal helper — see pushTtfSample above for context.
+function _markTtfUpgradeWindow(txid, source) {
+  const tx = state.txs.get(txid);
+  if (!tx) return;
+  if (source === 'node-precise' || source === 'race-backfilled') {
+    // Definitive value — no spinner needed.
+    tx.ttfPendingUpgradeUntil = 0;
+  } else {
+    // Perceived value — show spinner up to TTF_UPGRADE_WINDOW_MS.
+    tx.ttfPendingUpgradeUntil = Date.now() + TTF_UPGRADE_WINDOW_MS;
+  }
+}
+
+// Read the ms value from a sample, handling both new {ttfMs, ...}
+// objects and any leftover plain numbers from old code paths or
+// pre-1.1.1 push sites we may have missed.
+function ttfSampleMs(s) {
+  if (typeof s === 'number') return s;
+  if (s && typeof s.ttfMs === 'number') return s.ttfMs;
+  return null;
+}
+
+// True if a tx is currently inside its upgrade window (perceived TTF
+// shown, node-precise may still arrive). Used by the detail panel to
+// decide whether to render the spinner. Self-expires by clock — no
+// timers, no cleanup loop needed.
+function hasPendingNodePreciseWait(txid) {
+  const tx = state.txs.get(txid);
+  if (!tx) return false;
+  if (!tx.ttfPendingUpgradeUntil) return false;
+  return Date.now() < tx.ttfPendingUpgradeUntil;
+}
+
+// Single source of truth for "what indicator should the eye / spinner /
+// nothing show, and what tooltip text". Both the footer avg and per-tx
+// detail go through this so behavior is consistent.
+//
+// Return values:
+//   { kind: 'eye',   note: '<tooltip text>' }   show eye + tooltip
+//   { kind: 'spin',  note: '' }                 show spinner, no tooltip
+//   { kind: 'none',  note: '' }                 nothing extra
+//
+// Inputs:
+//   txid      — null for footer avg, txid for per-tx detail
+//   ttfSource — for per-tx: the current source of tx.ttf
+function ttfIndicatorState(txid, ttfSource) {
+  // Feed currently connected and healthy?
+  if (ttfFeedState.connected) {
+    // Per-tx: spinner only when the wait buffer is still waiting on
+    // an upgrade for THIS tx. Footer never spins (it shows the avg,
+    // which is settled by definition).
+    if (txid && hasPendingNodePreciseWait(txid)) {
+      return { kind: 'spin', note: '' };
+    }
+    return { kind: 'none', note: '' };
+  }
+  // Feed disconnected (or never connected). Which tooltip variant?
+  const note = ttfFeedState.everConnected
+    ? TTF_FEED_DOWN_NOTE_DROPPED
+    : TTF_FEED_DOWN_NOTE_NEVER;
+  // Per-tx: only show the eye when the displayed value isn't node-precise.
+  // (A node-precise sample is correct regardless of current feed state —
+  // it was measured cleanly when the feed was up.)
+  if (txid && ttfSource === 'node-precise') {
+    return { kind: 'none', note: '' };
+  }
+  return { kind: 'eye', note };
+}
+
+// Render the indicator prefix for inline use BEFORE a TTF number. Both
+// detail panel and footer use this so the markup stays identical.
+//
+// Placement note (v1.1.2): switched from suffix to prefix — the meta
+// indicator (data source) reads more naturally before the value, and
+// the eye + spinner stay anchored at a fixed position regardless of
+// whether the number is 0.45s or 12.34s.
+function renderTtfIndicator(txid, ttfSource) {
+  const ind = ttfIndicatorState(txid, ttfSource);
+  if (ind.kind === 'eye') {
+    // The full eye SVG, wrapped in a span so we can attach a tooltip.
+    // Trailing space (not leading) since this is now a prefix.
+    return `<span class="ttf-eye-wrap" title="${ind.note}">${TTF_EYE_SVG}</span> `;
+  }
+  if (ind.kind === 'spin') {
+    return `<span class="ttf-spinner-wrap" aria-hidden="true">${TTF_SPINNER_SVG}</span> `;
+  }
+  return '';
+}
 
 const FINAL_SCORE = 128; // pseudo confidence target (visualization only)
 const D_RING_CIRC = 2 * Math.PI * 33;
@@ -7162,6 +7488,259 @@ async function loadChronikClient() {
   return ChronikClientCtor;
 }
 
+// =====================================================================
+// TTF FEED CLIENT
+// =====================================================================
+// Connects to wss://chronik1.ecashlive.net/ttf-feed and applies the
+// node-precise TTF samples it receives. See the TTF FEED config block
+// at the top of this module for the architecture overview.
+//
+// Two non-obvious behaviors worth highlighting:
+//
+//   1. PROMOTE-ON-EARLY-ARRIVAL: if a node-precise TTF lands BEFORE the
+//      matching chronik TX_FINALIZED event, we don't just stash the
+//      sample — we use it as a signal that the network has reached
+//      consensus and flip the tx out of `polling`/`pending` to `final`
+//      immediately. Migrates the row from col1 to col2, fills the
+//      detail ring, the works. The subsequent (slower) chronik
+//      TX_FINALIZED becomes a no-op idempotent flip. This is what
+//      makes the "node-precise feed" worth running at all — without
+//      this branch, the feed would only correct the displayed number
+//      after the fact, not actually speed up the visualization.
+//
+//   2. BUFFER-IF-NOT-YET-FETCHED: the node feed can race the chronik
+//      fetch itself (we might see "tx X finalized" before we've even
+//      pulled tx X's data into state.txs). We park the sample in
+//      pendingBuffer with a TTL and consume it the moment the tx
+//      shows up. After TTL it's discarded — the tx was probably
+//      filtered out client-side (dust, type, etc.) and never made it
+//      into state.
+function applyTtfFromNode(txid, ttfMs) {
+  const tx = state.txs.get(txid);
+  if (!tx) {
+    // Tx not in state yet — buffer for later. See behavior #2 above.
+    // Cap the buffer (FIFO eviction) so a flood of node-precise events
+    // for txs we never see (e.g. filtered out client-side) can't grow
+    // unbounded.
+    if (ttfFeedState.pendingBuffer.size >= TTF_PENDING_BUFFER_MAX) {
+      const oldest = ttfFeedState.pendingBuffer.keys().next().value;
+      ttfFeedState.pendingBuffer.delete(oldest);
+    }
+    ttfFeedState.pendingBuffer.set(txid, {
+      ttfMs,
+      receivedAt: Date.now(),
+    });
+    return;
+  }
+  const prevSource = tx.ttfSource;
+  const prevTtf = tx.ttf;
+  tx.ttf = ttfMs;
+  tx.ttfSource = 'node-precise';
+  tx.ttfResolved = true;
+  // We have a reliable timing reference — clear any race-finalized flag.
+  // The detail panel no longer shows "< 1s ⚡" (removed in 1.1.1), so
+  // this only matters for any other code path that still checks the
+  // flag (e.g. raceFinalized-aware row styling).
+  tx.raceFinalized = false;
+  // Behavior #1: promote panel state on early arrival.
+  if (tx.state === 'pending' || tx.state === 'polling') {
+    const prevState = tx.state;
+    tx.state = 'final';
+    tx.confidence = FINAL_SCORE;
+    tx.finalizedAt = Date.now();
+    // M1 (v1.1.2): gated behind ttfVerboseLogs — see ttfLog() at top.
+    ttfLog('[ttf-feed] PROMOTED', txid.slice(0, 12),
+           'state→final, ttf=', ttfMs, 'ms (was', prevState, ')');
+    if (tx.row) {
+      try { migrateTxToMempool(tx); }
+      catch (e) { console.warn('[ttf-feed] migrate failed', e); }
+    }
+  } else if (prevSource && prevSource !== 'node-precise') {
+    // Override: tx was already final via Chronik WS / poll, but we
+    // now have a more precise sample. pushTtfSample below will
+    // replace the existing entry in state.ttfSamples (skip-or-upgrade)
+    // and clear the upgrade-window flag so the detail panel stops
+    // showing the spinner.
+    ttfLog('[ttf-feed] OVERRIDE', txid.slice(0, 12),
+           'ttf=', ttfMs, 'ms (was', prevTtf, 'ms via', prevSource + ')');
+  } else {
+    ttfLog('[ttf-feed] APPLIED', txid.slice(0, 12), 'ttf=', ttfMs, 'ms');
+  }
+  pushTtfSample(txid, ttfMs, 'node-precise');
+  // Re-render the affected row immediately (synchronous, cheap, only
+  // touches one row's DOM and gives the user visible feedback that the
+  // value just changed). Stats + detail panel go through the rAF
+  // coalescer so a burst of events (feed reconnect, initial-load
+  // pendingBuffer drain, sustained high TPS) renders at most once per
+  // animation frame instead of N times synchronously — H2 fix.
+  if (tx.row) {
+    try { updateTxRow(tx); }
+    catch (e) { console.warn('[ttf-feed] updateTxRow failed', e); }
+  }
+  scheduleTtfRender();
+}
+
+// Drain pendingBuffer entries older than the TTL. Runs every 10s while
+// the feed module is initialized.
+//
+// v1.1.2 (M4): early-break optimization. Map iteration order is
+// insertion order, so the first non-expired entry guarantees the rest
+// are also non-expired (all subsequent entries were inserted later).
+// Turns the sweep from O(n) into O(k) where k = number of expired
+// entries (usually 0). Cheap before, very cheap now.
+function cleanupTtfPendingBuffer() {
+  const cutoff = Date.now() - TTF_PENDING_BUFFER_TTL_MS;
+  for (const [txid, entry] of ttfFeedState.pendingBuffer) {
+    if (entry.receivedAt < cutoff) {
+      ttfFeedState.pendingBuffer.delete(txid);
+    } else {
+      break;
+    }
+  }
+}
+
+// Hook point: tx-newly-added handlers should call this so a pending
+// node-precise sample (received before the chronik tx data) gets
+// applied the moment the tx lands.
+function checkTtfBufferForTx(txid) {
+  const entry = ttfFeedState.pendingBuffer.get(txid);
+  if (!entry) return;
+  ttfFeedState.pendingBuffer.delete(txid);
+  applyTtfFromNode(txid, entry.ttfMs);
+}
+
+// Triggered when feed connection state flips (open / close). Goes
+// through the same rAF coalescer as everything else — if a flap
+// produces multiple state changes in one frame, we still render once.
+function updateTtfIndicator() {
+  scheduleTtfRender();
+}
+
+function connectTtfFeed() {
+  // Clear any pending reconnect timer to avoid duplicate concurrent
+  // connections if connectTtfFeed is called twice.
+  if (ttfFeedState.reconnectTimer) {
+    clearTimeout(ttfFeedState.reconnectTimer);
+    ttfFeedState.reconnectTimer = null;
+  }
+  // L2 (v1.1.2): if a socket is already open or connecting, close it
+  // before opening a new one. Without this, a reconnect timer that
+  // fires while a stale socket is still in CONNECTING state would
+  // leave two sockets alive briefly, with the old one's close handler
+  // scheduling yet another reconnect — possible cascade.
+  if (ttfFeedState.ws && ttfFeedState.ws.readyState < 2) {
+    try { ttfFeedState.ws.close(); }
+    catch (e) { console.warn('[ttf-feed] close-existing failed', e); }
+  }
+  let ws;
+  try {
+    ws = new WebSocket(TTF_FEED_URL);
+  } catch (e) {
+    console.warn('[ttf-feed] construct failed', e);
+    scheduleTtfReconnect();
+    return;
+  }
+  ttfFeedState.ws = ws;
+
+  ws.addEventListener('open', () => {
+    console.log('[ttf-feed] connected to', TTF_FEED_URL);
+    ttfFeedState.connected = true;
+    ttfFeedState.everConnected = true;
+    ttfFeedState.reconnectAttempt = 0;
+    updateTtfIndicator();
+  });
+
+  ws.addEventListener('message', (ev) => {
+    // M2 (v1.1.2): payload size guard. The relay we control sends
+    // small JSON (~150 bytes typical), so anything over 4KB is either
+    // garbage or hostile (compromised VPS, MITM through Cloudflare
+    // somehow). Reject before parse so we don't block the main thread
+    // on a multi-MB JSON.parse. ev.data may be string or Blob — we
+    // configure neither, browsers default to string for text frames.
+    if (typeof ev.data !== 'string' || ev.data.length > 4096) {
+      console.warn('[ttf-feed] oversized/non-string frame, dropping');
+      return;
+    }
+    let data;
+    try {
+      data = JSON.parse(ev.data);
+    } catch (e) {
+      console.warn('[ttf-feed] non-JSON message', ev.data.slice(0, 80));
+      return;
+    }
+    if (data.type === 'hello') {
+      // Just an acknowledgement — ignored, but useful for debugging.
+      return;
+    }
+    // M3 (v1.1.2): added ttfMs >= 200 floor to match the relay's own
+    // MIN_REALISTIC_TTF_MS. A node-precise sample under 200ms would
+    // either be a clock anomaly or a forged/garbage frame — either
+    // way, not something we want polluting the rolling average.
+    if (data.type === 'ttf'
+        && typeof data.txid === 'string'
+        && /^[0-9a-f]{64}$/.test(data.txid)
+        && typeof data.ttfMs === 'number'
+        && data.ttfMs >= 200
+        && data.ttfMs < 60000) {
+      applyTtfFromNode(data.txid, data.ttfMs);
+    }
+  });
+
+  ws.addEventListener('error', (e) => {
+    // Browsers fire a generic Event here; details land in onclose.
+    console.warn('[ttf-feed] error');
+  });
+
+  ws.addEventListener('close', () => {
+    console.log('[ttf-feed] disconnected');
+    ttfFeedState.connected = false;
+    ttfFeedState.ws = null;
+    updateTtfIndicator();
+    scheduleTtfReconnect();
+  });
+}
+
+function scheduleTtfReconnect() {
+  const attempt = ttfFeedState.reconnectAttempt++;
+  // Exponential backoff: 1s, 2s, 4s, 8s, ..., capped at TTF_RECONNECT_MAX_MS.
+  const delay = Math.min(
+    TTF_RECONNECT_MIN_MS * Math.pow(2, attempt),
+    TTF_RECONNECT_MAX_MS
+  );
+  ttfFeedState.reconnectTimer = setTimeout(connectTtfFeed, delay);
+}
+
+function startTtfFeedModule() {
+  // Idempotent — safe to call from multiple init paths.
+  if (ttfFeedState.bufferCleanupTimer) return;
+  ttfFeedState.bufferCleanupTimer = setInterval(cleanupTtfPendingBuffer, 10000);
+  connectTtfFeed();
+  // Debug handles: small live view of module state inspectable from the
+  // DevTools console. v1.1.2: renamed from __ecashLive to
+  // __ecashLiveDebug to make the intent explicit (the getters return
+  // live references, so mutation IS possible — the name now matches).
+  // Also adds a `verbose` toggle that flips the [ttf-feed] log gate.
+  window.__ecashLiveDebug = {
+    get state() { return state; },
+    get ttfFeedState() { return ttfFeedState; },
+    get ttfSamples() { return state.ttfSamples; },
+    get pendingBuffer() { return ttfFeedState.pendingBuffer; },
+    ttfSampleMs,
+    // Toggle verbose [ttf-feed] PROMOTED/OVERRIDE/APPLIED logs at
+    // runtime. Default OFF — production users don't need a sec-by-sec
+    // log stream when they open DevTools. Set to true to see live TTF
+    // event flow when debugging.
+    get verbose() { return ttfVerboseLogs; },
+    set verbose(v) { ttfVerboseLogs = !!v; },
+  };
+  // Back-compat alias — earlier debug instructions referenced
+  // window.__ecashLive. Pointed at the same object so old snippets
+  // still work. Will be removed in a future version.
+  window.__ecashLive = window.__ecashLiveDebug;
+  console.log('[ecash-live] debug handles exposed at window.__ecashLiveDebug',
+              '(toggle .verbose = true for live event logs)');
+}
+
 async function initChronik() {
   liveAttempts++;
   console.log('[ecash-live] Initializing live mode (attempt', liveAttempts, ')');
@@ -7434,7 +8013,11 @@ async function startLivePoller() {
             // bias the average upward — they still show on the per-tx
             // detail card but stay out of the stat.
             if (refSource !== 'poll') {
-              state.ttfSamples.push(ttf);
+              // pushTtfSample is "skip-or-upgrade": if a node-precise
+              // sample arrives later for the same txid it replaces this
+              // one. Source label flows through so the upgrade check
+              // can compare it later.
+              pushTtfSample(txData.txid, ttf, refSource);
               pollSamples++;
               // Refresh footer right away so the very first sample is visible
               // immediately instead of waiting for the next updateStats tick.
@@ -7456,7 +8039,7 @@ async function startLivePoller() {
           localTx.ttf = 999;
           localTx.ttfSource = 'race';
           localTx.ttfResolved = false;
-          state.ttfSamples.push(999);
+          pushTtfSample(txData.txid, 999, 'race');
           pollSamples++;
           if (typeof updateStats === 'function') {
             try { updateStats(); } catch (e) {}
@@ -7604,23 +8187,14 @@ function setupWebSocket() {
                 existingTx.ttfSource = 'race-backfilled';
                 existingTx.ttfResolved = true;  // detail can now display real ttf — also invalidates the detail cache key
                 // Replace the 999ms placeholder pushed by the race-finalized
-                // branch with the real measurement. We scan a small window
-                // at the tail of ttfSamples (last 8 entries) — bigger window
-                // would risk swapping out an unrelated 999 from another
-                // race-tx, smaller could miss it if a few other samples
-                // landed between the placeholder and this backfill.
-                if (state.ttfSamples && state.ttfSamples.length > 0) {
-                  for (let i = state.ttfSamples.length - 1;
-                       i >= Math.max(0, state.ttfSamples.length - 8); i--) {
-                    if (state.ttfSamples[i] === 999) {
-                      state.ttfSamples.splice(i, 1);
-                      break;
-                    }
-                  }
-                  state.ttfSamples.push(realTtf);
-                  if (typeof updateStats === 'function') {
-                    try { updateStats(); } catch (e) {}
-                  }
+                // branch with the real measurement. pushTtfSample finds the
+                // sample by txid (now a property on the sample object),
+                // which is more reliable than the old "find a 999 in the
+                // last 8 entries" scan that could swap out an unrelated
+                // race-tx's placeholder.
+                pushTtfSample(msg.txid, realTtf, 'race-backfilled');
+                if (typeof updateStats === 'function') {
+                  try { updateStats(); } catch (e) {}
                 }
                 console.log('[ava-debug] race-backfilled ttf=', realTtf, 'ms for', msg.txid?.slice(0, 12), '— replaced 999 placeholder with real value');
                 try { refreshDetailIfActive(); } catch {}
@@ -7736,7 +8310,7 @@ function setupWebSocket() {
               // get displayed on the per-tx detail panel but don't pollute
               // the rolling stat.
               if (tx.ttf > 0 && tx.ttf < 60_000 && refSource !== 'poll') {
-                state.ttfSamples.push(tx.ttf);
+                pushTtfSample(msg.txid, tx.ttf, refSource);
                 console.log('[ava-debug] TX_FINALIZED ttf=', tx.ttf, 'ms (' + refSource + ') total samples=', state.ttfSamples.length);
                 if (typeof updateStats === 'function') {
                   try { updateStats(); } catch (e) {}
@@ -7766,7 +8340,7 @@ function setupWebSocket() {
               tx.ttfSource = 'race';
               tx.ttfResolved = false;    // detail panel shows "—" until either backfill or timeout
               if (typeof state.ttfSamples !== 'undefined') {
-                state.ttfSamples.push(999);
+                pushTtfSample(msg.txid, 999, 'race');
                 if (typeof updateStats === 'function') {
                   try { updateStats(); } catch (e) {}
                 }
@@ -7809,7 +8383,7 @@ function setupWebSocket() {
               const startMs = state.wsObservedAtMs.get(msg.txid);
               const ttf = Math.max(0, Date.now() - startMs);
               if (ttf > 0 && ttf < 60_000) {
-                state.ttfSamples.push(ttf);
+                pushTtfSample(msg.txid, ttf, 'ws');
                 console.log('[ava-debug] TX_FINALIZED ttf=', ttf, 'ms (ws, untracked) total samples=', state.ttfSamples.length);
                 if (typeof updateStats === 'function') {
                   try { updateStats(); } catch (e) {}
@@ -8171,6 +8745,11 @@ function processNewTx(txData, alreadyConfirmed) {
   if (!alreadyConfirmed) _recordWsLag(txData);
   const tx = parseTransaction(txData);
   state.txs.set(tx.id, tx);
+  // If the node-precise TTF feed already delivered a sample for this txid
+  // before we had chronik data for it, apply it now. This is the second
+  // half of "BUFFER-IF-NOT-YET-FETCHED" described in the TTF feed
+  // client module above.
+  try { checkTtfBufferForTx(tx.id); } catch (e) {}
 
   // Already in a block - don't show, just track
   if (alreadyConfirmed || (txData.block && txData.block.height)) {
@@ -9577,32 +10156,66 @@ function _renderDetailInner(tx) {
   //     session (otherwise preSessionFinal would be true), so ttf must
   //     have been < the time-to-finalize-fast threshold.
   const ttfEl = $('d-ttf');
+  // Helper: if the user is currently looking at a non-node-precise TTF and
+  // Indicator (eye, spinner, or nothing) determined by feed state +
+  // current tx's ttf source. Falls through to '' when nothing to show.
+  // See ttfIndicatorState() for the full decision tree.
+  const indicator = renderTtfIndicator(tx.id, tx.ttfSource);
   if (tx.preSessionFinal) {
     ttfEl.textContent = '—';
     ttfEl.title = 'Tx was already pre-consensus finalized when the page first fetched it — no reference timestamp available.';
   } else if (tx.raceFinalized && tx.ttfSource !== 'race-backfilled' && !tx.ttfResolved) {
-    // Honest "pending" state — we don't yet know if chronik will deliver
-    // a precise TX_ADDED timestamp. Don't commit to '< 1s' yet.
+    // Race condition: chronik dispatched TX_FINALIZED before
+    // TX_ADDED_TO_MEMPOOL, so the exact delta isn't known yet. We hold
+    // "—" until either race-backfill arrives (chronik delivers the
+    // TX_ADDED late) or node-precise arrives (VPS log measurement).
+    // If neither comes, "—" stays — we don't fall back to "< 1s ⚡"
+    // anymore because node-precise is the authoritative timing source
+    // and the synthetic placeholder would only mislead.
     ttfEl.textContent = '—';
-    ttfEl.title = 'Resolving… waiting for chronik to deliver TX_ADDED_TO_MEMPOOL so we can compute the precise time-to-final. Falls back to "< 1s ⚡" if no backfill arrives within ~3 seconds.';
-  } else if (tx.raceFinalized && tx.ttfSource !== 'race-backfilled') {
-    ttfEl.innerHTML = '&lt; 1s <span style="color: var(--gold)">⚡</span>';
-    ttfEl.title = 'Sub-second finalize — chronik dispatched TX_FINALIZED before TX_ADDED_TO_MEMPOOL, so the exact delta could not be measured. True value is bounded above by ~1 second.';
+    ttfEl.title = 'Resolving… waiting for either chronik to deliver TX_ADDED_TO_MEMPOOL (race-backfill) or the node-precise TTF feed to provide a measurement.';
   } else if (tx.ttf != null && tx.ttf > 0) {
-    ttfEl.textContent = (tx.ttf / 1000).toFixed(2) + 's';
+    // Indicator BEFORE the number (v1.1.2 prefix layout).
+    ttfEl.innerHTML = indicator + (tx.ttf / 1000).toFixed(2) + 's';
     ttfEl.title = tx.ttfSource === 'race-backfilled'
       ? 'Sub-second finalize, measured by race backfill (TX_ADDED arrived just after TX_FINALIZED).'
-      : '';
-  } else if (tx.state === 'final' || tx.state === 'included') {
-    // In-session finalized tx with no ttf measurement AND no synthetic
-    // flag — extremely rare path, but kept as a defensive fallback.
-    // Display the race-style indicator since we know it finalized
-    // in-session but lost the timing.
-    ttfEl.innerHTML = '&lt; 1s <span style="color: var(--gold)">⚡</span>';
-    ttfEl.title = 'No precise measurement captured for this tx — finalized during the session faster than the dashboard could time it. True value is bounded above by ~1 second.';
+      : tx.ttfSource === 'node-precise'
+        ? 'Measured from eCash node\'s avalanche log.'
+        : '';
+    // If we just rendered a spinner, the upgrade window is still open.
+    // Without a nudge, the spinner would keep spinning forever — the
+    // DOM doesn't re-render itself. Schedule one refresh at the
+    // expected expiry so the spinner disappears (or the value changes
+    // to node-precise if it arrived).
+    //
+    // v1.1.2 fix (H1): in 1.1.1 each render scheduled a NEW timeout,
+    // so if the detail panel re-rendered 10× in 3s we got 10 stacked
+    // timeouts — each calling refreshDetailIfActive, which rescheduled
+    // another timeout, forming a self-amplifying spin. We now cache
+    // the timer id on the tx and clearTimeout before scheduling.
+    if (tx.ttfPendingUpgradeUntil) {
+      const remaining = tx.ttfPendingUpgradeUntil - Date.now();
+      if (remaining > 0) {
+        if (tx._ttfRefreshTimer) {
+          clearTimeout(tx._ttfRefreshTimer);
+        }
+        tx._ttfRefreshTimer = setTimeout(() => {
+          tx._ttfRefreshTimer = 0;
+          try { refreshDetailIfActive(); }
+          catch (e) { console.warn('[ttf-feed] detail refresh failed', e); }
+        }, remaining + 50);
+      }
+    }
   } else {
+    // Anything else — pre-session, no ttf available, etc. — show '—'.
+    // The old fallback "< 1s ⚡" for final tx without ttf has been
+    // removed; with node-precise as the authoritative source, an
+    // unmeasured final tx is genuinely unmeasured and should look
+    // that way rather than display a misleading placeholder.
     ttfEl.textContent = '—';
-    ttfEl.title = '';
+    ttfEl.title = tx.state === 'final' || tx.state === 'included'
+      ? 'No precise measurement captured for this tx — it finalized faster than the dashboard could time it, and no node-precise reading arrived.'
+      : '';
   }
   // Block link with copy — prefer hash (explorer.e.cash uses /block/<hash>) when known
   const blockEl = $('d-block');
@@ -11207,8 +11820,24 @@ function updateStats() {
   if (state.ttfSamples.length > 0) {
     const cap = 50;
     const n = Math.min(cap, state.ttfSamples.length);
-    const avg = state.ttfSamples.slice(-n).reduce((a, b) => a + b, 0) / n;
-    $('f-ttf').innerHTML = (avg / 1000).toFixed(1) + ' <span class="u">s</span>';
+    // ttfSampleMs handles both the new {ttfMs, txid, source} objects and
+    // any leftover raw numbers (defensive — there shouldn't be any in
+    // 1.1.1+ but a hot-reloaded page or future refactor could leave
+    // some). Null returns are filtered so the avg doesn't drift.
+    const window = state.ttfSamples.slice(-n)
+      .map(ttfSampleMs)
+      .filter(v => v != null);
+    const avg = window.length > 0
+      ? window.reduce((a, b) => a + b, 0) / window.length
+      : 0;
+    // Footer indicator: same single-source-of-truth helper as the
+    // detail panel. txid=null (footer is an aggregate, not per-tx),
+    // ttfSource=null (no specific source for the avg). The helper
+    // returns 'eye' whenever feed is down OR never-connected, plus
+    // tooltip text matching the situation. v1.1.2: prefix layout.
+    $('f-ttf').innerHTML =
+      renderTtfIndicator(null, null) +
+      (avg / 1000).toFixed(1) + ' <span class="u">s</span>';
   }
   // Block-lock = elapsed time from block mined to avalanche-finalized.
   // Same progressive approach: window grows from 1 → 20 as samples come in.
@@ -16040,6 +16669,23 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('pagehide', () => {
   try { state.ws?.close?.(); } catch {}
   try { chatWs?.close?.(); } catch {}
+  try { ttfFeedState.ws?.close?.(); } catch {}
+  if (ttfFeedState.reconnectTimer) {
+    clearTimeout(ttfFeedState.reconnectTimer);
+    ttfFeedState.reconnectTimer = null;
+  }
+  if (ttfFeedState.bufferCleanupTimer) {
+    clearInterval(ttfFeedState.bufferCleanupTimer);
+    ttfFeedState.bufferCleanupTimer = null;
+  }
+  // Cancel any pending TTF render — page is hidden, no point completing
+  // a paint that will never be seen. Prevents a wasted frame when the
+  // tab goes into bfcache mid-coalesce.
+  if (ttfFeedState.renderRafId) {
+    cancelAnimationFrame(ttfFeedState.renderRafId);
+    ttfFeedState.renderRafId = 0;
+    ttfFeedState.renderPending = false;
+  }
   _stopBackgroundIntervals();
 });
 
@@ -16059,6 +16705,11 @@ queueMicrotask(() => {
 state.mode = 'live';
 $('btn-live').classList.toggle('active', true);
 initChronik();
+// Start the node-precise TTF feed in parallel with chronik. It's
+// independent and best-effort — if it fails to connect, the page still
+// works with client-side TTF and shows the "⚠ …" indicator in the
+// footer + detail panel.
+startTtfFeedModule();
 </script>
 </body>
 </html>
