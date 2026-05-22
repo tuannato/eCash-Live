@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-YqBUnpgSyqOhNzHaFy9j1EmJVNRmv9qxPbxDnrqxNFk=';
+  script-src 'self' 'sha256-OVfTrg5cbsyuGDeJ+ELLd5xgOL2rEV2lGlnUEhLTrzE=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -5716,7 +5716,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.1.5">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.1.5</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.1.6">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.1.6</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -6818,6 +6818,21 @@ function ttfSampleMs(s) {
   if (typeof s === 'number') return s;
   if (s && typeof s.ttfMs === 'number') return s.ttfMs;
   return null;
+}
+
+// True when a TTF start-anchor predates the last time the tab went hidden
+// AND we are now past that hidden stamp — i.e. the measurement window spans
+// a background/sleep period. On mobile the chronik WS queues TX_FINALIZED
+// while JS is frozen and replays it on resume, so `Date.now() - anchor` would
+// include the entire sleep duration (tens of seconds). node-precise can't
+// rescue these (ttf-relay broadcasts live, never replays — see ttf-relay.py),
+// so the only honest move is to DISCARD the sample. O(1), single timestamp,
+// does not scale with TPS.
+function _ttfAnchorSpansSleep(anchorMs) {
+  const h = state.lastHiddenAt;
+  if (!h) return false;                 // never been hidden this session
+  if (typeof anchorMs !== 'number') return false;
+  return anchorMs <= h && Date.now() > h;
 }
 
 // True if a tx is currently inside its upgrade window (perceived TTF
@@ -8043,7 +8058,19 @@ async function startLivePoller() {
           ref = localTx.firstSeenLocal;
           refSource = 'poll';
         }
-        if (ref) {
+        if (ref && _ttfAnchorSpansSleep(ref)) {
+          // Anchor predates a hidden/sleep span — `now - ref` is inflated by
+          // the background duration and node-precise will never correct it.
+          // Discard: leave the per-tx value blank ('—') and push nothing to
+          // the rolling average. Don't clobber an authoritative source if one
+          // somehow already landed.
+          if (localTx.ttfSource !== 'node-precise' && localTx.ttfSource !== 'race-backfilled') {
+            localTx.ttf = null;
+            localTx.ttfSource = 'stale-sleep';
+            localTx.ttfResolved = true;
+          }
+          ttfLog('[ava-debug] poll TX_FINALIZED discarded (anchor spans sleep) for', txData.txid?.slice(0, 12));
+        } else if (ref) {
           const ttf = Math.max(0, now - ref);
           if (ttf > 0 && ttf < 60_000) {
             // Skip-or-upgrade for the PER-TX display fields, mirroring the
@@ -8364,7 +8391,17 @@ function setupWebSocket() {
               ref = tx.firstSeenLocal;
               refSource = 'poll';
             }
-            if (ref) {
+            if (ref && _ttfAnchorSpansSleep(ref)) {
+              // Anchor predates a hidden/sleep span (see poll path + helper).
+              // The recomputed value would be inflated by the background
+              // duration with no node-precise rescue possible — discard.
+              if (tx.ttfSource !== 'node-precise' && tx.ttfSource !== 'race-backfilled') {
+                tx.ttf = null;
+                tx.ttfSource = 'stale-sleep';
+                tx.ttfResolved = true;
+              }
+              ttfLog('[ava-debug] TX_FINALIZED discarded (anchor spans sleep) for', msg.txid?.slice(0, 12));
+            } else if (ref) {
               const wsTtf = Math.max(0, now - ref);
               // Same skip-or-upgrade guard as the poll finalize path: never
               // let a recomputed perceived value overwrite an authoritative
@@ -8455,7 +8492,11 @@ function setupWebSocket() {
             if (state.wsObservedAtMs && state.wsObservedAtMs.has(msg.txid)) {
               const startMs = state.wsObservedAtMs.get(msg.txid);
               const ttf = Math.max(0, Date.now() - startMs);
-              if (ttf > 0 && ttf < 60_000) {
+              if (_ttfAnchorSpansSleep(startMs)) {
+                // Anchor predates a hidden/sleep span — inflated, unrescuable
+                // (no tx row exists here anyway). Drop without sampling.
+                ttfLog('[ava-debug] TX_FINALIZED discarded (ws, untracked, anchor spans sleep) for', msg.txid?.slice(0, 12));
+              } else if (ttf > 0 && ttf < 60_000) {
                 pushTtfSample(msg.txid, ttf, 'ws');
                 ttfLog('[ava-debug] TX_FINALIZED ttf=', ttf, 'ms (ws, untracked) total samples=', state.ttfSamples.length);
                 if (typeof updateStats === 'function') {
@@ -16810,6 +16851,15 @@ _startBackgroundIntervals();
 // becomes visible again updateStats() catches up on the first tick.
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
+    // Stamp the moment we went hidden. Mobile freezes JS while the tab is
+    // backgrounded but the chronik WS keeps queueing events; on resume those
+    // events replay and Date.now() jumps forward by the whole sleep duration.
+    // Any TTF whose start-anchor predates this stamp would be inflated by the
+    // sleep gap, and node-precise can never correct it (ttf-relay is pure
+    // broadcast — no per-client replay), so the finalize paths use this stamp
+    // to DISCARD such samples rather than poison the rolling average. See
+    // _ttfAnchorSpansSleep().
+    state.lastHiddenAt = Date.now();
     _stopBackgroundIntervals();
   } else {
     _startBackgroundIntervals();
