@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-eJcFrMiTb5s/QwFmggACeQP610fkrj6WLq3woGAjfLg=';
+  script-src 'self' 'sha256-YqBUnpgSyqOhNzHaFy9j1EmJVNRmv9qxPbxDnrqxNFk=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -5716,7 +5716,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.1.3">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.1.3</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.1.5">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.1.5</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -7947,8 +7947,17 @@ async function startLivePoller() {
   // surface, which felt broken. The new bounds keep the page responsive
   // (cooperative yields every 50 tx via setTimeout 0) while filling visible
   // rows as fast as the network can deliver them.
-  const MEMPOOL_BURST_CAP = 400;       // absolute ceiling per 5s cycle
-  const MEMPOOL_YIELD_EVERY = 50;      // yield to event loop every N tx
+  // v1.1.4: raised from 400→2000 and yield 50→100. chronik's /unconfirmed-txs
+  // returns the ENTIRE mempool in one response (no server-side pagination or
+  // page-size cap exists to raise), so a mempool of thousands took many 5s
+  // cycles to surface at the old 400/cycle cap — felt stuck. 2000/cycle drains
+  // a typical busy mempool in one or two cycles; the cooperative yield every
+  // 100 tx (was 50) keeps the main thread responsive while halving the number
+  // of setTimeout(0) round-trips, which themselves were adding latency on huge
+  // batches. Hard ceiling stays so a pathological 100k-tx mempool can't lock
+  // the tab — it just takes a few more cycles, newest-first (see sort below).
+  const MEMPOOL_BURST_CAP = 2000;      // absolute ceiling per 5s cycle
+  const MEMPOOL_YIELD_EVERY = 100;     // yield to event loop every N tx
   const pollMempool = async () => {
     if (state.mode !== 'live') { livePollerActive = false; return; }
     if (state.paused) {
@@ -7958,24 +7967,27 @@ async function startLivePoller() {
     try {
       const mp = await chronik.unconfirmedTxs();
       const txs = mp.txs || [];
-      // Topbar Mempool counter: previously this displayed `mp.numTxs` which
-      // is chronik's snapshot count AT THE TIME of the request. If a tx
-      // entered the mempool and was immediately mined into a block while
-      // our poll response was still in flight, chronik reports it as
-      // mempool (count=1) but our UI processes the block first and the tx
-      // skips the `final` state entirely — leaving the topbar showing
-      // "1" while panel 02 stays empty.
+      // Topbar Mempool counter (v1.1.4): show chronik's `mp.numTxs` — the
+      // node's true mempool size — as the authoritative total. The previous
+      // approach displayed a LOCAL count (pre-final + polling tx in
+      // `state.txs`), which is near-zero on the first poll and only creeps up
+      // as we parse the capped batch each cycle, so the topbar under-reported
+      // the real mempool for the first many seconds after page load. That was
+      // the "wrong on first load" bug.
       //
-      // Fix: use the LOCAL count of pre-finalized + still-polling tx that
-      // we actually have in `state.txs`. This means topbar and panel 02
-      // are always derived from the same data — no more phantom counts.
-      // We keep `mp.numTxs` as a fallback if our local state is empty
-      // (first poll before any tx has been processed).
-      let localMem = 0;
-      state.txs.forEach(tx => {
-        if (tx.state === 'pending' || tx.state === 'polling' || tx.state === 'final') localMem++;
-      });
-      const shownMem = (localMem > 0) ? localMem : (mp.numTxs || txs.length);
+      // Tradeoff accepted (user-confirmed): the counter is now the real total
+      // even though panel 02 may render fewer rows (we only parse up to the
+      // burst cap / visible budget per cycle). The counter answers "how big is
+      // the mempool right now"; panel 02 answers "what have we surfaced so
+      // far". They are intentionally derived from different sources now.
+      //
+      // The old phantom-count concern (a tx mined between request dispatch and
+      // our processing, leaving topbar at "1" while panel 02 is empty) is a
+      // transient single-cycle artifact that self-corrects on the next 5s
+      // poll, and is far less misleading than chronically under-counting a
+      // busy mempool. `txs.length` remains the last-resort fallback if numTxs
+      // is somehow absent.
+      const shownMem = (mp.numTxs != null) ? mp.numTxs : txs.length;
       $('m-mem').textContent = shownMem.toLocaleString('en-US');
 
       // ===== Polling-based avalanche TTF detection =====
@@ -8108,7 +8120,20 @@ async function startLivePoller() {
         ? state.pageSize.col2 + 10  // a little headroom so trimming doesn't churn
         : 30;
       const cap = pageSizeAll ? MEMPOOL_BURST_CAP : visibleBudget;
-      const newOnes = txs.filter(t => !knownTxids.has(t.txid)).slice(0, cap);
+      // v1.1.4/1.1.5: chronik's /unconfirmed-txs iterates the node's mempool
+      // map, keyed by txid (hash order) — NOT time order. So the returned array
+      // is effectively random w.r.t. firstSeen. We sort newest-first and slice
+      // to the cap so the visible budget keeps the MOST-RECENT tx (an unsorted
+      // slice could drop the newest and keep stale ones). We no longer reverse
+      // for processing order: as of v1.1.5 addTxRow() inserts each row at its
+      // correct timestamp slot, so the order we process in is irrelevant to the
+      // final column order. Sort cost is O(n log n) on the filtered slice only
+      // (bounded by the cap), so it does not scale with total TPS.
+      const tfs = (t) => (t.timeFirstSeen != null ? Number(t.timeFirstSeen) : 0);
+      const newOnes = txs
+        .filter(t => !knownTxids.has(t.txid))
+        .sort((a, b) => tfs(b) - tfs(a))  // newest-first, so the cap keeps recent tx
+        .slice(0, cap);
 
       let processed = 0;
       for (const txData of newOnes) {
@@ -9663,7 +9688,29 @@ function addTxRow(tx, listId) {
   const wasAtTop = list.scrollTop < 30;
   const oldScrollHeight = list.scrollHeight;
 
-  list.insertBefore(row, list.firstChild);
+  // Sorted insertion (v1.1.5): the old code always did insertBefore(firstChild)
+  // — blindly putting every new row at the very top. That broke panel 2
+  // ordering because rows do NOT arrive in time order there:
+  //   • migrateTxToMempool() delays each col2 insert by 500ms via setTimeout,
+  //     so within one poll batch the inserts fire in scrambled order and
+  //     whichever lands last sits on top — even if it's the oldest tx.
+  //   • already-final txs (processNewTx) and late race-backfills insert at
+  //     other times entirely.
+  // Reversing the processing loop (the v1.1.4 col1 fix) can't help col2 because
+  // the 500ms timers detach insertion order from processing order. The robust
+  // fix is to insert by the row's ordering key regardless of WHEN it arrives:
+  // scan from the top and drop the new row just before the first existing row
+  // that is strictly OLDER. Equal keys → insert before them (newest-arrival on
+  // top, per design choice). If none are older, the row is the oldest → append.
+  // O(n) over visible rows (≤ pageSize / MAX_TX_VISIBLE_PER_COL), bounded by
+  // the trim cap, so it does not scale with TPS.
+  const newKey = txRowOrderKey(tx);
+  let ref = null;
+  for (const child of list.children) {
+    const childKey = parseFloat(child.dataset.ts);
+    if (!Number.isFinite(childKey) || childKey < newKey) { ref = child; break; }
+  }
+  list.insertBefore(row, ref);  // ref === null → appended at end (oldest)
 
   if (!wasAtTop) {
     // User was reading older tx; keep their view stable
@@ -9674,10 +9721,28 @@ function addTxRow(tx, listId) {
   trimList(listId);
 }
 
+// Ordering key for a tx row in the panels. Primary = firstSeen (node's
+// timeFirstSeen, ms but 1-SECOND precision so it ties a lot on a busy
+// mempool). Tiebreaker = firstSeenLocal (true Date.now() ms from when WE
+// first saw it) so same-second txs resolve as newest-arrival-on-top instead
+// of an arbitrary DOM order. Both fall back to 0 / now so a row always gets a
+// finite key. Returns a single comparable number: seconds dominate, the
+// local-ms fraction only breaks ties within the same node-second.
+function txRowOrderKey(tx) {
+  const fs = (tx.firstSeen != null) ? tx.firstSeen : 0;
+  const fsl = (tx.firstSeenLocal != null) ? tx.firstSeenLocal : fs;
+  // fs is *000-aligned (1s precision); use fsl's sub-second remainder as a
+  // fractional tiebreaker without letting it cross a whole-second boundary.
+  return fs + ((fsl % 1000) / 1000);
+}
+
 function createTxRow(tx) {
   const row = document.createElement('div');
   row.className = 'tx-row entering';
   row.dataset.txid = tx.id;
+  // Stamp the ordering key so addTxRow() can find the correct slot without
+  // re-deriving it from the tx object (the row may outlive easy tx lookup).
+  row.dataset.ts = String(txRowOrderKey(tx));
   const html = renderRowContent(tx);
   row.innerHTML = html;
   tx._lastRowHtml = html;  // seed the updateTxRow cache so the first call after creation skips the redundant rebuild
@@ -9933,10 +9998,12 @@ function repopulateColumn(listId, stateNames) {
     if (r.dataset.txid) existingTxids.add(r.dataset.txid);
   });
   let visibleCount = existingTxids.size;
-  // Collect candidates in insertion order (oldest → newest). When appending
-  // to the END of the list (older end), this keeps the most-recent-first
-  // visual order intact: existing rows at top are newest, appended rows
-  // below are older.
+  // Collect candidates not yet rendered. We must NOT trust state.txs Map
+  // insertion order for chronology: as of v1.1.4 the poll loop sorts each
+  // batch newest-first before processNewTx → state.txs.set, so Map order no
+  // longer tracks firstSeen. Instead we sort candidates explicitly by the same
+  // ordering key addTxRow uses, newest-first, so appended rows stay correctly
+  // ordered beneath the (newer) existing rows at the top.
   const candidates = [];
   state.txs.forEach((tx) => {
     if (!stateNames.includes(tx.state)) return;
@@ -9944,9 +10011,7 @@ function repopulateColumn(listId, stateNames) {
     if (existingTxids.has(tx.id)) return;
     candidates.push(tx);
   });
-  // Newest non-rendered first — these go just below existing visible rows
-  // so the rendered order remains newest-first overall.
-  candidates.reverse();
+  candidates.sort((a, b) => txRowOrderKey(b) - txRowOrderKey(a)); // newest-first
   for (const tx of candidates) {
     if (visibleCount >= max) break;
     const row = createTxRow(tx);
@@ -10048,8 +10113,17 @@ function renderDetail(tx) {
   // measurement) or a resolution flip (race → resolved-as-<1s after the
   // 3s window) actually triggers a re-render instead of being swallowed
   // by the dedupe.
+  // The trailing spin-flag is essential for the spinner self-expiry: when
+  // scheduleTtfSpinnerExpiry() fires at the 3s deadline it calls
+  // refreshDetailIfActive() → renderDetail(), but NONE of the ttf/state
+  // fields above change at the deadline (the value was already shown). Without
+  // a spinner-window component the key stays identical and the early-return
+  // below swallows the render, so the spinner spins forever on a pinned tx
+  // (the 1.1.3 "spinner never disappears after 3s" bug). Folding the live
+  // hasPendingNodePreciseWait() result into the key forces exactly one
+  // re-render when the window closes, which clears the spinner.
   const key = tx
-    ? `${tx.id}|${tx.state}|${tx.confidence}|${pinState}|${tx.includedBlock || ''}|${tx.ttf == null ? 'n' : tx.ttf}|${tx.ttfSource || ''}|${tx.ttfResolved ? '1' : '0'}`
+    ? `${tx.id}|${tx.state}|${tx.confidence}|${pinState}|${tx.includedBlock || ''}|${tx.ttf == null ? 'n' : tx.ttf}|${tx.ttfSource || ''}|${tx.ttfResolved ? '1' : '0'}|${hasPendingNodePreciseWait(tx.id) ? 'spin' : 'nospin'}`
     : `null|${pinState}`;
   if (key === _lastDetailKey) return;
   _lastDetailKey = key;
