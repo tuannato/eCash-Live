@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-OVfTrg5cbsyuGDeJ+ELLd5xgOL2rEV2lGlnUEhLTrzE=';
+  script-src 'self' 'sha256-q9rQCbPg4rct+MX14k6bL3Y1wc33JVORmNEWsVE8OCE=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -2664,10 +2664,17 @@
 
   /* Fullscreen the modal on small phones for readability. */
   @media (max-width: 540px) {
-    .block-txlist-overlay { padding: 0; }
+    /* Pad the top by the safe-area inset so the dialog (and its × close
+       button at the very top) drops below the mobile browser's address bar
+       / notch instead of hiding underneath it. */
+    .block-txlist-overlay {
+      padding: 0;
+      padding-top: env(safe-area-inset-top, 0px);
+    }
     .block-txlist-dialog {
-      max-width: 100%; max-height: 100vh;
-      height: 100vh;
+      max-width: 100%;
+      max-height: calc(100dvh - env(safe-area-inset-top, 0px));
+      height: calc(100dvh - env(safe-area-inset-top, 0px));
       border-radius: 0;
       border: 0;
       border-top: 1px solid var(--cyan);
@@ -5048,7 +5055,13 @@
     .mobile-tabs {
       display: flex !important;
       position: sticky;
-      top: 130px;
+      /* Stick flush to the bottom of the sticky topbar. The topbar is a
+         variable-height 2-row grid (height: auto), so a hardcoded offset
+         left a gap (or overlap) whenever the real height != 130px. The
+         live height is published into --topbar-h by setupTopbarOverflow's
+         measure() on load/resize/RO. 130px is the historical fallback for
+         the first paint before JS runs. */
+      top: var(--topbar-h, 130px);
       z-index: 40;
       background: rgba(8,8,15,0.92);
       backdrop-filter: blur(8px);
@@ -5232,7 +5245,12 @@
       display: none !important;
       position: fixed;
       bottom: 0; left: 0; right: 0;
-      max-height: 85vh;
+      /* Cap the top so it never slides under the mobile browser's address
+         bar. 85vh measured against the *small* viewport (100dvh) keeps the
+         drag-handle on-screen even when the URL bar is expanded; without
+         this the handle hid behind the chrome and the panel couldn't be
+         swiped down to dismiss. */
+      max-height: min(85vh, calc(100dvh - 56px));
       z-index: 100;
       background: var(--bg);
       border-top: 2px solid var(--cyan);
@@ -5240,7 +5258,8 @@
       box-shadow: 0 -10px 36px rgba(0,0,0,0.7);
       transform: translateY(100%);
       transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-      padding: 20px 18px 28px;
+      /* Top padding also clears the notch / dynamic-island safe area. */
+      padding: calc(20px + env(safe-area-inset-top, 0px)) 18px 28px;
       overflow-y: auto;
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
@@ -5716,7 +5735,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.1.6">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.1.6</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.1.7">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.1.7</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -6553,7 +6572,7 @@
      on the existing "?" tooltip trigger, the explorer link, or the hash-
      copy button — those keep their own behaviours.
 ======================================================================== -->
-<div class="block-txlist-overlay" id="block-txlist-overlay" role="dialog" aria-modal="true" aria-labelledby="btl-title" aria-hidden="true">
+<div class="block-txlist-overlay" id="block-txlist-overlay" role="dialog" aria-modal="true" aria-labelledby="btl-title" aria-hidden="true" inert>
   <div class="block-txlist-dialog" role="document">
     <button class="dlg-close" id="btl-close" type="button" title="Close">×</button>
     <div class="btl-head">
@@ -11488,6 +11507,7 @@ function openBlockTxList(block) {
   $('btl-loadmore').style.display = 'none';
   const overlay = $('block-txlist-overlay');
   overlay.classList.add('show');
+  overlay.inert = false;
   overlay.setAttribute('aria-hidden', 'false');
   // Lock body scroll while modal is open
   document.body.style.overflow = 'hidden';
@@ -11497,7 +11517,15 @@ function openBlockTxList(block) {
 
 function closeBlockTxList() {
   const overlay = $('block-txlist-overlay');
+  // If the close button (#btl-close) still holds focus when we flip
+  // aria-hidden, the browser warns "aria-hidden on an element because its
+  // descendant retained focus". Blur the focused descendant first, then use
+  // `inert` (which also drops the subtree from the a11y tree + tab order) so
+  // aria-hidden no longer fights live focus. Mirrors hideTooltip().
+  const focused = overlay.contains(document.activeElement) ? document.activeElement : null;
+  if (focused && typeof focused.blur === 'function') focused.blur();
   overlay.classList.remove('show');
+  overlay.inert = true;
   overlay.setAttribute('aria-hidden', 'true');
   // Restore scroll
   document.body.style.overflow = '';
@@ -11822,6 +11850,14 @@ function renderChain() {
     const topbar = document.querySelector('.topbar');
     const meta = document.querySelector('.topbar .meta');
     if (!topbar || !meta) return;
+
+    // Publish the live topbar height so the mobile tab strip can stick
+    // flush beneath it (CSS: .mobile-tabs { top: var(--topbar-h) }). The
+    // topbar is height:auto on mobile (2-row grid), so any hardcoded offset
+    // drifts into a gap/overlap. Done before the early returns below because
+    // the <=767 branch returns early yet is exactly where the var matters.
+    document.documentElement.style.setProperty(
+      '--topbar-h', topbar.offsetHeight + 'px');
 
     // On true mobile (<=767), the CSS media query already stacks the topbar
     // and the meta becomes a grid. Don't double-apply our classes.
@@ -15937,6 +15973,17 @@ function showTooltip(trigger, key) {
     const top = Math.max(8, Math.round((vh - ph) / 2));
     popover.style.left = left + 'px';
     popover.style.top = top + 'px';
+    // Kick the SMIL clock on the consensus diagrams. SVGs carrying <animate>
+    // elements that are inserted via innerHTML frequently fail to auto-start
+    // their timeline on mobile browsers (Chrome/Android, some WebKit) — the
+    // markup parses but the animation clock never begins. Calling
+    // setCurrentTime(0) on the freshly-injected <svg> forces its timeline to
+    // start, so the pre/post-consensus animations play reliably.
+    popover.querySelectorAll('svg').forEach((svg) => {
+      try {
+        if (typeof svg.setCurrentTime === 'function') svg.setCurrentTime(0);
+      } catch (e) { /* SMIL unsupported — static diagram is acceptable */ }
+    });
   });
   trigger.classList.add('active');
   activeTooltipTrigger = trigger;
