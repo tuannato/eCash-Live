@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-FHjB5831/hh5zjAnWMrkBIvQmUTAy8MgIwf7WK1/PLI=';
+  script-src 'self' 'sha256-PrR5wXKqRknpAWCHrHMqiT4jtAkMlJrEo1p3gE2o1tk=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -2618,9 +2618,48 @@
     color: var(--gold);
     border: 1px solid rgba(255,184,0,0.3);
   }
+  /* Watchlist highlight inside the block tx-list popup. Reuses the live-feed
+     --watch (lime, wallet) / --purple-light (token) palette so a watched txid
+     reads the same here as it does scrolling past on the feed. Wallet = lime,
+     token = purple — set by the .watched / .watched-token classes from
+     btlRenderRows(). */
+  .btl-row.watched {
+    background: var(--watch-bg);
+    box-shadow: inset 2px 0 0 var(--watch);
+  }
+  .btl-row.watched:hover {
+    background: var(--watch-bg-strong);
+  }
+  .btl-row.watched.watched-token {
+    background: rgba(94,14,174,0.10);
+    box-shadow: inset 2px 0 0 var(--purple-light);
+  }
+  .btl-row.watched.watched-token:hover {
+    background: rgba(94,14,174,0.18);
+  }
+  .btl-row .btl-tag.watched {
+    background: rgba(167,255,55,0.18);
+    color: var(--watch);
+    border: 1px solid var(--watch-dim);
+    max-width: 120px; overflow: hidden; text-overflow: ellipsis;
+  }
+  .btl-row .btl-tag.watched.watched-token {
+    background: rgba(185,133,255,0.18);
+    color: var(--purple-light);
+    border: 1px solid rgba(185,133,255,0.45);
+  }
   .btl-row .btl-go {
     color: var(--text-3); font-size: 11px;
   }
+  /* Container holding up to two watchlist tags (address + token) in the single
+     tag grid column. Tags are capped narrow so a row with both never crowds the
+     txid; the right-aligned ↗ stays put. */
+  .btl-row .btl-tags {
+    display: inline-flex; gap: 4px; align-items: center;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+  .btl-row .btl-tags .btl-tag { max-width: 96px; overflow: hidden; text-overflow: ellipsis; }
   .btl-row:hover .btl-go { color: var(--cyan); }
   .block-txlist-dialog .btl-foot {
     display: flex; justify-content: space-between; align-items: center;
@@ -3029,18 +3068,25 @@
   .wl-card-token {
     border-color: rgba(185,133,255,0.30);
     background: rgba(185,133,255,0.05);
-    /* Extra leading column for the actual token icon image. */
-    grid-template-columns: auto auto 1fr auto;
+    /* Leading column for the token icon image. Kept narrow + small gap so the
+       name/badge line starts at almost the same x as an ADDR card (whose first
+       column is just .wl-main). Previously the 28px icon + 10px gap pushed all
+       token content noticeably right of the address cards — the user asked for
+       both kinds to sit aligned near the left edge. */
+    grid-template-columns: 20px 1fr auto auto;
+    column-gap: 7px;
   }
   .wl-card-token:hover {
     border-color: var(--purple-light);
     background: rgba(185,133,255,0.10);
   }
   .wl-icon-col {
-    width: 28px; height: 28px;
+    width: 20px; height: 20px;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
   }
+  /* Icon image fills the tightened 20px column. */
+  .wl-card-token .wl-icon-col .token-icon-md { width: 20px; height: 20px; }
   .wl-card .wl-main {
     min-width: 0;
     display: flex; flex-direction: column; gap: 2px;
@@ -3188,6 +3234,39 @@
   .wl-card-token .wl-act-btn:hover {
     color: var(--purple-light); border-color: rgba(185,133,255,0.5);
     background: rgba(185,133,255,0.10);
+  }
+  /* Power ⏻ toggle. Active (watching) shows the card's accent so it reads as
+     "on"; the .is-off state greys it out to read as "paused". */
+  .wl-card .wl-act-toggle {
+    color: var(--watch);
+    border-color: var(--watch-dim);
+  }
+  .wl-card-token .wl-act-toggle {
+    color: var(--purple-light);
+    border-color: rgba(185,133,255,0.5);
+  }
+  .wl-card .wl-act-toggle.is-off {
+    color: var(--text-3);
+    border-color: var(--line-2);
+    background: transparent;
+    opacity: 0.7;
+  }
+  /* A paused entry: dim the whole card and mute its accent border so the user
+     can see at a glance which entries are inactive, without losing their
+     name/mode/history. The toggle button stays full-opacity (see below) so it
+     remains an obvious affordance to re-enable. */
+  .wl-card.wl-card-disabled {
+    opacity: 0.5;
+    border-color: var(--line-2);
+    background: rgba(255,255,255,0.02);
+  }
+  .wl-card.wl-card-disabled:hover {
+    opacity: 0.72;
+    border-color: var(--line-2);
+    background: rgba(255,255,255,0.04);
+  }
+  .wl-card.wl-card-disabled .wl-act-toggle {
+    opacity: 1;   /* keep the un-pause control crisp on a dimmed card */
   }
   /* Magenta hover for any "destructive" button — used by the Remove button
      inside the watchlist edit dialog. */
@@ -5754,7 +5833,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.1.8">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.1.8</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.1.9">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.1.9</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -10839,7 +10918,12 @@ function renderTxFlow(tx) {
   const inputAddrSet = new Set(inputs.map(i => i.addr).filter(Boolean));
   const watchedAddrSet = new Set(
     watchlist.addresses
-      .filter(a => a.kind !== 'token')
+      // Skip token entries (matched as whole-row purple elsewhere) AND muted
+      // entries — a disabled watch must not paint the detail flow rows green.
+      // Without the enabled check the detail panel kept highlighting a disabled
+      // address (it reads watchlist.addresses directly rather than going through
+      // matchTxToWatchlist, which already gates on enabled).
+      .filter(a => a.kind !== 'token' && a.enabled !== false)
       .map(a => a.addr)
   );
 
@@ -11500,7 +11584,9 @@ const btlState = {
   block: null,      // the block object we opened (height, hash, txCount, size, timestamp)
   page: 0,          // last fetched page (chronik is 0-indexed)
   numPages: 0,      // total pages reported by chronik
-  rows: [],         // accumulated tx rows: [{txid, idx, isCoinbase}]
+  rows: [],         // accumulated tx rows: [{txid, idx, isCoinbase, refs, wlAddr, wlToken, tintKind}]
+                    // MEMORY: `refs` holds small addr/token-id arrays per row.
+                    // Bounded by loaded rows (page size × pages), NOT by TPS.
   loading: false,
   filter: '',
 };
@@ -11552,6 +11638,64 @@ function closeBlockTxList() {
   btlState.rows = [];
 }
 
+// Block-popup tag support. The popup wants up to TWO tags per row: at most one
+// ADDRESS tag and one TOKEN tag (never two of a kind), resolved independently
+// with the same enabled-gate + send/recv/both filter as the live feed.
+//
+// Split into two steps so the popup can re-tag live when the watchlist changes
+// (add / remove / disable / mode) WITHOUT re-fetching the block:
+//   1. _btlExtractTxRefs(tx) — pull the minimal raw material out of a chronik
+//      tx ONCE at fetch time: input addrs, output addrs, token IDs. Stored on
+//      the row as compact arrays (bounded by page size, NOT by TPS — see the
+//      memory note in btlState). We deliberately do NOT retain the whole tx.
+//   2. _btlTagsFromRefs(refs) — compute {addr,token} tags from a refs snapshot
+//      against the CURRENT watchlist. Cheap; safe to re-run on every change.
+function _btlExtractTxRefs(tx) {
+  const inAddrs = [];
+  const outAddrs = [];
+  const tokenIds = [];
+  if (!tx || typeof tx !== 'object') return { in: inAddrs, out: outAddrs, tokenIds };
+  for (const inp of (tx.inputs || [])) {
+    const a = _extractInputAddr(inp);
+    if (a && !inAddrs.includes(a)) inAddrs.push(a);
+  }
+  for (const o of (tx.outputs || [])) {
+    const a = _extractOutputAddr(o);
+    if (a && !outAddrs.includes(a)) outAddrs.push(a);
+  }
+  // Own token + parent NFT-group (so watching a group ID tags every child NFT),
+  // mirroring matchTxToWatchlist.
+  const te = Array.isArray(tx.tokenEntries) ? tx.tokenEntries[0] : null;
+  if (te?.tokenId) tokenIds.push(te.tokenId);
+  if (te?.groupTokenId && te.groupTokenId !== te.tokenId) tokenIds.push(te.groupTokenId);
+  return { in: inAddrs, out: outAddrs, tokenIds };
+}
+
+// Compute the two tags from a refs snapshot against the live watchlist.
+// Returns { addr: {name,addr}|null, token: {name,addr}|null }.
+function _btlTagsFromRefs(refs) {
+  const out = { addr: null, token: null };
+  if (!refs || watchlist.addresses.length === 0) return out;
+  const inAddrs = refs.in || [];
+  const outAddrs = refs.out || [];
+  const tokenIds = refs.tokenIds || [];
+  // First enabled address entry whose direction filter is satisfied.
+  for (const e of watchlist.addresses) {
+    if (e.kind === 'token' || e.enabled === false) continue;
+    const mode = e.mode || WATCHLIST_DEFAULT_MODE;
+    const inIn = inAddrs.includes(e.addr);
+    const inOut = outAddrs.includes(e.addr);
+    const hit = (mode === 'send' && inIn) || (mode === 'receive' && inOut) || (mode === 'both' && (inIn || inOut));
+    if (hit) { out.addr = { name: e.name, addr: e.addr }; break; }
+  }
+  // First enabled token entry referenced by the tx.
+  for (const e of watchlist.addresses) {
+    if (e.kind !== 'token' || e.enabled === false) continue;
+    if (tokenIds.includes(e.addr)) { out.token = { name: e.name, addr: e.addr }; break; }
+  }
+  return out;
+}
+
 async function btlFetchPage() {
   const b = btlState.block;
   if (!b || btlState.loading) return;
@@ -11582,10 +11726,32 @@ async function btlFetchPage() {
       const idx = baseIdx + i;
       const isCoinbase = idx === 0 || (Array.isArray(tx.inputs) && tx.inputs.length === 1
         && tx.inputs[0]?.prevOut?.txid === '0000000000000000000000000000000000000000000000000000000000000000');
+      // Watchlist tags. blockTxs gives us the FULL chronik tx (inputs/outputs/
+      // tokenEntries). We extract a compact refs snapshot ONCE here, then derive
+      // the (up to two) tags from it. Storing refs — not the whole tx — lets the
+      // popup re-tag live when the watchlist changes (add/remove/disable/mode)
+      // without re-fetching, while keeping per-row memory small. Coinbase never
+      // matches, so we skip extraction for it.
+      let refs = null;
+      let wlTags = { addr: null, token: null };
+      if (!isCoinbase && tx && typeof tx === 'object' && (tx.inputs || tx.outputs)) {
+        try {
+          refs = _btlExtractTxRefs(tx);
+          wlTags = _btlTagsFromRefs(refs);
+        } catch (e) { refs = null; /* never let a watchlist bug break the tx list */ }
+      }
+      // Row tint precedence mirrors matchTxToWatchlist (address wins over token).
+      const tintKind = wlTags.addr ? 'addr' : (wlTags.token ? 'token' : null);
       btlState.rows.push({
         txid: tx.txid || tx,  // tx is either {txid, ...} or string id depending on client
         idx,
         isCoinbase,
+        // refs = { in:[addr], out:[addr], tokenIds:[id] } snapshot for live re-tag.
+        refs,
+        // Derived tags (recomputed by btlRefreshWatchTags on watchlist change).
+        wlAddr: wlTags.addr,
+        wlToken: wlTags.token,
+        tintKind,
       });
     });
     btlState.page += 1;
@@ -11627,6 +11793,13 @@ function btlRenderRows() {
   for (const r of rows) {
     const a = document.createElement('a');
     a.className = 'btl-row';
+    // Row tint — same address>tokenId precedence as the live feed: an address
+    // match tints lime, otherwise a token match tints purple. (Tags below can
+    // still show BOTH; only the row background follows the single winner.)
+    if (r.tintKind) {
+      a.classList.add('watched');
+      if (r.tintKind === 'token') a.classList.add('watched-token');
+    }
     a.href = explorerTx(r.txid);
     a.target = '_blank';
     a.rel = 'noopener';
@@ -11639,10 +11812,30 @@ function btlRenderRows() {
     // 2025 §2.2.
     const txidSafe = escapeHtml(r.txid);
     const shortSafe = escapeHtml(short);
+    // Tag column. Coinbase (gold) always wins and shows alone — a coinbase tx
+    // is never on a watchlist. Otherwise show up to TWO watchlist tags: the
+    // matched ADDRESS (lime) and the matched TOKEN (purple). Never two of one
+    // kind. Address first so it reads left-to-right wallet→token, matching the
+    // address>token priority used elsewhere.
+    let tagHtml;
+    if (r.isCoinbase) {
+      tagHtml = '<span class="btl-tag coinbase">coinbase</span>';
+    } else if (r.wlAddr || r.wlToken) {
+      let tags = '';
+      if (r.wlAddr) {
+        tags += `<span class="btl-tag watched" title="Watching ${escapeHtml(r.wlAddr.addr)}">${escapeHtml(r.wlAddr.name)}</span>`;
+      }
+      if (r.wlToken) {
+        tags += `<span class="btl-tag watched watched-token" title="Watching token ${escapeHtml(r.wlToken.addr)}">${escapeHtml(r.wlToken.name)}</span>`;
+      }
+      tagHtml = `<span class="btl-tags">${tags}</span>`;
+    } else {
+      tagHtml = '<span class="btl-tag"></span>';
+    }
     a.innerHTML = `
       <span class="btl-idx ${r.isCoinbase ? 'coinbase' : ''}">#${r.idx}</span>
       <span class="btl-txid" title="${txidSafe}">${shortSafe}</span>
-      ${r.isCoinbase ? '<span class="btl-tag coinbase">coinbase</span>' : '<span class="btl-tag"></span>'}
+      ${tagHtml}
       <span class="btl-go">↗</span>
     `;
     frag.appendChild(a);
@@ -11657,6 +11850,27 @@ function btlRenderRows() {
   // already-loaded rows shouldn't fetch more; user can clear filter).
   $('btl-loadmore').style.display =
     btlState.page < btlState.numPages ? 'inline-block' : 'none';
+}
+
+// Re-tag the OPEN block popup from cached per-row refs against the CURRENT
+// watchlist, then repaint. No-op when the popup is closed (btlState.block null)
+// or has no rows. Called by the central watchlist-refresh dispatcher so add/
+// remove/disable/mode changes reflect in the popup without re-fetching the
+// block. Coinbase rows are left untouched.
+function btlRefreshWatchTags() {
+  if (!btlState.block || btlState.rows.length === 0) return;
+  for (const r of btlState.rows) {
+    if (r.isCoinbase || !r.refs) {
+      r.wlAddr = null; r.wlToken = null; r.tintKind = null;
+      continue;
+    }
+    let tags = { addr: null, token: null };
+    try { tags = _btlTagsFromRefs(r.refs); } catch (e) { tags = { addr: null, token: null }; }
+    r.wlAddr = tags.addr;
+    r.wlToken = tags.token;
+    r.tintKind = tags.addr ? 'addr' : (tags.token ? 'token' : null);
+  }
+  btlRenderRows();
 }
 
 function btlEscapeHtml(s) {
@@ -12355,6 +12569,11 @@ function loadWatchlist() {
         name: typeof it.name === 'string' && it.name.trim() ? it.name.trim().slice(0, 20) : defaultName,
         addedAt: typeof it.addedAt === 'number' ? it.addedAt : Date.now(),
         mode: WATCHLIST_MODES.includes(it.mode) ? it.mode : WATCHLIST_DEFAULT_MODE,
+        // `enabled` lets the user mute an entry without deleting it (keeps name,
+        // mode, history). Absent in legacy v1/v2/early-v3 records → default true
+        // so existing watchlists keep highlighting after upgrade. Only an
+        // explicit `false` disables.
+        enabled: it.enabled === false ? false : true,
         count: 0,
         history: [],
       };
@@ -12371,6 +12590,7 @@ function saveWatchlist() {
   try {
     const data = watchlist.addresses.map(e => ({
       addr: e.addr, kind: e.kind, name: e.name, addedAt: e.addedAt, mode: e.mode,
+      enabled: e.enabled === false ? false : true,
     }));
     localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(data));
   } catch (e) {
@@ -12452,18 +12672,17 @@ function addToWatchlist(identifier, name, mode) {
     // moves between inputs and outputs in every transfer), so force 'both'.
     mode: c.kind === 'token' ? 'both'
         : (WATCHLIST_MODES.includes(mode) ? mode : WATCHLIST_DEFAULT_MODE),
+    enabled: true,
     count: 0,
     history: [],
   };
   watchlist.addresses.push(entry);
   watchlist.byAddr.set(entry.addr, entry);
   saveWatchlist();
-  renderWatchlist();
-  // Re-evaluate every in-memory tx so a freshly added token highlights all
-  // matching txs that are already on screen — previously, adding a token
-  // mid-session only highlighted FUTURE txs, leaving the user wondering
-  // why a token they just added didn't paint the current rows.
-  try { refreshAllWatchlistDecorations(); } catch (e) { /* defensive */ }
+  // Re-evaluate every surface so a freshly added entry highlights matching txs
+  // already on screen (live feed, msg cards, and an open block popup) — not just
+  // future txs. The cards repaint here too.
+  try { refreshAllWatchlistViews(); } catch (e) { /* defensive */ }
   return { ok: true };
 }
 
@@ -12489,12 +12708,43 @@ function setWatchlistMode(addr, mode) {
     // 'both' keeps everything
   }
   saveWatchlist();
-  // Re-evaluate every live tx in case the highlight should now appear/disappear.
-  refreshAllWatchlistDecorations();
+  // Re-evaluate every surface (live tx, msg cards, open popup, cards).
+  refreshAllWatchlistViews();
 }
 
-// Re-runs the decoration on every visible .tx-row and every msg-card so changes
-// to a watchlist entry's mode (or add/remove) reflect immediately.
+// Mute / un-mute an entry without deleting it. A disabled entry keeps its name,
+// mode and history but stops highlighting txs everywhere (live feed, msg cards,
+// block popup) because matchTxToWatchlist() skips `enabled === false`. Used by
+// the per-card power ⏻ toggle.
+function setWatchlistEnabled(addr, on) {
+  const entry = watchlist.byAddr.get(addr);
+  if (!entry) return;
+  const next = !!on;
+  if ((entry.enabled !== false) === next) return;  // no change
+  entry.enabled = next;
+  saveWatchlist();
+  refreshAllWatchlistViews();   // cards + live feed + msg cards + open popup
+}
+
+// Central watchlist-refresh dispatcher. ANY mutation to the watchlist (add,
+// remove, disable/enable, mode change — and any future mutator) should call
+// THIS, so every surface that displays watch state re-evaluates from one place:
+//   • renderWatchlist()                — the watchlist cards (names, dim, mode)
+//   • refreshAllWatchlistDecorations() — live tx-rows + message cards
+//   • refreshDetailIfActive()          — the open tx-detail flow panel
+//   • btlRefreshWatchTags()            — the block tx-list popup, if open
+// Each callee is independently guarded (no-ops when its surface is absent), so
+// this is safe to call unconditionally. Keeping the fan-out here means new
+// surfaces only need wiring in one spot instead of in every mutator.
+function refreshAllWatchlistViews() {
+  try { renderWatchlist(); } catch (e) { console.error('[ecash-live] renderWatchlist:', e); }
+  try { refreshAllWatchlistDecorations(); } catch (e) { console.error('[ecash-live] decorations:', e); }
+  try { refreshDetailIfActive(); } catch (e) { console.error('[ecash-live] detail refresh:', e); }
+  try { btlRefreshWatchTags(); } catch (e) { console.error('[ecash-live] btl re-tag:', e); }
+}
+
+// Re-runs decoration on every visible .tx-row and every msg-card so changes
+// to a watchlist entry's mode (or add/remove/disable) reflect immediately.
 function refreshAllWatchlistDecorations() {
   // Clear existing watched markers (including the watched-token modifier)
   document.querySelectorAll('.tx-row.watched').forEach(r => {
@@ -12541,16 +12791,14 @@ function removeFromWatchlist(addr) {
   watchlist.addresses.splice(idx, 1);
   watchlist.byAddr.delete(addr);
   saveWatchlist();
-  renderWatchlist();
-  // Re-render existing rows to clear watched state
-  document.querySelectorAll('.tx-row.watched').forEach(r => {
-    if (r.dataset.watchedAddr === addr) {
-      r.classList.remove('watched');
-      r.removeAttribute('data-watched-addr');
-      const lbl = r.querySelector('.watch-label');
-      if (lbl) lbl.remove();
-    }
-  });
+  // Full re-evaluation via the central dispatcher. The previous hand-rolled
+  // cleanup only stripped `.watched` from tx-rows whose data-watched-addr ===
+  // addr — it MISSED: (1) the `.watched-token` class, (2) message cards, (3)
+  // rows that should now match a DIFFERENT remaining entry (or stop matching),
+  // and (4) the block popup. Delegating to refreshAllWatchlistViews() rebuilds
+  // every surface cleanly from the current watchlist, so a removed entry truly
+  // disappears everywhere.
+  refreshAllWatchlistViews();
 }
 
 // Returns the matching watchlist entry for a tx, or null.
@@ -12617,6 +12865,7 @@ function matchTxToWatchlist(tx) {
   // the slot open for the token match to win instead.
   for (const e of watchlist.addresses) {
     if (e.kind === 'token') continue;
+    if (e.enabled === false) continue;   // muted entry — no highlight anywhere
     const mode = e.mode || WATCHLIST_DEFAULT_MODE;
     const inIn = inputAddrs.has(e.addr);
     const inOut = outputAddrs.has(e.addr);
@@ -12626,6 +12875,7 @@ function matchTxToWatchlist(tx) {
   }
   for (const e of watchlist.addresses) {
     if (e.kind !== 'token') continue;
+    if (e.enabled === false) continue;   // muted entry — no highlight anywhere
     if (txTokenIds.has(e.addr)) return e;
   }
   return null;
@@ -12725,6 +12975,7 @@ function renderWatchlist() {
   for (const entry of watchlist.addresses) {
     const card = document.createElement('div');
     card.className = 'wl-card wl-card-' + entry.kind;
+    if (entry.enabled === false) card.classList.add('wl-card-disabled');
     card.dataset.addr = entry.addr;
     const isToken = entry.kind === 'token';
     // For addresses: ecash:qXXX...XXXX. For tokens: first/last hex.
@@ -12771,6 +13022,7 @@ function renderWatchlist() {
       </div>
       ${modeBlock}
       <div class="wl-actions-row">
+        <button class="wl-act-btn wl-act-toggle ${entry.enabled === false ? 'is-off' : ''}" aria-pressed="${entry.enabled === false ? 'false' : 'true'}" title="${entry.enabled === false ? 'Watching paused — click to resume / Tạm dừng — bấm để bật lại' : 'Watching active — click to pause / Đang theo dõi — bấm để tạm dừng'}" aria-label="Toggle watching">⏻</button>
         <button class="wl-act-btn wl-act-history" title="Show recent tx for this ${isToken ? 'token' : 'address'}" aria-label="Show history">☰</button>
         <button class="wl-act-btn wl-act-copy" title="Copy ${isToken ? 'token ID' : 'address'}" aria-label="Copy">⎘</button>
         <button class="wl-act-btn wl-act-edit" title="Edit (rename, change mode, remove)" aria-label="Edit">✎</button>
@@ -12789,6 +13041,13 @@ function renderWatchlist() {
         card.querySelectorAll('.wl-mode-btn').forEach(b => b.classList.toggle('active', b === btn));
         setWatchlistMode(entry.addr, newMode);
       });
+    });
+
+    card.querySelector('.wl-act-toggle').addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Flip based on current state. renderWatchlist() rebuilds the card so we
+      // don't manually mutate button classes here.
+      setWatchlistEnabled(entry.addr, entry.enabled === false);
     });
 
     card.querySelector('.wl-act-history').addEventListener('click', (e) => {
@@ -12953,18 +13212,12 @@ function tryWatchlistEditSave() {
   entry.name = newName;
   if (entry.kind !== 'token') {
     const newMode = _getEditDialogMode();
-    if (newMode !== entry.mode) {
-      entry.mode = newMode;
-      saveWatchlist();
-      // Re-evaluate visible decorations against the new mode
-      refreshAllWatchlistDecorations();
-    } else {
-      saveWatchlist();
-    }
-  } else {
-    saveWatchlist();
+    if (newMode !== entry.mode) entry.mode = newMode;
   }
-  renderWatchlist();
+  saveWatchlist();
+  // Rename changes the tag/label text and a mode change can flip matches — both
+  // need every surface (cards, live feed, msg cards, open popup) refreshed.
+  refreshAllWatchlistViews();
   closeWatchlistEditDialog();
 }
 function tryWatchlistEditRemove() {
