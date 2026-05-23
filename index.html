@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-q9rQCbPg4rct+MX14k6bL3Y1wc33JVORmNEWsVE8OCE=';
+  script-src 'self' 'sha256-FHjB5831/hh5zjAnWMrkBIvQmUTAy8MgIwf7WK1/PLI=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -4963,14 +4963,20 @@
       grid-template-columns: 1fr 1fr;
       grid-template-rows: auto;
       bottom: auto;
+      /* Same as mobile: clear desktop's top:60px/108px so it doesn't shift
+         the relatively-positioned grid down. */
+      top: auto; left: auto; right: auto;
     }
-    /* Override desktop id-locks for the tablet 2-col layout */
-    #section-col1     { grid-column: 1; grid-row: auto; }
-    #section-col2     { grid-column: 2; grid-row: auto; }
-    #detail           { grid-column: 1 / span 2; grid-row: auto; }
-    #section-messages { grid-column: 1 / span 2; grid-row: auto; min-height: 320px; }
-    #section-blockchain { grid-column: 1 / span 2; grid-row: auto; }
-    #section-watchlist  { grid-column: 1 / span 2; grid-row: auto; }
+    /* Override desktop id-locks for the tablet 2-col layout. `order` sets the
+       auto-flow sequence: col1, col2 (top row) → Tx detail → Blockchain →
+       Feed → Watchlist, so the blockchain panel sits directly beneath the
+       Tx detail panel as requested. */
+    #section-col1     { grid-column: 1; grid-row: auto; order: 0; }
+    #section-col2     { grid-column: 2; grid-row: auto; order: 0; }
+    #detail           { grid-column: 1 / span 2; grid-row: auto; order: 1; }
+    #section-blockchain { grid-column: 1 / span 2; grid-row: auto; order: 2; }
+    #section-messages { grid-column: 1 / span 2; grid-row: auto; min-height: 320px; order: 3; }
+    #section-watchlist  { grid-column: 1 / span 2; grid-row: auto; order: 4; }
     .col-section, .messages { min-height: 340px; max-height: 440px; }
     .detail { min-height: auto; }
     .footer { position: relative; height: auto; flex-wrap: wrap; padding: 0; }
@@ -5068,6 +5074,13 @@
       border-bottom: 1px solid var(--line);
       overflow-x: auto;
       scrollbar-width: none;
+      /* Tell the browser this strip scrolls horizontally. Without it, iOS
+         can't disambiguate a horizontal tab-drag from a vertical page-scroll
+         and intermittently eats the gesture, making the tabs "hard to drag".
+         pan-x = horizontal pans belong to this element; vertical still scrolls
+         the page. overscroll-behavior-x stops the drag chaining to the page. */
+      touch-action: pan-x;
+      overscroll-behavior-x: contain;
     }
     .mobile-tabs::-webkit-scrollbar { display: none; }
     .mobile-tab {
@@ -5101,6 +5114,13 @@
       position: relative;
       display: block;
       bottom: auto;
+      /* Reset the desktop offsets. Desktop has `.stage-inner { top: 60px }`
+         (and `body.topbar-overflow .stage-inner { top: 108px }`) for its
+         absolute layout. On mobile the element is position:relative, where a
+         leftover `top` shifts content DOWN by that many px instead of being
+         an anchor — that was the empty band between the tab strip and the
+         first panel's header. */
+      top: auto; left: auto; right: auto;
     }
 
     /* Hide all sections by default; only show active.
@@ -5369,27 +5389,26 @@
       height: auto !important;
     }
 
-    /* Blockchain horizontal scroll snap on mobile - override desktop grid */
-    .blockchain { padding: 14px 0 14px 14px; }
+    /* Blockchain on mobile: stack blocks VERTICALLY, newest on top, scaled to
+       the panel width (not oversized), with no horizontal scroll. Cards are
+       appended oldest→newest in the DOM (renderChain uses appendChild), so
+       column-reverse puts the newest block at the top without any JS change. */
+    .blockchain { padding: 14px 14px 16px; }
     .chain {
       display: flex;
-      flex-direction: row;
+      flex-direction: column-reverse;
       grid-template-columns: none;
       column-gap: 0;
-      padding-bottom: 10px;
-      height: 170px;
-      overflow-x: auto;
-      overflow-y: hidden;
-      scroll-snap-type: x mandatory;
-      -webkit-overflow-scrolling: touch;
+      gap: 12px;
+      height: auto;
+      overflow: visible;
+      padding-bottom: 4px;
     }
-    .chain::-webkit-scrollbar { display: block; height: 4px; }
-    .chain::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
     .block-card {
-      flex: 0 0 240px;
-      width: 240px;
-      scroll-snap-align: start;
-      margin-right: 16px;
+      flex: 0 0 auto;
+      width: 100%;
+      max-width: 360px;   /* keep cards readable but not "quá lố" on wide phones */
+      margin: 0 auto;     /* center within the panel */
       padding: 14px 16px 16px;
       font-size: 13px;
     }
@@ -5735,7 +5754,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.1.7">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.1.7</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.1.8">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.1.8</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -11856,8 +11875,13 @@ function renderChain() {
     // topbar is height:auto on mobile (2-row grid), so any hardcoded offset
     // drifts into a gap/overlap. Done before the early returns below because
     // the <=767 branch returns early yet is exactly where the var matters.
+    // Use the rounded border-box height: offsetHeight rounds *up* to the next
+    // integer, which on fractional-DPR phones over-states the height by ~1px
+    // and on some layouts left a visible gap between the sticky tabs and the
+    // panel. getBoundingClientRect().height is sub-pixel-accurate; rounding
+    // to the nearest integer keeps the sticky offset crisp.
     document.documentElement.style.setProperty(
-      '--topbar-h', topbar.offsetHeight + 'px');
+      '--topbar-h', Math.round(topbar.getBoundingClientRect().height) + 'px');
 
     // On true mobile (<=767), the CSS media query already stacks the topbar
     // and the meta becomes a grid. Don't double-apply our classes.
@@ -15457,8 +15481,23 @@ const POST_CONSENSUS_DIAGRAM_OLD = `
 //   (3) lock-in with a green tick
 // All labels are short. ViewBox is square-ish (360 × 360) so it fits nicely
 // inside a mobile-fullscreen sheet without unbounded scroll.
+// ── iOS-SAFE ANIMATION NOTE ────────────────────────────────────────────────
+// These diagrams previously used SMIL <animate> elements. SMIL on an SVG that
+// is inserted via innerHTML is unreliable on iOS WebKit — the markup parses
+// but the timeline frequently never starts (documented WebKit bug; not fixed
+// by setCurrentTime). They are now driven entirely by CSS @keyframes inside a
+// scoped <style> in each SVG, which auto-runs on every browser including iOS.
+//
+// Timing is preserved 1:1 from the old SMIL: a single 4s loop. The 8 voting
+// nodes share ONE keyframe (preNodeVote) and reproduce the original per-node
+// stagger via animation-delay (negative delay = start mid-cycle). Node N's old
+// flip happened at keyTime ≈ 0.18..0.60; with a 4s loop that's a -0.72s..-2.4s
+// negative delay so each node enters its "voting→tick" phase offset in time.
+// The ring, percent counter, lock tick and labels each get their own keyframe
+// whose percentages equal the old keyTimes × 100. prefers-reduced-motion
+// freezes everything to the final "locked / 100%" state.
 const PRE_CONSENSUS_DIAGRAM = `
-<svg viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:100%;height:auto;display:block;max-width:360px;margin:0 auto;">
+<svg viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="ava-diagram ava-pre" style="width:100%;height:auto;display:block;max-width:360px;margin:0 auto;">
   <defs>
     <radialGradient id="preBg2" cx="50%" cy="50%" r="60%">
       <stop offset="0%" stop-color="rgba(1,160,224,0.14)"/>
@@ -15480,6 +15519,58 @@ const PRE_CONSENSUS_DIAGRAM = `
       </feMerge>
     </filter>
   </defs>
+  <style>
+    /* All loops are 4s, matching the original SMIL dur. */
+    .ava-pre .av-node-dot  { animation: preNodeVote 4s linear infinite both; }
+    .ava-pre .av-node-tick { animation: preNodeTick 4s linear infinite both; }
+    /* Per-node stagger via negative delay (node 1 = earliest flip, node 8 =
+       latest), reproducing the old keyTimes 0.18→0.60 across the 8 dots. */
+    .ava-pre .n1 { animation-delay: -0.72s; }
+    .ava-pre .n2 { animation-delay: -1.04s; }
+    .ava-pre .n3 { animation-delay: -1.28s; }
+    .ava-pre .n4 { animation-delay: -1.56s; }
+    .ava-pre .n5 { animation-delay: -1.80s; }
+    .ava-pre .n6 { animation-delay: -2.00s; }
+    .ava-pre .n7 { animation-delay: -2.20s; }
+    .ava-pre .n8 { animation-delay: -2.40s; }
+    .ava-pre .av-ring   { animation: preRing 4s linear infinite both; }
+    .ava-pre .av-pct    { animation: preFade 4s linear infinite both; }
+    .ava-pre .av-pct-0  { animation: prePct0 4s linear infinite both; }
+    .ava-pre .av-pct-25 { animation: prePct25 4s linear infinite both; }
+    .ava-pre .av-pct-50 { animation: prePct50 4s linear infinite both; }
+    .ava-pre .av-pct-75 { animation: prePct75 4s linear infinite both; }
+    .ava-pre .av-pct-100{ animation: prePct100 4s linear infinite both; }
+    .ava-pre .av-lock   { animation: preLock 4s linear infinite both; }
+    .ava-pre .av-lbl-conf { animation: preLblConf 4s linear infinite both; }
+    .ava-pre .av-lbl-lock { animation: preLock 4s linear infinite both; }
+    @keyframes preNodeVote {
+      0%,18% { opacity:0.85; } 20%,92% { opacity:0; } 100% { opacity:0.85; }
+    }
+    @keyframes preNodeTick {
+      0%,18% { opacity:0; } 20%,92% { opacity:1; } 100% { opacity:0; }
+    }
+    @keyframes preRing {
+      0% { stroke-dashoffset:377; } 65%,92% { stroke-dashoffset:0; } 100% { stroke-dashoffset:377; }
+    }
+    @keyframes prePct0   { 0%,13% { opacity:1; } 14%,100% { opacity:0; } }
+    @keyframes prePct25  { 0%,13% { opacity:0; } 14%,30% { opacity:1; } 31%,100% { opacity:0; } }
+    @keyframes prePct50  { 0%,30% { opacity:0; } 31%,45% { opacity:1; } 46%,100% { opacity:0; } }
+    @keyframes prePct75  { 0%,45% { opacity:0; } 46%,60% { opacity:1; } 61%,100% { opacity:0; } }
+    @keyframes prePct100 { 0%,60% { opacity:0; } 61%,65% { opacity:1; } 66%,100% { opacity:0; } }
+    @keyframes preLock   { 0%,66% { opacity:0; } 67%,95% { opacity:1; } 100% { opacity:0; } }
+    @keyframes preLblConf{ 0%,65% { opacity:1; } 67%,100% { opacity:0; } }
+    @keyframes preFade   { 0%,65% { opacity:1; } 67%,100% { opacity:0; } }
+    @media (prefers-reduced-motion: reduce) {
+      .ava-pre .av-node-dot { opacity:0 !important; animation:none !important; }
+      .ava-pre .av-node-tick{ opacity:1 !important; animation:none !important; }
+      .ava-pre .av-ring     { stroke-dashoffset:0 !important; animation:none !important; }
+      .ava-pre .av-pct-0,.ava-pre .av-pct-25,.ava-pre .av-pct-50,.ava-pre .av-pct-75 { opacity:0 !important; animation:none !important; }
+      .ava-pre .av-pct-100  { opacity:1 !important; animation:none !important; }
+      .ava-pre .av-pct      { opacity:0 !important; animation:none !important; }
+      .ava-pre .av-lock,.ava-pre .av-lbl-lock { opacity:1 !important; animation:none !important; }
+      .ava-pre .av-lbl-conf { opacity:0 !important; animation:none !important; }
+    }
+  </style>
   <rect width="360" height="360" fill="url(#preBg2)"/>
 
   <!-- Title -->
@@ -15490,151 +15581,70 @@ const PRE_CONSENSUS_DIAGRAM = `
   <g transform="translate(180,180)">
     <!-- ============================================================
          Voting nodes — each blue dot pulses to indicate "voting",
-         then converts to a green ✓ at staggered offsets that track
-         the progress of the main ring. By the time the ring hits
-         100 % (≈t=2.6s of the 4 s loop) every node has turned green.
-         The node turns blue again when the loop restarts (t≈3.7s).
+         then converts to a green ✓ at staggered offsets (CSS
+         animation-delay) that track the progress of the main ring.
          ============================================================ -->
     <g>
-      <!-- Node 1 (top-left) -->
       <g transform="translate(-92,-18)">
-        <circle r="7" fill="#01a0e0" opacity="0.85">
-          <animate attributeName="opacity" values="0.85;0.85;0;0;0.85" keyTimes="0;0.18;0.20;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </circle>
-        <text text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800"
-              filter="url(#preGlowSharp)" opacity="0">✓
-          <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.18;0.20;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </text>
+        <circle class="av-node-dot n1" r="7" fill="#01a0e0" opacity="0.85"/>
+        <text class="av-node-tick n1" text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800" filter="url(#preGlowSharp)" opacity="0">✓</text>
       </g>
-      <!-- Node 2 -->
       <g transform="translate(-58,-78)">
-        <circle r="7" fill="#01a0e0" opacity="0.85">
-          <animate attributeName="opacity" values="0.85;0.85;0;0;0.85" keyTimes="0;0.26;0.28;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </circle>
-        <text text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800"
-              filter="url(#preGlowSharp)" opacity="0">✓
-          <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.26;0.28;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </text>
+        <circle class="av-node-dot n2" r="7" fill="#01a0e0" opacity="0.85"/>
+        <text class="av-node-tick n2" text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800" filter="url(#preGlowSharp)" opacity="0">✓</text>
       </g>
-      <!-- Node 3 -->
       <g transform="translate(20,-94)">
-        <circle r="7" fill="#01a0e0" opacity="0.85">
-          <animate attributeName="opacity" values="0.85;0.85;0;0;0.85" keyTimes="0;0.32;0.34;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </circle>
-        <text text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800"
-              filter="url(#preGlowSharp)" opacity="0">✓
-          <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.32;0.34;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </text>
+        <circle class="av-node-dot n3" r="7" fill="#01a0e0" opacity="0.85"/>
+        <text class="av-node-tick n3" text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800" filter="url(#preGlowSharp)" opacity="0">✓</text>
       </g>
-      <!-- Node 4 -->
       <g transform="translate(86,-50)">
-        <circle r="7" fill="#01a0e0" opacity="0.85">
-          <animate attributeName="opacity" values="0.85;0.85;0;0;0.85" keyTimes="0;0.39;0.41;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </circle>
-        <text text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800"
-              filter="url(#preGlowSharp)" opacity="0">✓
-          <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.39;0.41;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </text>
+        <circle class="av-node-dot n4" r="7" fill="#01a0e0" opacity="0.85"/>
+        <text class="av-node-tick n4" text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800" filter="url(#preGlowSharp)" opacity="0">✓</text>
       </g>
-      <!-- Node 5 -->
       <g transform="translate(94,38)">
-        <circle r="7" fill="#01a0e0" opacity="0.85">
-          <animate attributeName="opacity" values="0.85;0.85;0;0;0.85" keyTimes="0;0.45;0.47;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </circle>
-        <text text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800"
-              filter="url(#preGlowSharp)" opacity="0">✓
-          <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.45;0.47;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </text>
+        <circle class="av-node-dot n5" r="7" fill="#01a0e0" opacity="0.85"/>
+        <text class="av-node-tick n5" text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800" filter="url(#preGlowSharp)" opacity="0">✓</text>
       </g>
-      <!-- Node 6 -->
       <g transform="translate(48,90)">
-        <circle r="7" fill="#01a0e0" opacity="0.85">
-          <animate attributeName="opacity" values="0.85;0.85;0;0;0.85" keyTimes="0;0.50;0.52;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </circle>
-        <text text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800"
-              filter="url(#preGlowSharp)" opacity="0">✓
-          <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.50;0.52;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </text>
+        <circle class="av-node-dot n6" r="7" fill="#01a0e0" opacity="0.85"/>
+        <text class="av-node-tick n6" text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800" filter="url(#preGlowSharp)" opacity="0">✓</text>
       </g>
-      <!-- Node 7 -->
       <g transform="translate(-38,94)">
-        <circle r="7" fill="#01a0e0" opacity="0.85">
-          <animate attributeName="opacity" values="0.85;0.85;0;0;0.85" keyTimes="0;0.55;0.57;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </circle>
-        <text text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800"
-              filter="url(#preGlowSharp)" opacity="0">✓
-          <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.55;0.57;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </text>
+        <circle class="av-node-dot n7" r="7" fill="#01a0e0" opacity="0.85"/>
+        <text class="av-node-tick n7" text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800" filter="url(#preGlowSharp)" opacity="0">✓</text>
       </g>
-      <!-- Node 8 -->
       <g transform="translate(-90,40)">
-        <circle r="7" fill="#01a0e0" opacity="0.85">
-          <animate attributeName="opacity" values="0.85;0.85;0;0;0.85" keyTimes="0;0.60;0.62;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </circle>
-        <text text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800"
-              filter="url(#preGlowSharp)" opacity="0">✓
-          <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.60;0.62;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </text>
+        <circle class="av-node-dot n8" r="7" fill="#01a0e0" opacity="0.85"/>
+        <text class="av-node-tick n8" text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800" filter="url(#preGlowSharp)" opacity="0">✓</text>
       </g>
     </g>
 
     <!-- Background ring -->
     <circle r="60" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="8"/>
 
-    <!-- Progress ring: animate stroke-dashoffset from 377 (empty) to 0 (full) -->
-    <circle r="60" fill="none" stroke="url(#preProgress)" stroke-width="8"
+    <!-- Progress ring: stroke-dashoffset 377 (empty) → 0 (full) via CSS -->
+    <circle class="av-ring" r="60" fill="none" stroke="url(#preProgress)" stroke-width="8"
             stroke-linecap="round" transform="rotate(-90)"
-            stroke-dasharray="377"
-            stroke-dashoffset="377">
-      <animate attributeName="stroke-dashoffset"
-               values="377;0;0;377"
-               keyTimes="0;0.65;0.92;1"
-               dur="4s" repeatCount="indefinite"/>
-    </circle>
+            stroke-dasharray="377" stroke-dashoffset="377"/>
 
-    <!-- Animated percent counter — cycle five tspans that match the
-         progress of the ring. opacity steps at 0% → 25% → 50% → 75% →
-         100% align with the ring's stroke-dashoffset keyTimes so the
-         number on screen always reflects the visible progress. -->
+    <!-- Animated percent counter — five overlaid texts cross-fading via CSS. -->
     <g font-family="Space Grotesk, sans-serif" font-size="32" font-weight="700" text-anchor="middle">
-      <text y="6" fill="#fff">
-        <tspan x="0" opacity="0">
-          <animate attributeName="opacity" values="1;1;0;0;0;0;0" keyTimes="0;0.13;0.14;0.62;0.62;0.92;1" dur="4s" repeatCount="indefinite"/>0%</tspan>
-      </text>
-      <text y="6" fill="#fff">
-        <tspan x="0" opacity="0">
-          <animate attributeName="opacity" values="0;0;1;1;0;0;0" keyTimes="0;0.13;0.14;0.30;0.31;0.92;1" dur="4s" repeatCount="indefinite"/>25%</tspan>
-      </text>
-      <text y="6" fill="#fff">
-        <tspan x="0" opacity="0">
-          <animate attributeName="opacity" values="0;0;1;1;0;0;0" keyTimes="0;0.30;0.31;0.45;0.46;0.92;1" dur="4s" repeatCount="indefinite"/>50%</tspan>
-      </text>
-      <text y="6" fill="#fff">
-        <tspan x="0" opacity="0">
-          <animate attributeName="opacity" values="0;0;1;1;0;0;0" keyTimes="0;0.45;0.46;0.60;0.61;0.92;1" dur="4s" repeatCount="indefinite"/>75%</tspan>
-      </text>
-      <text y="6" fill="#7cffb8">
-        <tspan x="0" opacity="0">
-          <animate attributeName="opacity" values="0;0;1;1;0;0;0" keyTimes="0;0.60;0.61;0.65;0.66;0.92;1" dur="4s" repeatCount="indefinite"/>100%</tspan>
-      </text>
+      <text class="av-pct-0"   x="0" y="6" fill="#fff" opacity="0">0%</text>
+      <text class="av-pct-25"  x="0" y="6" fill="#fff" opacity="0">25%</text>
+      <text class="av-pct-50"  x="0" y="6" fill="#fff" opacity="0">50%</text>
+      <text class="av-pct-75"  x="0" y="6" fill="#fff" opacity="0">75%</text>
+      <text class="av-pct-100" x="0" y="6" fill="#7cffb8" opacity="0">100%</text>
     </g>
 
     <!-- Lock-in tick that appears when ring fills — bigger, crisper -->
-    <g opacity="0">
-      <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.66;0.67;0.95;1" dur="4s" repeatCount="indefinite"/>
+    <g class="av-lock" opacity="0">
       <text text-anchor="middle" y="22" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="72" font-weight="900"
             filter="url(#preGlowSharp)" stroke="#00e781" stroke-width="1.5">✓</text>
     </g>
 
     <!-- progress label -->
-    <text text-anchor="middle" y="32" fill="rgba(255,255,255,0.45)" font-family="Fira Code, monospace" font-size="8" letter-spacing="0.18em">
-      <tspan>CONFIDENCE</tspan>
-      <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.65;0.67;1" dur="4s" repeatCount="indefinite"/>
-    </text>
-    <text text-anchor="middle" y="40" fill="#7cffb8" font-family="Fira Code, monospace" font-size="9" font-weight="700" letter-spacing="0.22em" opacity="0">
-      <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.66;0.67;0.95;1" dur="4s" repeatCount="indefinite"/>
-      <tspan>LOCKED</tspan>
-    </text>
+    <text class="av-lbl-conf" text-anchor="middle" y="32" fill="rgba(255,255,255,0.45)" font-family="Fira Code, monospace" font-size="8" letter-spacing="0.18em">CONFIDENCE</text>
+    <text class="av-lbl-lock" text-anchor="middle" y="40" fill="#7cffb8" font-family="Fira Code, monospace" font-size="9" font-weight="700" letter-spacing="0.22em" opacity="0">LOCKED</text>
   </g>
 
   <!-- Stage caption -->
@@ -15650,7 +15660,7 @@ const PRE_CONSENSUS_DIAGRAM = `
 // (SMIL doesn't support text content interpolation reliably across browsers).
 // Instead we cycle through five tspans hidden by opacity.
 const POST_CONSENSUS_DIAGRAM = `
-<svg viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:100%;height:auto;display:block;max-width:360px;margin:0 auto;">
+<svg viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="ava-diagram ava-post" style="width:100%;height:auto;display:block;max-width:360px;margin:0 auto;">
   <defs>
     <radialGradient id="postBg2" cx="50%" cy="50%" r="60%">
       <stop offset="0%" stop-color="rgba(0,231,129,0.14)"/>
@@ -15671,6 +15681,43 @@ const POST_CONSENSUS_DIAGRAM = `
       </feMerge>
     </filter>
   </defs>
+  <style>
+    /* CSS-only (no SMIL) so it animates on iOS WebKit. See PRE diagram note. */
+    .ava-post .av-poll-chip { animation: postPollChip 1.6s linear infinite both; }
+    .ava-post .av-node-dot  { animation: postNodeVote 4s linear infinite both; }
+    .ava-post .av-node-tick { animation: postNodeTick 4s linear infinite both; }
+    .ava-post .n1 { animation-delay: -0.72s; }
+    .ava-post .n2 { animation-delay: -1.04s; }
+    .ava-post .n3 { animation-delay: -1.28s; }
+    .ava-post .n4 { animation-delay: -1.56s; }
+    .ava-post .n5 { animation-delay: -1.80s; }
+    .ava-post .n6 { animation-delay: -2.00s; }
+    .ava-post .n7 { animation-delay: -2.20s; }
+    .ava-post .n8 { animation-delay: -2.40s; }
+    .ava-post .av-ring  { animation: postRing 4s linear infinite both; }
+    .ava-post .av-block { animation: postBlock 4s linear infinite both; }
+    .ava-post .av-lock  { animation: postLock 4s linear infinite both; }
+    @keyframes postPollChip { 0%,100% { stroke-width:1; } 50% { stroke-width:2; } }
+    @keyframes postNodeVote {
+      0%,18% { opacity:0.85; } 20%,92% { opacity:0; } 100% { opacity:0.85; }
+    }
+    @keyframes postNodeTick {
+      0%,18% { opacity:0; } 20%,92% { opacity:1; } 100% { opacity:0; }
+    }
+    @keyframes postRing {
+      0% { stroke-dashoffset:377; } 65%,92% { stroke-dashoffset:0; } 100% { stroke-dashoffset:377; }
+    }
+    @keyframes postBlock { 0%,66% { opacity:1; } 67%,95% { opacity:0; } 100% { opacity:1; } }
+    @keyframes postLock  { 0%,66% { opacity:0; } 67%,95% { opacity:1; } 100% { opacity:0; } }
+    @media (prefers-reduced-motion: reduce) {
+      .ava-post .av-poll-chip { stroke-width:1 !important; animation:none !important; }
+      .ava-post .av-node-dot  { opacity:0 !important; animation:none !important; }
+      .ava-post .av-node-tick { opacity:1 !important; animation:none !important; }
+      .ava-post .av-ring  { stroke-dashoffset:0 !important; animation:none !important; }
+      .ava-post .av-block { opacity:0 !important; animation:none !important; }
+      .ava-post .av-lock  { opacity:1 !important; animation:none !important; }
+    }
+  </style>
   <rect width="360" height="360" fill="url(#postBg2)"/>
 
   <!-- Title -->
@@ -15683,9 +15730,7 @@ const POST_CONSENSUS_DIAGRAM = `
     <text x="42" y="17" text-anchor="middle" fill="#ffb800" font-family="Fira Code, monospace" font-size="9" letter-spacing="0.18em" font-weight="600">⛏ MINED</text>
   </g>
   <g transform="translate(138,68)">
-    <rect x="0" y="0" width="84" height="26" rx="13" fill="rgba(1,160,224,0.16)" stroke="#01a0e0" stroke-width="1">
-      <animate attributeName="stroke-width" values="1;2;1" dur="1.6s" repeatCount="indefinite"/>
-    </rect>
+    <rect class="av-poll-chip" x="0" y="0" width="84" height="26" rx="13" fill="rgba(1,160,224,0.16)" stroke="#01a0e0" stroke-width="1"/>
     <text x="42" y="17" text-anchor="middle" fill="#01a0e0" font-family="Fira Code, monospace" font-size="9" letter-spacing="0.18em" font-weight="600">↻ POLLING</text>
   </g>
   <g transform="translate(238,68)">
@@ -15700,101 +15745,53 @@ const POST_CONSENSUS_DIAGRAM = `
          same visual story. -->
     <g>
       <g transform="translate(-92,-18)">
-        <circle r="7" fill="#01a0e0" opacity="0.85">
-          <animate attributeName="opacity" values="0.85;0.85;0;0;0.85" keyTimes="0;0.18;0.20;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </circle>
-        <text text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800"
-              filter="url(#postGlowSharp)" opacity="0">✓
-          <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.18;0.20;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </text>
+        <circle class="av-node-dot n1" r="7" fill="#01a0e0" opacity="0.85"/>
+        <text class="av-node-tick n1" text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800" filter="url(#postGlowSharp)" opacity="0">✓</text>
       </g>
       <g transform="translate(-58,-78)">
-        <circle r="7" fill="#01a0e0" opacity="0.85">
-          <animate attributeName="opacity" values="0.85;0.85;0;0;0.85" keyTimes="0;0.26;0.28;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </circle>
-        <text text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800"
-              filter="url(#postGlowSharp)" opacity="0">✓
-          <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.26;0.28;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </text>
+        <circle class="av-node-dot n2" r="7" fill="#01a0e0" opacity="0.85"/>
+        <text class="av-node-tick n2" text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800" filter="url(#postGlowSharp)" opacity="0">✓</text>
       </g>
       <g transform="translate(20,-94)">
-        <circle r="7" fill="#01a0e0" opacity="0.85">
-          <animate attributeName="opacity" values="0.85;0.85;0;0;0.85" keyTimes="0;0.32;0.34;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </circle>
-        <text text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800"
-              filter="url(#postGlowSharp)" opacity="0">✓
-          <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.32;0.34;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </text>
+        <circle class="av-node-dot n3" r="7" fill="#01a0e0" opacity="0.85"/>
+        <text class="av-node-tick n3" text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800" filter="url(#postGlowSharp)" opacity="0">✓</text>
       </g>
       <g transform="translate(86,-50)">
-        <circle r="7" fill="#01a0e0" opacity="0.85">
-          <animate attributeName="opacity" values="0.85;0.85;0;0;0.85" keyTimes="0;0.39;0.41;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </circle>
-        <text text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800"
-              filter="url(#postGlowSharp)" opacity="0">✓
-          <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.39;0.41;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </text>
+        <circle class="av-node-dot n4" r="7" fill="#01a0e0" opacity="0.85"/>
+        <text class="av-node-tick n4" text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800" filter="url(#postGlowSharp)" opacity="0">✓</text>
       </g>
       <g transform="translate(94,38)">
-        <circle r="7" fill="#01a0e0" opacity="0.85">
-          <animate attributeName="opacity" values="0.85;0.85;0;0;0.85" keyTimes="0;0.45;0.47;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </circle>
-        <text text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800"
-              filter="url(#postGlowSharp)" opacity="0">✓
-          <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.45;0.47;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </text>
+        <circle class="av-node-dot n5" r="7" fill="#01a0e0" opacity="0.85"/>
+        <text class="av-node-tick n5" text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800" filter="url(#postGlowSharp)" opacity="0">✓</text>
       </g>
       <g transform="translate(48,90)">
-        <circle r="7" fill="#01a0e0" opacity="0.85">
-          <animate attributeName="opacity" values="0.85;0.85;0;0;0.85" keyTimes="0;0.50;0.52;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </circle>
-        <text text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800"
-              filter="url(#postGlowSharp)" opacity="0">✓
-          <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.50;0.52;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </text>
+        <circle class="av-node-dot n6" r="7" fill="#01a0e0" opacity="0.85"/>
+        <text class="av-node-tick n6" text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800" filter="url(#postGlowSharp)" opacity="0">✓</text>
       </g>
       <g transform="translate(-38,94)">
-        <circle r="7" fill="#01a0e0" opacity="0.85">
-          <animate attributeName="opacity" values="0.85;0.85;0;0;0.85" keyTimes="0;0.55;0.57;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </circle>
-        <text text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800"
-              filter="url(#postGlowSharp)" opacity="0">✓
-          <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.55;0.57;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </text>
+        <circle class="av-node-dot n7" r="7" fill="#01a0e0" opacity="0.85"/>
+        <text class="av-node-tick n7" text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800" filter="url(#postGlowSharp)" opacity="0">✓</text>
       </g>
       <g transform="translate(-90,40)">
-        <circle r="7" fill="#01a0e0" opacity="0.85">
-          <animate attributeName="opacity" values="0.85;0.85;0;0;0.85" keyTimes="0;0.60;0.62;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </circle>
-        <text text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800"
-              filter="url(#postGlowSharp)" opacity="0">✓
-          <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.60;0.62;0.92;1" dur="4s" repeatCount="indefinite"/>
-        </text>
+        <circle class="av-node-dot n8" r="7" fill="#01a0e0" opacity="0.85"/>
+        <text class="av-node-tick n8" text-anchor="middle" y="4" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="12" font-weight="800" filter="url(#postGlowSharp)" opacity="0">✓</text>
       </g>
     </g>
 
     <circle r="60" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="8"/>
-    <circle r="60" fill="none" stroke="url(#postProgress)" stroke-width="8"
+    <circle class="av-ring" r="60" fill="none" stroke="url(#postProgress)" stroke-width="8"
             stroke-linecap="round" transform="rotate(-90)"
-            stroke-dasharray="377"
-            stroke-dashoffset="377">
-      <animate attributeName="stroke-dashoffset"
-               values="377;0;0;377"
-               keyTimes="0;0.65;0.92;1"
-               dur="4s" repeatCount="indefinite"/>
-    </circle>
+            stroke-dasharray="377" stroke-dashoffset="377"/>
 
     <!-- Block icon in middle (pre-final) -->
-    <g opacity="1">
-      <animate attributeName="opacity" values="1;1;0;0;1" keyTimes="0;0.66;0.67;0.95;1" dur="4s" repeatCount="indefinite"/>
+    <g class="av-block" opacity="1">
       <rect x="-22" y="-22" width="44" height="44" rx="5" fill="rgba(255,255,255,0.06)" stroke="#01a0e0" stroke-width="1.6"/>
       <text x="0" y="3"  text-anchor="middle" fill="#fff" font-family="Fira Code, monospace" font-size="8" font-weight="700">BLOCK</text>
       <text x="0" y="14" text-anchor="middle" fill="#7ec8ff" font-family="Fira Code, monospace" font-size="7">#949,024</text>
     </g>
 
     <!-- Lock tick on final — bigger and crisper -->
-    <g opacity="0">
-      <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.66;0.67;0.95;1" dur="4s" repeatCount="indefinite"/>
+    <g class="av-lock" opacity="0">
       <text text-anchor="middle" y="22" fill="#7cffb8" font-family="Space Grotesk, sans-serif" font-size="72" font-weight="900"
             filter="url(#postGlowSharp)" stroke="#00e781" stroke-width="1.5">✓</text>
     </g>
@@ -15973,17 +15970,6 @@ function showTooltip(trigger, key) {
     const top = Math.max(8, Math.round((vh - ph) / 2));
     popover.style.left = left + 'px';
     popover.style.top = top + 'px';
-    // Kick the SMIL clock on the consensus diagrams. SVGs carrying <animate>
-    // elements that are inserted via innerHTML frequently fail to auto-start
-    // their timeline on mobile browsers (Chrome/Android, some WebKit) — the
-    // markup parses but the animation clock never begins. Calling
-    // setCurrentTime(0) on the freshly-injected <svg> forces its timeline to
-    // start, so the pre/post-consensus animations play reliably.
-    popover.querySelectorAll('svg').forEach((svg) => {
-      try {
-        if (typeof svg.setCurrentTime === 'function') svg.setCurrentTime(0);
-      } catch (e) { /* SMIL unsupported — static diagram is acceptable */ }
-    });
   });
   trigger.classList.add('active');
   activeTooltipTrigger = trigger;
