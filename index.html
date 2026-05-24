@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-PrR5wXKqRknpAWCHrHMqiT4jtAkMlJrEo1p3gE2o1tk=';
+  script-src 'self' 'sha256-NojT2CUkpk+65d1ZgHKH71eXhDdq+9+XNv4uukGW4SE=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -175,11 +175,15 @@
       -webkit-user-select: text;
       user-select: text;
     }
-    /* .block-card lives inside the horizontally-scrolling .chain on
-       mobile, so it needs pan-x (not pan-y) for swipes to scroll the
-       chain instead of getting trapped on the card. */
+    /* The chain is a fixed 3-column GRID now (it no longer scrolls
+       horizontally — see `.chain { overflow: visible }`). The old `pan-x`
+       here assumed a horizontal rail; with no horizontal scroller, pan-x
+       trapped the touch and ate vertical page-scroll, so the user couldn't
+       scroll the page by starting the gesture on a block card. pan-y lets
+       the vertical page-scroll through; tapping a card to open its tx-list
+       popup still works (pan-y only disambiguates the pan AXIS, not taps). */
     .block-card {
-      touch-action: pan-x;
+      touch-action: pan-y;
       -webkit-user-select: text;
       user-select: text;
     }
@@ -193,12 +197,12 @@
       -webkit-overflow-scrolling: touch;
       touch-action: pan-y;
     }
-    /* The blockchain rail is the only horizontally-scrolling panel on
-       mobile — keep panning unambiguously horizontal. */
+    /* Chain container: vertical pan too (matches .block-card above). The grid
+       lays cards out vertically inside the page flow on mobile, so the gesture
+       that matters here is the vertical page-scroll, not a horizontal rail. */
     .blockchain .chain {
       -webkit-overflow-scrolling: touch;
-      touch-action: pan-x;
-      overscroll-behavior-x: contain;
+      touch-action: pan-y;
     }
   }
   body {
@@ -1815,6 +1819,12 @@
     color: var(--text-3); font-style: italic;
     font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace; font-size: 10px;
   }
+  /* Expanded message — drop the 2-line clamp to show the full content. */
+  .msg-card.expanded .content {
+    display: block;
+    -webkit-line-clamp: unset;
+    overflow: visible;
+  }
   .msg-card .footer {
     font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace; font-size: 9px;
     color: var(--text-3);
@@ -1827,8 +1837,47 @@
     margin-top: 8px;
     padding-top: 6px;
     border-top: 1px solid var(--line);
-    display: flex; justify-content: flex-end;
+    display: flex; align-items: center; gap: 8px;
   }
+  /* Spacer pushes chat + explorer to the right, leaving the expand button on
+     the far left of the footer row. */
+  .msg-card .msg-foot-spacer { flex: 1 1 auto; }
+  /* Chat button — green, subtle but a touch more present than a plain link.
+     Shown at all sizes, sits just left of the explorer link. */
+  .msg-card .msg-chat-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace; font-size: 9px;
+    text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--text-2);
+    background: rgba(255,255,255,0.025);
+    border: 1px solid var(--line-2);
+    border-radius: 3px;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .msg-card .msg-chat-btn:hover {
+    background: rgba(1,160,224,0.10);
+    border-color: var(--cyan-dim);
+    color: var(--cyan);
+  }
+  .msg-card .msg-chat-btn .arrow { font-size: 10px; }
+  /* Expand button — quiet glyph, far left. DESKTOP: hidden, because clicking
+     the card body already expands (+pins). MOBILE: shown as the dedicated
+     expand control (body-click there only pins, never auto-expands). */
+  .msg-card .msg-expand-btn {
+    display: none;
+    font-size: 11px; line-height: 1;
+    color: var(--text-3);
+    background: transparent;
+    border: 1px solid var(--line-2);
+    border-radius: 3px;
+    padding: 2px 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .msg-card .msg-expand-btn:hover { color: var(--text-2); border-color: var(--text-3); }
+  .msg-card.expanded .msg-expand-btn { color: var(--cyan); border-color: var(--cyan); }
   .msg-card .from .copy-slot { display: inline-flex; align-items: center; }
 
   /* ============ AGORA META ROW (msg-card enrichment) ============
@@ -2474,6 +2523,8 @@
      hash copy button). Shows the list of txids in the block with their
      short id and indices, plus a link to the full block on the explorer.
      Works on both desktop and mobile. */
+  /* Block-# search is mobile-only (shown via the mobile media query above). */
+  .bc-goto-search { display: none; }
   .block-txlist-overlay {
     display: none;
     position: fixed; inset: 0; z-index: 9100;
@@ -2492,6 +2543,104 @@
     padding: 16px 16px 14px;
     display: flex; flex-direction: column; gap: 10px;
     box-shadow: 0 12px 40px rgba(0,0,0,0.7), 0 0 36px rgba(1,160,224,0.18);
+  }
+  /* ===== Phase 4: multi-column popup (desktop) ===== */
+  /* The dialog becomes a grid: left chain rail · middle tx list · right detail.
+     Width widens to fit; columns collapse at breakpoints. The close button sits
+     above the grid (full-width row). The middle column keeps the original
+     head/stats/toolbar/body/foot markup verbatim. */
+  .block-txlist-dialog.btl-multicol {
+    max-width: min(1400px, 96vw);
+  }
+  .block-txlist-dialog .btl-grid {
+    display: grid;
+    gap: 14px;
+    min-height: 0;            /* allow children to scroll inside the dialog */
+    flex: 1 1 auto;
+    grid-template-columns: 1fr;   /* mobile / fallback: single column */
+  }
+  .block-txlist-dialog .btl-col-left,
+  .block-txlist-dialog .btl-col-right { display: none; min-width: 0; min-height: 0; }
+  .block-txlist-dialog .btl-col-mid {
+    display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0;
+  }
+  /* 2-col: left chain rail + middle list (≥768px, below 3-col threshold) */
+  @media (min-width: 768px) {
+    .block-txlist-dialog.btl-multicol .btl-grid {
+      grid-template-columns: 230px 1fr;
+    }
+    .block-txlist-dialog.btl-multicol .btl-col-left { display: flex; flex-direction: column; min-height: 0; }
+  }
+  /* 3-col: left rail + middle list + right detail (≥1100px) */
+  @media (min-width: 1100px) {
+    .block-txlist-dialog.btl-multicol .btl-grid {
+      grid-template-columns: 240px 1fr 360px;
+    }
+    .block-txlist-dialog.btl-multicol .btl-col-right { display: flex; flex-direction: column; min-height: 0; }
+  }
+  /* Left chain rail */
+  .btl-col-left .btl-chain-search {
+    width: 100%;
+    padding: 7px 10px; margin-bottom: 8px;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid var(--line-2);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: 'Fira Code', monospace; font-size: 11px;
+    box-sizing: border-box;
+  }
+  .btl-col-left .btl-chain-search:focus { outline: none; border-color: var(--cyan-dim); }
+  .btl-col-left .btl-chain-search::placeholder { color: var(--text-3); }
+  .btl-col-left .btl-chain-list {
+    flex: 1 1 auto; overflow-y: auto; overflow-x: hidden;
+    display: flex; flex-direction: column; gap: 6px;
+    padding-right: 4px; min-height: 0;
+  }
+  .btl-col-left .btl-chain-list::-webkit-scrollbar { width: 6px; }
+  .btl-col-left .btl-chain-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+  .btl-chain-block {
+    border: 1px solid var(--line); border-radius: 5px;
+    padding: 8px 10px; cursor: pointer;
+    transition: all 0.15s; background: rgba(255,255,255,0.015);
+  }
+  .btl-chain-block:hover { border-color: var(--cyan-dim); background: rgba(1,160,224,0.06); }
+  .btl-chain-block.active { border-color: var(--cyan); background: rgba(1,160,224,0.10); }
+  .btl-chain-block .bcb-height {
+    font-family: 'Fira Code', monospace; font-size: 12px; color: var(--cyan); font-weight: 600;
+  }
+  .btl-chain-block .bcb-meta {
+    font-family: 'Fira Code', monospace; font-size: 9px; color: var(--text-3); margin-top: 3px;
+    display: flex; gap: 8px; align-items: center;
+  }
+  .btl-chain-block.placeholder { opacity: 0.55; cursor: pointer; border-style: dashed; }
+  .btl-chain-block.placeholder .bcb-meta { font-style: italic; }
+  .btl-chain-block .bcb-chip { display: inline-flex; gap: 4px; }
+  .btl-chain-block .bcb-chip .bwc-seg {
+    font-size: 8px; padding: 1px 4px; border-radius: 3px; font-variant-numeric: tabular-nums;
+  }
+  .btl-chain-block .bcb-chip .bwc-addr { color: var(--watch); background: rgba(167,255,55,0.18); border: 1px solid var(--watch-dim); }
+  .btl-chain-block .bcb-chip .bwc-token { color: var(--purple-light); background: rgba(185,133,255,0.18); border: 1px solid rgba(185,133,255,0.45); }
+  /* Right detail column hosts the (re-parented) #detail panel. */
+  .btl-col-right { overflow: hidden; }
+  .btl-col-right .btl-right-hint {
+    font-family: 'Fira Code', monospace; font-size: 10px; color: var(--text-3);
+    padding: 4px 2px 8px; border-bottom: 1px solid var(--line); margin-bottom: 8px;
+    flex: 0 0 auto;
+  }
+  .btl-col-right .btl-detail-mount {
+    flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
+  }
+  /* #detail normally lives in the page grid (col-section). When borrowed into
+     the popup it must become a bounded, independently-scrolling pane. Override
+     its grid/overflow with high specificity so it actually scrolls. */
+  .btl-col-right .btl-detail-mount #detail {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    display: block;
   }
   .block-txlist-dialog .dlg-close {
     align-self: flex-end;
@@ -2582,6 +2731,7 @@
     align-items: center;
     gap: 10px;
     padding: 8px 10px;
+    cursor: pointer;
     border-bottom: 1px solid rgba(255,255,255,0.04);
     font-family: 'Fira Code', monospace; font-size: 12px;
     color: var(--text);
@@ -2603,7 +2753,12 @@
     color: var(--cyan);
     word-break: break-all;
     line-height: 1.3;
+    text-decoration: none;
+    justify-self: start;
+    width: fit-content;
+    max-width: 100%;
   }
+  .btl-row .btl-txid:hover { text-decoration: underline; }
   .btl-row .btl-tag {
     font-size: 9px;
     padding: 2px 6px;
@@ -2913,6 +3068,35 @@
     text-transform: uppercase; letter-spacing: 0.14em;
     padding: 1px 5px; border-radius: 3px;
   }
+  /* Watch-hint chip — lives in the empty center of the card's top row. Hidden
+     unless the block has a watched-tx hit, so normal blocks stay clean and the
+     .h space-between layout (age ↔ badge) is unaffected. ◉ lime = address,
+     ◆ purple = token; matches the highlight palette used everywhere else. */
+  .block-card .block-watch-chip { display: none; }
+  .block-card .block-watch-chip.has-hint {
+    display: inline-flex; align-items: center; gap: 5px;
+    margin: 0 auto;            /* center it in the gap between age and badge */
+    font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace;
+    font-size: 9px; letter-spacing: 0.04em;
+    line-height: 1;
+  }
+  .block-card .block-watch-chip .bwc-seg {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 1px 5px; border-radius: 3px;   /* match the .badge corner radius */
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.06em;
+  }
+  .block-card .block-watch-chip .bwc-addr {
+    color: var(--watch);
+    background: rgba(167,255,55,0.12);
+    border: 1px solid var(--watch-dim);
+  }
+  .block-card .block-watch-chip .bwc-token {
+    color: var(--purple-light);
+    background: rgba(185,133,255,0.12);
+    border: 1px solid rgba(185,133,255,0.45);
+  }
+  .block-card .block-watch-chip.has-hint:hover .bwc-seg { filter: brightness(1.15); }
 
   .block-card { padding-right: 10px; }
   .block-card {
@@ -3235,6 +3419,9 @@
     color: var(--purple-light); border-color: rgba(185,133,255,0.5);
     background: rgba(185,133,255,0.10);
   }
+  /* Chat ↔ button (address items only) — same neutral look as the sibling
+     action buttons; inherits the card's accent on hover via .wl-act-btn:hover. */
+  .wl-card .wl-act-chat { /* uses base .wl-act-btn styling */ }
   /* Power ⏻ toggle. Active (watching) shows the card's accent so it reads as
      "on"; the .is-off state greys it out to read as "paused". */
   .wl-card .wl-act-toggle {
@@ -3479,6 +3666,33 @@
     border: 1px solid var(--line);
     border-radius: 4px;
   }
+  /* Sync toolbar — sits between the title and the list. */
+  .wl-history-toolbar {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 4px;
+  }
+  .wl-history-sync-btn {
+    font-size: 11px; padding: 5px 10px;
+    color: var(--cyan);
+    border-color: var(--cyan-dim);
+    background: rgba(1,160,224,0.08);
+  }
+  .wl-history-sync-btn:hover:not(:disabled) {
+    background: rgba(1,160,224,0.16);
+    border-color: var(--cyan);
+  }
+  .wl-history-sync-btn:disabled { opacity: 0.6; cursor: default; }
+  .wl-history-status {
+    font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace; font-size: 10px;
+    color: var(--text-3);
+  }
+  .wl-history-loadmore-btn {
+    font-size: 11px;
+    color: var(--cyan);
+    border-color: var(--cyan-dim);
+    background: rgba(1,160,224,0.06);
+  }
+  .wl-history-loadmore-btn:hover:not(:disabled) { background: rgba(1,160,224,0.14); }
   .wl-history-list::-webkit-scrollbar { width: 6px; }
   .wl-history-list::-webkit-scrollbar-track { background: transparent; }
   .wl-history-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
@@ -5188,6 +5402,20 @@
       font-size: 10px;
       color: var(--cyan);
     }
+    /* View-mode tab hiding — mirror the desktop panel-hiding on mobile.
+       Desktop hides whole PANELS per view mode; on mobile the equivalent is
+       hiding the matching TABS so the user can't navigate to a panel that the
+       current view mode has muted (and whose DOM applyViewMode has cleared).
+         • FEED view  → tx panels are off → hide New (col1) + Mempool (col2).
+         • CHAIN view → feed is off       → hide Msgs + Chat (both messages).
+       Blocks + Watch stay available in every mode. applyViewMode() also
+       auto-switches the active tab if it's one being hidden (see JS) so the
+       user is never stranded on a now-hidden tab. */
+    body.view-feed  .mobile-tab[data-section="col1"],
+    body.view-feed  .mobile-tab[data-section="col2"],
+    body.view-chain .mobile-tab[data-section="messages"] {
+      display: none;
+    }
 
     .stage-inner {
       position: relative;
@@ -5234,6 +5462,20 @@
     }
     .blockchain.mobile-active { display: block; }
     .watchlist.mobile-active { display: flex; }
+    /* Block-# search for the mobile Blocks tab (load-on-tap navigation). */
+    .blockchain.mobile-active .bc-goto-search {
+      display: block;
+      width: calc(100% - 28px); box-sizing: border-box;
+      margin: 4px 14px 10px;
+      padding: 9px 12px;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid var(--line-2);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: 'Fira Code', monospace; font-size: 13px;
+    }
+    .blockchain.mobile-active .bc-goto-search:focus { outline: none; border-color: var(--cyan-dim); }
+    .blockchain.mobile-active .bc-goto-search::placeholder { color: var(--text-3); }
 
     /* Chat on mobile: keep the composer pinned to the bottom of the
        viewport so the user can always reach the input without scrolling.
@@ -5372,6 +5614,9 @@
       display: flex !important;
       flex-direction: column;
       transform: translateY(0);
+      /* Sit ABOVE the block-tx-list popup (z-index 9100) so a tx pinned from
+         the popup on mobile shows on top, not hidden behind it. */
+      z-index: 9300;
     }
     .detail::before {
       content: ""; display: block;
@@ -5541,6 +5786,10 @@
     .msg-card { margin: 6px 14px; padding: 12px 14px; }
     .msg-card .content { font-size: 14px; line-height: 1.45; }
     .msg-card .type { font-size: 10px; }
+    /* Mobile: dedicated expand button is the only expand control (card-body
+       click here only pins the tx-detail). Larger hit target for touch. */
+    .msg-card .msg-expand-btn { display: inline-flex; align-items: center; justify-content: center; font-size: 13px; padding: 5px 9px; min-height: 32px; }
+    .msg-card .msg-chat-btn { font-size: 11px; padding: 5px 10px; min-height: 32px; }
     .msg-card .time { font-size: 10px; }
     .msg-card .from { font-size: 10px; }
     .msg-filters { padding: 12px 14px; gap: 6px; }
@@ -5833,7 +6082,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.1.9">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.1.9</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.2.0">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.2.0</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -6357,6 +6606,7 @@
           <div class="l"><span class="num">03</span>Blockchain · Post-consensus avalanche</div>
           <div class="r">mined → ava polling → ava finalized · no reorg possible</div>
         </div>
+        <input type="text" class="bc-goto-search" id="bc-goto-search" inputmode="numeric" placeholder="go to block #…" aria-label="Go to block number" />
         <div class="chain" id="chain"></div>
       </div>
 
@@ -6673,24 +6923,40 @@
 <div class="block-txlist-overlay" id="block-txlist-overlay" role="dialog" aria-modal="true" aria-labelledby="btl-title" aria-hidden="true" inert>
   <div class="block-txlist-dialog" role="document">
     <button class="dlg-close" id="btl-close" type="button" title="Close">×</button>
-    <div class="btl-head">
-      <div class="btl-title" id="btl-title">Block <span class="num" id="btl-height">—</span></div>
-      <a class="btl-explorer" id="btl-explorer" href="#" target="_blank" rel="noopener">Open block ↗</a>
-    </div>
-    <div class="btl-stats" id="btl-stats">
-      <span><span class="k">tx count</span><span class="v" id="btl-stat-txc">—</span></span>
-      <span><span class="k">size</span><span class="v" id="btl-stat-size">—</span></span>
-      <span><span class="k">age</span><span class="v" id="btl-stat-age">—</span></span>
-    </div>
-    <div class="btl-toolbar">
-      <input type="text" class="btl-search" id="btl-search" placeholder="filter by txid prefix or substring…" aria-label="Filter transactions by txid" />
-    </div>
-    <div class="btl-body" id="btl-body">
-      <div class="btl-loading">Loading tx list…</div>
-    </div>
-    <div class="btl-foot">
-      <span id="btl-progress">—</span>
-      <button class="btl-loadmore" id="btl-loadmore" type="button" style="display:none;">Load more</button>
+    <div class="btl-grid">
+      <!-- LEFT: block chain rail (newest on top, scroll for lower heights) -->
+      <div class="btl-col-left" id="btl-col-left">
+        <input type="text" class="btl-chain-search" id="btl-chain-search" inputmode="numeric" placeholder="go to block #…" aria-label="Go to block number" />
+        <div class="btl-chain-list" id="btl-chain-list"></div>
+      </div>
+      <!-- MIDDLE: tx list (unchanged from the original popup) -->
+      <div class="btl-col-mid" id="btl-col-mid">
+        <div class="btl-head">
+          <div class="btl-title" id="btl-title">Block <span class="num" id="btl-height">—</span></div>
+          <a class="btl-explorer" id="btl-explorer" href="#" target="_blank" rel="noopener">Open block ↗</a>
+        </div>
+        <div class="btl-stats" id="btl-stats">
+          <span><span class="k">tx count</span><span class="v" id="btl-stat-txc">—</span></span>
+          <span><span class="k">size</span><span class="v" id="btl-stat-size">—</span></span>
+          <span><span class="k">age</span><span class="v" id="btl-stat-age">—</span></span>
+        </div>
+        <div class="btl-toolbar">
+          <input type="text" class="btl-search" id="btl-search" placeholder="filter by txid prefix or substring…" aria-label="Filter transactions by txid" />
+        </div>
+        <div class="btl-body" id="btl-body">
+          <div class="btl-loading">Loading tx list…</div>
+        </div>
+        <div class="btl-foot">
+          <span id="btl-progress">—</span>
+          <button class="btl-loadmore" id="btl-loadmore" type="button" style="display:none;">Load more</button>
+        </div>
+      </div>
+      <!-- RIGHT: detail panel mount (the real #detail is re-parented here on
+           3-col desktop while the popup is open; restored on close) -->
+      <div class="btl-col-right" id="btl-col-right">
+        <div class="btl-right-hint">Click a tx to view · txid opens explorer</div>
+        <div class="btl-detail-mount" id="btl-detail-mount"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -6702,10 +6968,15 @@
       <span class="wl-history-name" id="wl-history-name">—</span>
       <span class="wl-history-addr mono" id="wl-history-addr">—</span>
     </div>
+    <div class="wl-history-toolbar">
+      <button class="wl-btn wl-history-sync-btn" id="wl-history-sync-btn" title="Fetch this address/token's tx history from chronik">⟲ Sync from chronik</button>
+      <span class="wl-history-status" id="wl-history-status"></span>
+    </div>
     <div class="wl-history-list" id="wl-history-list">
-      <div class="wl-history-empty">No tracked tx yet — they'll appear here as they happen.</div>
+      <div class="wl-history-empty">No tracked tx yet — they'll appear here as they happen. Press <b>Sync</b> to pull full history from chronik.</div>
     </div>
     <div class="wl-actions">
+      <button class="wl-btn wl-history-loadmore-btn" id="wl-history-loadmore-btn" style="display:none;">Load more</button>
       <button class="wl-btn wl-btn-cancel" id="wl-history-close-btn">Close</button>
     </div>
   </div>
@@ -8655,15 +8926,8 @@ function setupWebSocket() {
               tx.state = 'included';
               tx.includedBlock = msg.blockHeight || tx.includedBlock;
               tx.includedAt = Date.now();
-              if (tx.row) {
-                tx.row.classList.add('consuming');
-                setTimeout(() => {
-                  if (tx.row && tx.row.parentElement) tx.row.remove();
-                  if (typeof updateStats === 'function') {
-                    try { updateStats(); } catch {}
-                  }
-                }, 600);
-              }
+              evictTxRow(msg.txid, true);   // DOM-query removal (robust)
+              setTimeout(() => { try { updateStats(); } catch {} }, 600);
               try { refreshDetailIfActive(); } catch {}
             }
           }
@@ -8677,7 +8941,7 @@ function setupWebSocket() {
           // the topbar count without being visible anywhere meaningful.
           const tx = state.txs.get(msg.txid);
           if (tx && tx.state !== 'included') {
-            if (tx.row && tx.row.parentElement) tx.row.remove();
+            evictTxRow(msg.txid, false);
             state.txs.delete(msg.txid);
             if (typeof updateStats === 'function') {
               try { updateStats(); } catch {}
@@ -8803,6 +9067,9 @@ function reconcileMempoolAgainstBlock(b) {
 
 async function _runReconcile(b) {
   if (!chronik || typeof chronik.tx !== 'function') return;
+  // `b` is optional. Block-arrival reconcile passes the new block; the
+  // visibility-resume reconcile passes nothing and we seed from state.blocks.
+  if (!b) b = state.blocks.length ? state.blocks[state.blocks.length - 1] : {};
   // Collect tracked txids (txs we have rows for, not yet included)
   const tracked = [];
   state.txs.forEach((tx, id) => {
@@ -8818,15 +9085,11 @@ async function _runReconcile(b) {
   const BATCH_SIZE = 8;
   const txidsToCheck = tracked.slice(0, RECONCILE_TX_CAP);
 
-  // Build a set of "recent block heights" so a tx mined into the previous
-  // block (we just missed its TX_CONFIRMED event) also gets reconciled
-  // rather than only the brand-new block. Without this, a tx that was
-  // mined 1 block ago and never received its event would stay forever.
-  const recentHeights = new Set();
-  if (b.height != null) recentHeights.add(b.height);
-  state.blocks.slice(-4).forEach(blk => {
-    if (blk && blk.height != null) recentHeights.add(blk.height);
-  });
+  // NOTE: we used to gate eviction on a "recent heights" set (only evict if the
+  // tx's block was among the last few we know about). That left txs mined into
+  // an OLDER block stranded if their confirm event was missed. Now ANY block
+  // height evicts (a confirmed tx must leave the mempool regardless of which
+  // block it landed in), so the recent-heights gate is gone.
 
   let evicted = 0;
   let stillUnconfirmed = 0;
@@ -8845,36 +9108,17 @@ async function _runReconcile(b) {
       // Chronik 3.x exposes block.height directly; older versions used
       // a nested blockInfo. Handle both for safety.
       const minedHeight = block?.height ?? block?.blockInfo?.height;
-      if (minedHeight != null && recentHeights.has(minedHeight)) {
-        // It really is in a recent block — flip + remove
+      if (minedHeight != null) {
+        // Confirmed into a block (recent or older — either way it must leave
+        // the mempool view). recentHeights is no longer needed to gate this:
+        // any block height means mined. Evict via DOM query so a stale tx.row
+        // (e.g. after a col1→col2 migration) can't leave the row stranded.
         const tx = state.txs.get(id);
         if (tx && tx.state !== 'included') {
           tx.state = 'included';
           tx.includedBlock = minedHeight;
           tx.includedAt = Date.now();
-          if (tx.row) {
-            tx.row.classList.add('consuming');
-            setTimeout(() => {
-              if (tx.row && tx.row.parentElement) tx.row.remove();
-            }, 600);
-          }
-          evicted++;
-        }
-      } else if (minedHeight != null) {
-        // Confirmed but into a block we don't have in `state.blocks`
-        // (probably a historical confirmation we missed). Still treat as
-        // included so it leaves the mempool view.
-        const tx = state.txs.get(id);
-        if (tx && tx.state !== 'included') {
-          tx.state = 'included';
-          tx.includedBlock = minedHeight;
-          tx.includedAt = Date.now();
-          if (tx.row) {
-            tx.row.classList.add('consuming');
-            setTimeout(() => {
-              if (tx.row && tx.row.parentElement) tx.row.remove();
-            }, 600);
-          }
+          evictTxRow(id, true);
           evicted++;
         }
       } else {
@@ -8896,6 +9140,43 @@ async function _runReconcile(b) {
   }
   try { updateStats(); } catch {}
   try { refreshDetailIfActive(); } catch {}
+}
+
+// ============ RESUME RECONCILE (tab-return safety net) ============
+// ⚑ FLAG[resume-reconcile] v1.2.0 — REVISIT IF MEMPOOL STALENESS PERSISTS.
+// Known tradeoffs of the current (deliberately simple) approach, in case this
+// needs changing later:
+//   • Per-tx chronik.tx() check, not an authoritative unconfirmedTxs() diff —
+//     so it confirms MINED txs but won't proactively drop txs that silently
+//     fell out of the mempool (rare). Switch to the unconfirmedTxs() set-diff
+//     if "ghost" pending txs are reported.
+//   • Capped at 600 tracked txs (inside _runReconcile); a huge backlog past
+//     that cap won't fully reconcile in one pass.
+//   • 2s debounce: a user who returns and immediately navigates may not see the
+//     eviction for ~2s.
+// Search "FLAG[resume-reconcile]" to find the call site + _runReconcile.
+//
+// Bug it fixes: tab away for a while, return — txs confirmed into a block while
+// backgrounded still linger in the mempool column (WS eviction events get
+// dropped/throttled while hidden, and the per-block reconcile only fires on a
+// NEW block arrival). This runs ONE pass on resume.
+//
+// Strategy: reuse the existing per-tx _runReconcile() — it checks every tracked
+// (un-included) tx via chronik.tx() and evicts any that now report a block
+// height. Bounded by tracked-tx count (capped at 600 inside _runReconcile),
+// batched, so it does not scale with TPS. Debounced ~2s so rapid tab
+// hidden/visible toggles collapse into a single pass.
+let _resumeReconcileTimer = null;
+function scheduleResumeReconcile() {
+  if (state.mode !== 'live') return;             // only meaningful in live mode
+  if (!chronik || typeof chronik.tx !== 'function') return;
+  if (_resumeReconcileTimer) clearTimeout(_resumeReconcileTimer);
+  _resumeReconcileTimer = setTimeout(() => {
+    _resumeReconcileTimer = null;
+    // No block arg → _runReconcile checks all tracked txs via chronik.tx() and
+    // evicts any that now report ANY block height (mined into any block).
+    _runReconcile().catch(e => console.error('[ecash-live] resume reconcile:', e));
+  }, 2000);
 }
 
 function handleNewBlock(b) {
@@ -10180,6 +10461,35 @@ function repopulateColumn(listId, stateNames) {
   }
 }
 
+// Robustly evict a tx's row(s) from the visible columns. The bug this fixes:
+// reconcile/confirm paths called `tx.row.remove()`, but `tx.row` can be a STALE
+// or detached node — e.g. migrateTxToMempool() rebuilds the row in col2 and any
+// reference captured before that points at the old (removed) node, or a
+// re-render replaced it. The cached reference's .remove() then silently no-ops
+// and the confirmed tx lingers in the mempool. Querying the LIVE DOM by
+// data-txid removes whatever is actually on screen, regardless of reference
+// staleness or which column it ended up in. animate=true plays the same
+// "consuming" fade the eviction paths used.
+function evictTxRow(id, animate) {
+  if (!id) return;
+  // CSS.escape guards against any unexpected chars in a txid (hex in practice).
+  const sel = '[data-txid="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]';
+  let nodes;
+  try { nodes = document.querySelectorAll(sel); } catch (e) { nodes = []; }
+  nodes.forEach(node => {
+    if (!node || !node.parentElement) return;
+    if (animate) {
+      node.classList.add('consuming');
+      setTimeout(() => { if (node && node.parentElement) node.remove(); }, 600);
+    } else {
+      node.remove();
+    }
+  });
+  // Drop the cached reference so nothing else tries to reuse a detached node.
+  const tx = state.txs.get(id);
+  if (tx) tx.row = null;
+}
+
 function migrateTxToMempool(tx) {
   if (!tx.row) {
     addTxRow(tx, 'col2-list');
@@ -11023,8 +11333,44 @@ function refreshDetailIfActive() {
 }
 
 // ============ MESSAGES ============
+// Ordering key for a feed message — mirrors txRowOrderKey() so the feed orders
+// by the same clock as the tx panels. Primary = firstSeen (node timeFirstSeen,
+// 1s precision), tiebreak = firstSeenLocal sub-second so same-second messages
+// resolve newest-arrival-on-top. Higher key = newer. state.messages is kept
+// NEWEST-FIRST (index 0 = newest) because renderMessages() slices(0, max).
+function msgOrderKey(m) {
+  const tx = m && m.tx;
+  const fs  = (tx && tx.firstSeen != null) ? tx.firstSeen
+            : (m && m.timestamp != null ? m.timestamp : 0);
+  const fsl = (tx && tx.firstSeenLocal != null) ? tx.firstSeenLocal
+            : (m && m.timestamp != null ? m.timestamp : fs);
+  return fs + ((fsl % 1000) / 1000);
+}
+
+// Coalesced feed render. The 5s mempool poll can call addMessageCard thousands
+// of times in one synchronous loop; previously each call triggered a FULL
+// renderMessages() diff — hundreds of redundant renders per cycle. Collapsing
+// them into ONE render on the next animation frame matches how the tx panels
+// avoid per-row re-renders (addTxRow inserts a single node) and how the TTF
+// feed already coalesces. A live single WS message still paints next frame.
+let _msgRenderScheduled = false;
+function scheduleRenderMessages() {
+  if (_msgRenderScheduled) return;
+  _msgRenderScheduled = true;
+  const run = () => { _msgRenderScheduled = false; try { renderMessages(); } catch (e) {} };
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
+  else setTimeout(run, 16);
+}
+
 function addMessageCard(tx) {
   if (!tx.message) return;
+  // Dedup — mirror the mempool poll's knownTxids guard. The same tx can reach
+  // us from BOTH the live WS stream and the 5s poll; without this an unshift
+  // would double-insert it. (processNewTx also guards upstream, but keeping the
+  // guard here makes addMessageCard robust regardless of caller.)
+  for (let i = 0; i < state.messages.length; i++) {
+    if (state.messages[i].txid === tx.id) return;
+  }
   const msg = {
     txid: tx.id,
     type: tx.message.type,
@@ -11035,11 +11381,41 @@ function addMessageCard(tx) {
   // If tx is Agora but parseOpReturn returned a non-Agora type (e.g. cashtab msg + agora covenant
   // in same tx is rare but possible), keep the parsed type — the explicit synthetic types
   // from parseTransaction (agora-list/agora-buy/agora-cancel) already cover the no-OP_RETURN case.
-  state.messages.unshift(msg);
-  if (state.messages.length > MAX_MSG_VISIBLE) {
-    state.messages.pop();
+  //
+  // Sorted insertion by timestamp (was: blind unshift). The old unshift always
+  // put the newest-PROCESSED message at the front, but the poll processes a
+  // batch newest-first and the LAST processed (oldest in batch) ended up on top
+  // — scrambling order, and worse, pushing genuinely-new live WS messages past
+  // the MAX_MSG_VISIBLE cap so the trim dropped THEM. We now drop the message
+  // into its correct newest-first slot regardless of when it's processed, the
+  // same fix addTxRow uses for the tx panels. O(visible) over the capped array,
+  // so it does not scale with TPS.
+  const key = msgOrderKey(msg);
+  // Fast reject: if the buffer is full and this message is older than the
+  // current oldest, it would be trimmed immediately — skip the splice entirely.
+  if (state.messages.length >= MAX_MSG_VISIBLE) {
+    const oldest = state.messages[state.messages.length - 1];
+    if (oldest && key < msgOrderKey(oldest)) return;
   }
-  renderMessages();
+  let inserted = false;
+  for (let i = 0; i < state.messages.length; i++) {
+    if (key >= msgOrderKey(state.messages[i])) {   // newer-or-equal → goes before
+      state.messages.splice(i, 0, msg);
+      inserted = true;
+      break;
+    }
+  }
+  if (!inserted) state.messages.push(msg);  // oldest so far → end
+
+  // Recency trim (was: blind pop). pop() removed the array TAIL by insertion
+  // order, which after a poll flood could be a brand-new live message. Because
+  // the array is now timestamp-sorted newest-first, the tail IS the oldest, so
+  // trimming the end correctly keeps the newest MAX_MSG_VISIBLE.
+  if (state.messages.length > MAX_MSG_VISIBLE) {
+    state.messages.length = MAX_MSG_VISIBLE;
+  }
+  // Coalesced render — one paint per batch instead of one per message.
+  scheduleRenderMessages();
 }
 
 /**
@@ -11249,6 +11625,9 @@ function renderMessages() {
       ${agoraMetaHtml}
       <div class="content ${isEncrypted ? 'encrypted' : ''}">${escapeHtml(m.content || '—')}</div>
       <div class="msg-foot">
+        <button class="msg-expand-btn" type="button" title="Expand full message" aria-label="Expand full message" aria-expanded="false">⤢</button>
+        <span class="msg-foot-spacer"></span>
+        <button class="msg-chat-btn" type="button" title="Chat with sender" aria-label="Chat with sender">chat<span class="arrow">↔</span></button>
         <a class="explorer-btn" href="${explorerUrl}" target="_blank" rel="noopener" title="Open in explorer">explorer<span class="arrow">↗</span></a>
       </div>
     `;
@@ -11258,9 +11637,43 @@ function renderMessages() {
       const txid = slot.dataset.copy;
       slot.appendChild(makeCopyBtn(txid));
     }
-    // Click anywhere except copy/explorer buttons → pin tx
+    // Chat button → 1:1 chat with the tx's sender (first input address). Pulls
+    // that peer's history from chronik (user-initiated). All screen sizes.
+    const chatBtn = card.querySelector('.msg-chat-btn');
+    if (chatBtn) {
+      chatBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tx = state.txs.get(m.txid);
+        const addr = tx ? primarySenderAddr(tx) : null;
+        if (addr) jumpToChatWith(addr);
+        else chatBtn.title = 'Sender address unavailable';
+      });
+    }
+    // Expand button — toggles full-message display. On MOBILE this is the only
+    // way to expand (card-body click no longer auto-expands, per spec). On
+    // desktop it's an extra affordance; desktop body-click also expands.
+    const expandBtn = card.querySelector('.msg-expand-btn');
+    const toggleExpand = () => {
+      const contentEl = card.querySelector('.content');
+      if (!contentEl) return;
+      const now = !card.classList.contains('expanded');
+      card.classList.toggle('expanded', now);
+      if (expandBtn) expandBtn.setAttribute('aria-expanded', now ? 'true' : 'false');
+    };
+    if (expandBtn) {
+      expandBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleExpand();
+      });
+    }
+    // Card body click:
+    //   • Desktop → expand full message AND pin tx-detail (one action).
+    //   • Mobile  → pin tx-detail only (expand is the dedicated button).
+    // Both skip clicks on the copy/explorer/chat/expand controls.
     card.addEventListener('click', (e) => {
-      if (e.target.closest('.copy-btn') || e.target.closest('.explorer-btn')) return;
+      if (e.target.closest('.copy-btn') || e.target.closest('.explorer-btn')
+        || e.target.closest('.msg-chat-btn') || e.target.closest('.msg-expand-btn')) return;
+      if (!isMobile()) toggleExpand();   // desktop: click also expands
       const tx = state.txs.get(m.txid);
       if (tx) {
         state.pinnedTx = tx;
@@ -11365,6 +11778,43 @@ function addBlockToChain(b) {
   renderChain();
 }
 
+// ============ BLOCK WATCH-HINT (popup-derived "viewed" bookmark) ============
+// The chip on a block card is populated ONLY when the user opens that block's
+// tx-list popup — see btlFetchPage(), which feeds its per-row matches into
+// blk._watchHits. We intentionally do NOT scan blocks on arrival or hook the
+// confirmation paths: that would re-query chronik / scan full tx lists for
+// little benefit. As a side effect the chip doubles as a "you've opened this
+// block and it contained watched content" bookmark.
+//
+// Hits are stored as a SNAPSHOT (kind + matched entry addr) keyed so a tx can
+// carry both an address and a token segment (txid vs txid+':t'). The snapshot
+// is independent of state.txs (which purges included txs ~30s after
+// confirmation), and computeBlockWatchHint() re-checks the entry's CURRENT
+// enabled/exists state via watchlist.byAddr so disable/remove clears the chip.
+
+// Count a block's recorded watch-hits, honouring the CURRENT watchlist: a hit
+// only counts if its entry still exists AND is enabled. Independent of
+// state.txs, so tx cleanup never erases the chip. O(hits-in-block) — near-zero.
+function computeBlockWatchHint(b) {
+  const out = { addr: 0, token: 0 };
+  if (!b || !b._watchHits || b._watchHits.size === 0) return out;
+  for (const hit of b._watchHits.values()) {
+    const entry = watchlist.byAddr.get(hit.addr);
+    if (!entry) continue;              // watch removed → no longer counts
+    if (entry.enabled === false) continue;  // watch disabled → no longer counts
+    if (hit.kind === 'token') out.token++;
+    else out.addr++;
+  }
+  return out;
+}
+
+// Repaint chain watch-hints — called by the watchlist dispatcher so disable/
+// remove/mode changes update every block chip live. renderChain() recomputes
+// the chip from current matches, so this is just a thin wrapper.
+function refreshChainWatchHints() {
+  try { renderChain(); } catch (e) { /* defensive */ }
+}
+
 function buildBlockCardEl(b, idx, stateClass) {
   const card = document.createElement('div');
   card.className = `block-card ${stateClass}`;
@@ -11388,6 +11838,7 @@ function buildBlockCardEl(b, idx, stateClass) {
     <span class="block-info-trigger info-icon" data-tooltip="ava-block" tabindex="0" title="What is Avalanche post-consensus?">?</span>
     <div class="h">
       <span class="block-age-main"><span class="age-num">${blockAge}</span><span class="age-label">ago</span></span>
+      <span class="block-watch-chip" aria-hidden="true"></span>
       <span class="badge"></span>
     </div>
     <div class="block-height-row">
@@ -11484,6 +11935,43 @@ function updateBlockCard(card, b, idx, stateClass) {
   const newBadge = getBadgeText(stateClass);
   if (badgeEl && badgeEl.textContent !== newBadge) {
     badgeEl.textContent = newBadge;
+  }
+
+  // Update watch-hint chip (top-center dead space). Recomputed from the block's
+  // remembered watched txids against the CURRENT watchlist, so disabling/
+  // removing a watch clears it. Hidden entirely when there are zero matches, so
+  // normal blocks stay clean. ◉ = address (lime), ◆ = token (purple).
+  const chipEl = card.querySelector('.block-watch-chip');
+  if (chipEl) {
+    const hint = computeBlockWatchHint(b);
+    if (hint.addr === 0 && hint.token === 0) {
+      if (chipEl.innerHTML !== '') chipEl.innerHTML = '';
+      chipEl.classList.remove('has-hint');
+      chipEl.removeAttribute('title');
+      chipEl.setAttribute('aria-hidden', 'true');
+      chipEl.style.cursor = '';
+    } else {
+      let html = '';
+      if (hint.addr > 0) html += `<span class="bwc-seg bwc-addr">◉ ${hint.addr}</span>`;
+      if (hint.token > 0) html += `<span class="bwc-seg bwc-token">◆ ${hint.token}</span>`;
+      if (chipEl.innerHTML !== html) chipEl.innerHTML = html;
+      chipEl.classList.add('has-hint');
+      const parts = [];
+      if (hint.addr > 0) parts.push(`${hint.addr} watched address tx${hint.addr > 1 ? 's' : ''}`);
+      if (hint.token > 0) parts.push(`${hint.token} watched token tx${hint.token > 1 ? 's' : ''}`);
+      chipEl.setAttribute('title', parts.join(' · ') + ' — open block');
+      chipEl.setAttribute('aria-hidden', 'false');
+      chipEl.style.cursor = 'pointer';
+      // Click opens the block popup (which tags those txs). Wired once.
+      if (!chipEl._wired) {
+        chipEl._wired = true;
+        chipEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const blk = state.blocks.find(x => x.height === b.height) || b;
+          try { openBlockTxList(blk); } catch (err) {}
+        });
+      }
+    }
   }
 
   // Update age (main display, recompute every tick)
@@ -11591,8 +12079,184 @@ const btlState = {
   filter: '',
 };
 
-function openBlockTxList(block) {
+// ============ PHASE 4: left chain rail ============
+// Seeded from state.blocks (the dashboard's MAX_BLOCKS real blocks) — NO extra
+// WS/chronik fetch on open or scroll. Newest height on top. Real blocks render
+// full mini-cards; heights below the lowest real block render as synthetic
+// placeholders (height only) — clicking one fetches that block's header on
+// demand (chronik.block(height)) then loads its tx list into the middle column.
+// Scrolling down simply extends the synthetic window further back (pure height
+// math). A block-# search re-centers the window on the searched height.
+const btlChain = {
+  centerHeight: null,   // height the window is centered/anchored on
+  windowBelow: 30,      // how many heights below the lowest real block to show
+  maxWindowBelow: 5000, // hard cap so scrolling can't grow the DOM unbounded
+};
+
+function _btlRealBlocksDesc() {
+  // state.blocks is ascending by height; we want newest-first for the rail.
+  return state.blocks.slice().sort((a, b) => b.height - a.height);
+}
+
+function renderBtlChain() {
+  const list = document.getElementById('btl-chain-list');
+  if (!list) return;
+  const real = _btlRealBlocksDesc();
+  if (real.length === 0) { list.innerHTML = '<div class="btl-chain-empty" style="color:var(--text-3);font-size:10px;padding:8px;">No blocks yet.</div>'; return; }
+  const topHeight = real[0].height;            // newest real block
+  const lowestReal = real[real.length - 1].height;
+  const realByHeight = new Map(real.map(b => [b.height, b]));
+  // Window: from topHeight down to (lowestReal - windowBelow). If a search
+  // re-centered us on an older height, extend upward to include it too.
+  let top = topHeight;
+  if (btlChain.centerHeight != null && btlChain.centerHeight > top) top = btlChain.centerHeight;
+  const bottom = Math.max(0, Math.min(lowestReal, btlChain.centerHeight ?? lowestReal) - btlChain.windowBelow);
+  const frag = document.createDocumentFragment();
+  for (let h = top; h >= bottom; h--) {
+    const rb = realByHeight.get(h);
+    const el = document.createElement('div');
+    el.className = 'btl-chain-block' + (rb ? '' : ' placeholder');
+    if (btlState.block && btlState.block.height === h) el.classList.add('active');
+    el.dataset.height = String(h);
+    let metaHtml;
+    if (rb) {
+      const age = rb.timestamp ? formatBlockAge(rb.timestamp) + ' ago' : '';
+      const txc = rb.txCount != null ? rb.txCount + ' tx' : '';
+      // Watch chip if this block has recorded hits (popup-derived bookmark).
+      let chip = '';
+      try {
+        const hint = computeBlockWatchHint(rb);
+        if (hint.addr || hint.token) {
+          chip = '<span class="bcb-chip">'
+            + (hint.addr ? `<span class="bwc-seg bwc-addr">◉ ${hint.addr}</span>` : '')
+            + (hint.token ? `<span class="bwc-seg bwc-token">◆ ${hint.token}</span>` : '')
+            + '</span>';
+        }
+      } catch (e) {}
+      metaHtml = `<span>${age}</span><span>${txc}</span>${chip}`;
+    } else {
+      metaHtml = '<span>click to load</span>';
+    }
+    el.innerHTML = `<div class="bcb-height">#${h.toLocaleString('en-US')}</div><div class="bcb-meta">${metaHtml}</div>`;
+    el.addEventListener('click', () => btlChainGoTo(h));
+    frag.appendChild(el);
+  }
+  list.innerHTML = '';
+  list.appendChild(frag);
+}
+
+// Navigate the middle list to a height clicked in the rail. Real block → use it
+// directly. Synthetic → fetch its header (chronik.block(height)) on demand.
+async function btlChainGoTo(height) {
+  const real = state.blocks.find(b => b.height === height);
+  if (real) { openBlockTxList(real, { keepChain: true }); return; }
+  // Synthetic: fetch header on click only.
+  const list = document.getElementById('btl-chain-list');
+  const el = list && list.querySelector(`.btl-chain-block[data-height="${height}"]`);
+  if (el) { el.classList.add('active'); const m = el.querySelector('.bcb-meta'); if (m) m.innerHTML = '<span>loading…</span>'; }
+  if (!chronik || typeof chronik.block !== 'function') return;
+  try {
+    const info = await chronik.block(height);
+    const bi = info?.blockInfo || info || {};
+    const blockObj = {
+      height: bi.height ?? height,
+      hash: bi.hash,
+      txCount: bi.numTxs != null ? Number(bi.numTxs) : (bi.txCount != null ? Number(bi.txCount) : null),
+      size: bi.blockSize != null ? Number(bi.blockSize) : (bi.size || 0),
+      timestamp: (bi.timestamp ? Number(bi.timestamp) : Math.floor(Date.now()/1000)) * 1000,
+      state: 'mined',
+    };
+    openBlockTxList(blockObj, { keepChain: true });
+  } catch (e) {
+    if (el) { const m = el.querySelector('.bcb-meta'); if (m) m.innerHTML = '<span style="color:var(--magenta)">load failed</span>'; }
+  }
+}
+
+// Pin a tx (clicked in the popup list) to the detail view. Data-on-click:
+// if the tx isn't already in state.txs we fetch it from chronik now. Routing:
+//   • 3-col desktop → detail panel is already in the right column → render there.
+//   • 2-col desktop → close the popup and pin to the main tx-detail panel.
+//   • mobile        → keep popup open, show the detail panel as an overlay.
+async function btlPinTx(txid) {
+  if (!txid) return;
+  const threeCol = window.matchMedia('(min-width: 1100px)').matches;
+  const mobile = (typeof isMobile === 'function' && isMobile());
+
+  let tx = state.txs.get(txid);
+  if (!tx) {
+    // Fetch on click only.
+    const mountHint = document.querySelector('.btl-right-hint');
+    if (threeCol && mountHint) mountHint.textContent = 'Loading tx…';
+    if (chronik && typeof chronik.tx === 'function') {
+      try {
+        const raw = await chronik.tx(txid);
+        tx = parseTransaction(raw);
+        if (raw.block) { tx.state = 'included'; tx.includedBlock = raw.block.height ?? raw.block.blockInfo?.height; }
+        state.txs.set(txid, tx);
+      } catch (e) {
+        if (threeCol && mountHint) mountHint.textContent = 'Could not load tx.';
+        return;
+      }
+    } else { return; }
+    if (threeCol && mountHint) mountHint.textContent = 'Click a tx to view · txid opens explorer';
+  }
+
+  state.pinnedTx = tx;
+  if (threeCol) {
+    // Detail panel is already re-parented into the right column.
+    renderDetail(tx);
+  } else if (mobile) {
+    // Keep popup open; surface the detail panel as a mobile overlay.
+    renderDetail(tx);
+    const detail = document.getElementById('detail');
+    if (detail) detail.classList.add('mobile-open');
+  } else {
+    // 2-col: close popup, pin to the main detail panel.
+    closeBlockTxList();
+    renderDetail(tx);
+  }
+}
+
+function btlChainSearch(value) {
+  const h = parseInt(String(value).replace(/[^0-9]/g, ''), 10);
+  if (!Number.isFinite(h) || h < 0) return;
+  // Re-center the window on the searched height (it becomes the top anchor) and
+  // load it. The user can then scroll up (toward newer) or down (older).
+  btlChain.centerHeight = h;
+  btlChain.windowBelow = 30;
+  renderBtlChain();
+  btlChainGoTo(h);
+}
+
+// Detail-panel re-parenting (3-col only). We MOVE the real #detail node into the
+// popup's right column while open, so renderDetail() works unchanged. On close
+// (or when leaving 3-col), we put it back in its original parent.
+let _btlDetailHome = null;   // { parent, nextSibling } to restore to
+function btlBorrowDetailPanel() {
+  const detail = document.getElementById('detail');
+  const mount = document.getElementById('btl-detail-mount');
+  if (!detail || !mount) return;
+  // Only borrow in 3-col mode (right column visible).
+  const rightVisible = window.matchMedia('(min-width: 1100px)').matches;
+  if (!rightVisible) return;
+  if (detail.parentElement === mount) return;  // already borrowed
+  _btlDetailHome = { parent: detail.parentElement, next: detail.nextSibling };
+  mount.appendChild(detail);
+}
+function btlRestoreDetailPanel() {
+  const detail = document.getElementById('detail');
+  if (!detail || !_btlDetailHome) return;
+  const { parent, next } = _btlDetailHome;
+  if (parent) {
+    if (next && next.parentElement === parent) parent.insertBefore(detail, next);
+    else parent.appendChild(detail);
+  }
+  _btlDetailHome = null;
+}
+
+function openBlockTxList(block, opts) {
   if (!block) return;
+  opts = opts || {};
   btlState.block = block;
   btlState.page = 0;
   btlState.numPages = 0;
@@ -11611,11 +12275,20 @@ function openBlockTxList(block) {
   $('btl-progress').textContent = '—';
   $('btl-loadmore').style.display = 'none';
   const overlay = $('block-txlist-overlay');
+  const dialog = overlay.querySelector('.block-txlist-dialog');
+  if (dialog) dialog.classList.add('btl-multicol');
   overlay.classList.add('show');
   overlay.inert = false;
   overlay.setAttribute('aria-hidden', 'false');
   // Lock body scroll while modal is open
   document.body.style.overflow = 'hidden';
+  // Left chain rail. A FRESH open (from a block card) resets the window anchor
+  // to the newest block; chain-internal navigation passes keepChain to preserve
+  // the user's scroll/search position.
+  if (!opts.keepChain) { btlChain.centerHeight = null; btlChain.windowBelow = 30; }
+  try { renderBtlChain(); } catch (e) {}
+  // Borrow the real #detail panel into the right column (3-col desktop only).
+  try { btlBorrowDetailPanel(); } catch (e) {}
   // Fetch first page
   btlFetchPage();
 }
@@ -11632,6 +12305,10 @@ function closeBlockTxList() {
   overlay.classList.remove('show');
   overlay.inert = true;
   overlay.setAttribute('aria-hidden', 'true');
+  // Put the borrowed #detail panel back in its home before we tear down.
+  try { btlRestoreDetailPanel(); } catch (e) {}
+  const dialog = overlay.querySelector('.block-txlist-dialog');
+  if (dialog) dialog.classList.remove('btl-multicol');
   // Restore scroll
   document.body.style.overflow = '';
   btlState.block = null;
@@ -11756,6 +12433,33 @@ async function btlFetchPage() {
     });
     btlState.page += 1;
     btlRenderRows();
+    // Feed the popup's per-row matches back into the block's watch-hint. The
+    // popup already fetched + matched these txs, so this is free and it widens
+    // coverage beyond live-observed txs: opening ANY block (incl. historical)
+    // now lights its chip if it contains watched content. We store the entry's
+    // addr so computeBlockWatchHint can still honour disable/remove later.
+    try {
+      const blk = btlState.block && state.blocks.find(x => x.height === btlState.block.height);
+      if (blk) {
+        if (!blk._watchHits) blk._watchHits = new Map();
+        for (const r of btlState.rows) {
+          if (blk._watchHits.size > 64) break;
+          if (r.wlAddr && !blk._watchHits.has(r.txid)) {
+            blk._watchHits.set(r.txid, { kind: 'addr', addr: r.wlAddr.addr });
+          }
+          if (r.wlToken) {
+            // A row can match both an address and a token; key the token hit
+            // separately so both segments can count. Suffix keeps the Map key
+            // unique without a second structure.
+            const tkey = r.txid + ':t';
+            if (!blk._watchHits.has(tkey)) {
+              blk._watchHits.set(tkey, { kind: 'token', addr: r.wlToken.addr });
+            }
+          }
+        }
+        renderChain();  // repaint the card's chip with the freshly-found hits
+      }
+    } catch (e) { /* hint is best-effort */ }
   } catch (e) {
     if (btlState.rows.length === 0) {
       $('btl-body').innerHTML =
@@ -11791,32 +12495,20 @@ function btlRenderRows() {
   // Render rows. For long lists (>1000), use a fragment for perf.
   const frag = document.createDocumentFragment();
   for (const r of rows) {
-    const a = document.createElement('a');
+    const a = document.createElement('div');
     a.className = 'btl-row';
-    // Row tint — same address>tokenId precedence as the live feed: an address
-    // match tints lime, otherwise a token match tints purple. (Tags below can
-    // still show BOTH; only the row background follows the single winner.)
+    a.dataset.txid = r.txid;
+    // Row tint — same address>tokenId precedence as the live feed.
     if (r.tintKind) {
       a.classList.add('watched');
       if (r.tintKind === 'token') a.classList.add('watched-token');
     }
-    a.href = explorerTx(r.txid);
-    a.target = '_blank';
-    a.rel = 'noopener';
     const short = r.txid.length > 16
       ? `${r.txid.slice(0, 12)}…${r.txid.slice(-8)}`
       : r.txid;
-    // SECURITY: defense-in-depth. r.txid is a chronik-supplied hex string in
-    // practice, but escaping the title/text means a future chronik response
-    // shape change can't break out of the attribute or inject HTML. See audit
-    // 2025 §2.2.
     const txidSafe = escapeHtml(r.txid);
     const shortSafe = escapeHtml(short);
-    // Tag column. Coinbase (gold) always wins and shows alone — a coinbase tx
-    // is never on a watchlist. Otherwise show up to TWO watchlist tags: the
-    // matched ADDRESS (lime) and the matched TOKEN (purple). Never two of one
-    // kind. Address first so it reads left-to-right wallet→token, matching the
-    // address>token priority used elsewhere.
+    const explorerHref = escapeHtml(explorerTx(r.txid));
     let tagHtml;
     if (r.isCoinbase) {
       tagHtml = '<span class="btl-tag coinbase">coinbase</span>';
@@ -11832,12 +12524,25 @@ function btlRenderRows() {
     } else {
       tagHtml = '<span class="btl-tag"></span>';
     }
+    // txid is an explorer link (new tab); the rest of the row is a pin target.
+    // Clicking the row body (not the txid link) pins the tx to the detail view.
     a.innerHTML = `
       <span class="btl-idx ${r.isCoinbase ? 'coinbase' : ''}">#${r.idx}</span>
-      <span class="btl-txid" title="${txidSafe}">${shortSafe}</span>
+      <a class="btl-txid" href="${explorerHref}" target="_blank" rel="noopener" title="${txidSafe} — open in explorer">${shortSafe}</a>
       ${tagHtml}
-      <span class="btl-go">↗</span>
+      <span class="btl-go" title="open in explorer">↗</span>
     `;
+    a.addEventListener('click', (e) => {
+      // txid link opens explorer via its own href.
+      if (e.target.closest('.btl-txid')) return;
+      // ↗ arrow also opens the explorer (it's not a link itself).
+      if (e.target.closest('.btl-go')) {
+        window.open(explorerTx(r.txid), '_blank', 'noopener');
+        return;
+      }
+      // Anywhere else on the row → pin the tx to detail.
+      btlPinTx(r.txid);
+    });
     frag.appendChild(a);
   }
   body.innerHTML = '';
@@ -11903,6 +12608,60 @@ function btlEscapeHtml(s) {
     btlRenderRows();
   });
   $('btl-loadmore').addEventListener('click', btlFetchPage);
+
+  // Left chain rail: block-# search. Enter jumps; typing a complete number also
+  // jumps after a short debounce so the user doesn't have to press Enter.
+  const chainSearch = $('btl-chain-search');
+  if (chainSearch) {
+    let t = null;
+    chainSearch.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { if (t) clearTimeout(t); btlChainSearch(chainSearch.value); }
+    });
+    chainSearch.addEventListener('input', () => {
+      if (t) clearTimeout(t);
+      const v = chainSearch.value;
+      t = setTimeout(() => { if (v && v === chainSearch.value) btlChainSearch(v); }, 600);
+    });
+  }
+  // Chain rail scroll: extend the synthetic window downward (older heights) as
+  // the user nears the bottom, up to maxWindowBelow. Cheap (height-only rows),
+  // and capped so the DOM can't grow without bound. Preserves scroll position.
+  const chainList = $('btl-chain-list');
+  if (chainList) {
+    chainList.addEventListener('scroll', () => {
+      const nearBottom = chainList.scrollTop + chainList.clientHeight >= chainList.scrollHeight - 60;
+      if (!nearBottom) return;
+      if (btlChain.windowBelow >= btlChain.maxWindowBelow) return;
+      const prevTop = chainList.scrollTop;
+      btlChain.windowBelow = Math.min(btlChain.maxWindowBelow, btlChain.windowBelow + 30);
+      renderBtlChain();
+      chainList.scrollTop = prevTop;  // keep position; new rows appear below
+    });
+  }
+  // Mobile Blocks tab: block-# search → opens that block's popup (load-on-tap),
+  // fetching the header on demand for blocks not in state.blocks.
+  const bcGoto = $('bc-goto-search');
+  if (bcGoto) {
+    bcGoto.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      const h = parseInt(String(bcGoto.value).replace(/[^0-9]/g, ''), 10);
+      if (Number.isFinite(h) && h >= 0) { btlChainGoTo(h); bcGoto.blur(); }
+    });
+  }
+  // Keep the detail-panel placement correct if the viewport crosses the 3-col
+  // threshold while the popup is open: entering 3-col borrows it into the right
+  // column; leaving 3-col restores it to its home so it isn't stranded in a
+  // hidden column. Debounced.
+  let _btlResizeT = null;
+  window.addEventListener('resize', () => {
+    if (!overlay.classList.contains('show')) return;
+    if (_btlResizeT) clearTimeout(_btlResizeT);
+    _btlResizeT = setTimeout(() => {
+      const threeCol = window.matchMedia('(min-width: 1100px)').matches;
+      if (threeCol) { try { btlBorrowDetailPanel(); } catch (e) {} }
+      else { try { btlRestoreDetailPanel(); } catch (e) {} }
+    }, 200);
+  });
 
   // Document-level delegation: click on .block-card body opens the modal.
   // We exclude anchors, buttons, the info trigger, the hash copy button,
@@ -12733,6 +13492,7 @@ function setWatchlistEnabled(addr, on) {
 //   • refreshAllWatchlistDecorations() — live tx-rows + message cards
 //   • refreshDetailIfActive()          — the open tx-detail flow panel
 //   • btlRefreshWatchTags()            — the block tx-list popup, if open
+//   • refreshChainWatchHints()         — the per-block watch chips
 // Each callee is independently guarded (no-ops when its surface is absent), so
 // this is safe to call unconditionally. Keeping the fan-out here means new
 // surfaces only need wiring in one spot instead of in every mutator.
@@ -12741,6 +13501,7 @@ function refreshAllWatchlistViews() {
   try { refreshAllWatchlistDecorations(); } catch (e) { console.error('[ecash-live] decorations:', e); }
   try { refreshDetailIfActive(); } catch (e) { console.error('[ecash-live] detail refresh:', e); }
   try { btlRefreshWatchTags(); } catch (e) { console.error('[ecash-live] btl re-tag:', e); }
+  try { refreshChainWatchHints(); } catch (e) { console.error('[ecash-live] chain hints:', e); }
 }
 
 // Re-runs decoration on every visible .tx-row and every msg-card so changes
@@ -13022,6 +13783,7 @@ function renderWatchlist() {
       </div>
       ${modeBlock}
       <div class="wl-actions-row">
+        ${isToken ? '' : '<button class="wl-act-btn wl-act-chat" title="Chat with this address / Trò chuyện với địa chỉ này" aria-label="Chat with this address">↔</button>'}
         <button class="wl-act-btn wl-act-toggle ${entry.enabled === false ? 'is-off' : ''}" aria-pressed="${entry.enabled === false ? 'false' : 'true'}" title="${entry.enabled === false ? 'Watching paused — click to resume / Tạm dừng — bấm để bật lại' : 'Watching active — click to pause / Đang theo dõi — bấm để tạm dừng'}" aria-label="Toggle watching">⏻</button>
         <button class="wl-act-btn wl-act-history" title="Show recent tx for this ${isToken ? 'token' : 'address'}" aria-label="Show history">☰</button>
         <button class="wl-act-btn wl-act-copy" title="Copy ${isToken ? 'token ID' : 'address'}" aria-label="Copy">⎘</button>
@@ -13042,6 +13804,14 @@ function renderWatchlist() {
         setWatchlistMode(entry.addr, newMode);
       });
     });
+
+    const wlChatBtn = card.querySelector('.wl-act-chat');
+    if (wlChatBtn) {
+      wlChatBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        jumpToChatWith(entry.addr);   // 1:1 chat with this watched address
+      });
+    }
 
     card.querySelector('.wl-act-toggle').addEventListener('click', (e) => {
       e.stopPropagation();
@@ -13230,20 +14000,193 @@ function tryWatchlistEditRemove() {
 }
 
 // History modal wiring
+// ===== Watchlist "recent txs" modal =====
+// Two views:
+//   • DEFAULT (not synced) — the local entry.history list of txs we happened to
+//     observe live this session. renderHistoryList() handles this (unchanged).
+//   • SYNCED — full on-chain history pulled from chronik ON DEMAND (Sync button
+//     only — never auto-fetched, per the data-on-click invariant). Paginated
+//     with a Load-more button mirroring the block popup. Replaces the local
+//     view once synced. State lives in historyFetch; reset on every open.
+const HISTORY_PAGE_SIZE = BTL_PAGE_SIZE;   // match block popup pagination
+const historyFetch = {
+  addr: null, kind: null,
+  page: 0, numPages: 0,
+  rows: [],            // parsed display rows {txid, ts, kind, label, amt}
+  seen: new Set(),     // dedup txids
+  synced: false,
+  loading: false,
+};
+
+function _resetHistoryFetch() {
+  historyFetch.addr = null; historyFetch.kind = null;
+  historyFetch.page = 0; historyFetch.numPages = 0;
+  historyFetch.rows = []; historyFetch.seen = new Set();
+  historyFetch.synced = false; historyFetch.loading = false;
+}
+
 function openHistoryModal(addr) {
   const entry = watchlist.byAddr.get(addr);
   if (!entry) return;
   currentHistoryAddr = addr;
+  _resetHistoryFetch();
+  historyFetch.addr = entry.addr;
+  historyFetch.kind = entry.kind;
   document.getElementById('wl-history-name').textContent = entry.name;
   document.getElementById('wl-history-addr').textContent = entry.addr;
-  renderHistoryList();
+  _setHistoryStatus('');
+  const lm = document.getElementById('wl-history-loadmore-btn');
+  if (lm) lm.style.display = 'none';
+  const sync = document.getElementById('wl-history-sync-btn');
+  if (sync) { sync.disabled = false; sync.textContent = '⟲ Sync from chronik'; }
+  renderHistoryList();   // local view first
   document.getElementById('wl-history-overlay').classList.add('show');
 }
 function closeHistoryModal() {
   document.getElementById('wl-history-overlay').classList.remove('show');
   currentHistoryAddr = null;
+  _resetHistoryFetch();
 }
+function _setHistoryStatus(txt) {
+  const el = document.getElementById('wl-history-status');
+  if (el) el.textContent = txt || '';
+}
+
+// Fetch one chronik page for the current address/token. Returns {txs, numPages}
+// or null on unsupported/failed. Address → chronik.address().history(); token →
+// chronik.tokenId().history() (feature-detected — older clients may lack it).
+async function _fetchHistoryPage(page) {
+  if (!chronik) return null;
+  const id = historyFetch.addr;
+  try {
+    if (historyFetch.kind === 'token') {
+      if (typeof chronik.tokenId !== 'function') return { unsupported: true };
+      const t = chronik.tokenId(id);
+      if (!t || typeof t.history !== 'function') return { unsupported: true };
+      const res = await t.history(page, HISTORY_PAGE_SIZE);
+      return { txs: res?.txs || [], numPages: res?.numPages ?? Math.ceil((res?.numTxs || 0) / HISTORY_PAGE_SIZE) };
+    } else {
+      if (typeof chronik.address !== 'function') return { unsupported: true };
+      const res = await chronik.address(id).history(page, HISTORY_PAGE_SIZE);
+      return { txs: res?.txs || [], numPages: res?.numPages ?? Math.ceil((res?.numTxs || 0) / HISTORY_PAGE_SIZE) };
+    }
+  } catch (e) {
+    console.warn('[ecash-live] history fetch failed:', e?.message || e);
+    return null;
+  }
+}
+
+// Turn a raw chronik tx into a compact display row using the app's canonical
+// parser so amounts/token/msg read the same as everywhere else.
+function _historyRowFromRawTx(raw) {
+  let parsed = null;
+  try { parsed = parseTransaction(raw); } catch (e) {}
+  const txid = raw.txid || (parsed && parsed.id);
+  if (!txid) return null;
+  const ts = (raw.timeFirstSeen ? Number(raw.timeFirstSeen) * 1000 : null)
+          ?? (raw.block?.timestamp ? Number(raw.block.timestamp) * 1000 : Date.now());
+  let kind = 'XEC', label = 'XEC', amt = '—';
+  if (parsed && parsed.token && parsed.token.tokenId) {
+    kind = 'TOKEN'; label = 'TOKEN';
+    amt = parsed.token.ticker || 'token';
+  } else if (parsed && parsed.message) {
+    kind = 'MSG'; label = 'MSG';
+    amt = parsed.message.type || 'msg';
+  }
+  if (parsed && Number.isFinite(parsed.valueXec) && kind === 'XEC') {
+    amt = parsed.valueXec.toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' XEC';
+  }
+  return { txid, ts, kind, label, amt, confirmed: !!(raw.block) };
+}
+
+async function syncHistoryFromChronik() {
+  if (historyFetch.loading || !currentHistoryAddr) return;
+  historyFetch.loading = true;
+  const sync = document.getElementById('wl-history-sync-btn');
+  if (sync) { sync.disabled = true; sync.textContent = '⟲ Syncing…'; }
+  _setHistoryStatus('fetching…');
+  const res = await _fetchHistoryPage(0);
+  historyFetch.loading = false;
+  if (sync) { sync.disabled = false; sync.textContent = '⟲ Re-sync'; }
+  if (!res) { _setHistoryStatus('sync failed — try again'); return; }
+  if (res.unsupported) {
+    _setHistoryStatus(historyFetch.kind === 'token'
+      ? 'token history not supported by this node'
+      : 'history not supported by this node');
+    return;
+  }
+  historyFetch.synced = true;
+  historyFetch.page = 0;
+  historyFetch.numPages = res.numPages || 1;
+  historyFetch.rows = [];
+  historyFetch.seen = new Set();
+  for (const raw of res.txs) {
+    const row = _historyRowFromRawTx(raw);
+    if (row && !historyFetch.seen.has(row.txid)) {
+      historyFetch.seen.add(row.txid);
+      historyFetch.rows.push(row);
+    }
+  }
+  _renderSyncedHistory();
+}
+
+async function loadMoreHistory() {
+  if (historyFetch.loading || !historyFetch.synced) return;
+  if (historyFetch.page + 1 >= historyFetch.numPages) return;
+  historyFetch.loading = true;
+  const lm = document.getElementById('wl-history-loadmore-btn');
+  if (lm) { lm.disabled = true; lm.textContent = 'Loading…'; }
+  const nextPage = historyFetch.page + 1;
+  const res = await _fetchHistoryPage(nextPage);
+  historyFetch.loading = false;
+  if (lm) { lm.disabled = false; lm.textContent = 'Load more'; }
+  if (!res || res.unsupported) { _setHistoryStatus('load more failed'); return; }
+  historyFetch.page = nextPage;
+  historyFetch.numPages = res.numPages || historyFetch.numPages;
+  for (const raw of res.txs) {
+    const row = _historyRowFromRawTx(raw);
+    if (row && !historyFetch.seen.has(row.txid)) {
+      historyFetch.seen.add(row.txid);
+      historyFetch.rows.push(row);
+    }
+  }
+  _renderSyncedHistory();
+}
+
+function _renderSyncedHistory() {
+  const list = document.getElementById('wl-history-list');
+  if (!list) return;
+  list.innerHTML = '';
+  if (historyFetch.rows.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'wl-history-empty';
+    empty.textContent = 'No transactions found on-chain for this ' + (historyFetch.kind === 'token' ? 'token' : 'address') + '.';
+    list.appendChild(empty);
+  } else {
+    for (const r of historyFetch.rows) {
+      const row = document.createElement('div');
+      row.className = 'wl-history-row';
+      const time = new Date(r.ts).toLocaleString('en-US', { hour12: false, month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      row.innerHTML = `
+        <span class="wlh-time">${time}</span>
+        <span class="wlh-mid">
+          <a class="wlh-txid" href="${explorerTx(r.txid)}" target="_blank" rel="noopener">${r.txid.slice(0, 16)}…${r.txid.slice(-8)}</a>
+          <span class="wlh-tag">${r.label}</span>
+        </span>
+        <span class="wlh-amt">${escapeHtml(String(r.amt))}</span>
+      `;
+      list.appendChild(row);
+    }
+  }
+  _setHistoryStatus(`${historyFetch.rows.length} shown · synced`);
+  const lm = document.getElementById('wl-history-loadmore-btn');
+  if (lm) lm.style.display = (historyFetch.page + 1 < historyFetch.numPages) ? 'inline-block' : 'none';
+}
+
 function renderHistoryList() {
+  // If the user has synced from chronik, the modal shows the authoritative
+  // paginated view — don't let a live-tracked match revert it to the local list.
+  if (historyFetch.synced) { _renderSyncedHistory(); return; }
   const list = document.getElementById('wl-history-list');
   if (!list || !currentHistoryAddr) return;
   const entry = watchlist.byAddr.get(currentHistoryAddr);
@@ -13336,6 +14279,10 @@ if (wlHistoryOverlay) wlHistoryOverlay.addEventListener('click', (e) => {
 });
 const wlHistoryCloseBtn = document.getElementById('wl-history-close-btn');
 if (wlHistoryCloseBtn) wlHistoryCloseBtn.addEventListener('click', closeHistoryModal);
+const wlHistorySyncBtn = document.getElementById('wl-history-sync-btn');
+if (wlHistorySyncBtn) wlHistorySyncBtn.addEventListener('click', () => { syncHistoryFromChronik(); });
+const wlHistoryLoadMoreBtn = document.getElementById('wl-history-loadmore-btn');
+if (wlHistoryLoadMoreBtn) wlHistoryLoadMoreBtn.addEventListener('click', () => { loadMoreHistory(); });
 
 // Edit dialog wiring
 const wlEditOverlay = document.getElementById('wl-edit-overlay');
@@ -14040,6 +14987,53 @@ function chatRenderAll() {
   chatRenderAmount();
   chatRenderByteCount();
   chatRenderThread();
+}
+
+// ============ PHASE 2: chat-jump from feed / watchlist ============
+// The "main broadcaster" of a tx is its first input's address — the party that
+// signed and sent the tx. (Outputs are recipients; we deliberately target the
+// SENDER per the feed chat-button spec.) Returns a normalized "ecash:q…" or null.
+function primarySenderAddr(tx) {
+  try {
+    const raw = tx && tx.raw;
+    const inputs = raw && raw.inputs;
+    if (!inputs || !inputs.length) return null;
+    return _extractInputAddr(inputs[0]);   // reuses the watchlist extractor
+  } catch (e) { return null; }
+}
+
+// Jump to the Chat tab targeting a single address (1:1). Per the chosen design
+// this REPLACES the peer list with just this address (myAddr is preserved). If
+// the address is on the watchlist, its label is used as the peer name so the
+// chip shows the friendly name instead of the raw address. Navigates to chat on
+// both desktop (pane switch) and mobile (tab switch). chatReload() fetches that
+// peer's history from chronik — i.e. data is pulled only on this user action.
+function jumpToChatWith(addr) {
+  try {
+    if (!addr) return;
+    const v = validateEcashAddress(addr);
+    if (!v.ok) return;
+    const norm = v.normalized;
+    const wl = watchlist.byAddr.get(norm);
+    const name = (wl && wl.kind !== 'token' && wl.name) ? wl.name : '';
+    // 1:1 — replace peers with just this address. Skip the rebuild if it's
+    // already the sole peer (avoids a redundant chronik reload).
+    const alreadySole = chatState.peers.length === 1 && chatState.peers[0].addr === norm;
+    if (!alreadySole) {
+      chatState.peers = [{ addr: norm, name }];
+      chatSavePersist();
+      chatRenderAll();
+      chatReload();   // pulls this peer's history (WS/chronik) — user-initiated
+    }
+    // Navigate to the chat surface.
+    try {
+      if (typeof isMobile === 'function' && isMobile()) {
+        switchMobileTab('messages', 'chat');
+      } else if (typeof chatSwitchTab === 'function') {
+        chatSwitchTab('chat');
+      }
+    } catch (e) {}
+  } catch (e) { console.error('[ecash-live] jumpToChatWith:', e); }
 }
 
 // ===== Fetching messages from Chronik =====
@@ -16361,6 +17355,25 @@ function applyViewMode(newView) {
   if (btn) btn.title = VIEW_TITLES[newView];
   try { localStorage.setItem(VIEW_STORAGE_KEY, newView); } catch {}
 
+  // Mobile: the new view mode may hide the tab the user is currently on (CSS
+  // above hides col1/col2 in FEED, messages in CHAIN). If so, route them to a
+  // still-visible tab so they don't land on a now-hidden/blank panel. We pick
+  // the panel that the mode is built around: FEED → messages, CHAIN → col1.
+  // Guarded to mobile only; desktop has no mobile-active tab concept.
+  try {
+    if (typeof isMobile === 'function' && isMobile()) {
+      const activeTab = document.querySelector('.mobile-tab.active');
+      const sec = activeTab ? activeTab.dataset.section : null;
+      const hiddenInFeed  = (newView === 'feed')  && (sec === 'col1' || sec === 'col2');
+      const hiddenInChain = (newView === 'chain') && (sec === 'messages');
+      if (hiddenInFeed) {
+        switchMobileTab('messages', activeTab.dataset.subtab);
+      } else if (hiddenInChain) {
+        switchMobileTab('col1');
+      }
+    }
+  } catch (e) { /* never let tab-routing break a view switch */ }
+
   // === Repopulate the panels that just became visible ===
   // While a panel was hidden the render functions short-circuit
   // (addTxRow/renderMessages no-ops). When the user toggles back, we need
@@ -17157,6 +18170,9 @@ document.addEventListener('visibilitychange', () => {
     // refreshDetailIfActive() no-ops when no panel is open, and renderDetail
     // only reads state (its one chronik block-fetch is per-tx rate-limited).
     try { refreshDetailIfActive(); } catch {}
+    // FLAG[resume-reconcile]: tab-return safety net. See _runReconcile and the
+    // scheduleResumeReconcile definition for tradeoffs/tuning notes.
+    try { scheduleResumeReconcile(); } catch {}
   }
 });
 
