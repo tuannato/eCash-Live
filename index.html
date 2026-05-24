@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-NojT2CUkpk+65d1ZgHKH71eXhDdq+9+XNv4uukGW4SE=';
+  script-src 'self' 'sha256-AHUGEpz0YBRersRfweLz/R2VN3edeGxw6x9c3vsha5w=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -12106,11 +12106,27 @@ function renderBtlChain() {
   const topHeight = real[0].height;            // newest real block
   const lowestReal = real[real.length - 1].height;
   const realByHeight = new Map(real.map(b => [b.height, b]));
-  // Window: from topHeight down to (lowestReal - windowBelow). If a search
-  // re-centered us on an older height, extend upward to include it too.
-  let top = topHeight;
-  if (btlChain.centerHeight != null && btlChain.centerHeight > top) top = btlChain.centerHeight;
-  const bottom = Math.max(0, Math.min(lowestReal, btlChain.centerHeight ?? lowestReal) - btlChain.windowBelow);
+  // Determine the visible window [bottom, top], ALWAYS bounded so we never span
+  // the whole chain (searching block #9 must NOT render ~950k rows → page hang).
+  //   • No search: anchor at the newest real block, show down to lowestReal-N.
+  //   • Search/center set: center the window on that height (a few above for
+  //     context, windowBelow heights below). The window size is windowBelow,
+  //     independent of how far the searched height is from the tip.
+  const ABOVE = 5;   // few heights above the anchor for context
+  let top, bottom;
+  if (btlChain.centerHeight != null) {
+    top = btlChain.centerHeight + ABOVE;
+    // Don't render above the real tip (those heights don't exist yet).
+    if (top > topHeight) top = topHeight;
+    bottom = Math.max(0, btlChain.centerHeight - btlChain.windowBelow);
+  } else {
+    top = topHeight;
+    bottom = Math.max(0, lowestReal - btlChain.windowBelow);
+  }
+  // Hard safety clamp: never build more than maxWindowBelow+ABOVE rows in one
+  // pass, whatever the inputs. Defends against any future bound miscalculation.
+  const MAX_ROWS = btlChain.maxWindowBelow + ABOVE + 64;
+  if (top - bottom > MAX_ROWS) bottom = top - MAX_ROWS;
   const frag = document.createDocumentFragment();
   for (let h = top; h >= bottom; h--) {
     const rb = realByHeight.get(h);
@@ -12218,10 +12234,13 @@ async function btlPinTx(txid) {
 }
 
 function btlChainSearch(value) {
-  const h = parseInt(String(value).replace(/[^0-9]/g, ''), 10);
+  let h = parseInt(String(value).replace(/[^0-9]/g, ''), 10);
   if (!Number.isFinite(h) || h < 0) return;
-  // Re-center the window on the searched height (it becomes the top anchor) and
-  // load it. The user can then scroll up (toward newer) or down (older).
+  // Clamp to the current tip — can't navigate to a block that doesn't exist yet.
+  const tip = state.blocks.length ? Math.max(...state.blocks.map(b => b.height)) : null;
+  if (tip != null && h > tip) h = tip;
+  // Re-center the window on the searched height (bounded window built around it)
+  // and load it. The user can then scroll down for older heights.
   btlChain.centerHeight = h;
   btlChain.windowBelow = 30;
   renderBtlChain();
@@ -12609,18 +12628,13 @@ function btlEscapeHtml(s) {
   });
   $('btl-loadmore').addEventListener('click', btlFetchPage);
 
-  // Left chain rail: block-# search. Enter jumps; typing a complete number also
-  // jumps after a short debounce so the user doesn't have to press Enter.
+  // Left chain rail: block-# search — jumps ONLY on Enter. (Auto-jumping while
+  // typing fired on every keystroke, e.g. typing "9" tried to load block #9 and
+  // render the window down to it — that's what hung the page.)
   const chainSearch = $('btl-chain-search');
   if (chainSearch) {
-    let t = null;
     chainSearch.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { if (t) clearTimeout(t); btlChainSearch(chainSearch.value); }
-    });
-    chainSearch.addEventListener('input', () => {
-      if (t) clearTimeout(t);
-      const v = chainSearch.value;
-      t = setTimeout(() => { if (v && v === chainSearch.value) btlChainSearch(v); }, 600);
+      if (e.key === 'Enter') btlChainSearch(chainSearch.value);
     });
   }
   // Chain rail scroll: extend the synthetic window downward (older heights) as
