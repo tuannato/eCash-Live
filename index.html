@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-AHUGEpz0YBRersRfweLz/R2VN3edeGxw6x9c3vsha5w=';
+  script-src 'self' 'sha256-zC+w7Yf0QZC6cHjV1gclN21Akf8e6Q8DhcuXZ+r9bek=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -2523,8 +2523,8 @@
      hash copy button). Shows the list of txids in the block with their
      short id and indices, plus a link to the full block on the explorer.
      Works on both desktop and mobile. */
-  /* Block-# search is mobile-only (shown via the mobile media query above). */
-  .bc-goto-search { display: none; }
+  /* Block-# search row is mobile-only (shown via the mobile media query). */
+  .bc-goto-row { display: none; }
   .block-txlist-overlay {
     display: none;
     position: fixed; inset: 0; z-index: 9100;
@@ -2574,14 +2574,17 @@
   /* 3-col: left rail + middle list + right detail (≥1100px) */
   @media (min-width: 1100px) {
     .block-txlist-dialog.btl-multicol .btl-grid {
-      grid-template-columns: 240px 1fr 360px;
+      grid-template-columns: 240px 1fr 480px;
     }
     .block-txlist-dialog.btl-multicol .btl-col-right { display: flex; flex-direction: column; min-height: 0; }
   }
   /* Left chain rail */
+  .btl-col-left .btl-chain-search-row {
+    display: flex; gap: 6px; margin-bottom: 8px;
+  }
   .btl-col-left .btl-chain-search {
-    width: 100%;
-    padding: 7px 10px; margin-bottom: 8px;
+    flex: 1 1 auto; min-width: 0;
+    padding: 7px 10px;
     background: rgba(0,0,0,0.35);
     border: 1px solid var(--line-2);
     border-radius: 4px;
@@ -2591,6 +2594,17 @@
   }
   .btl-col-left .btl-chain-search:focus { outline: none; border-color: var(--cyan-dim); }
   .btl-col-left .btl-chain-search::placeholder { color: var(--text-3); }
+  .btl-col-left .btl-chain-go {
+    flex: 0 0 auto;
+    padding: 7px 12px;
+    background: rgba(1,160,224,0.10);
+    border: 1px solid var(--cyan-dim);
+    border-radius: 4px;
+    color: var(--cyan);
+    font-family: 'Fira Code', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btl-col-left .btl-chain-go:hover { background: rgba(1,160,224,0.2); border-color: var(--cyan); }
   .btl-col-left .btl-chain-list {
     flex: 1 1 auto; overflow-y: auto; overflow-x: hidden;
     display: flex; flex-direction: column; gap: 6px;
@@ -5463,10 +5477,12 @@
     .blockchain.mobile-active { display: block; }
     .watchlist.mobile-active { display: flex; }
     /* Block-# search for the mobile Blocks tab (load-on-tap navigation). */
+    .blockchain.mobile-active .bc-goto-row {
+      display: flex; gap: 8px; margin: 4px 14px 10px;
+    }
     .blockchain.mobile-active .bc-goto-search {
       display: block;
-      width: calc(100% - 28px); box-sizing: border-box;
-      margin: 4px 14px 10px;
+      flex: 1 1 auto; min-width: 0; box-sizing: border-box;
       padding: 9px 12px;
       background: rgba(0,0,0,0.35);
       border: 1px solid var(--line-2);
@@ -5476,6 +5492,16 @@
     }
     .blockchain.mobile-active .bc-goto-search:focus { outline: none; border-color: var(--cyan-dim); }
     .blockchain.mobile-active .bc-goto-search::placeholder { color: var(--text-3); }
+    .blockchain.mobile-active .bc-goto-btn {
+      flex: 0 0 auto;
+      padding: 9px 16px;
+      background: rgba(1,160,224,0.12);
+      border: 1px solid var(--cyan-dim);
+      border-radius: 4px;
+      color: var(--cyan);
+      font-family: 'Fira Code', monospace; font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em;
+      cursor: pointer; min-height: 40px;
+    }
 
     /* Chat on mobile: keep the composer pinned to the bottom of the
        viewport so the user can always reach the input without scrolling.
@@ -6205,7 +6231,7 @@
         <div class="cell"><span class="k">Block</span><span class="v linkable" id="m-height" title="Open block in explorer">—</span></div>
         <div class="cell"><span class="k">Mempool</span><span class="v"><span id="m-mem">0</span> <span class="u">tx</span></span></div>
         <div class="cell hide-narrow" title="Time elapsed since the most recent block was mined"><span class="k">Since block</span><span class="v" id="m-lastblock">—</span></div>
-        <div class="cell hide-medium" title="Mempool transactions currently being pre-consensus polled"><span class="k">Pre-final</span><span class="v cyan" id="m-prefinal">0</span></div>
+        <div class="cell hide-medium" title="Finalized Mempool transactions currently waiting to be included in a block"><span class="k">Pre-final</span><span class="v cyan" id="m-prefinal">0</span></div>
         <div class="cell hide-medium" title="Token transactions seen since this session started"><span class="k">Tokens</span><span class="v amber" id="m-tokens">0</span></div>
         <div class="cell"><span class="k">XEC / USD</span><span class="v gold" id="m-price">—</span></div>
       </div>
@@ -6606,7 +6632,10 @@
           <div class="l"><span class="num">03</span>Blockchain · Post-consensus avalanche</div>
           <div class="r">mined → ava polling → ava finalized · no reorg possible</div>
         </div>
-        <input type="text" class="bc-goto-search" id="bc-goto-search" inputmode="numeric" placeholder="go to block #…" aria-label="Go to block number" />
+        <div class="bc-goto-row">
+          <input type="text" class="bc-goto-search" id="bc-goto-search" inputmode="numeric" enterkeyhint="go" placeholder="go to block #…" aria-label="Go to block number" />
+          <button type="button" class="bc-goto-btn" id="bc-goto-btn" title="Go to block">Go</button>
+        </div>
         <div class="chain" id="chain"></div>
       </div>
 
@@ -6926,7 +6955,10 @@
     <div class="btl-grid">
       <!-- LEFT: block chain rail (newest on top, scroll for lower heights) -->
       <div class="btl-col-left" id="btl-col-left">
-        <input type="text" class="btl-chain-search" id="btl-chain-search" inputmode="numeric" placeholder="go to block #…" aria-label="Go to block number" />
+        <div class="btl-chain-search-row">
+          <input type="text" class="btl-chain-search" id="btl-chain-search" inputmode="numeric" enterkeyhint="go" placeholder="go to block #…" aria-label="Go to block number" />
+          <button type="button" class="btl-chain-go" id="btl-chain-go" title="Go to block">Go</button>
+        </div>
         <div class="btl-chain-list" id="btl-chain-list"></div>
       </div>
       <!-- MIDDLE: tx list (unchanged from the original popup) -->
@@ -12628,15 +12660,16 @@ function btlEscapeHtml(s) {
   });
   $('btl-loadmore').addEventListener('click', btlFetchPage);
 
-  // Left chain rail: block-# search — jumps ONLY on Enter. (Auto-jumping while
-  // typing fired on every keystroke, e.g. typing "9" tried to load block #9 and
-  // render the window down to it — that's what hung the page.)
+  // Left chain rail: block-# search — submit via Enter OR the Go button.
+  // (iOS numeric keypads have no Enter key, so the Go button is the reliable
+  // cross-device trigger.)
   const chainSearch = $('btl-chain-search');
+  const chainGo = $('btl-chain-go');
+  const doChainSearch = () => { if (chainSearch) btlChainSearch(chainSearch.value); };
   if (chainSearch) {
-    chainSearch.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') btlChainSearch(chainSearch.value);
-    });
+    chainSearch.addEventListener('keydown', (e) => { if (e.key === 'Enter') doChainSearch(); });
   }
+  if (chainGo) chainGo.addEventListener('click', doChainSearch);
   // Chain rail scroll: extend the synthetic window downward (older heights) as
   // the user nears the bottom, up to maxWindowBelow. Cheap (height-only rows),
   // and capped so the DOM can't grow without bound. Preserves scroll position.
@@ -12653,15 +12686,17 @@ function btlEscapeHtml(s) {
     });
   }
   // Mobile Blocks tab: block-# search → opens that block's popup (load-on-tap),
-  // fetching the header on demand for blocks not in state.blocks.
+  // fetching the header on demand. Submit via Enter OR the Go button (iOS
+  // numeric keypad has no Enter).
   const bcGoto = $('bc-goto-search');
-  if (bcGoto) {
-    bcGoto.addEventListener('keydown', (e) => {
-      if (e.key !== 'Enter') return;
-      const h = parseInt(String(bcGoto.value).replace(/[^0-9]/g, ''), 10);
-      if (Number.isFinite(h) && h >= 0) { btlChainGoTo(h); bcGoto.blur(); }
-    });
-  }
+  const bcGotoBtn = $('bc-goto-btn');
+  const doBcGoto = () => {
+    if (!bcGoto) return;
+    const h = parseInt(String(bcGoto.value).replace(/[^0-9]/g, ''), 10);
+    if (Number.isFinite(h) && h >= 0) { btlChainGoTo(h); bcGoto.blur(); }
+  };
+  if (bcGoto) bcGoto.addEventListener('keydown', (e) => { if (e.key === 'Enter') doBcGoto(); });
+  if (bcGotoBtn) bcGotoBtn.addEventListener('click', doBcGoto);
   // Keep the detail-panel placement correct if the viewport crosses the 3-col
   // threshold while the popup is open: entering 3-col borrows it into the right
   // column; leaving 3-col restores it to its home so it isn't stranded in a
