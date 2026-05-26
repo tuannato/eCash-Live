@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-zC+w7Yf0QZC6cHjV1gclN21Akf8e6Q8DhcuXZ+r9bek=';
+  script-src 'self' 'sha256-5Z7c/2egoXXb81Ym4oGJoEwpU9bzbB+YKTMhZSqDmko=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -6108,7 +6108,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.2.0">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.2.0</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.2.1">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.2.1</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -7359,6 +7359,12 @@ const D_RING_CIRC = 2 * Math.PI * 33;
 const MAX_TX_VISIBLE_PER_COL = 200;
 const MAX_MSG_VISIBLE = 100;
 const MAX_BLOCKS = 3;
+// Patch 3 (v1.2.1): hard ceiling on the state.txs working set. A final-but-
+// unmined tx is otherwise never swept (audit Problem B — unbounded Map growth;
+// updateStats/cleanup both full-scan it). 2000 = ~3× any realistic on-screen
+// population, so eviction only ever touches stale terminal txs, never live
+// pending/polling rows. Enforced in the cleanup interval (terminal-only).
+const MAX_TXS = 2000;
 
 // Block explorer base URL
 const EXPLORER_URL = 'https://explorer.e.cash';
@@ -8602,6 +8608,31 @@ async function startLivePoller() {
 }
 
 // WebSocket subscription for real-time tx and block events
+// Patch 1 (v1.2.1): single choke point for per-txid subscription. Extracted
+// from the inline tx_added handler so processNewTx (snapshot path) and the WS
+// flush can reuse the SAME cap-500 bookkeeping (DRY). Operates on state.ws so
+// it works outside setupWebSocket's local `ws` scope. No-op if WS not ready.
+function subscribeTxidSafe(txid, wsOverride) {
+  const ws = wsOverride || state.ws;
+  if (!ws || !txid) return;
+  if (!state.wsTxidSubs) state.wsTxidSubs = new Set();
+  if (state.wsTxidSubs.has(txid)) return;
+  try {
+    ws.subscribeToTxid(txid);
+    state.wsTxidSubs.add(txid);
+    // Cap the subscription set — under heavy load (e.g. an Agora listing
+    // storm) we could otherwise pin thousands of subs. 500 is a generous
+    // ceiling; typical mempool dwell is short.
+    if (state.wsTxidSubs.size > 500) {
+      // Drop oldest sub to make room; on a finalize we'll naturally
+      // unsubscribe but this guards the runaway case.
+      const oldest = state.wsTxidSubs.values().next().value;
+      try { ws.unsubscribeFromTxid(oldest); } catch {}
+      state.wsTxidSubs.delete(oldest);
+    }
+  } catch (e) { /* not all chronik builds expose subscribeToTxid */ }
+}
+
 function setupWebSocket() {
   if (!chronik || !chronik.ws) return;
   // Track which txids we've subscribed to so we can clean up after finality.
@@ -8609,6 +8640,11 @@ function setupWebSocket() {
   // session (every mempool tx of every watched address would stay subscribed
   // forever even after it confirmed and faded out of our UI).
   if (!state.wsTxidSubs) state.wsTxidSubs = new Set();
+  // Patch 1 (v1.2.1): snapshot txs discovered by the mempool poller BEFORE the
+  // WS open handler runs have no per-txid subscription, so their TX_FINALIZED
+  // never arrives and they spin in col1 forever (audit Problem A). Queue their
+  // txids here; the open handler flushes the queue once the WS is ready.
+  if (!state.wsPendingSubs) state.wsPendingSubs = new Set();
   try {
     const ws = chronik.ws({
       onMessage: (msg) => {
@@ -8714,23 +8750,11 @@ function setupWebSocket() {
             }
           }
 
-          // (A) Subscribe to txid for fast finalization detection
-          if (!state.wsTxidSubs.has(msg.txid)) {
-            try {
-              ws.subscribeToTxid(msg.txid);
-              state.wsTxidSubs.add(msg.txid);
-              // Cap the subscription set — under heavy load (e.g. an Agora
-              // listing storm) we could otherwise pin thousands of subs.
-              // 500 is a generous ceiling; typical mempool dwell is short.
-              if (state.wsTxidSubs.size > 500) {
-                // Drop oldest sub to make room; on a finalize we'll naturally
-                // unsubscribe but this guards the runaway case.
-                const oldest = state.wsTxidSubs.values().next().value;
-                try { ws.unsubscribeFromTxid(oldest); } catch {}
-                state.wsTxidSubs.delete(oldest);
-              }
-            } catch (e) { /* not all chronik builds expose subscribeToTxid */ }
-          }
+          // (A) Subscribe to txid for fast finalization detection.
+          // Patch 1 (v1.2.1): logic extracted to subscribeTxidSafe (single
+          // choke point). Pass local `ws` — state.ws isn't assigned until the
+          // end of setupWebSocket, but this handler may fire before then.
+          subscribeTxidSafe(msg.txid, ws);
           // (B) If we don't know about this tx yet, fetch its details so the
           // dashboard surfaces it immediately instead of waiting up to 5s
           // for the next pollMempool() tick. This is the second half of the
@@ -9031,6 +9055,17 @@ function setupWebSocket() {
       } catch (e) {
         console.log('[ecash-live] subscribeToTxs not available — falling back to mempool polling only');
       }
+      // Patch 1 (v1.2.1): flush snapshot txs that were queued before the WS
+      // opened. Only those still unpromoted need a sub — finalized/mined ones
+      // already left polling. Pass local `ws` (state.ws is set just below, but
+      // we're inside waitForOpen().then() so use the in-scope object).
+      if (state.wsPendingSubs && state.wsPendingSubs.size) {
+        state.wsPendingSubs.forEach(txid => {
+          const t = state.txs.get(txid);
+          if (t && (t.state === 'polling' || t.state === 'pending')) subscribeTxidSafe(txid, ws);
+        });
+        state.wsPendingSubs.clear();
+      }
       console.log('[ecash-live] WS subscribed to blocks');
     }).catch(() => {});
     state.ws = ws;
@@ -9154,7 +9189,23 @@ async function _runReconcile(b) {
           evicted++;
         }
       } else {
-        // No block field — still in mempool. Leave it.
+        // No block field — still in mempool. Patch 2 (v1.2.1): if chronik now
+        // reports avalanche-finalization, promote polling/pending → final so
+        // the tx leaves the polling column even when its TX_FINALIZED was
+        // missed (audit Problem A, net). We mirror the canonical finalize
+        // (FINAL_SCORE + finalizedAt + row-guarded migrate) but DELIBERATELY
+        // do NOT write state.ttfSamples or any 999ms placeholder here —
+        // pushTtfSample remains the single entry point for TTF (invariant).
+        const tx = state.txs.get(id);
+        if (tx && t.isFinal === true && (tx.state === 'polling' || tx.state === 'pending')) {
+          tx.state = 'final';
+          tx.confidence = FINAL_SCORE;
+          tx.finalizedAt = Date.now();
+          if (tx.row) {
+            try { migrateTxToMempool(tx); }
+            catch (e) { console.warn('[reconcile] migrate failed', e); }
+          }
+        }
         stillUnconfirmed++;
       }
     }
@@ -9328,6 +9379,12 @@ function processNewTx(txData, alreadyConfirmed) {
   tx.confidence = 0;
   addTxRow(tx, 'col1-list');
   startPollingAnimation(tx);
+  // Patch 1 (v1.2.1): ensure THIS tx gets its own per-txid subscription so its
+  // TX_FINALIZED arrives directly. Snapshot txs loaded by the poller before the
+  // WS open handler ran would otherwise never be subscribed (audit Problem A,
+  // root cause). If WS isn't ready yet, queue for flush in the open handler.
+  if (state.ws) subscribeTxidSafe(tx.id);
+  else state.wsPendingSubs?.add(tx.id);
 
   // No synthetic TX_FINALIZED fallback.
   //
@@ -11608,7 +11665,12 @@ function renderMessages() {
   const wasAtTop = list.scrollTop < 30;
   const oldScrollHeight = list.scrollHeight;
 
-  const existingIds = new Set(Array.from(list.children).map(c => c.dataset.msgid));
+  // Patch 4 (v1.2.1): build a single id→element Map in one pass instead of a
+  // Set + a per-card querySelector below. The old code did an O(n) DOM query
+  // for every already-rendered card → O(n²) on a busy message list. Map.get
+  // makes the in-place-update lookup O(1).
+  const existingMap = new Map();
+  for (const c of list.children) existingMap.set(c.dataset.msgid, c);
   const newIds = new Set(filtered.map(m => m.txid));
 
   // Remove cards that are no longer in filtered set
@@ -11618,11 +11680,11 @@ function renderMessages() {
 
   // Insert/update cards
   filtered.forEach((m, idx) => {
-    if (existingIds.has(m.txid)) {
+    if (existingMap.has(m.txid)) {
       // Already rendered — but token info may have loaded since (it's
       // async) and we should update agora cards in place so quantity +
       // price + ticker fill in once available.
-      const existing = list.querySelector(`.msg-card[data-msgid="${m.txid}"]`);
+      const existing = existingMap.get(m.txid);
       if (existing && existing.dataset.msgtype && existing.dataset.msgtype.startsWith('agora-')) {
         const tx = state.txs.get(m.txid);
         const enriched = existing.querySelector('.agora-meta');
@@ -18176,6 +18238,7 @@ function switchMode(newMode) {
 // numbers nobody can see. See audit 2025 §3 (lifecycle hygiene).
 let _statsIntervalId = null;
 let _txCleanupIntervalId = null;
+let _reconcileIntervalId = null;  // Patch 2 (v1.2.1): gated overdue-tx reconcile
 function _startBackgroundIntervals() {
   if (_statsIntervalId === null) _statsIntervalId = setInterval(updateStats, 500);
   if (_txCleanupIntervalId === null) _txCleanupIntervalId = setInterval(() => {
@@ -18185,11 +18248,43 @@ function _startBackgroundIntervals() {
         state.txs.delete(txid);
       }
     });
+    // Patch 3 (v1.2.1): spike ceiling. If the Map still exceeds MAX_TXS after
+    // the time-based sweep, evict the OLDEST TERMINAL txs (final/included —
+    // they've done their job). Filter by STATE, never insertion order: a
+    // freshly-mined `included` tx can sit before an ancient `final`, so an
+    // order-based evict could drop a live row. One O(n) gather + one bounded
+    // sort (n ≤ size, only when over cap). Never touches pending/polling.
+    if (state.txs.size > MAX_TXS) {
+      const over = state.txs.size - MAX_TXS;
+      const victims = [];
+      state.txs.forEach((tx, txid) => {
+        if (tx.state === 'final' || tx.state === 'included') {
+          victims.push([txid, tx.includedAt || tx.finalizedAt || tx.firstSeenLocal || 0]);
+        }
+      });
+      victims.sort((a, b) => a[1] - b[1]); // oldest first
+      for (let i = 0; i < over && i < victims.length; i++) state.txs.delete(victims[i][0]);
+    }
   }, 10000);
+  // Patch 2 (v1.2.1): periodic safety-net reconcile, GATED. When healthy this
+  // is a cheap O(n) local scan and ZERO network — it only calls _runReconcile()
+  // if some tx has been stuck in polling/pending > 15s (a missed TX_FINALIZED).
+  // This catches the residual Problem-A race that subscription (Patch 1) can't:
+  // a tx that finalized in the gap before its sub landed. Paused on tab-hide.
+  if (_reconcileIntervalId === null) _reconcileIntervalId = setInterval(() => {
+    const now = Date.now();
+    let overdue = false;
+    state.txs.forEach(tx => {
+      if ((tx.state === 'polling' || tx.state === 'pending') &&
+          tx.firstSeenLocal && now - tx.firstSeenLocal > 15000) overdue = true;
+    });
+    if (overdue) _runReconcile();
+  }, 15000);
 }
 function _stopBackgroundIntervals() {
   if (_statsIntervalId !== null) { clearInterval(_statsIntervalId); _statsIntervalId = null; }
   if (_txCleanupIntervalId !== null) { clearInterval(_txCleanupIntervalId); _txCleanupIntervalId = null; }
+  if (_reconcileIntervalId !== null) { clearInterval(_reconcileIntervalId); _reconcileIntervalId = null; }
 }
 _startBackgroundIntervals();
 
