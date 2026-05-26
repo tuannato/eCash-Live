@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-MRgyryKCypZncqn6wSlRZ9EeIq9KHDVqLTQeoZLJlo8=';
+  script-src 'self' 'sha256-imXDo6xBMh/ZS+Xl/mPzwg0fAAh8pNPv7tfOwBd+MHs=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -6108,7 +6108,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.2.1">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.2.1</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.2.2">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.2.2</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -8462,6 +8462,10 @@ async function startLivePoller() {
         if (!txData.isFinal) continue;
         const localTx = state.txs.get(txData.txid);
         if (!localTx) continue;
+        // ⚑ MARKER[ttf-poll-sampler-guard]: this guard is WHY any new state
+        // promotion must sample TTF at its own site — promoting state→final
+        // elsewhere makes this `continue` skip the tx, silently killing its
+        // clean ws/node sample. See project instructions, TTF invariants.
         if (localTx.state !== 'pending' && localTx.state !== 'polling') continue;
         // Finalization newly observed via polling
         localTx.state = 'final';
@@ -13922,8 +13926,8 @@ function renderWatchlist() {
       </div>
       ${modeBlock}
       <div class="wl-actions-row">
-        ${isToken ? '' : '<button class="wl-act-btn wl-act-chat" title="Chat with this address" aria-label="Chat with this address">↔</button>'}
-        <button class="wl-act-btn wl-act-toggle ${entry.enabled === false ? 'is-off' : ''}" aria-pressed="${entry.enabled === false ? 'false' : 'true'}" title="${entry.enabled === false ? 'Watching paused — click to resume / Tạm dừng — bấm để bật lại' : 'Watching active — click to pause'}" aria-label="Toggle watching">⏻</button>
+        ${isToken ? '' : '<button class="wl-act-btn wl-act-chat" title="Chat with this address / Trò chuyện với địa chỉ này" aria-label="Chat with this address">↔</button>'}
+        <button class="wl-act-btn wl-act-toggle ${entry.enabled === false ? 'is-off' : ''}" aria-pressed="${entry.enabled === false ? 'false' : 'true'}" title="${entry.enabled === false ? 'Watching paused — click to resume / Tạm dừng — bấm để bật lại' : 'Watching active — click to pause / Đang theo dõi — bấm để tạm dừng'}" aria-label="Toggle watching">⏻</button>
         <button class="wl-act-btn wl-act-history" title="Show recent tx for this ${isToken ? 'token' : 'address'}" aria-label="Show history">☰</button>
         <button class="wl-act-btn wl-act-copy" title="Copy ${isToken ? 'token ID' : 'address'}" aria-label="Copy">⎘</button>
         <button class="wl-act-btn wl-act-edit" title="Edit (rename, change mode, remove)" aria-label="Edit">✎</button>
