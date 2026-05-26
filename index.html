@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-imXDo6xBMh/ZS+Xl/mPzwg0fAAh8pNPv7tfOwBd+MHs=';
+  script-src 'self' 'sha256-AuiuPr4K8D7/GA//k18X0zZAPkGcouSdH7u/63Iyo78=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -640,6 +640,11 @@
   }
   .meta .cell .v { font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace; font-size: 14px; font-weight: 500; }
   .meta .cell .v.cyan { color: var(--cyan); }
+  /* Finalized cell wraps its count in an inner span (Mempool-style, so the
+     'tx' unit can stay muted via .u). .v.cyan only matches when cyan is on
+     .v itself, so add a descendant rule for the wrapped-count case. The .u
+     unit keeps its own muted color from the rule below — not overridden. */
+  .meta .cell .v .cyan { color: var(--cyan); }
   .meta .cell .v.green { color: var(--green); }
   .meta .cell .v.amber { color: var(--amber); }
   .meta .cell .v.gold { color: var(--gold); }
@@ -6108,7 +6113,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.2.2">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.2.2</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.2.3">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.2.3</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -6230,8 +6235,8 @@
       <div class="meta">
         <div class="cell"><span class="k">Block</span><span class="v linkable" id="m-height" title="Open block in explorer">—</span></div>
         <div class="cell"><span class="k">Mempool</span><span class="v"><span id="m-mem">0</span> <span class="u">tx</span></span></div>
+        <div class="cell hide-medium" title="Mempool transactions finalized by Avalanche pre-consensus, awaiting inclusion in a block"><span class="k">Finalized</span><span class="v"><span class="cyan" id="m-prefinal">0</span> <span class="u">tx</span></span></div>
         <div class="cell hide-narrow" title="Time elapsed since the most recent block was mined"><span class="k">Since block</span><span class="v" id="m-lastblock">—</span></div>
-        <div class="cell hide-medium" title="Finalized Mempool transactions currently waiting to be included in a block"><span class="k">Pre-final</span><span class="v cyan" id="m-prefinal">0</span></div>
         <div class="cell hide-medium" title="Token transactions seen since this session started"><span class="k">Tokens</span><span class="v amber" id="m-tokens">0</span></div>
         <div class="cell"><span class="k">XEC / USD</span><span class="v gold" id="m-price">—</span></div>
       </div>
@@ -7157,6 +7162,41 @@ function scheduleTtfRender() {
 let ttfVerboseLogs = false;
 function ttfLog(...args) {
   if (ttfVerboseLogs) console.log(...args);
+}
+
+// TTF sanity backstop. We removed the old `< 60_000` magnitude ceiling
+// because it conflated two unrelated things: (a) a genuinely slow finalize
+// during network degradation — a REAL value we must report honestly — and
+// (b) replay-inflation, where a stale TX_FINALIZED is redelivered by the WS
+// long after the fact and `Date.now() - observedAt` balloons to minutes.
+// Case (b) is already neutralized at the live-Date.now() sites by an UPSTREAM
+// state gate (the tx must still be 'pending'/'polling' to enter the compute
+// block; a replayed dup for an already-final tx never reaches it) and at the
+// reconcile site by using tx.finalizedAt instead of live Date.now(). So the
+// only residual failure this backstop guards is CLOCK SKEW: a corrupted or
+// backwards-jumped anchor that yields a multi-hour delta even on a live tx.
+// 1h is comfortably above any plausible real eCash finalize (even a badly
+// degraded network finalizes in seconds-to-minutes) yet rejects skew garbage.
+const TTF_SANITY_MAX_MS = 3_600_000;  // 1h — clock-skew rejection only
+
+// Format a TTF / block-lock duration for display, tiered by magnitude so a
+// slow-network reading stays readable instead of "210.4 s". Used by BOTH the
+// footer aggregate and the per-tx detail panel so they never disagree.
+//   < 60s   → "12.34 s"  (precision decimals, default 2)
+//   < 60min → "3.5 min"
+//   ≥ 60min → "2h 05m"
+// precision controls the sub-60s decimals only (detail uses 2, footer 1).
+function fmtTtfDuration(ms, precision = 2) {
+  if (typeof ms !== 'number' || !isFinite(ms) || ms < 0) return '—';
+  if (ms < 60_000) {
+    return (ms / 1000).toFixed(precision) + ' s';
+  }
+  if (ms < 3_600_000) {
+    return (ms / 60_000).toFixed(1) + ' min';
+  }
+  const h = Math.floor(ms / 3_600_000);
+  const m = Math.floor((ms % 3_600_000) / 60_000);
+  return h + 'h ' + String(m).padStart(2, '0') + 'm';
 }
 
 // "Upgrade window": when a tx finalizes via ws/poll/race we mark its
@@ -8502,7 +8542,11 @@ async function startLivePoller() {
           ttfLog('[ava-debug] poll TX_FINALIZED discarded (anchor spans sleep) for', txData.txid?.slice(0, 12));
         } else if (ref) {
           const ttf = Math.max(0, now - ref);
-          if (ttf > 0 && ttf < 60_000) {
+          // Honest value: no magnitude ceiling. Replay-inflation can't reach
+          // here — line ~8504 already `continue`s unless the tx is still
+          // pending/polling, so a redelivered dup for an already-final tx
+          // never computes a TTF. TTF_SANITY_MAX_MS only rejects clock-skew.
+          if (ttf > 0 && ttf < TTF_SANITY_MAX_MS) {
             // Skip-or-upgrade for the PER-TX display fields, mirroring the
             // invariant pushTtfSample enforces on state.ttfSamples. WHY:
             // a tx already carrying a node-precise value (e.g. a buffered
@@ -8860,14 +8904,18 @@ function setupWebSocket() {
                 tx.ttf = wsTtf;
                 tx.ttfSource = refSource;
               }
-              // Discard samples > 60s — those almost certainly mean our WS
-              // missed the original TX_FINALIZED and we got a late retry,
-              // which would skew the rolling average. Also discard samples
-              // from 'poll' source for the TTF average because polling adds
-              // 0-5s of jitter we can't quantify per-sample — those still
-              // get displayed on the per-tx detail panel but don't pollute
-              // the rolling stat.
-              if (tx.ttf > 0 && tx.ttf < 60_000 && refSource !== 'poll') {
+              // Honest value: no magnitude ceiling (v1.2.0). The old `< 60s`
+              // cap silently dropped genuinely-slow finalizes during network
+              // degradation — the exact event a TTF monitor must report. The
+              // replay-inflation case the cap used to catch is already handled
+              // upstream: this whole block only runs when the tx was still
+              // 'pending'/'polling' (see the gate where we set state='final'),
+              // so a redelivered stale TX_FINALIZED for an already-final tx
+              // never reaches here. TTF_SANITY_MAX_MS is a clock-skew backstop
+              // only. We still exclude 'poll' source from the rolling average:
+              // polling adds 0-5s of unquantifiable jitter per-sample — those
+              // still show on the per-tx detail panel but stay out of the stat.
+              if (tx.ttf > 0 && tx.ttf < TTF_SANITY_MAX_MS && refSource !== 'poll') {
                 pushTtfSample(msg.txid, tx.ttf, refSource);
                 ttfLog('[ava-debug] TX_FINALIZED ttf=', tx.ttf, 'ms (' + refSource + ') total samples=', state.ttfSamples.length);
                 if (typeof updateStats === 'function') {
@@ -8944,14 +8992,22 @@ function setupWebSocket() {
                 // Anchor predates a hidden/sleep span — inflated, unrescuable
                 // (no tx row exists here anyway). Drop without sampling.
                 ttfLog('[ava-debug] TX_FINALIZED discarded (ws, untracked, anchor spans sleep) for', msg.txid?.slice(0, 12));
-              } else if (ttf > 0 && ttf < 60_000) {
+              } else if (ttf > 0 && ttf < TTF_SANITY_MAX_MS) {
+                // Honest value, no magnitude ceiling. NOTE: unlike the tracked
+                // paths there is NO tx object here (untracked rescue), so the
+                // upstream pending/polling state gate that neutralizes replay-
+                // inflation elsewhere doesn't apply. The sleep-anchor check
+                // above plus TTF_SANITY_MAX_MS are the only guards available.
+                // Acceptable: this is a best-effort rescue for a tx we never
+                // tracked, and a >1h delta is far likelier skew than a real
+                // finalize, so the backstop's residual risk is negligible.
                 pushTtfSample(msg.txid, ttf, 'ws');
                 ttfLog('[ava-debug] TX_FINALIZED ttf=', ttf, 'ms (ws, untracked) total samples=', state.ttfSamples.length);
                 if (typeof updateStats === 'function') {
                   try { updateStats(); } catch (e) {}
                 }
               } else {
-                ttfLog('[ava-debug] TX_FINALIZED ttf=', ttf, 'ms (ws, untracked) rejected: outside 0-60s window');
+                ttfLog('[ava-debug] TX_FINALIZED ttf=', ttf, 'ms (ws, untracked) rejected: <=0 or exceeds sanity backstop');
               }
               state.wsObservedAtMs.delete(msg.txid);
             } else {
@@ -9223,7 +9279,11 @@ async function _runReconcile(b) {
           }
           if (ref && !_ttfAnchorSpansSleep(ref)) {
             const ttf = Math.max(0, now - ref);
-            if (ttf > 0 && ttf < 60_000) {
+            // Honest value: no magnitude ceiling. This path computes from
+            // tx.finalizedAt (not live Date.now()), so it is structurally
+            // immune to WS replay-inflation; TTF_SANITY_MAX_MS guards only the
+            // clock-skew case. A genuinely slow finalize is reported as-is.
+            if (ttf > 0 && ttf < TTF_SANITY_MAX_MS) {
               // Skip-or-upgrade per-tx fields (never clobber an authoritative
               // node-precise / race-backfilled value that may already exist).
               if (tx.ttfSource !== 'node-precise' && tx.ttfSource !== 'race-backfilled') {
@@ -10887,7 +10947,11 @@ function _renderDetailInner(tx) {
     ttfEl.title = 'Resolving… waiting for either chronik to deliver TX_ADDED_TO_MEMPOOL (race-backfill) or the node-precise TTF feed to provide a measurement.';
   } else if (tx.ttf != null && tx.ttf > 0) {
     // Indicator BEFORE the number (v1.1.2 prefix layout).
-    ttfEl.innerHTML = indicator + (tx.ttf / 1000).toFixed(2) + 's';
+    // v1.2.0: tiered s/min/h via the shared formatter (2 decimals under 60s,
+    // matching the previous look) so a slow-network per-tx value reads as
+    // "3.2min" / "1h 04m" instead of "192.40s". No-space form for s/min to
+    // match the pre-1.2.0 detail style; the "Xh YYm" form keeps its space.
+    ttfEl.innerHTML = indicator + fmtTtfDuration(tx.ttf, 2).replace(/ (s|min)$/, '$1');
     ttfEl.title = tx.ttfSource === 'race-backfilled'
       ? 'Sub-second finalize, measured by race backfill (TX_ADDED arrived just after TX_FINALIZED).'
       : tx.ttfSource === 'node-precise'
@@ -13155,9 +13219,15 @@ function updateStats() {
     // ttfSource=null (no specific source for the avg). The helper
     // returns 'eye' whenever feed is down OR never-connected, plus
     // tooltip text matching the situation. v1.1.2: prefix layout.
-    $('f-ttf').innerHTML =
-      renderTtfIndicator(null, null) +
-      (avg / 1000).toFixed(1) + ' <span class="u">s</span>';
+    // v1.2.0: tiered s/min/h formatting (1 decimal under 60s) so a
+    // slow-network average stays readable instead of "210.4 s". We wrap
+    // only the trailing unit token in <span class="u"> for styling; the
+    // "Xh YYm" form has no single trailing unit so it renders as-is.
+    const avgStr = fmtTtfDuration(avg, 1);
+    const avgHtml = /^[\d.]+ (s|min)$/.test(avgStr)
+      ? avgStr.replace(/ (s|min)$/, ' <span class="u">$1</span>')
+      : avgStr;  // "Xh YYm" — leave unwrapped
+    $('f-ttf').innerHTML = renderTtfIndicator(null, null) + avgHtml;
   }
   // Block-lock = elapsed time from block mined to avalanche-finalized.
   // Same progressive approach: window grows from 1 → 20 as samples come in.
@@ -13926,8 +13996,8 @@ function renderWatchlist() {
       </div>
       ${modeBlock}
       <div class="wl-actions-row">
-        ${isToken ? '' : '<button class="wl-act-btn wl-act-chat" title="Chat with this address / Trò chuyện với địa chỉ này" aria-label="Chat with this address">↔</button>'}
-        <button class="wl-act-btn wl-act-toggle ${entry.enabled === false ? 'is-off' : ''}" aria-pressed="${entry.enabled === false ? 'false' : 'true'}" title="${entry.enabled === false ? 'Watching paused — click to resume / Tạm dừng — bấm để bật lại' : 'Watching active — click to pause / Đang theo dõi — bấm để tạm dừng'}" aria-label="Toggle watching">⏻</button>
+        ${isToken ? '' : '<button class="wl-act-btn wl-act-chat" title="Chat with this address" aria-label="Chat with this address">↔</button>'}
+        <button class="wl-act-btn wl-act-toggle ${entry.enabled === false ? 'is-off' : ''}" aria-pressed="${entry.enabled === false ? 'false' : 'true'}" title="${entry.enabled === false ? 'Watching paused — click to resume' : 'Watching active — click to pause'}" aria-label="Toggle watching">⏻</button>
         <button class="wl-act-btn wl-act-history" title="Show recent tx for this ${isToken ? 'token' : 'address'}" aria-label="Show history">☰</button>
         <button class="wl-act-btn wl-act-copy" title="Copy ${isToken ? 'token ID' : 'address'}" aria-label="Copy">⎘</button>
         <button class="wl-act-btn wl-act-edit" title="Edit (rename, change mode, remove)" aria-label="Edit">✎</button>
