@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-5Z7c/2egoXXb81Ym4oGJoEwpU9bzbB+YKTMhZSqDmko=';
+  script-src 'self' 'sha256-MRgyryKCypZncqn6wSlRZ9EeIq9KHDVqLTQeoZLJlo8=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -6265,7 +6265,7 @@
       <!-- COL 2: MEMPOOL (pre-finalized) -->
       <div class="col-section" id="section-col2">
         <div class="col-head">
-          <div class="l"><span class="num">02</span>Mempool · Pre-finalized</div>
+          <div class="l"><span class="num">02</span>Mempool · Finalized</div>
           <div class="r">
             <span id="r-mempool" class="accent">0</span> awaiting
           </div>
@@ -9201,6 +9201,34 @@ async function _runReconcile(b) {
           tx.state = 'final';
           tx.confidence = FINAL_SCORE;
           tx.finalizedAt = Date.now();
+          // TTF recovery (v1.2.1 fix): attempt a clean sample using the SAME
+          // observer anchors the WS/poll paths trust — wsObservedAtMs, then
+          // node firstSeen. We DELIBERATELY exclude firstSeenLocal/poll: a tx
+          // reconcile promotes is by definition >15s stuck, so a local anchor
+          // would yield `now - ref` of tens of seconds — the exact inflation
+          // we must avoid. With only ws/node anchors, the delta reflects true
+          // finalization latency (~3s) and is safe for the rolling average.
+          // pushTtfSample stays the single ttfSamples entry point (invariant).
+          const now = tx.finalizedAt;
+          let ref = null, refSource = null;
+          if (state.wsObservedAtMs && state.wsObservedAtMs.has(id)) {
+            ref = state.wsObservedAtMs.get(id); refSource = 'ws';
+          } else if (tx.firstSeen && tx.firstSeen <= now &&
+                     tx.firstSeen >= (state.sessionStart || 0) - 60000) {
+            ref = tx.firstSeen; refSource = 'node';
+          }
+          if (ref && !_ttfAnchorSpansSleep(ref)) {
+            const ttf = Math.max(0, now - ref);
+            if (ttf > 0 && ttf < 60_000) {
+              // Skip-or-upgrade per-tx fields (never clobber an authoritative
+              // node-precise / race-backfilled value that may already exist).
+              if (tx.ttfSource !== 'node-precise' && tx.ttfSource !== 'race-backfilled') {
+                tx.ttf = ttf; tx.ttfSource = refSource; tx.ttfResolved = true;
+              }
+              pushTtfSample(id, ttf, refSource); // ws/node only — safe for avg
+            }
+          }
+          // No trustworthy anchor → leave tx.ttf null; detail card shows "—".
           if (tx.row) {
             try { migrateTxToMempool(tx); }
             catch (e) { console.warn('[reconcile] migrate failed', e); }
@@ -13894,8 +13922,8 @@ function renderWatchlist() {
       </div>
       ${modeBlock}
       <div class="wl-actions-row">
-        ${isToken ? '' : '<button class="wl-act-btn wl-act-chat" title="Chat with this address / Trò chuyện với địa chỉ này" aria-label="Chat with this address">↔</button>'}
-        <button class="wl-act-btn wl-act-toggle ${entry.enabled === false ? 'is-off' : ''}" aria-pressed="${entry.enabled === false ? 'false' : 'true'}" title="${entry.enabled === false ? 'Watching paused — click to resume / Tạm dừng — bấm để bật lại' : 'Watching active — click to pause / Đang theo dõi — bấm để tạm dừng'}" aria-label="Toggle watching">⏻</button>
+        ${isToken ? '' : '<button class="wl-act-btn wl-act-chat" title="Chat with this address" aria-label="Chat with this address">↔</button>'}
+        <button class="wl-act-btn wl-act-toggle ${entry.enabled === false ? 'is-off' : ''}" aria-pressed="${entry.enabled === false ? 'false' : 'true'}" title="${entry.enabled === false ? 'Watching paused — click to resume / Tạm dừng — bấm để bật lại' : 'Watching active — click to pause'}" aria-label="Toggle watching">⏻</button>
         <button class="wl-act-btn wl-act-history" title="Show recent tx for this ${isToken ? 'token' : 'address'}" aria-label="Show history">☰</button>
         <button class="wl-act-btn wl-act-copy" title="Copy ${isToken ? 'token ID' : 'address'}" aria-label="Copy">⎘</button>
         <button class="wl-act-btn wl-act-edit" title="Edit (rename, change mode, remove)" aria-label="Edit">✎</button>
