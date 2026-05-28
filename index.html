@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-AuiuPr4K8D7/GA//k18X0zZAPkGcouSdH7u/63Iyo78=';
+  script-src 'self' 'sha256-nVx2GrCgVaOuDLq+Qt7jKzDY0QJ6UwUc93SXQbS5s8k=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -6113,7 +6113,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.2.3">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.2.3</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.2.4">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.2.4</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -6150,7 +6150,7 @@
             <div class="info-tile-links">
               <div class="info-tile-links-label">Read more on e.cash</div>
               <a href="https://e.cash/blog/avalanche" target="_blank" rel="noopener">Gamechanger: Avalanche turbocharges eCash ↗</a>
-              <a href="https://e.cash/blog/avalanche-post-consensus-on-ecash" target="_blank" rel="noopener">Avalanche Post-Consensus on eCash ↗</a>
+              <a href="https://e.cash/blog/post-consensus" target="_blank" rel="noopener">Avalanche Post-Consensus on eCash ↗</a>
               <a href="https://e.cash/blog/sneak-peek-avalanche-pre-consensus-on-ecash" target="_blank" rel="noopener">Sneak Peek: Pre-Consensus ↗</a>
               <a href="https://e.cash/blog/preconsensus-pr" target="_blank" rel="noopener">Pre-Consensus mainnet launch ↗</a>
               <div class="info-tile-links-label">Tool</div>
@@ -9431,6 +9431,11 @@ function processNewTx(txData, alreadyConfirmed) {
   // historical fetches further below).
   if (!alreadyConfirmed) _recordWsLag(txData);
   const tx = parseTransaction(txData);
+  // Admission gate (v1.2.4): refuse new tx if at MAX_TXS cap with no safe
+  // victim available. Equivalent in observable behavior to the fetch-cap
+  // silent-skip already in effect at ~8823 — just made explicit so the
+  // bound holds even if the fetch cap is widened. See tryAdmitTx above.
+  if (!tryAdmitTx(tx.id)) return;
   state.txs.set(tx.id, tx);
   // If the node-precise TTF feed already delivered a sample for this txid
   // before we had chronik data for it, apply it now. This is the second
@@ -10671,6 +10676,94 @@ function evictTxRow(id, animate) {
   if (tx) tx.row = null;
 }
 
+// ---- Admission control for state.txs (v1.2.4) ----
+// state.txs is bounded by MAX_TXS, but the existing cleanup spike-ceiling
+// at ~18358 only evicts TERMINAL (final/included) txs to guarantee no live
+// row is ever dropped. That guarantee breaks under an Agora-storm-style
+// burst where the retained set fills entirely with pending/polling — the
+// victims list is empty, the cap silently fails open, and state.txs grows
+// past MAX_TXS until the fetch cap (FETCH_CONCURRENCY_CAP=8 at ~8823)
+// stops feeding new txs. Today that fetch cap is the *de facto* back-
+// pressure; the admission gate below makes the bound explicit so a future
+// refactor that raises the fetch cap can't silently re-open the hole.
+//
+// Eviction priority (each O(n) cold-path scan — only entered AT cap):
+//   1. evict oldest terminal — same as today's spike-ceiling
+//   2. evict oldest tx whose row is NOT in the visible 200/column window
+//      (already DOM-detached by trim; click-rehydrate at 12401 can re-fetch)
+//   3. refuse the new tx (return false) — caller drops it like a fetch-cap
+//      miss (same observable behavior, just made explicit)
+//
+// Why step (2) never evicts a rescue-eligible visible row: it gates on
+// document.querySelectorAll('[data-txid]') so anything currently rendered
+// is excluded. Off-screen pending/polling rows are by definition not
+// what the reconcile sweep (~18376) is actively trying to surface — those
+// would still be in the visible window.
+//
+// PERF NOTE (flagged per project rule on TPS-scaling structures):
+// The cold path is O(n=state.txs.size) Map scan + O(DOM≤400) query.
+// n is bounded by MAX_TXS=2000, so cost is bounded too, not TPS-scaling.
+// Hot path (size < MAX_TXS) is one comparison — the live network sits
+// here ~always because FETCH_CONCURRENCY_CAP=8 holds size well under cap.
+// If instrumentation below shows the gate firing on the live feed (i.e.
+// the warn appears), revisit with a per-state index Set updated at the
+// canonical 'final' / 'included' write sites for O(1) victim lookup.
+let _admissionCapHit = false;
+function tryAdmitTx(txid) {
+  if (state.txs.size < MAX_TXS) return true;
+
+  // (1) terminal victim — preferred
+  let oldestTerminal = null;
+  let oldestTerminalTs = Infinity;
+  // (2) non-visible victim — fallback
+  let oldestNonVisible = null;
+  let oldestNonVisibleTs = Infinity;
+
+  // Build the visible-row id set ONCE per admission attempt. Cheap: the
+  // DOM query is bounded by 2 columns × MAX_TX_VISIBLE_PER_COL = 400 nodes,
+  // and we only enter this branch when state.txs.size === MAX_TXS (rare).
+  const visible = new Set();
+  document.querySelectorAll('[data-txid]').forEach(n => {
+    const id = n.dataset.txid; if (id) visible.add(id);
+  });
+
+  state.txs.forEach((tx, id) => {
+    if (id === txid) return; // never evict ourselves
+    const ts = tx.includedAt || tx.finalizedAt || tx.firstSeenLocal || 0;
+    if (tx.state === 'final' || tx.state === 'included') {
+      if (ts < oldestTerminalTs) { oldestTerminal = id; oldestTerminalTs = ts; }
+    } else if (!visible.has(id)) {
+      // pending/polling but its row is already gone from the UI — the
+      // sweep can still re-fetch on click, but it's not actively visible
+      if (ts < oldestNonVisibleTs) { oldestNonVisible = id; oldestNonVisibleTs = ts; }
+    }
+  });
+
+  const victim = oldestTerminal || oldestNonVisible;
+
+  // Instrumentation: log the FIRST cap engagement per session only. A
+  // single signal is enough to learn whether the gate ever fires under
+  // real traffic — flooding the console gives no extra information and
+  // costs main-thread time. If this warn appears in the live deploy,
+  // revisit the perf note above re: per-state index.
+  if (!_admissionCapHit) {
+    _admissionCapHit = true;
+    const kind = victim
+      ? (oldestTerminal ? 'terminal' : 'non-visible')
+      : 'NONE_refused';
+    console.warn(
+      '[admission] cap fired:',
+      'state.txs.size=', state.txs.size,
+      'victim=', kind,
+      'incoming=', (txid || '').slice(0, 12)
+    );
+  }
+
+  if (!victim) return false; // (3) refuse new arrival
+  state.txs.delete(victim);
+  return true;
+}
+
 function migrateTxToMempool(tx) {
   if (!tx.row) {
     addTxRow(tx, 'col2-list');
@@ -11782,10 +11875,14 @@ function renderMessages() {
       // price + ticker fill in once available.
       const existing = existingMap.get(m.txid);
       if (existing && existing.dataset.msgtype && existing.dataset.msgtype.startsWith('agora-')) {
-        const tx = state.txs.get(m.txid);
+        // v1.2.4: read from m.tx (same object reference held by state.txs
+        // when present, but retained on the msg even if state.txs has
+        // evicted it). Survives the 30s cleanup at ~18450 and the v1.2.4
+        // admission gate's non-visible eviction fallback. Async token-info
+        // mutation at 9704 mutates tx.token in place so m.tx sees it too.
         const enriched = existing.querySelector('.agora-meta');
-        if (tx && enriched) {
-          const fresh = renderAgoraMeta(tx);
+        if (m.tx && enriched) {
+          const fresh = renderAgoraMeta(m.tx);
           if (fresh && fresh !== enriched.innerHTML) enriched.innerHTML = fresh;
         }
       }
@@ -11804,8 +11901,10 @@ function renderMessages() {
     // when fields are empty so we can update in place once token info
     // resolves asynchronously.
     const isAgora = m.type === 'agora-list' || m.type === 'agora-buy' || m.type === 'agora-cancel';
-    const txForCard = state.txs.get(m.txid);
-    const agoraMetaHtml = isAgora ? `<div class="agora-meta">${renderAgoraMeta(txForCard) || ''}</div>` : '';
+    // v1.2.4: read from m.tx — same reasoning as the re-render path above.
+    // m.tx is set at msg construction (~11657) and is reference-stable for
+    // the msg's lifetime, independent of state.txs eviction.
+    const agoraMetaHtml = isAgora ? `<div class="agora-meta">${renderAgoraMeta(m.tx) || ''}</div>` : '';
     card.innerHTML = `
       <div class="head">
         <span class="type">${icon} ${typeLabel}</span>
@@ -11833,8 +11932,11 @@ function renderMessages() {
     if (chatBtn) {
       chatBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const tx = state.txs.get(m.txid);
-        const addr = tx ? primarySenderAddr(tx) : null;
+        // v1.2.4: use m.tx directly. Click time may be well after state.txs
+        // eviction (30s cleanup or admission gate non-visible eviction);
+        // m.tx is reference-stable for the lifetime of this msg, so the
+        // chat button keeps working on aged messages.
+        const addr = m.tx ? primarySenderAddr(m.tx) : null;
         if (addr) jumpToChatWith(addr);
         else chatBtn.title = 'Sender address unavailable';
       });
@@ -11864,23 +11966,28 @@ function renderMessages() {
       if (e.target.closest('.copy-btn') || e.target.closest('.explorer-btn')
         || e.target.closest('.msg-chat-btn') || e.target.closest('.msg-expand-btn')) return;
       if (!isMobile()) toggleExpand();   // desktop: click also expands
-      const tx = state.txs.get(m.txid);
-      if (tx) {
-        state.pinnedTx = tx;
+      // v1.2.4: use m.tx directly. Without this, clicking an Agora message
+      // older than 30s (state.txs cleanup window) silently failed to open
+      // the detail panel because state.txs.get returned undefined. m.tx is
+      // the same tx object, retained on the msg for its full lifetime.
+      // tx.row may be null if the tx-row was evicted from the DOM (off-screen
+      // trim) — the `if (tx.row)` guard handles that.
+      if (m.tx) {
+        state.pinnedTx = m.tx;
         document.querySelectorAll('.tx-row.pinned').forEach(r => r.classList.remove('pinned'));
-        if (tx.row) tx.row.classList.add('pinned');
-        renderDetail(tx);
+        if (m.tx.row) m.tx.row.classList.add('pinned');
+        renderDetail(m.tx);
         if (isMobile()) {
           document.getElementById('detail').classList.add('mobile-open');
         }
       }
     });
-    // Tipped highlight
-    const tx = state.txs.get(m.txid);
-    if (tx && isTipTx(tx)) card.classList.add('tipped');
-    // Watchlist highlight on msg cards — same lime / purple split as tx-rows.
-    if (tx) {
-      const wlMatch = matchTxToWatchlist(tx);
+    // Tipped highlight + watchlist highlight. Runs at first-render only, so
+    // state.txs would normally still hold it — but v1.2.4 routes through
+    // m.tx for cross-container consistency with the click handlers above.
+    if (m.tx && isTipTx(m.tx)) card.classList.add('tipped');
+    if (m.tx) {
+      const wlMatch = matchTxToWatchlist(m.tx);
       if (wlMatch) {
         card.classList.add('watched');
         if (wlMatch.kind === 'token') card.classList.add('watched-token');
@@ -12398,6 +12505,14 @@ async function btlPinTx(txid) {
         const raw = await chronik.tx(txid);
         tx = parseTransaction(raw);
         if (raw.block) { tx.state = 'included'; tx.includedBlock = raw.block.height ?? raw.block.blockInfo?.height; }
+        // Admission gate (v1.2.4): mirror the processNewTx gate so the cap
+        // holds at every state.txs.set site. Click path is rarely a stress
+        // source but consistency matters — a future refactor that surfaces
+        // click-rehydrate elsewhere must inherit the same bound.
+        if (!tryAdmitTx(txid)) {
+          if (threeCol && mountHint) mountHint.textContent = 'Cache full — try again.';
+          return;
+        }
         state.txs.set(txid, tx);
       } catch (e) {
         if (threeCol && mountHint) mountHint.textContent = 'Could not load tx.';
@@ -18356,6 +18471,13 @@ function _startBackgroundIntervals() {
     // freshly-mined `included` tx can sit before an ancient `final`, so an
     // order-based evict could drop a live row. One O(n) gather + one bounded
     // sort (n ≤ size, only when over cap). Never touches pending/polling.
+    //
+    // v1.2.4: if terminal sweep doesn't satisfy `over`, fall back to oldest
+    // NON-VISIBLE pending/polling (already DOM-detached by trim — click can
+    // rehydrate). Never evicts a visibly-rendered row. This complements the
+    // tryAdmitTx synchronous gate: the gate handles burst-time, this handles
+    // a slow soak where terminal pressure isn't keeping up. Recovery sweeps
+    // (reconcile / block-reconcile) keep their cadence untouched.
     if (state.txs.size > MAX_TXS) {
       const over = state.txs.size - MAX_TXS;
       const victims = [];
@@ -18365,7 +18487,28 @@ function _startBackgroundIntervals() {
         }
       });
       victims.sort((a, b) => a[1] - b[1]); // oldest first
-      for (let i = 0; i < over && i < victims.length; i++) state.txs.delete(victims[i][0]);
+      let evicted = 0;
+      for (let i = 0; i < over && i < victims.length; i++) {
+        state.txs.delete(victims[i][0]); evicted++;
+      }
+      // v1.2.4 fallback: still over cap → consider non-visible pending/polling.
+      if (evicted < over && state.txs.size > MAX_TXS) {
+        const visible = new Set();
+        document.querySelectorAll('[data-txid]').forEach(n => {
+          const id = n.dataset.txid; if (id) visible.add(id);
+        });
+        const fallback = [];
+        state.txs.forEach((tx, txid) => {
+          if ((tx.state === 'pending' || tx.state === 'polling') && !visible.has(txid)) {
+            fallback.push([txid, tx.firstSeenLocal || tx.firstSeen || 0]);
+          }
+        });
+        fallback.sort((a, b) => a[1] - b[1]); // oldest first
+        const remaining = state.txs.size - MAX_TXS;
+        for (let i = 0; i < remaining && i < fallback.length; i++) {
+          state.txs.delete(fallback[i][0]);
+        }
+      }
     }
   }, 10000);
   // Patch 2 (v1.2.1): periodic safety-net reconcile, GATED. When healthy this
