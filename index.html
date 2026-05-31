@@ -51,20 +51,38 @@
 <meta name="theme-color" content="#01a0e0" />
 <meta name="description" content="Live, real-time visualizer of every transaction, block, and on-chain message on the eCash (XEC) network — pre-consensus and post-consensus Avalanche, side-by-side." />
 
-<!-- Open Graph / Twitter share card. Uses the share hero image rendered
-     inline in /assets and as a separate file so social-platform crawlers
-     pick it up. The hero matches the in-page "Welcome to the eCash live
-     stream" guide scene. -->
+<!-- Open Graph / Twitter share card.
+     WHY two og:image entries (v1.2.5):
+       - Primary 1200×630 banner is the canonical Twitter/Facebook/LinkedIn
+         landscape format; renders large in feed via twitter:card=summary_large_image.
+       - Secondary 512×512 square is a fallback for clients that prefer square
+         crops (Telegram, iMessage, some Discord embeds). First og:image wins
+         on the major platforms; secondary is selected only when the client
+         explicitly looks for a square aspect.
+     WHY absolute URLs: LinkedIn Post Inspector and some Slack unfurlers
+     refuse relative og:image paths — they fail silently and show no card.
+     WHY no CSP regen needed: og:* meta tags are scraped by external crawlers,
+     never loaded by the in-browser CSP context. img-src does not apply. -->
 <meta property="og:type" content="website" />
+<meta property="og:site_name" content="eCash Live" />
+<meta property="og:url" content="https://ecashlive.net/" />
 <meta property="og:title" content="eCash Live — every transaction, every block, live." />
 <meta property="og:description" content="A real-time visualizer for eCash (XEC). Watch Avalanche pre-consensus finalize transactions in ~3 seconds, then post-consensus lock blocks — live, side-by-side." />
-<meta property="og:image" content="/icon-512.png" />
+<meta property="og:image" content="https://ecashlive.net/icon-1200x630.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="eCash Live — live visualizer of Avalanche pre and post-consensus on the XEC network." />
+<meta property="og:image" content="https://ecashlive.net/icon-512.png" />
+<meta property="og:image:type" content="image/png" />
 <meta property="og:image:width" content="512" />
 <meta property="og:image:height" content="512" />
+<meta property="og:image:alt" content="eCash Live logo." />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="eCash Live — every transaction, every block, live." />
 <meta name="twitter:description" content="Live Avalanche pre &amp; post-consensus, on the eCash network." />
-<meta name="twitter:image" content="/icon-512.png" />
+<meta name="twitter:image" content="https://ecashlive.net/icon-1200x630.png" />
+<meta name="twitter:image:alt" content="eCash Live — live visualizer of Avalanche pre and post-consensus on the XEC network." />
 
 <!-- Favicons. Files live at the site root so browsers and crawlers find
      them without extra hops. The ICO bundles 16/32/48 sizes for legacy
@@ -6113,7 +6131,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.2.4">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.2.4</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.2.5">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.2.5</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
