@@ -1,6 +1,5 @@
-#!/usr/bin/env python3
 # =============================================================================
-# ttf-relay.py v1.5
+# ttf-relay.py v1.5.2
 #
 # Tails Bitcoin ABC's debug.log, parses Avalanche pre-consensus events,
 # computes TTF (time-to-final) for each transaction, and broadcasts the
@@ -8,6 +7,25 @@
 # subscribes to this feed to display node-precise TTF values instead of
 # the client-side approximation (which includes WebSocket and propagation
 # latency).
+#
+# v1.5.2 changes:
+#   1. TTF daily rollup. At 00:02 UTC each day, the relay reads the prior
+#      day's lines from ttf.log audit and writes a one-line JSONL summary
+#      to ttf-daily.jsonl: samples, TPS, mean, p10/50/90, min, max.
+#      ~150B/day = <1MB after a decade. Enables /ecashlive_status month/year
+#      with TTF history. Self-healing back-fill on startup.
+#   2. Restored WS traffic logging (was present in v1.4, lost during
+#      v1.5 / v1.5.1 patches). Every connect/disconnect → ws-traffic.log
+#      with sha256(daily_salt || ip)[:16]. Raw IPs never on disk.
+#
+# v1.5.1 change: persisted ring carries a `hist_lo_ms` sentinel; load_json
+# starts fresh whenever _HIST_LO_MS differs from the value on disk. In v1.5
+# (and earlier), changing _HIST_LO_MS would silently corrupt percentiles —
+# bin counts on disk meant ranges based on the OLD floor, but were
+# interpreted with the NEW floor, mixing two distributions in the same ring.
+# Mean stayed correct (it uses ttf_sum/count, not bins) which made the
+# corruption hard to spot. This sentinel makes any future floor change
+# self-healing: one 24h refill, then back to a clean ring.
 #
 # v1.5 change: _hist_percentile() now does linear interpolation WITHIN the
 # bin containing the target sample, instead of returning the bin's upper
@@ -110,6 +128,25 @@ DEBUG_LOG_PATH = Path(os.environ.get(
 TTF_LOG_PATH = Path(os.environ.get(
     "TTF_AUDIT_LOG",
     "/home/mikazuki/ttf-relay/ttf.log"))
+
+# Daily rollup of TTF/TPS stats (v1.5.2). One JSONL line per UTC day, written
+# at 00:02 UTC. Schema: date, samples, tps, ttf_{mean,p10,p50,p90,min,max}_ms.
+# Built by re-reading the prior day's lines from ttf.log audit, so it's
+# self-healing: if a midnight is missed, next run back-fills the gap from
+# audit data still on disk. Cost: ~150 bytes/day = ~55KB/year. Feeds the
+# bot's /ecashlive_status month/year window with real TTF history.
+TTF_DAILY_LOG_PATH = Path(os.environ.get(
+    "TTF_DAILY_LOG",
+    "/home/mikazuki/ttf-relay/ttf-daily.jsonl"))
+
+# WS traffic log (v1.4 / restored in v1.5.2). One JSON line per
+# connect/disconnect. The bot's /ecashlive_status command parses this. We log
+# a hashed IP, never the raw address — the salt regenerates at UTC midnight
+# (see _ws_ip_hash), so the log supports intra-day unique counts but cannot
+# be cross-day linked.
+WS_TRAFFIC_LOG_PATH = Path(os.environ.get(
+    "TTF_WS_TRAFFIC_LOG",
+    "/home/mikazuki/ttf-relay/ws-traffic.log"))
 
 WS_HOST = os.environ.get("TTF_WS_HOST", "127.0.0.1")   # nginx will proxy
 WS_PORT = int(os.environ.get("TTF_WS_PORT", "8901"))
@@ -476,22 +513,31 @@ class StatsRing:
 
     # --- persistence -----------------------------------------------------
     def to_json(self):
-        """Serialize only non-empty slots to keep the file small."""
+        """Serialize only non-empty slots to keep the file small.
+
+        Includes a `hist_lo_ms` sentinel so load_json can detect a changed
+        histogram geometry across versions and start fresh rather than
+        misinterpret bins (samples are stored as bin indices; if the
+        edges change, the same index means a different range — silent
+        corruption otherwise, as observed in the v1.4→v1.5 transition)."""
         return {
             "bucket_sec": self.bucket_sec,
             "ring_len": self.ring_len,
+            "hist_lo_ms": _HIST_LO_MS,
             "slots": [s for s in self.slots if s["idx"] >= 0 and s["count"] > 0],
         }
 
     def load_json(self, data, now):
         """Restore from a previously persisted ring, dropping any bucket that
         is now older than the 24h window. Defensive against a changed
-        bucket_sec/ring_len between versions — if they differ, we start fresh
-        rather than misalign the ring."""
+        bucket_sec/ring_len/hist_lo_ms between versions — if any differ, we
+        start fresh rather than misalign the ring or misinterpret histogram
+        bins (the latter caused silent percentile corruption in v1.5)."""
         if not isinstance(data, dict):
             return
         if (data.get("bucket_sec") != self.bucket_sec
-                or data.get("ring_len") != self.ring_len):
+                or data.get("ring_len") != self.ring_len
+                or data.get("hist_lo_ms") != _HIST_LO_MS):
             log.warning("stats ring geometry changed, starting fresh")
             return
         cur_abs = self._abs_bucket(now)
@@ -538,6 +584,50 @@ def load_stats_ring():
             stats_ring.load_json(data, time.time())
     except Exception as e:
         log.warning(f"stats load failed: {e}")
+
+
+# -----------------------------------------------------------------------------
+# WS traffic accounting (v1.4, restored in v1.5.2). Privacy-by-design: hash
+# remote IPs with a salt that regenerates at UTC midnight, so unique-IP counts
+# work within a day but the hash cannot link across days. No raw IPs ever
+# touch disk.
+# -----------------------------------------------------------------------------
+import hashlib as _hashlib
+import secrets as _secrets
+from datetime import datetime as _dt, timezone as _tz
+
+_ws_salt = _secrets.token_bytes(32)
+_ws_salt_day = _dt.now(_tz.utc).date()
+
+
+def _ws_ip_hash(remote_addr):
+    """Hash a (ip, port) tuple (websockets passes that as ws.remote_address)
+    to a 16-hex-char identifier using today's salt. Rotates salt at UTC
+    midnight on first call after the day changes."""
+    global _ws_salt, _ws_salt_day
+    today = _dt.now(_tz.utc).date()
+    if today != _ws_salt_day:
+        _ws_salt = _secrets.token_bytes(32)
+        _ws_salt_day = today
+        log.info("ws-traffic: rotated daily IP salt")
+    ip = remote_addr[0] if isinstance(remote_addr, tuple) else str(remote_addr)
+    return _hashlib.sha256(_ws_salt + ip.encode()).hexdigest()[:16]
+
+
+def _ws_traffic_write(event_type, ip_hash, total_clients):
+    """Append one JSON line to ws-traffic.log. Best-effort — a write failure
+    must not break the WS handler, so we swallow exceptions with a warning."""
+    try:
+        rec = {
+            "ts": int(time.time()),
+            "event": event_type,    # "connect" | "disconnect"
+            "iph": ip_hash,         # 16-hex-char hash of (today_salt || ip)
+            "active": total_clients,
+        }
+        with WS_TRAFFIC_LOG_PATH.open("a", buffering=1) as f:
+            f.write(json.dumps(rec) + "\n")
+    except Exception as e:
+        log.warning(f"ws-traffic write failed: {e}")
 
 
 # -----------------------------------------------------------------------------
@@ -694,6 +784,11 @@ async def handle_client(ws):
     """Register a new WebSocket client and hold the connection until close."""
     log.info(f"client connected: {ws.remote_address}, total={len(clients)+1}")
     clients.add(ws)
+    # v1.5.2: account this connection for /ecashlive_status traffic stats.
+    # Done after the add so `active` reflects the post-add count, matching
+    # disconnect (which records post-remove). IP is hashed with daily salt.
+    iph = _ws_ip_hash(ws.remote_address)
+    _ws_traffic_write("connect", iph, len(clients))
     try:
         # Send a hello so the client knows the feed is alive
         await ws.send(json.dumps({"type": "hello", "version": 1}))
@@ -715,16 +810,164 @@ async def handle_client(ws):
     finally:
         clients.discard(ws)
         log.info(f"client disconnected, total={len(clients)}")
+        _ws_traffic_write("disconnect", iph, len(clients))
+
+
+async def daily_rollup_task():
+    """Once a day at 00:02 UTC, summarize the prior day's TTF samples into
+    one JSONL line in ttf-daily.jsonl. Source = ttf.log audit (not the
+    ring), so missed midnights are recoverable as long as the audit log
+    still has the day in question.
+
+    Schema per line:
+      {"date":"YYYY-MM-DD", "samples":N, "tps":float,
+       "ttf_mean_ms":int, "ttf_p10_ms":int, "ttf_p50_ms":int,
+       "ttf_p90_ms":int, "ttf_min_ms":int, "ttf_max_ms":int}
+
+    Self-healing: on startup, reads the last `date` in ttf-daily.jsonl and
+    back-fills every full UTC day between then and yesterday. First-run
+    with no rollup file just back-fills yesterday.
+
+    Sleeps until next 00:02 UTC + small jitter (avoids exact-second tie
+    with logrotate at 00:00 UTC if both run on this host).
+    """
+    from datetime import datetime, timezone, date, timedelta
+
+    def parse_audit_for_day(day):
+        """Read ttf.log + rotated backups, return list of ttfMs ints for
+        samples emitted on `day` (UTC). audit format = one JSON object per
+        line containing "ttfMs" and "emittedAt" (epoch ms). Skips
+        unreadable lines defensively."""
+        day_start_ms = int(datetime(day.year, day.month, day.day,
+                                    tzinfo=timezone.utc).timestamp() * 1000)
+        next_day_ms = day_start_ms + 86_400_000
+        samples = []
+        # Glob for audit + rotated. logrotate produces ttf.log, ttf.log.1,
+        # ttf.log.2.gz, ... — we read everything in that family.
+        import glob
+        import gzip
+        candidates = sorted(glob.glob(str(TTF_LOG_PATH) + "*"))
+        for path in candidates:
+            try:
+                opener = gzip.open if path.endswith(".gz") else open
+                with opener(path, "rt", errors="replace") as f:
+                    for line in f:
+                        if '"ttfMs"' not in line:
+                            continue
+                        try:
+                            rec = json.loads(line)
+                        except Exception:
+                            continue
+                        ts = rec.get("emittedAt", 0)
+                        if ts < day_start_ms or ts >= next_day_ms:
+                            continue
+                        ttf = rec.get("ttfMs")
+                        if isinstance(ttf, (int, float)) and ttf > 0:
+                            samples.append(float(ttf))
+            except FileNotFoundError:
+                continue
+            except Exception as e:
+                log.warning(f"audit read failed for {path}: {e}")
+        return samples
+
+    def summarize(samples):
+        """Compute mean + percentiles + min/max from raw samples. Sorted
+        once, exact percentiles by nearest-rank — no histogram bias, no
+        binning. n=2700/day is trivial to sort."""
+        if not samples:
+            return None
+        samples.sort()
+        n = len(samples)
+
+        def pct(p):
+            # nearest-rank percentile: index = ceil(p * n) - 1
+            i = max(0, min(n - 1, int(p * n)))
+            return int(samples[i])
+        return {
+            "samples": n,
+            "tps": round(n / 86400.0, 5),
+            "ttf_mean_ms": int(sum(samples) / n),
+            "ttf_p10_ms": pct(0.10),
+            "ttf_p50_ms": pct(0.50),
+            "ttf_p90_ms": pct(0.90),
+            "ttf_min_ms": int(samples[0]),
+            "ttf_max_ms": int(samples[-1]),
+        }
+
+    def write_day(day):
+        """Compute + append one rollup line for `day`. No-op if no samples
+        (relay down all day, or first install)."""
+        samples = parse_audit_for_day(day)
+        summary = summarize(samples)
+        if summary is None:
+            log.info(f"daily rollup: no samples for {day.isoformat()}, skipped")
+            return
+        row = {"date": day.isoformat(), **summary}
+        with TTF_DAILY_LOG_PATH.open("a", buffering=1) as f:
+            f.write(json.dumps(row) + "\n")
+        log.info(f"daily rollup wrote {day.isoformat()}: "
+                 f"n={summary['samples']} mean={summary['ttf_mean_ms']}ms")
+
+    def last_rolled_date():
+        """Most recent `date` value in ttf-daily.jsonl, or None if empty/
+        missing. Used to detect gaps for back-fill."""
+        try:
+            with TTF_DAILY_LOG_PATH.open() as f:
+                last = None
+                for line in f:
+                    last = line
+                if last:
+                    return json.loads(last).get("date")
+        except FileNotFoundError:
+            return None
+        except Exception:
+            return None
+        return None
+
+    # ---- startup back-fill ----
+    try:
+        today_utc = datetime.now(timezone.utc).date()
+        last = last_rolled_date()
+        if last:
+            from datetime import date as _date
+            start = _date.fromisoformat(last) + timedelta(days=1)
+        else:
+            # First run ever: just back-fill yesterday.
+            start = today_utc - timedelta(days=1)
+        d = start
+        while d < today_utc:
+            write_day(d)
+            d += timedelta(days=1)
+    except Exception as e:
+        log.warning(f"daily rollup startup back-fill failed: {e}")
+
+    # ---- steady-state: wake at 00:02 UTC each day ----
+    while True:
+        now_utc = datetime.now(timezone.utc)
+        tomorrow = (now_utc + timedelta(days=1)).date()
+        next_run = datetime(tomorrow.year, tomorrow.month, tomorrow.day,
+                            0, 2, 0, tzinfo=timezone.utc)
+        sleep_sec = max(60.0, (next_run - now_utc).total_seconds())
+        await asyncio.sleep(sleep_sec)
+        try:
+            yesterday = datetime.now(timezone.utc).date() - timedelta(days=1)
+            write_day(yesterday)
+        except Exception as e:
+            log.warning(f"daily rollup failed: {e}")
 
 
 async def main():
     TTF_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     STATS_PERSIST_PATH.parent.mkdir(parents=True, exist_ok=True)
+    TTF_DAILY_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    WS_TRAFFIC_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     log.info(f"starting ttf-relay")
     log.info(f"  reading: {DEBUG_LOG_PATH}")
     log.info(f"  audit:   {TTF_LOG_PATH}")
     log.info(f"  stats:   {STATS_PERSIST_PATH}")
+    log.info(f"  daily:   {TTF_DAILY_LOG_PATH}")
+    log.info(f"  ws-log:  {WS_TRAFFIC_LOG_PATH}")
     log.info(f"  listen:  ws://{WS_HOST}:{WS_PORT}")
 
     # Restore the 24h ring from disk so the stats bar isn't empty for 24h
@@ -740,11 +983,13 @@ async def main():
         reader_task = asyncio.create_task(log_reader())
         broadcaster_task = asyncio.create_task(broadcaster())
         stats_task = asyncio.create_task(stats_broadcaster())
+        rollup_task = asyncio.create_task(daily_rollup_task())
         await stop.wait()
         log.info("shutting down")
         reader_task.cancel()
         broadcaster_task.cancel()
         stats_task.cancel()
+        rollup_task.cancel()
         # Final persist so we don't lose the last <60s of buckets on a clean
         # restart/deploy.
         persist_stats_ring()
