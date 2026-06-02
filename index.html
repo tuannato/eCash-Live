@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-nVx2GrCgVaOuDLq+Qt7jKzDY0QJ6UwUc93SXQbS5s8k=';
+  script-src 'self' 'sha256-iqRBH348thjoY2fUVexgmDdcoVT+bWX0h9ktlljbF6g=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -3862,11 +3862,308 @@
     from { transform: rotate(0deg); }
     to   { transform: rotate(360deg); }
   }
+  /* v1.2.6 (network statistics popover): icon for stat slots that have no
+     data because the node-precise feed is unavailable. Same wrapper pattern
+     as eye and spinner — currentColor, monochrome, fixed-size inline-flex.
+     A slash crosses the radar arcs so the "disconnected" reading is obvious
+     at small size without a tooltip. */
+  .radar-slash-wrap {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 6px;
+    color: var(--text-3);
+    cursor: help;
+    vertical-align: -3px;
+  }
+  .radar-slash {
+    width: 14px;
+    height: 14px;
+    display: inline-block;
+  }
+  .radar-slash-wrap:hover { color: var(--text-2); }
   .footer .cell.flow .v {
     font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; font-weight: 600; font-size: 15px;
     color: var(--cyan);
   }
   .footer .footer-spacer { flex: 1 1 auto; }
+
+  /* v1.2.6: footer cells are now click targets. Any non-control click on a cell
+     opens the stats-overview popover. The swap button on the TTF cell and any
+     embedded info-icon have their own handlers and stop propagation so a click
+     on those does NOT also open the popover. */
+  .footer .cell { cursor: pointer; }
+  .footer .cell.no-click { cursor: default; }
+
+  /* v1.2.6: small in-cell swap button on the TTF cell. Same footprint as the
+     info-icon ? button so the row stays visually balanced. The label ⇄ tells
+     the user the cell can be toggled (24h ↔ session) in one tap. */
+  .footer-swap-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 14px; height: 14px;
+    border-radius: 3px;
+    border: 1px solid var(--text-3);
+    background: transparent;
+    color: var(--text-3);
+    font-size: 10px;
+    line-height: 1;
+    font-family: 'Fira Code', monospace;
+    cursor: pointer;
+    margin-left: 6px;
+    padding: 0;
+    user-select: none;
+    transition: all 0.15s;
+    vertical-align: middle;
+  }
+  .footer-swap-btn:hover, .footer-swap-btn:focus-visible {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: rgba(1,160,224,0.10);
+    outline: none;
+  }
+
+  /* v1.2.6: dedicated trailing info-icon cell — a discoverable, always-visible
+     entry point to the stats-overview popover. Pulled to the right via the
+     existing footer-spacer pattern. The cell itself has no click handler
+     beyond the icon to keep the gesture unambiguous. */
+  .footer .cell.info-cell {
+    padding: 6px 12px;
+    cursor: default;
+  }
+
+  /* v1.2.6: inline toggle inside the stats-overview popover. Two pill buttons
+     side by side; the active one carries the cyan accent. Wired up in
+     showTooltip after innerHTML write, since this content is regenerated on
+     every popover open. */
+  .stats-view-toggle {
+    display: inline-flex;
+    gap: 4px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 2px;
+    margin: 4px 0;
+    background: rgba(255,255,255,0.02);
+  }
+  .stats-view-toggle button {
+    background: transparent;
+    border: 0;
+    color: var(--text-2);
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .stats-view-toggle button:hover {
+    color: var(--text);
+    background: rgba(255,255,255,0.05);
+  }
+  .stats-view-toggle button.active {
+    background: rgba(1,160,224,0.16);
+    color: var(--cyan);
+  }
+
+  /* v1.2.6: live-values card grid inside the stats-overview popover.
+     Replaces the earlier plain key/value table — the labels and numbers were
+     the same color/weight so values didn't pop. Now each metric is its own
+     small card: label dim on top, value large and cyan below. Three headline
+     metrics (TPS · 24h, time-to-finality p50, transactions · 24h) get a
+     slightly larger value font so the eye lands on them first. */
+  .stats-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 4px;
+  }
+  /* Single column on narrow viewports so cards never squish their values
+     into 2-line wraps. The popover itself is constrained to ~480px wide on
+     mobile, so two cards × ~190px would already be tight. */
+  @media (max-width: 540px) {
+    .stats-card-grid { grid-template-columns: 1fr; gap: 6px; }
+  }
+  .stats-card {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 8px 11px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+  .stats-card-label {
+    font-family: 'Fira Code', monospace;
+    font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* v1.2.6: allow flex so a trailing ? icon sits inline next to the label
+       (used on the Avg block time card to open the Heartbeat explainer). */
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  /* v1.2.6: ? icon inside a stats-card label. Smaller than the default
+     .info-icon (which is sized for body text) so it doesn't dwarf the
+     10px label. Same hit-target rules — click toggles the stacked tooltip. */
+  .stats-card-label .info-icon {
+    width: 13px; height: 13px; font-size: 9px;
+    margin-left: 0;
+    flex-shrink: 0;
+  }
+  /* v1.2.6: footer TTF cell label has two variants. The full spelling
+     ("Time-to-finality · 24h") would force the bar to wrap on phones since
+     the cell can't shrink below its content width. So we render BOTH spans
+     and use a media query to show one or the other. JS toggles the trailing
+     " · 24h" / " · session" suffix on both spans together. */
+  .ttf-lbl-abbr { display: none; }
+  @media (max-width: 700px) {
+    .ttf-lbl-full { display: none; }
+    .ttf-lbl-abbr { display: inline; }
+  }
+  .stats-card-value {
+    font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text);
+    line-height: 1.1;
+  }
+  .stats-card-value .u {
+    font-family: 'Fira Code', monospace;
+    font-size: 10px;
+    color: var(--text-3);
+    font-weight: 400;
+    margin-left: 3px;
+    letter-spacing: 0;
+    text-transform: lowercase;
+  }
+  /* Headline cards: TPS · 24h, time-to-finality p50, transactions · 24h.
+     Heavier weight + cyan to anchor the eye; smaller cards in the same grid
+     stay default-colored so the contrast is meaningful and not noise. */
+  .stats-card.headline .stats-card-value {
+    color: var(--cyan);
+    font-size: 19px;
+  }
+  /* Section heading inside the grid area — visually separates network vs.
+     session cards without a hard horizontal rule (which reads as "section
+     break" too strongly inside a popover). */
+  .stats-group-heading {
+    grid-column: 1 / -1;
+    font-family: 'Fira Code', monospace;
+    font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin: 4px 0 -2px;
+    padding: 0 2px;
+  }
+  .stats-group-heading:first-child { margin-top: 0; }
+
+  /* ============ v1.2.6 · Network Statistics popover — structured layout ============
+     The stats-overview body used to be one long column of prose ("a forest of
+     text"). Same words, but now chunked into scannable sections: a lead line, a
+     control card, the live grid, two source cards, a definition list of every
+     cell, a percentile reference grid, and an icon legend. */
+  /* Text-only popover (no diagram) reads better at a calmer width than the
+     1080px diagram popovers — added as a modifier in showTooltip(). */
+  .info-popover.narrow { width: min(760px, calc(100vw - 32px)); }
+
+  .so-lead {
+    font-size: 15px; line-height: 1.6; color: var(--text-2);
+    margin: 0 0 18px;
+  }
+  /* Section heading: small cyan mono label with a hairline rule trailing off
+     to the right so sections read as distinct bands without heavy dividers. */
+  .so-h {
+    font-family: 'Fira Code', monospace; font-size: 11px;
+    color: var(--cyan); letter-spacing: 0.12em; text-transform: uppercase;
+    display: flex; align-items: center; gap: 12px;
+    margin: 26px 0 12px;
+  }
+  .so-h::after { content: ''; flex: 1 1 auto; height: 1px; background: var(--line); }
+  .so-section:first-of-type .so-h { margin-top: 4px; }
+
+  /* Control card wraps the interactive 24h↔session toggle + helper text. */
+  .so-card {
+    border: 1px solid var(--line); border-radius: 8px;
+    background: rgba(255,255,255,0.025);
+    padding: 14px 16px;
+  }
+  .so-card p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--text-2); }
+  .so-card p + .stats-view-toggle { margin-top: 12px; }
+  .so-card .so-live-label {
+    font-family: 'Fira Code', monospace; font-size: 10px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-3);
+    margin: 16px 0 8px; display: block;
+  }
+
+  /* Two source cards: Network · 24h vs Session. */
+  .so-sources { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .so-source {
+    border: 1px solid var(--line); border-radius: 8px;
+    background: rgba(255,255,255,0.02); padding: 13px 15px;
+  }
+  .so-source p { margin: 8px 0 0; font-size: 13px; line-height: 1.55; color: var(--text-2); }
+  .so-src-name { display: inline-flex; align-items: center; gap: 7px; font-family: 'Fira Code', monospace; font-size: 12px; font-weight: 600; }
+
+  /* Source/scope badge — also used inline on each metric definition row. */
+  .so-badge {
+    font-family: 'Fira Code', monospace; font-size: 8.5px; font-weight: 500;
+    letter-spacing: 0.07em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 4px; border: 1px solid; white-space: nowrap;
+  }
+  .so-badge.net { color: var(--cyan); border-color: var(--cyan-dim); background: rgba(1,160,224,0.10); }
+  .so-badge.ses { color: var(--text-2); border-color: var(--line-2); background: rgba(255,255,255,0.04); }
+
+  /* Definition list: one row per footer cell. Left = mono name + scope badge,
+     right = the (verbatim) description. */
+  .so-defs { display: flex; flex-direction: column; }
+  .so-defrow {
+    display: grid; grid-template-columns: 184px 1fr; gap: 16px;
+    padding: 12px 2px; align-items: start;
+    border-top: 1px solid var(--line);
+  }
+  .so-defrow:first-child { border-top: 0; padding-top: 4px; }
+  .so-name {
+    font-family: 'Fira Code', monospace; font-size: 12.5px; font-weight: 500;
+    color: var(--text); display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+    line-height: 1.4;
+  }
+  .so-name .scope { font-size: 10px; color: var(--text-3); font-weight: 400; }
+  .so-desc { font-size: 13.5px; line-height: 1.55; color: var(--text-2); }
+  .so-desc code, .so-card code, .so-source code {
+    font-family: 'Fira Code', monospace; font-size: 0.9em;
+    background: rgba(1,160,224,0.10); color: var(--cyan);
+    padding: 1px 5px; border-radius: 3px;
+  }
+
+  /* Percentile quick-reference grid for the finality methodology section. */
+  .so-pct { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 12px 0 6px; }
+  .so-pct-item {
+    border: 1px solid var(--line); border-radius: 7px;
+    background: rgba(255,255,255,0.02); padding: 11px 13px;
+  }
+  .so-pct-item .pk { font-family: 'Fira Code', monospace; font-size: 12.5px; font-weight: 600; color: var(--cyan); }
+  .so-pct-item .pd { font-size: 12.5px; line-height: 1.5; color: var(--text-2); margin-top: 4px; }
+
+  /* Icon legend rows. */
+  .so-legend { display: flex; flex-direction: column; gap: 12px; }
+  .so-legend-row { display: grid; grid-template-columns: 38px 1fr; gap: 14px; align-items: start; }
+  .so-legend-ic {
+    display: flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 8px;
+    background: rgba(255,255,255,0.02); color: var(--text-3);
+  }
+  .so-legend-row .ld { font-size: 13.5px; line-height: 1.55; color: var(--text-2); }
+
+  @media (max-width: 600px) {
+    .so-sources { grid-template-columns: 1fr; }
+    .so-pct { grid-template-columns: 1fr; }
+    .so-defrow { grid-template-columns: 1fr; gap: 4px; padding: 11px 2px; }
+  }
 
   /* Control panel - now embedded inside the global footer at the right */
   .footer .control-panel {
@@ -4059,7 +4356,12 @@
     inset: 0;
     background: rgba(0,0,0,0.55);
     backdrop-filter: blur(2px);
-    z-index: 299;
+    /* z-index 10999 / 11000 (v1.2.6): the info-popover hosts the stats-overview
+       explainer which must be reachable from any UI state, including with the
+       tx detail panel (9300), block-tx-list popup (9100), or guide modal (10000)
+       open. Sits below the easter-egg fullscreen overlay (12000), which is an
+       opt-in takeover the user can't accidentally combine with this popover. */
+    z-index: 10999;
     opacity: 0;
     transition: opacity 0.18s ease;
     /* Don't trap clicks - we want users to click any "?" trigger to toggle, and any
@@ -4073,7 +4375,7 @@
   }
   .info-popover {
     position: fixed;
-    z-index: 300;
+    z-index: 11000;
     left: -9999px; top: -9999px;
     background: rgba(8,8,15,0.97);
     border: 1px solid var(--cyan-dim);
@@ -4100,6 +4402,14 @@
     pointer-events: auto;
     visibility: visible;
   }
+  /* v1.2.6: nested-tooltip stacked layer. The primary popover sits at
+     z-index 11000; stacked sits above at 11500 so it's never covered by
+     the parent. Below the easter-egg fullscreen overlay (12000) which is
+     an opt-in takeover the user can't accidentally combine. Shares the
+     single .tooltip-backdrop above the page (no separate backdrop) —
+     dismissing the stacked layer doesn't tear down the backdrop because
+     the parent popover still wants it. */
+  .info-popover.stacked { z-index: 11500; }
   .info-popover .title {
     font-family: 'Fira Code', monospace;
     font-size: 13px;
@@ -6131,7 +6441,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.2.5">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.2.5</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.2.6">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.2.6</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -6679,30 +6989,72 @@
 </div>
 
 <!-- GLOBAL FOOTER BAR (status + controls) - sibling of stage-wrap, fixed at bottom -->
+<!--
+  v1.2.6 footer cell order (left → right): TTF · TPS · Block-lock · Block time · Tx (session) · Tx (24h) · Stream uptime · ?
+  - Cells 1/2/6 are sourced from the relay's rolling 24h stats frame (chronik1.ecashlive.net/ttf-feed)
+    and show an eye icon + session fallback (where applicable) when the feed is disconnected.
+  - Cells 3/4/5/7 are session-scoped client-side and unaffected by feed state.
+  - The trailing ? cell, plus a click on ANY cell, opens the stats-overview popover.
+-->
 <div class="footer" id="global-footer">
-  <div class="cell flow" title="Average time from a transaction's first appearance to Avalanche pre-consensus finality. Last 50 samples this session.">
-    <span class="k">Avg time-to-finality</span>
+  <!-- 1 · TTF — primary stat. Default view: 24h p50 from relay. Tap the ⇄ button
+       to swap to the session avg (last 50 client samples). On WS disconnect the
+       display falls back to session + eye regardless of the user's selection. -->
+  <div class="cell flow" id="f-ttf-cell" title="Click for a full stats explanation. Use the ⇄ button to toggle between the network 24h reading and your session reading.">
+    <span class="k">
+      <span id="f-ttf-label"><span class="ttf-lbl-full">Time-to-finality</span><span class="ttf-lbl-abbr">TTF</span> · 24h</span>
+      <button type="button" class="footer-swap-btn" id="f-ttf-swap" aria-label="Toggle between 24h network and session reading" title="Toggle 24h ↔ session">⇄</button>
+    </span>
     <span class="v" id="f-ttf">— <span class="u">s</span></span>
   </div>
-  <div class="cell" title="Total transactions observed since this page session started">
-    <span class="k">Tx seen</span>
-    <span class="v mono" id="f-finalized">—</span>
+  <!-- 6 · TPS · 24h — network-wide rolling rate from the relay stats frame.
+       No session equivalent; eye icon + em-dash when feed unavailable. -->
+  <div class="cell" id="f-tps-cell" title="Network transactions per second, rolling 24h. From the dedicated eCash node. Click for details.">
+    <span class="k">TPS · 24h</span>
+    <span class="v mono" id="f-tps">— <span class="u">tps</span></span>
   </div>
-  <div class="cell hide-medium" title="Average time from block mined to Avalanche post-consensus finalized. Last 20 samples this session.">
+  <!-- 3 · Avg block-lock (session) — block-mined → ava-finalized leg, not yet
+       exposed by the relay; remains session-scoped until a future patch. -->
+  <div class="cell hide-medium" id="f-blocklock-cell" title="Average time from block mined to Avalanche post-consensus finalized. Last 20 samples this session. Click for details.">
     <span class="k">Avg block-lock</span>
     <span class="v mono" id="f-blocklock">— <span class="u">s</span></span>
   </div>
-  <div class="cell hide-medium" title="Average elapsed time between the last consecutive blocks observed this session. eCash targets a 10-minute average via the Heartbeat real-time difficulty algorithm.">
+  <!-- 4 · Avg block time (session) — keeps its dedicated Heartbeat tooltip
+       (data-tooltip="heartbeat") because that explainer is conceptually
+       distinct from the stats-overview content. -->
+  <div class="cell hide-medium" id="f-blocktime-cell" title="Average elapsed time between the last consecutive blocks observed this session. eCash targets a 10-minute average via the Heartbeat real-time difficulty algorithm.">
     <span class="k">
       Avg block time
       <span class="info-icon footer-info" data-tooltip="heartbeat" tabindex="0" title="What is Heartbeat?">?</span>
     </span>
     <span class="v mono" id="f-blocktime">— <span class="u">min</span></span>
   </div>
-  <div class="cell hide-narrow" title="How long this stream has been connected to the eCash network">
+  <!-- 2 · Tx seen (session) — the per-tab counter; unchanged from earlier
+       releases, kept next to its 24h network peer for direct comparison.
+       hide-narrow (v1.2.6.1): collapses out on mobile so the bar lands in a
+       single row of TTF + TPS + ?, matching the deliberately-minimal mobile
+       shape. The session count is still reachable via the popover live grid. -->
+  <div class="cell hide-narrow" id="f-finalized-cell" title="Total transactions observed by this browser tab since the page was loaded. Click for details.">
+    <span class="k">Tx · session</span>
+    <span class="v mono" id="f-finalized">—</span>
+  </div>
+  <!-- 11 · Tx · 24h — network-wide sample count from the relay stats frame.
+       The relay records every finalized tx into a fixed bucket ring, so this
+       number is constant-memory regardless of TPS (see ttf-relay.py header).
+       Also hide-narrow on mobile; visible in the popover live grid instead. -->
+  <div class="cell hide-narrow" id="f-finalized-24h-cell" title="Total transactions finalized network-wide in the last 24 hours. From the dedicated eCash node. Click for details.">
+    <span class="k">Tx · 24h</span>
+    <span class="v mono" id="f-finalized-24h">—</span>
+  </div>
+  <!-- 5 · Stream uptime (session) — inherent per-session metric, never has a
+       network equivalent. Hidden first on narrow viewports. -->
+  <div class="cell hide-narrow" id="f-uptime-cell" title="How long this stream has been connected to the eCash network. Click for details.">
     <span class="k">Stream uptime</span>
     <span class="v mono" id="f-uptime" style="color: var(--cyan)">—</span>
   </div>
+  <!-- v1.2.6.x: the dedicated trailing "?" icon was removed to declutter the
+       bar. Any footer cell remains clickable to open the Network Statistics
+       popover — see the capture-phase delegation handler in the script. -->
   <div class="footer-spacer"></div>
   <div class="control-panel" id="control-panel">
     <select class="global-page-size global-page-size-footer" id="global-page-size" title="Max rows shown per column">
@@ -6798,6 +7150,13 @@
 </div>
 <div class="tooltip-backdrop" id="tooltip-backdrop" aria-hidden="true"></div>
 <div class="info-popover" id="info-popover" role="tooltip" aria-hidden="true" inert></div>
+<!-- v1.2.6: stacked nested-tooltip layer. When the user clicks a ? info-icon
+     that sits INSIDE the currently-open primary popover (e.g. the Heartbeat ?
+     embedded in the Live Values block-time card), the new tooltip opens in
+     this secondary element with a bumped z-index, so it's never obscured by
+     the parent popover. Dismissing the stacked layer (close button, outside
+     click, or its own ? toggled off) returns to the parent unchanged. -->
+<div class="info-popover stacked" id="info-popover-stacked" role="tooltip" aria-hidden="true" inert></div>
 
 <!-- Tip dialog -->
 <div class="tip-overlay" id="tip-overlay" role="dialog" aria-modal="true">
@@ -7123,6 +7482,14 @@ const TTF_EYE_SVG = '<svg class="ttf-eye" viewBox="0 0 24 24" fill="none" stroke
 // breaking baseline). With SVG it's pixel-identical everywhere.
 const TTF_SPINNER_SVG = '<svg class="ttf-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>';
 
+// v1.2.6 (stats popover): "no node-precise connection" indicator. Radar
+// sweep arcs from the lower-left origin with a diagonal slash through
+// them. Used in the Network Statistics popover to mark stat slots that
+// can't be filled because the ttf-feed WS is unavailable or stale.
+// Distinct from the eye (which marks a value that IS available but
+// perceived rather than node-precise).
+const RADAR_SLASH_SVG = '<svg class="radar-slash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="4" cy="20" r="1.3" fill="currentColor" stroke="none"/><path d="M4 15a5 5 0 0 1 5 5"/><path d="M4 10a10 10 0 0 1 10 10"/><path d="M4 5a15 15 0 0 1 15 15"/><line x1="3" y1="3" x2="21" y2="21" stroke-width="2.2"/></svg>';
+
 const ttfFeedState = {
   ws: null,
   connected: false,
@@ -7322,6 +7689,53 @@ function hasPendingNodePreciseWait(txid) {
   if (!tx) return false;
   if (!tx.ttfPendingUpgradeUntil) return false;
   return Date.now() < tx.ttfPendingUpgradeUntil;
+}
+
+// ============ Session min/max TTF · v1.2.6 ============
+// True when a sample's ttf value is considered "settled" — i.e. the per-tx
+// upgrade window has closed and no node-precise replacement is expected.
+// Used by updateSessionTtfExtremes() so that a perceived value displayed
+// briefly during the 3s upgrade window NEVER lands in the session
+// fastest/slowest stats. Once a sample is final, it stays final: even if a
+// node-precise value arrives after the window expires (rare, possible),
+// the next sweep will simply re-apply min/max with the upgraded ttfMs —
+// idempotent under min/max comparison.
+function isSessionSampleFinal(s) {
+  // Legacy plain-number samples (pre-1.1.1) — already final; no upgrade path.
+  if (!s || typeof s !== 'object') return true;
+  // Sources that clear the upgrade window in _markTtfUpgradeWindow().
+  if (s.source === 'node-precise' || s.source === 'race-backfilled') return true;
+  const tx = state.txs.get(s.txid);
+  // Tx already evicted from the working set (rare for samples still in the
+  // 200-deep ttfSamples buffer, but possible). Treat as final: the value
+  // we have is its last word.
+  if (!tx) return true;
+  if (!tx.ttfPendingUpgradeUntil) return true;       // window cleared
+  return Date.now() >= tx.ttfPendingUpgradeUntil;    // window expired
+}
+
+// Walk state.ttfSamples once, fold each FINAL sample into the session-wide
+// min/max scalars. O(N) where N is bounded to the rolling ttfSamples buffer
+// (200 max). O(1) state — does not scale with TPS. Idempotent: running this
+// repeatedly on overlapping sample sets cannot worsen the extremum.
+//
+// Why scalars, not a deduplicated set: a Set of seen txids would scale with
+// session length (every finalized tx forever). The scalar approach captures
+// the extremum at the moment of sweep; later sweeps refine it. Samples
+// evicted from the ring buffer can no longer contribute, but their value is
+// preserved in the scalar — exactly what "session fastest/slowest" needs.
+function updateSessionTtfExtremes() {
+  for (const s of state.ttfSamples) {
+    if (!isSessionSampleFinal(s)) continue;
+    const ms = ttfSampleMs(s);
+    if (typeof ms !== 'number' || !isFinite(ms) || ms < 0) continue;
+    if (state.sessionTtfMinMs == null || ms < state.sessionTtfMinMs) {
+      state.sessionTtfMinMs = ms;
+    }
+    if (state.sessionTtfMaxMs == null || ms > state.sessionTtfMaxMs) {
+      state.sessionTtfMaxMs = ms;
+    }
+  }
 }
 
 // Schedule the single "spinner self-expiry" refresh for a tx whose upgrade
@@ -7625,7 +8039,39 @@ const state = {
   lastBlockTime: null,
   sessionStart: Date.now(), // wall-clock time the page (or current LIVE/SIM session) started
   xecPrice: 0.000035, // XEC/USD fallback
+  // ============ Relay 24h stats (v1.2.6) ============
+  // Cached payload of the most recent `stats` frame from chronik1.ecashlive.net
+  // ttf-feed. Shape: { tps, ttfP10Ms, ttfP50Ms, ttfP90Ms, ttfMeanMs, sampleCount,
+  // windowSec, emittedAt } — see ttf-relay.py StatsRing.snapshot for the
+  // authoritative schema. null until the first frame arrives. relayStatsAt is
+  // the *client* arrival time and drives freshness — a value older than
+  // STATS_FRESH_MS is treated as stale even if ttfFeedState.connected is true
+  // (covers the gap between an unhealthy relay and a dropped TCP connection).
+  relayStats: null,
+  relayStatsAt: 0,
+  // User preference for the headline TTF cell: 'p50' = relay 24h p50 (default),
+  // 'session' = client rolling 50-sample average. Tap the ⇄ button on the cell
+  // to flip, or use the toggle inside the stats-overview popover. Not persisted
+  // across reloads — defaults back to 'p50' on every page load (per design
+  // decision: no localStorage for non-essential prefs).
+  ttfCellView: 'p50',
+  // ============ Session fastest / slowest TTF (v1.2.6) ============
+  // Two scalars — O(1) memory regardless of TPS. Updated by
+  // updateSessionTtfExtremes() which walks state.ttfSamples and counts only
+  // samples whose upgrade window has closed (so a perceived value mid-upgrade
+  // never enters the extremum until it's settled). Idempotent: re-running on
+  // the same final samples leaves the result unchanged. Both reset to null
+  // on session restart so the next session starts fresh.
+  sessionTtfMinMs: null,
+  sessionTtfMaxMs: null,
 };
+
+// v1.2.6: how stale a relay stats frame is allowed to be before we treat it as
+// missing and switch the affected cells to their eye/fallback state. The relay
+// broadcasts every 5s, so 15s = 3 missed frames before we react — short enough
+// that a real outage shows up quickly, long enough to ride out a single dropped
+// frame or a tab-throttled browser without UI thrash.
+const STATS_FRESH_MS = 15_000;
 
 const $ = (id) => document.getElementById(id);
 
@@ -8197,6 +8643,50 @@ function connectTtfFeed() {
     }
     if (data.type === 'hello') {
       // Just an acknowledgement — ignored, but useful for debugging.
+      return;
+    }
+    // v1.2.6: 24h rolling stats frame. Broadcast every 5s by the relay; ~180B
+    // wire size each. Schema (see ttf-relay.py StatsRing.snapshot):
+    //   { type:'stats', tps, ttfP10Ms, ttfP50Ms, ttfP90Ms, ttfMeanMs,
+    //     sampleCount, windowSec, emittedAt }
+    // We validate the field types/ranges before caching to defend against a
+    // compromised relay or MITM serving plausible-but-malformed frames.
+    // ttfP10/50/90/Mean may legitimately be null when sampleCount is 0
+    // (relay just started, or 24h ring fully expired) — that's fine, the
+    // renderer handles it.
+    if (data.type === 'stats') {
+      const okNum = (v) => typeof v === 'number' && isFinite(v) && v >= 0;
+      const okMsOrNull = (v) =>
+        v === null || (typeof v === 'number' && isFinite(v) && v >= 0 && v < 600_000);
+      if (okNum(data.tps) && data.tps < 100_000
+          && okMsOrNull(data.ttfP10Ms)
+          && okMsOrNull(data.ttfP50Ms)
+          && okMsOrNull(data.ttfP90Ms)
+          && okMsOrNull(data.ttfMeanMs)
+          && okNum(data.sampleCount)) {
+        state.relayStats = {
+          tps: data.tps,
+          ttfP10Ms: data.ttfP10Ms,
+          ttfP50Ms: data.ttfP50Ms,
+          ttfP90Ms: data.ttfP90Ms,
+          ttfMeanMs: data.ttfMeanMs,
+          sampleCount: data.sampleCount | 0,
+          windowSec: typeof data.windowSec === 'number' ? data.windowSec : 86400,
+        };
+        state.relayStatsAt = Date.now();
+        // Re-render through the rAF coalescer so a burst (initial hello+stats
+        // back-to-back on connect) renders once, not twice.
+        scheduleTtfRender();
+        // If the stats-overview popover is currently open, refresh its inner
+        // numbers so the user watches live values update instead of a frozen
+        // snapshot taken at popover-open time.
+        if (typeof refreshStatsOverviewIfActive === 'function') {
+          try { refreshStatsOverviewIfActive(); }
+          catch (e) { console.warn('[ttf-feed] refreshStatsOverview failed', e); }
+        }
+      } else {
+        console.warn('[ttf-feed] stats frame failed validation, dropping');
+      }
       return;
     }
     // M3 (v1.1.2): added ttfMs >= 200 floor to match the relay's own
@@ -13325,51 +13815,123 @@ function updateStats() {
   $('m-prefinal').textContent = preFinal;
   $('m-tokens').textContent = state.totalTokensToday;
 
-  // TTF average — time-to-finality from pre-consensus polling start to score=128.
-  //
-  // Progressive sampling: show the running average from the very first sample
-  // so the stat doesn't sit at "—" for the first minute of a session. As the
-  // sample pool grows we widen the window toward the steady-state cap (50)
-  // for stability. Below the cap, we use whatever samples are available.
-  // We also annotate the value with a small "(N)" badge while N<10 so the user
-  // can see the average is still settling — once we have ≥10 samples the
-  // average is stable enough that the badge becomes noise.
-  if (state.ttfSamples.length > 0) {
+  // ============ TTF cell · v1.2.6 24h/session view ============
+  // Decision tree for the headline TTF cell:
+  //   1. If feed is connected AND we have a fresh stats frame AND user prefers
+  //      'p50' → show the network 24h p50 (label "TTF · 24h", no eye).
+  //   2. Otherwise → show the session running average (label "TTF · session"),
+  //      with the eye icon when feed is unavailable. This covers:
+  //        a. user explicitly tapped ⇄ to view session
+  //        b. WS dropped (auto-fallback per design)
+  //        c. WS connected but no fresh stats frame in 15s (relay unhealthy)
+  //        d. WS connected, stats frame fresh, but ttfP50Ms is null (24h ring
+  //           still empty — relay just restarted)
+  // The session avg itself is unchanged from earlier releases — same 50-sample
+  // window, same defensive ttfSampleMs() handling both object and number form.
+  const ttfLabelEl = $('f-ttf-label');
+  const statsFresh = state.relayStats
+    && (Date.now() - state.relayStatsAt) < STATS_FRESH_MS;
+  const haveLiveP50 = ttfFeedState.connected
+    && statsFresh
+    && typeof state.relayStats.ttfP50Ms === 'number';
+  const showing24h = state.ttfCellView === 'p50' && haveLiveP50;
+
+  if (showing24h) {
+    // Path 1: 24h p50. fmtTtfDuration with 1-decimal precision matches the
+    // session label format so swapping the view doesn't jolt the user with a
+    // different number of digits.
+    const p50 = state.relayStats.ttfP50Ms;
+    const s = fmtTtfDuration(p50, 1);
+    const html = /^[\d.]+ (s|min)$/.test(s)
+      ? s.replace(/ (s|min)$/, ' <span class="u">$1</span>')
+      : s;
+    $('f-ttf').innerHTML = html;
+    // Dual-span label so the CSS @media at ≤700px can hide the spelled
+    // form ("Time-to-finality") and reveal the abbreviated form ("TTF")
+    // without the bar being forced to wrap on phones.
+    if (ttfLabelEl) ttfLabelEl.innerHTML =
+      '<span class="ttf-lbl-full">Time-to-finality</span><span class="ttf-lbl-abbr">TTF</span> · 24h';
+  } else if (state.ttfSamples.length > 0) {
+    // Path 2: session avg. Identical to the pre-1.2.6 footer rendering — the
+    // rolling 50-sample window, with renderTtfIndicator() supplying the eye
+    // whenever ttfFeedState.connected is false.
     const cap = 50;
     const n = Math.min(cap, state.ttfSamples.length);
-    // ttfSampleMs handles both the new {ttfMs, txid, source} objects and
-    // any leftover raw numbers (defensive — there shouldn't be any in
-    // 1.1.1+ but a hot-reloaded page or future refactor could leave
-    // some). Null returns are filtered so the avg doesn't drift.
     const window = state.ttfSamples.slice(-n)
       .map(ttfSampleMs)
       .filter(v => v != null);
     const avg = window.length > 0
       ? window.reduce((a, b) => a + b, 0) / window.length
       : 0;
-    // Footer indicator: same single-source-of-truth helper as the
-    // detail panel. txid=null (footer is an aggregate, not per-tx),
-    // ttfSource=null (no specific source for the avg). The helper
-    // returns 'eye' whenever feed is down OR never-connected, plus
-    // tooltip text matching the situation. v1.1.2: prefix layout.
-    // v1.2.0: tiered s/min/h formatting (1 decimal under 60s) so a
-    // slow-network average stays readable instead of "210.4 s". We wrap
-    // only the trailing unit token in <span class="u"> for styling; the
-    // "Xh YYm" form has no single trailing unit so it renders as-is.
     const avgStr = fmtTtfDuration(avg, 1);
     const avgHtml = /^[\d.]+ (s|min)$/.test(avgStr)
       ? avgStr.replace(/ (s|min)$/, ' <span class="u">$1</span>')
-      : avgStr;  // "Xh YYm" — leave unwrapped
+      : avgStr;
     $('f-ttf').innerHTML = renderTtfIndicator(null, null) + avgHtml;
+    if (ttfLabelEl) ttfLabelEl.innerHTML =
+      '<span class="ttf-lbl-full">Time-to-finality</span><span class="ttf-lbl-abbr">TTF</span> · session';
+  } else {
+    // Path 3: neither path has data yet (fresh page load, feed still
+    // connecting, no session samples). Keep the label aligned with whatever
+    // the user *would* see when data arrives so swapping the view via ⇄ on an
+    // empty cell doesn't display a confusing label flip later.
+    if (ttfLabelEl) {
+      const suffix = state.ttfCellView === 'p50' ? '24h' : 'session';
+      ttfLabelEl.innerHTML =
+        `<span class="ttf-lbl-full">Time-to-finality</span><span class="ttf-lbl-abbr">TTF</span> · ${suffix}`;
+    }
+    $('f-ttf').innerHTML = renderTtfIndicator(null, null) + '— <span class="u">s</span>';
   }
+
+  // ============ TPS · 24h · v1.2.6 ============
+  // Sourced exclusively from the relay; no client-side fallback (a per-tab
+  // TPS would be noisy and meaningless when only a handful of txs hit our
+  // chronik subscription in a short window). Eye icon when feed unavailable
+  // or stats frame stale — mirrors the existing renderTtfIndicator pattern
+  // so users see a consistent "data source unavailable" affordance across
+  // every relay-backed cell.
+  if (ttfFeedState.connected && statsFresh && state.relayStats) {
+    const tps = state.relayStats.tps;
+    const samples = state.relayStats.sampleCount;
+    let tpsHtml;
+    if (samples > 0 && tps > 0 && tps < 0.01) {
+      // Very low but non-zero traffic. Per design: show "< 0.01" as a factual
+      // bound rather than rounding down to "0.00 tps" (which reads as "no
+      // transactions at all", which isn't what the 24h window actually says).
+      tpsHtml = '&lt; 0.01 <span class="u">tps</span>';
+    } else if (samples > 0 && tps >= 0.01) {
+      // Two decimals reads as live but stable; the relay updates this number
+      // every 5s and 1 decimal would visibly twitch on every broadcast.
+      tpsHtml = tps.toFixed(2) + ' <span class="u">tps</span>';
+    } else {
+      // Genuine zero — no finalized txs in the 24h window. Edge case (only
+      // possible immediately after a fresh relay deploy with no persisted
+      // ring); shown as em-dash so the cell doesn't claim a misleading 0.00.
+      tpsHtml = '— <span class="u">tps</span>';
+    }
+    $('f-tps').innerHTML = tpsHtml;
+  } else {
+    // Eye prefix + em-dash. renderTtfIndicator(null, null) returns the eye
+    // SVG (with the correct tooltip text for dropped-vs-never-connected)
+    // whenever ttfFeedState.connected is false. When connected-but-stale,
+    // it returns nothing, so we wrap a manual eye span instead to make the
+    // staleness visible.
+    const eye = ttfFeedState.connected
+      ? `<span class="ttf-eye-wrap" title="Relay stats are temporarily unavailable. Reconnect attempt is in progress.">${TTF_EYE_SVG}</span> `
+      : renderTtfIndicator(null, null);
+    $('f-tps').innerHTML = eye + '— <span class="u">tps</span>';
+  }
+
+  // ============ Block-lock (session) ============
   // Block-lock = elapsed time from block mined to avalanche-finalized.
-  // Same progressive approach: window grows from 1 → 20 as samples come in.
+  // Same progressive approach as TTF: window grows from 1 → 20 as samples come in.
   if (state.blockLockSamples.length > 0) {
     const cap = 20;
     const n = Math.min(cap, state.blockLockSamples.length);
     const avg = state.blockLockSamples.slice(-n).reduce((a, b) => a + b, 0) / n;
     $('f-blocklock').innerHTML = (avg / 1000).toFixed(1) + ' <span class="u">s</span>';
   }
+  // ============ Avg block time (session) ============
   // Avg block time = rolling mean of gaps between observed blocks this
   // session. With just 1 sample (2 blocks observed) we can already show
   // a meaningful number — better than leaving "—" for ~20 minutes waiting
@@ -13390,6 +13952,22 @@ function updateStats() {
     $('f-blocktime').innerHTML = label + ' <span class="u">' + unit + '</span>';
   }
   $('f-finalized').textContent = state.totalTxToday.toLocaleString('en-US');
+
+  // ============ Tx · 24h · v1.2.6 ============
+  // Network-wide finalized tx count over the rolling 24h window. From the
+  // relay's StatsRing.sampleCount — constant memory regardless of TPS (see
+  // ttf-relay.py header). Locale-formatted so a 100k+ number reads cleanly.
+  if (ttfFeedState.connected && statsFresh && state.relayStats) {
+    $('f-finalized-24h').textContent =
+      state.relayStats.sampleCount.toLocaleString('en-US');
+  } else {
+    // Same eye treatment as the TPS cell — visual parity matters because the
+    // two relay-backed network cells live side-by-side in the footer.
+    const eye = ttfFeedState.connected
+      ? `<span class="ttf-eye-wrap" title="Relay stats are temporarily unavailable. Reconnect attempt is in progress.">${TTF_EYE_SVG}</span> `
+      : renderTtfIndicator(null, null);
+    $('f-finalized-24h').innerHTML = eye + '—';
+  }
 
   // Stream uptime — time since the page loaded (rough proxy for connection lifetime)
   if (state.sessionStart) {
@@ -17528,11 +18106,125 @@ const TOOLTIP_CONTENT = {
       </div>
     `,
   },
+  'stats-overview': {
+    title: 'Network Statistics',
+    body: `
+      <div class="so-wrap">
+        <p class="so-lead">The footer along the bottom of the page is a live readout of the eCash network. Its numbers come from two sources — a dedicated eCash node we operate, and your current browser session — and knowing which is which helps you read the bar correctly.</p>
+
+        <div class="so-section">
+          <h3 class="so-h">Headline cell · 24h ↔ session</h3>
+          <div class="so-card">
+            <p>The headline Time-to-Finality (TTF) cell can show either the network 24h reading or your session reading. Pick one here, or use the inline <code>⇄</code> button on the cell itself. When the node feed is unavailable the cell always falls back to the session reading regardless of this selection.</p>
+            <div class="stats-view-toggle" id="stats-view-toggle">
+              <button type="button" data-view="p50" id="stats-view-p50">Show network · 24h</button>
+              <button type="button" data-view="session" id="stats-view-session">Show session</button>
+            </div>
+            <span class="so-live-label">Live values</span>
+            <div id="stats-live-grid"><span style="color:var(--text-3);font-family:'Fira Code',monospace;font-size:11px">— waiting for next stats frame —</span></div>
+          </div>
+        </div>
+
+        <div class="so-section">
+          <h3 class="so-h">The two sources</h3>
+          <div class="so-sources">
+            <div class="so-source">
+              <span class="so-src-name"><span class="so-badge net">Network</span> 24h</span>
+              <p>Rolling 24-hour aggregates measured at the node and pushed to your tab every 5 seconds. These cells reflect what the whole network is doing right now and don't depend on what your tab has observed.</p>
+            </div>
+            <div class="so-source">
+              <span class="so-src-name"><span class="so-badge ses">Session</span></span>
+              <p>Counted by this browser tab since the page was loaded. A fresh tab starts these at zero; reloading resets them. They're useful as a personal "what have I seen" view and as a fallback when the node feed is temporarily unreachable.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="so-section">
+          <h3 class="so-h">What each cell means</h3>
+          <div class="so-defs">
+            <div class="so-defrow">
+              <div class="so-name">Time-to-finality · 24h <span class="so-badge net">Network</span></div>
+              <div class="so-desc">The median time across the last 24 hours — see <em>How finality is measured</em> below.</div>
+            </div>
+            <div class="so-defrow">
+              <div class="so-name">TPS · 24h <span class="so-badge net">Network</span></div>
+              <div class="so-desc">Finalized transactions per second, averaged across the same 24-hour window. When the network is very quiet the value can drop below 0.01 tps; in that case the cell reads <code>&lt; 0.01 tps</code> rather than rounding to zero (the rounded form would suggest no traffic at all, which the 24h window doesn't actually claim).</div>
+            </div>
+            <div class="so-defrow">
+              <div class="so-name">Tx · 24h <span class="so-badge net">Network</span></div>
+              <div class="so-desc">Count of finalized transactions network-wide in the last 24 hours.</div>
+            </div>
+            <div class="so-defrow">
+              <div class="so-name">Avg block-lock <span class="so-badge ses">Session</span></div>
+              <div class="so-desc">Average elapsed time from a block being mined to it becoming Avalanche-finalized. Distinct from time-to-finality: that measures the <em>pre</em>-consensus path (a transaction in the mempool), block-lock measures the <em>post</em>-consensus path (a whole block already on the chain). Both averages are session-scoped.</div>
+            </div>
+            <div class="so-defrow">
+              <div class="so-name">Avg block time <span class="so-badge ses">Session</span></div>
+              <div class="so-desc">Average gap between consecutive blocks observed by this tab. eCash targets 10 minutes via the Heartbeat real-time difficulty algorithm. The dedicated <strong>?</strong> next to this cell opens the Heartbeat explainer.</div>
+            </div>
+            <div class="so-defrow">
+              <div class="so-name">Tx · session <span class="so-badge ses">Session</span></div>
+              <div class="so-desc">Count of transactions this tab has observed since it was loaded. Zeroes on reload. Hidden from the bar on mobile, still visible in the live values above.</div>
+            </div>
+            <div class="so-defrow">
+              <div class="so-name">Stream uptime <span class="so-badge ses">Session</span></div>
+              <div class="so-desc">How long this tab has been connected to the eCash network. Independent of the relay feed; resets on reload.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="so-section">
+          <h3 class="so-h">How finality is measured</h3>
+          <p>Time-to-finality is the gap between two moments in a transaction's life. The <strong>start</strong> is when the transaction first appears in the node's mempool. The <strong>end</strong> is when Avalanche pre-consensus locks it in — the point at which it can no longer be reorged out by competing peers.</p>
+          <p>Both timestamps are taken from the node's own logs, so they're consistent and not affected by your network latency. The 24h numbers are the percentiles and mean across every finalized transaction in the rolling window.</p>
+          <p style="margin-bottom:2px">Different percentiles tell different stories:</p>
+          <div class="so-pct">
+            <div class="so-pct-item"><div class="pk">p50 · median</div><div class="pd">The headline: the time experienced by a typical transaction, robust to outliers.</div></div>
+            <div class="so-pct-item"><div class="pk">p90</div><div class="pd">Captures the slow tail — most transactions finish well before this.</div></div>
+            <div class="so-pct-item"><div class="pk">p10</div><div class="pd">Shows how fast the fastest 10% are, useful for spotting the protocol's lower bound.</div></div>
+            <div class="so-pct-item"><div class="pk">Mean</div><div class="pd">The arithmetic average, sensitive to extreme outliers and usually a touch higher than p50.</div></div>
+          </div>
+          <p>If the node feed is unavailable, the footer cell falls back to a session reading timed entirely in your browser. That value can read higher than the real time-to-finality because it includes the WebSocket and propagation latency between the node and your tab.</p>
+        </div>
+
+        <div class="so-section">
+          <h3 class="so-h">Reading the icons</h3>
+          <div class="so-legend">
+            <div class="so-legend-row">
+              <span class="so-legend-ic"><span class="ttf-eye-wrap" style="display:inline-flex;margin:0">${TTF_EYE_SVG || ''}</span></span>
+              <div class="ld"><strong>Eye</strong> — the node feed is temporarily unavailable, so the value next to this icon is a <em>perceived</em> measurement timed entirely in your browser, as described in the methodology above. When the feed reconnects, the eye disappears and values switch back to node-precise.</div>
+            </div>
+            <div class="so-legend-row">
+              <span class="so-legend-ic"><span class="radar-slash-wrap" style="display:inline-flex;margin:0">${RADAR_SLASH_SVG || ''}</span></span>
+              <div class="ld"><strong>Radar with slash</strong> — the slot has no value to show because we have no connection to the node-precise feed. Appears only on Network · 24h cards, since session figures are always computable in-browser. The icon vanishes the moment the feed reconnects and the next stats frame arrives.</div>
+            </div>
+            <div class="so-legend-row">
+              <span class="so-legend-ic"><span class="ttf-spinner-wrap" style="display:inline-flex;margin:0">${TTF_SPINNER_SVG || ''}</span></span>
+              <div class="ld"><strong>Spinner</strong> — shown in a transaction's detail panel for the first ~3 seconds after it finalizes. The displayed value was derived locally and may sharpen to a node-precise value the moment it arrives. After the upgrade window expires the spinner stops and the value is treated as final.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `,
+  },
 };
 
 const popover = document.getElementById('info-popover');
 let popoverHideTimer = null;
 let activeTooltipTrigger = null;
+// v1.2.6: 1-second tick that re-renders the stats-overview live grid while
+// the popover is open. Stored module-level so hideTooltip() can clear it
+// without poking at private state.
+let statsLiveTimer = null;
+// v1.2.6: stacked nested-tooltip element. A second #info-popover layer
+// rendered on top of the primary popover (z-index 11500 vs 11000) so a ?
+// inside the Live Values popover (e.g. Heartbeat) opens cleanly above it
+// without obscuring the parent. activeStackedTrigger mirrors
+// activeTooltipTrigger's role — it can be a real DOM element or a virtual
+// `{ _virtual:true, dataset:{tooltip} }` stand-in (for parity with the
+// trigger-less popover-open code paths).
+const stackedPopover = document.getElementById('info-popover-stacked');
+let activeStackedTrigger = null;
 
 function showTooltip(trigger, key) {
   const content = TOOLTIP_CONTENT[key];
@@ -17546,6 +18238,9 @@ function showTooltip(trigger, key) {
     <div class="body">${content.body}</div>
   `;
   popover.classList.add('show');
+  // v1.2.6: the stats-overview popover is text-only (no diagram), so it reads
+  // better at a calmer max-width than the wide diagram popovers.
+  popover.classList.toggle('narrow', key === 'stats-overview');
   popover.setAttribute('aria-hidden', 'false');
   popover.inert = false;
   const bd = document.getElementById('tooltip-backdrop');
@@ -17553,6 +18248,21 @@ function showTooltip(trigger, key) {
   // Wire the inner close button
   const cb = document.getElementById('tooltip-close-btn');
   if (cb) cb.addEventListener('click', (e) => { e.stopPropagation(); hideTooltip(); });
+  // v1.2.6: stats-overview gets extra wiring — the inline 24h/session toggle
+  // and the live-values grid. Both are re-built on every popover open (because
+  // the body is innerHTML-replaced) so wiring happens here rather than once
+  // at startup. Also start a 1-second refresh tick: the WS message handler
+  // already drives refresh whenever a stats frame arrives (every 5s), but
+  // session stats (avg / fastest / slowest / count) update on every TTF
+  // sample and need a faster pulse to stay visibly current. The interval is
+  // cheap (one innerHTML write of ~10 cards) and self-defends — the refresh
+  // function bails immediately if the popover has already closed.
+  if (key === 'stats-overview') {
+    wireStatsOverviewControls();
+    refreshStatsOverviewIfActive();
+    if (statsLiveTimer) clearInterval(statsLiveTimer);
+    statsLiveTimer = setInterval(refreshStatsOverviewIfActive, 1000);
+  }
   // Center in viewport
   requestAnimationFrame(() => {
     const pw = popover.offsetWidth;
@@ -17564,12 +18274,22 @@ function showTooltip(trigger, key) {
     popover.style.left = left + 'px';
     popover.style.top = top + 'px';
   });
-  trigger.classList.add('active');
-  activeTooltipTrigger = trigger;
+  // v1.2.6.x: trigger may be null when the popover is opened from a virtual
+  // source (e.g. footer cell click after the dedicated ? icon was removed).
+  // We still need an "active trigger" record so the outside-click handler
+  // and refreshStatsOverviewIfActive can detect that the popover is open and
+  // which key it's showing — so synthesise a non-DOM stand-in that mimics
+  // just enough of an Element: a dataset.tooltip lookup and a _virtual flag
+  // that downstream code uses to skip DOM-only operations like classList ops
+  // and document.contains() liveness checks.
+  if (trigger && trigger.classList) trigger.classList.add('active');
+  activeTooltipTrigger = trigger || { _virtual: true, dataset: { tooltip: key } };
 }
 
 function hideTooltip() {
   if (!popover) return;
+  // Always stop the stats-overview 1s refresh tick (cheap no-op if not set).
+  if (statsLiveTimer) { clearInterval(statsLiveTimer); statsLiveTimer = null; }
   // The close button (#tooltip-close-btn) lives INSIDE the popover. If it
   // still holds focus when we set aria-hidden, the browser blocks it ("aria-
   // hidden on an element because its descendant retained focus"). Move focus
@@ -17578,15 +18298,378 @@ function hideTooltip() {
   const focused = popover.contains(document.activeElement) ? document.activeElement : null;
   if (focused && typeof focused.blur === 'function') focused.blur();
   popover.classList.remove('show');
+  // Drop the narrow modifier so the next popover open (a diagram one) gets
+  // the default wide layout. Cheap; toggle('narrow', false) would also work.
+  popover.classList.remove('narrow');
   popover.inert = true;
   popover.setAttribute('aria-hidden', 'true');
   const bd = document.getElementById('tooltip-backdrop');
   if (bd) bd.classList.remove('show');
   if (activeTooltipTrigger) {
-    activeTooltipTrigger.classList.remove('active');
+    // Only real DOM triggers have a .classList to clean up. Virtual triggers
+    // are plain objects — nothing to remove.
+    if (activeTooltipTrigger.classList) activeTooltipTrigger.classList.remove('active');
     activeTooltipTrigger = null;
   }
+  // v1.2.6: when the parent popover closes, also tear down any stacked
+  // tooltip that was layered above. Otherwise the stacked element would be
+  // orphaned (visible without an underlying context).
+  if (activeStackedTrigger) hideStackedTooltip();
 }
+
+// ============ v1.2.6 · stacked nested tooltip ============
+// showStackedTooltip / hideStackedTooltip operate on #info-popover-stacked,
+// a second popover layer that sits above the primary. Used when a ?
+// inside an already-open popover would otherwise replace its content.
+// Reuses the existing TOOLTIP_CONTENT registry — keys are identical, the
+// only thing that differs is which DOM element receives the body.
+function showStackedTooltip(trigger, key) {
+  const content = TOOLTIP_CONTENT[key];
+  if (!content || !stackedPopover) return;
+  stackedPopover.innerHTML = `
+    <div class="title">
+      <span>${content.title}</span>
+      <button class="title-close" id="stacked-tooltip-close-btn" aria-label="Close">✕ Close</button>
+    </div>
+    <div class="body">${content.body}</div>
+  `;
+  stackedPopover.classList.add('show');
+  // Stats-overview narrow modifier — same logic as primary. Most likely
+  // not relevant here (it's the nested case, where the body is usually a
+  // diagram explainer), but kept symmetric for future-proofing.
+  stackedPopover.classList.toggle('narrow', key === 'stats-overview');
+  stackedPopover.setAttribute('aria-hidden', 'false');
+  stackedPopover.inert = false;
+  const cb = document.getElementById('stacked-tooltip-close-btn');
+  if (cb) cb.addEventListener('click', (e) => { e.stopPropagation(); hideStackedTooltip(); });
+  // Center in viewport — sized independently of the parent.
+  requestAnimationFrame(() => {
+    const pw = stackedPopover.offsetWidth;
+    const ph = stackedPopover.offsetHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    stackedPopover.style.left = Math.max(8, Math.round((vw - pw) / 2)) + 'px';
+    stackedPopover.style.top  = Math.max(8, Math.round((vh - ph) / 2)) + 'px';
+  });
+  if (trigger && trigger.classList) trigger.classList.add('active');
+  activeStackedTrigger = trigger || { _virtual: true, dataset: { tooltip: key } };
+}
+
+function hideStackedTooltip() {
+  if (!stackedPopover) return;
+  const focused = stackedPopover.contains(document.activeElement) ? document.activeElement : null;
+  if (focused && typeof focused.blur === 'function') focused.blur();
+  stackedPopover.classList.remove('show');
+  stackedPopover.classList.remove('narrow');
+  stackedPopover.inert = true;
+  stackedPopover.setAttribute('aria-hidden', 'true');
+  if (activeStackedTrigger) {
+    if (activeStackedTrigger.classList) activeStackedTrigger.classList.remove('active');
+    activeStackedTrigger = null;
+  }
+}
+
+// ============ v1.2.6 · stats-overview popover support ============
+// Two helpers feed the stats-overview tooltip:
+//
+//   1. wireStatsOverviewControls() — runs once per popover open, attaches the
+//      toggle button click handlers and reflects current state.ttfCellView in
+//      the .active class. The buttons themselves carry data-view='p50'|'session'
+//      so the handler picks the right preference value from the DOM, keeping
+//      the source of truth in markup.
+//
+//   2. refreshStatsOverviewIfActive() — called whenever a new stats frame
+//      arrives (from the WS message handler) so the live-values grid inside
+//      the popover updates in place. Cheap: ~6 textContent writes, runs only
+//      while the popover is actually open.
+function wireStatsOverviewControls() {
+  const toggleEl = document.getElementById('stats-view-toggle');
+  if (!toggleEl) return;
+  // Reflect current selection.
+  for (const btn of toggleEl.querySelectorAll('button[data-view]')) {
+    btn.classList.toggle('active', btn.dataset.view === state.ttfCellView);
+    // Single delegated handler attached via event bubbling at toggleEl is
+    // tempting but the buttons are siblings and small — per-button handlers
+    // are simpler here and don't need to be torn down (the popover body is
+    // discarded and rebuilt on every open).
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const v = btn.dataset.view === 'session' ? 'session' : 'p50';
+      setTtfCellView(v);
+      // Update the toggle's active class to match.
+      for (const sibling of toggleEl.querySelectorAll('button[data-view]')) {
+        sibling.classList.toggle('active', sibling.dataset.view === v);
+      }
+    });
+  }
+}
+
+function refreshStatsOverviewIfActive() {
+  // Only do work if the stats-overview popover is currently displayed —
+  // every other tooltip uses static content and re-rendering would be wasted.
+  if (!activeTooltipTrigger
+      || activeTooltipTrigger.dataset.tooltip !== 'stats-overview') return;
+  const grid = document.getElementById('stats-live-grid');
+  if (!grid) return;
+
+  // ============ v1.2.6 · live-grid layout ============
+  // Every card is always rendered (no "waiting for stats frame" band).
+  // States per card:
+  //   ok        — value present, no icon prefix
+  //   missing   — network data unavailable; render the radar-slash icon
+  //               with title "No connection to node-precise feed". Used
+  //               for every Network card when ttfFeedState is disconnected
+  //               or the last stats frame is older than STATS_FRESH_MS.
+  //   perceived — session value derived without node-precise (WS down).
+  //               Eye icon prefix on the value, matching the footer cell
+  //               convention. Session cards stay readable because the
+  //               numbers are computed in-browser regardless of feed.
+
+  // Sweep new "final" samples into the session min/max scalars before
+  // reading. Cheap (~200 sample scan at most); runs only while the
+  // popover is open.
+  updateSessionTtfExtremes();
+
+  // ---------- Card builder ----------
+  // state: 'ok' | 'missing' | 'perceived'
+  // When state==='missing' the value is replaced entirely by the radar-
+  // slash icon — no number, no unit. The card keeps its grid slot so the
+  // layout stays stable when data arrives.
+  const card = (label, value, unit, headline = false, iconState = 'ok') => {
+    if (iconState === 'missing') {
+      return `<div class="stats-card${headline ? ' headline' : ''}">
+        <span class="stats-card-label">${label}</span>
+        <span class="stats-card-value"><span class="radar-slash-wrap" title="No connection to node-precise feed">${RADAR_SLASH_SVG}</span></span>
+      </div>`;
+    }
+    const eyeHtml = iconState === 'perceived'
+      ? `<span class="ttf-eye-wrap" title="Showing perceived value — node-precise feed unavailable">${TTF_EYE_SVG}</span>`
+      : '';
+    const u = unit ? `<span class="u">${unit}</span>` : '';
+    return `<div class="stats-card${headline ? ' headline' : ''}">
+      <span class="stats-card-label">${label}</span>
+      <span class="stats-card-value">${eyeHtml}${value}${u}</span>
+    </div>`;
+  };
+
+  // ms-or-null → [value, unit] pair compatible with card(). Tracks
+  // fmtTtfDuration's tiering so a card never reads "210.4 s" while the
+  // headline cell shows "3.5 min".
+  const fmtMs = (v) => {
+    if (typeof v !== 'number' || !isFinite(v)) return ['—', ''];
+    const str = fmtTtfDuration(v, 2);
+    const m = /^([\d.]+)\s+(s|min)$/.exec(str);
+    if (m) return [m[1], m[2]];
+    return [str, ''];
+  };
+
+  // ---------- Network · 24h section ----------
+  // Available iff we have stats, they're fresh, AND the WS is currently
+  // connected. Any of those failing → every Network card renders 'missing'.
+  const s = state.relayStats;
+  const fresh = s && (Date.now() - state.relayStatsAt) < STATS_FRESH_MS;
+  const netAvailable = !!(s && fresh && ttfFeedState.connected);
+
+  let netCards;
+  if (!netAvailable) {
+    // Every Network card → radar-slash icon. Placeholders preserve grid
+    // layout so cards don't jump when stats arrive. Order matches the
+    // populated branch below.
+    netCards =
+        card('Transactions / second', '', '', true,  'missing')
+      + card('Transactions total',    '', '', true,  'missing')
+      + card('Time-to-finality · p50',  '', '', true,  'missing')
+      + card('Time-to-finality · mean', '', '', false, 'missing')
+      + card('Time-to-finality · p10',  '', '', false, 'missing')
+      + card('Time-to-finality · p90',  '', '', false, 'missing');
+  } else {
+    let tpsVal, tpsUnit;
+    if (s.sampleCount > 0 && s.tps > 0 && s.tps < 0.01) {
+      tpsVal = '< 0.01'; tpsUnit = 'tps';
+    } else if (s.sampleCount > 0 && s.tps >= 0.01) {
+      tpsVal = s.tps.toFixed(2); tpsUnit = 'tps';
+    } else {
+      // Edge: 0 samples (e.g. fresh relay deploy) — show n/a rather than
+      // a misleading 0.00 tps.
+      tpsVal = 'n/a'; tpsUnit = '';
+    }
+    const [p10v, p10u]   = fmtMs(s.ttfP10Ms);
+    const [p50v, p50u]   = fmtMs(s.ttfP50Ms);
+    const [p90v, p90u]   = fmtMs(s.ttfP90Ms);
+    const [meanv, meanu] = fmtMs(s.ttfMeanMs);
+    const tx24h = s.sampleCount.toLocaleString('en-US');
+    // Order: TPS · Tx as headlines, then p50 (headline) above the supporting
+    // p10/p90/mean. p50 is the value the headline cell shows, so it leads.
+    netCards =
+        card('Transactions / second', tpsVal, tpsUnit, true)
+      + card('Transactions total',    tx24h,  '',      true)
+      + card('Time-to-finality · p50',  p50v,  p50u,    true)
+      + card('Time-to-finality · mean', meanv, meanu)
+      + card('Time-to-finality · p10',  p10v,  p10u)
+      + card('Time-to-finality · p90',  p90v,  p90u);
+  }
+
+  // ---------- Session section ----------
+  // Always rendered with available data. Session TTF cards carry the eye
+  // icon when WS is down (samples are then exclusively perceived values).
+  // Other session metrics (block-lock, block-time, uptime, tx-seen) are
+  // intrinsically local measurements — there's no node-precise alternative
+  // to fall back from, so they never carry the eye.
+  const ttfState = !ttfFeedState.connected ? 'perceived' : 'ok';
+
+  // Session avg TTF: windowed mean of last 50 (matches footer cell logic).
+  let avgVal = '—', avgUnit = '';
+  if (state.ttfSamples.length > 0) {
+    const cap = 50;
+    const n = Math.min(cap, state.ttfSamples.length);
+    const win = state.ttfSamples.slice(-n).map(ttfSampleMs).filter(v => v != null);
+    if (win.length > 0) {
+      [avgVal, avgUnit] = fmtMs(win.reduce((a, b) => a + b, 0) / win.length);
+    }
+  }
+  const [minV, minU] = fmtMs(state.sessionTtfMinMs);
+  const [maxV, maxU] = fmtMs(state.sessionTtfMaxMs);
+
+  // Session block-lock: same rolling-20 mean as the footer cell. Result in
+  // seconds with 1 decimal; null when no samples yet.
+  let blVal = '—', blUnit = '';
+  if (state.blockLockSamples && state.blockLockSamples.length > 0) {
+    const cap = 20;
+    const n = Math.min(cap, state.blockLockSamples.length);
+    const avg = state.blockLockSamples.slice(-n).reduce((a, b) => a + b, 0) / n;
+    blVal = (avg / 1000).toFixed(1);
+    blUnit = 's';
+  }
+
+  // Session block-time: rolling mean of inter-block gaps, same formula as
+  // the footer cell. Switches between minutes (≥1m) and seconds (<1m).
+  let btVal = '—', btUnit = '';
+  if (state.blockIntervalSamples && state.blockIntervalSamples.length >= 1) {
+    const samples = state.blockIntervalSamples;
+    const avgMs = samples.reduce((a, b) => a + b, 0) / samples.length;
+    const minutes = avgMs / 60000;
+    if (minutes >= 1) { btVal = minutes.toFixed(1); btUnit = 'min'; }
+    else              { btVal = (avgMs / 1000).toFixed(0); btUnit = 's'; }
+  }
+
+  // Stream uptime: same h/m/s tiering as the footer cell. Re-uses the
+  // same formula here rather than reading footer DOM (which is fragile).
+  let upStr = '—';
+  if (state.sessionStart) {
+    const upSec = Math.floor((Date.now() - state.sessionStart) / 1000);
+    const upH = Math.floor(upSec / 3600);
+    const upM = Math.floor((upSec % 3600) / 60);
+    const upS = upSec % 60;
+    upStr = upH > 0
+      ? `${upH}h ${String(upM).padStart(2,'0')}m`
+      : upM > 0
+        ? `${upM}m ${String(upS).padStart(2,'0')}s`
+        : `${upS}s`;
+  }
+
+  const txSess = (state.totalTxToday || 0).toLocaleString('en-US');
+
+  // Build the block-time card with an embedded ? trigger for the
+  // Heartbeat explainer. The card builder doesn't support a label-side
+  // trigger yet, so we render this card by hand using the same markup
+  // shape but with the ? appended after the label text. The document
+  // click handler picks up `.info-icon[data-tooltip="heartbeat"]` and
+  // routes it through showStackedTooltip() (because it lives inside the
+  // currently-open Live Values popover) — see the click handler above.
+  const btCard = `<div class="stats-card">
+    <span class="stats-card-label">
+      <span>Avg block time</span>
+      <span class="info-icon" data-tooltip="heartbeat" tabindex="0" title="What is Heartbeat?">?</span>
+    </span>
+    <span class="stats-card-value">${btVal}${btUnit ? `<span class="u">${btUnit}</span>` : ''}</span>
+  </div>`;
+
+  // Session card order (v1.2.6): TTF stats first, then block-lock /
+  // block-time, then session counters/timers. 7 cards in a 2-col grid →
+  // 3 full rows + 1 orphan; tx-seen sits alone on the last row.
+  const sessionCards =
+      card('Time-to-finality · average',  avgVal, avgUnit, false, ttfState)
+    + card('Time-to-finality · fastest',  minV,   minU,    false, ttfState)
+    + card('Time-to-finality · slowest',  maxV,   maxU,    false, ttfState)
+    + card('Avg block-lock',              blVal,  blUnit,  false, 'ok')
+    + btCard
+    + card('Stream uptime',               upStr,  '',      false, 'ok')
+    + card('Transactions seen',           txSess, '',      false, 'ok');
+
+  grid.innerHTML = `
+    <div class="stats-card-grid">
+      <div class="stats-group-heading">Network · 24h</div>
+      ${netCards}
+      <div class="stats-group-heading">Session</div>
+      ${sessionCards}
+    </div>
+  `;
+}
+
+// Apply a cell-view change everywhere it's visible. Centralised so the swap
+// button on the footer cell and the toggle inside the popover always stay
+// in sync — there's only ever one source of truth (state.ttfCellView) and
+// one render path that consumes it.
+function setTtfCellView(view) {
+  if (view !== 'p50' && view !== 'session') return;
+  if (state.ttfCellView === view) return;
+  state.ttfCellView = view;
+  // Re-render the footer immediately; updateStats will pick up the new
+  // preference and re-write f-ttf + f-ttf-label in one pass.
+  if (typeof updateStats === 'function') {
+    try { updateStats(); }
+    catch (e) { console.warn('[stats] re-render failed', e); }
+  }
+}
+
+// Wire the swap button on the TTF cell. Defensive null-check because the
+// button only exists on v1.2.6+ pages — if this script is ever loaded into
+// an older shell the call should be a no-op rather than throw.
+(function wireFooterTtfSwap() {
+  const btn = document.getElementById('f-ttf-swap');
+  if (!btn) return;
+  btn.addEventListener('click', (e) => {
+    // Don't bubble up to the cell-click delegation below (which would also
+    // open the popover) — the swap button is a one-purpose control.
+    e.stopPropagation();
+    e.preventDefault();
+    setTtfCellView(state.ttfCellView === 'p50' ? 'session' : 'p50');
+  });
+})();
+
+// Any click on a footer cell that isn't the swap button or an info-icon
+// opens the stats-overview popover. Registered in CAPTURE phase so we run
+// BEFORE the existing outside-click handler below — otherwise that handler
+// (which closes any open popover on a click outside its body) would close
+// our popover the same instant the user clicked a footer cell to toggle it,
+// producing a close+reopen flicker. e.stopImmediatePropagation() then keeps
+// the existing handler from running on this specific click; non-footer
+// clicks still flow through to it normally.
+//
+// v1.2.6.x: the dedicated trailing "?" icon was removed from the footer to
+// declutter the bar. Cells remain clickable and the popover is opened via a
+// virtual (null) trigger — see showTooltip() for the synthesised trigger
+// pattern. Detection of "is the stats popover currently open" now reads
+// activeTooltipTrigger.dataset.tooltip (works for both real DOM triggers
+// and the virtual stand-in).
+document.addEventListener('click', (e) => {
+  const cell = e.target.closest && e.target.closest('.footer .cell');
+  if (!cell) return;
+  if (cell.classList.contains('no-click')) return;
+  if (e.target.closest('.footer-swap-btn')) return;
+  if (e.target.closest('.info-icon')) return;
+  e.stopImmediatePropagation();
+  const open = activeTooltipTrigger
+    && activeTooltipTrigger.dataset
+    && activeTooltipTrigger.dataset.tooltip === 'stats-overview';
+  if (open) {
+    // Second click while popover is showing → close. Symmetric with the
+    // existing info-icon toggle elsewhere.
+    hideTooltip();
+  } else {
+    showTooltip(null, 'stats-overview');
+  }
+}, true);
 
 // Single document-level delegation — survives DOM rebuilds, no per-element wiring,
 // no dataset._wired race conditions. Any future "?" icon just works.
@@ -17599,7 +18682,10 @@ document.addEventListener('click', (e) => {
     const key = trigger.dataset.tooltip;
     // If we have an active trigger but it's been removed from the DOM,
     // treat it as gone — otherwise the toggle check thinks tooltip is open.
-    if (activeTooltipTrigger && !document.contains(activeTooltipTrigger)) {
+    // Skip the liveness check for virtual triggers (never in the DOM).
+    if (activeTooltipTrigger
+        && !activeTooltipTrigger._virtual
+        && !document.contains(activeTooltipTrigger)) {
       activeTooltipTrigger = null;
       if (popover) {
         const f = popover.contains(document.activeElement) ? document.activeElement : null;
@@ -17612,7 +18698,23 @@ document.addEventListener('click', (e) => {
       if (bd0) bd0.classList.remove('show');
     }
     if (activeTooltipTrigger === trigger) hideTooltip();
+    else if (activeTooltipTrigger && popover && popover.contains(trigger)) {
+      // v1.2.6: ? icon lives inside the currently-open primary popover.
+      // Open the new tooltip in the stacked layer above instead of
+      // replacing the parent's content. Toggles the same trigger off if
+      // the user re-clicks it.
+      if (activeStackedTrigger === trigger) hideStackedTooltip();
+      else showStackedTooltip(trigger, key);
+    }
     else showTooltip(trigger, key);
+    return;
+  }
+  // v1.2.6: outside-click dismiss. If the stacked layer is open, kill it
+  // first; the parent popover remains. Otherwise (no stacked layer) the
+  // existing behaviour applies — clicks outside the primary close it.
+  if (activeStackedTrigger) {
+    if (stackedPopover && stackedPopover.contains(e.target)) return;
+    hideStackedTooltip();
     return;
   }
   if (!activeTooltipTrigger) return;
@@ -17626,6 +18728,11 @@ document.addEventListener('touchend', (e) => {
   e.stopPropagation();
   const key = trigger.dataset.tooltip;
   if (activeTooltipTrigger === trigger) hideTooltip();
+  else if (activeTooltipTrigger && popover && popover.contains(trigger)) {
+    // Same stacked-routing rule as the click handler above.
+    if (activeStackedTrigger === trigger) hideStackedTooltip();
+    else showStackedTooltip(trigger, key);
+  }
   else showTooltip(trigger, key);
 }, { passive: false });
 document.addEventListener('keydown', (e) => {
@@ -17634,12 +18741,18 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     const key = trigger.dataset.tooltip;
     if (activeTooltipTrigger === trigger) hideTooltip();
+    else if (activeTooltipTrigger && popover && popover.contains(trigger)) {
+      if (activeStackedTrigger === trigger) hideStackedTooltip();
+      else showStackedTooltip(trigger, key);
+    }
     else showTooltip(trigger, key);
   }
 });
-// Escape key
+// Escape key — close the topmost layer first.
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && activeTooltipTrigger) hideTooltip();
+  if (e.key !== 'Escape') return;
+  if (activeStackedTrigger) { hideStackedTooltip(); return; }
+  if (activeTooltipTrigger) hideTooltip();
 });
 window.addEventListener('resize', () => {
   // Recenter if still open
@@ -18444,6 +19557,10 @@ function switchMode(newMode) {
   state.totalTokensToday = 0;
   state.ttfSamples = [];
   state.blockLockSamples = [];
+  // v1.2.6: clear session min/max so a new session starts from scratch
+  // rather than carrying over the previous session's extremum.
+  state.sessionTtfMinMs = null;
+  state.sessionTtfMaxMs = null;
   state.sessionStart = Date.now();
   stopPingLoop();
   resetPingState();
