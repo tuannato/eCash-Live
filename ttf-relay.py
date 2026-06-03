@@ -1,5 +1,5 @@
 # =============================================================================
-# ttf-relay.py v1.5.2
+# ttf-relay.py v1.5.3
 #
 # Tails Bitcoin ABC's debug.log, parses Avalanche pre-consensus events,
 # computes TTF (time-to-final) for each transaction, and broadcasts the
@@ -7,6 +7,30 @@
 # subscribes to this feed to display node-precise TTF values instead of
 # the client-side approximation (which includes WebSocket and propagation
 # latency).
+#
+# v1.5.3 changes (audit-driven cleanup, no schema break to live feed):
+#   1. tail_log() rotation bug fixed. The previous "seek to end on first
+#      open, read from start on rotation" logic had a tautological inode
+#      check that fired on every reopen, silently skipping any debug.log
+#      content written between rotation and our reopen. Now an explicit
+#      is_first_open flag distinguishes the two cases.
+#   2. Removed dead STALE_LINE_SEC constant — declared but never read
+#      since v1.2; "replay storm" protection is actually provided by the
+#      pending dict's TX_TTL_SEC eviction, not by any time filter on
+#      log lines.
+#   3. Daily rollup TPS now uses actual observation coverage, not 86400s.
+#      Schema gains `coverage_sec` field; tps = samples / coverage_sec.
+#      A day with 6h downtime now reports the true rate at which we
+#      observed finalizations, instead of a diluted 18/24-of-true number.
+#      Old rollup rows without coverage_sec are handled gracefully by
+#      the bot (falls back to assuming 86400s).
+#   4. Startup back-fill capped at 90 days. Without the cap, a corrupted
+#      ttf-daily.jsonl with an ancient `date` would block startup for
+#      minutes re-globbing audit files that have long since logrotated
+#      away. 90d is generous slack above the 14d audit retention.
+#   5. asyncio.get_event_loop() → get_running_loop() in main(). The old
+#      call is deprecated on Python 3.13+; the new one is the documented
+#      way to obtain the loop from inside an async function.
 #
 # v1.5.2 changes:
 #   1. TTF daily rollup. At 00:02 UTC each day, the relay reads the prior
@@ -103,6 +127,8 @@
 # =============================================================================
 
 import asyncio
+import glob
+import gzip
 import json
 import logging
 import os
@@ -111,6 +137,7 @@ import signal
 import sys
 import time
 from collections import OrderedDict
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import websockets
@@ -155,10 +182,6 @@ WS_PORT = int(os.environ.get("TTF_WS_PORT", "8901"))
 # many seconds. Prevents memory leak if a tx is never finalized (rare —
 # Avalanche typically finalizes within 5s — but defensive).
 TX_TTL_SEC = 300
-
-# Drop log lines older than this (in case we re-open a rotated log and the
-# top contains stale lines we already processed). Prevents replay storms.
-STALE_LINE_SEC = 60
 
 
 # -----------------------------------------------------------------------------
@@ -594,10 +617,9 @@ def load_stats_ring():
 # -----------------------------------------------------------------------------
 import hashlib as _hashlib
 import secrets as _secrets
-from datetime import datetime as _dt, timezone as _tz
 
 _ws_salt = _secrets.token_bytes(32)
-_ws_salt_day = _dt.now(_tz.utc).date()
+_ws_salt_day = datetime.now(timezone.utc).date()
 
 
 def _ws_ip_hash(remote_addr):
@@ -605,7 +627,7 @@ def _ws_ip_hash(remote_addr):
     to a 16-hex-char identifier using today's salt. Rotates salt at UTC
     midnight on first call after the day changes."""
     global _ws_salt, _ws_salt_day
-    today = _dt.now(_tz.utc).date()
+    today = datetime.now(timezone.utc).date()
     if today != _ws_salt_day:
         _ws_salt = _secrets.token_bytes(32)
         _ws_salt_day = today
@@ -640,8 +662,19 @@ clients = set()
 
 async def tail_log(path):
     """Async generator yielding lines from a log file as they're appended.
-    Survives log rotation (re-opens on stat change)."""
+    Survives log rotation (re-opens on stat change).
+
+    v1.5.3 fix: previously the "seek to end on first open, read from start
+    on rotation" intent was broken by a tautological inode check (last_inode
+    was set immediately before the check, so the branch always fired and
+    every reopen seeked to end — losing whatever bitcoind had written to
+    the new file between rotation and our reopen). Now `is_first_open` is
+    tracked explicitly: True only for the very first open of the process,
+    False for every subsequent reopen-after-rotation, which now reads from
+    byte 0 of the new file as documented.
+    """
     last_inode = None
+    is_first_open = True
     while True:
         try:
             if not path.exists():
@@ -651,14 +684,18 @@ async def tail_log(path):
             st = path.stat()
             if last_inode != st.st_ino:
                 if last_inode is not None:
-                    log.info(f"log rotated, reopening {path}")
+                    log.info(f"log rotated, reopening {path} from byte 0")
                 last_inode = st.st_ino
                 f = path.open("r", encoding="utf-8", errors="replace")
-                # On first open, seek to end — we don't replay history
-                # (would flood the audit log with stale entries). On
-                # rotation, start from beginning of new file.
-                if last_inode == st.st_ino and st.st_size > 0:
+                # On the very first open, skip historical content — replaying
+                # gigabytes of past debug.log on every restart would flood
+                # the audit log with stale entries. On any later reopen
+                # (i.e. after a rotation) we read the new file from the
+                # beginning, since it's small and contains only post-rotate
+                # writes we'd otherwise miss.
+                if is_first_open and st.st_size > 0:
                     f.seek(0, 2)  # seek to end
+                is_first_open = False
             # Read whatever's new
             while True:
                 line = f.readline()
@@ -831,21 +868,25 @@ async def daily_rollup_task():
     Sleeps until next 00:02 UTC + small jitter (avoids exact-second tie
     with logrotate at 00:00 UTC if both run on this host).
     """
-    from datetime import datetime, timezone, date, timedelta
 
     def parse_audit_for_day(day):
-        """Read ttf.log + rotated backups, return list of ttfMs ints for
-        samples emitted on `day` (UTC). audit format = one JSON object per
+        """Read ttf.log + rotated backups, return (samples, first_ts_ms,
+        last_ts_ms) for `day` (UTC). audit format = one JSON object per
         line containing "ttfMs" and "emittedAt" (epoch ms). Skips
-        unreadable lines defensively."""
+        unreadable lines defensively.
+
+        first_ts/last_ts are the span of the relay's actual observation
+        during `day` — used by write_day() to compute a true TPS rate
+        (samples / coverage_sec) instead of assuming 24h uptime. If the
+        relay was down for 6h on that day, coverage_sec ≈ 18h × 3600 and
+        TPS reflects the actual rate of finalized tx while we were
+        watching."""
         day_start_ms = int(datetime(day.year, day.month, day.day,
                                     tzinfo=timezone.utc).timestamp() * 1000)
         next_day_ms = day_start_ms + 86_400_000
         samples = []
-        # Glob for audit + rotated. logrotate produces ttf.log, ttf.log.1,
-        # ttf.log.2.gz, ... — we read everything in that family.
-        import glob
-        import gzip
+        first_ts = None
+        last_ts = None
         candidates = sorted(glob.glob(str(TTF_LOG_PATH) + "*"))
         for path in candidates:
             try:
@@ -864,20 +905,36 @@ async def daily_rollup_task():
                         ttf = rec.get("ttfMs")
                         if isinstance(ttf, (int, float)) and ttf > 0:
                             samples.append(float(ttf))
+                            if first_ts is None or ts < first_ts:
+                                first_ts = ts
+                            if last_ts is None or ts > last_ts:
+                                last_ts = ts
             except FileNotFoundError:
                 continue
             except Exception as e:
                 log.warning(f"audit read failed for {path}: {e}")
-        return samples
+        return samples, first_ts, last_ts
 
-    def summarize(samples):
-        """Compute mean + percentiles + min/max from raw samples. Sorted
-        once, exact percentiles by nearest-rank — no histogram bias, no
-        binning. n=2700/day is trivial to sort."""
+    def summarize(samples, first_ts_ms, last_ts_ms):
+        """Compute mean + percentiles + min/max from raw samples, plus
+        coverage_sec (the time span of actual observation during the day).
+        TPS is computed against coverage, not against 86400s, so a day
+        with 6h downtime reports the rate AT WHICH we observed, not a
+        diluted 18/24-of-true-rate.
+
+        coverage_sec lower-bound = 1.0 to keep the rate finite for the
+        degenerate single-sample case.
+
+        Sorted once, exact percentiles by nearest-rank — no histogram
+        bias, no binning. n=2700/day is trivial to sort.
+        """
         if not samples:
             return None
         samples.sort()
         n = len(samples)
+        # Coverage = span between first and last sample of the day, in
+        # seconds. Clamped at 1s so single-sample days don't divide by 0.
+        coverage_sec = max(1.0, (last_ts_ms - first_ts_ms) / 1000.0)
 
         def pct(p):
             # nearest-rank percentile: index = ceil(p * n) - 1
@@ -885,7 +942,8 @@ async def daily_rollup_task():
             return int(samples[i])
         return {
             "samples": n,
-            "tps": round(n / 86400.0, 5),
+            "coverage_sec": int(coverage_sec),
+            "tps": round(n / coverage_sec, 5),
             "ttf_mean_ms": int(sum(samples) / n),
             "ttf_p10_ms": pct(0.10),
             "ttf_p50_ms": pct(0.50),
@@ -897,8 +955,8 @@ async def daily_rollup_task():
     def write_day(day):
         """Compute + append one rollup line for `day`. No-op if no samples
         (relay down all day, or first install)."""
-        samples = parse_audit_for_day(day)
-        summary = summarize(samples)
+        samples, first_ts, last_ts = parse_audit_for_day(day)
+        summary = summarize(samples, first_ts, last_ts)
         if summary is None:
             log.info(f"daily rollup: no samples for {day.isoformat()}, skipped")
             return
@@ -906,7 +964,8 @@ async def daily_rollup_task():
         with TTF_DAILY_LOG_PATH.open("a", buffering=1) as f:
             f.write(json.dumps(row) + "\n")
         log.info(f"daily rollup wrote {day.isoformat()}: "
-                 f"n={summary['samples']} mean={summary['ttf_mean_ms']}ms")
+                 f"n={summary['samples']} mean={summary['ttf_mean_ms']}ms "
+                 f"coverage={summary['coverage_sec']}s tps={summary['tps']}")
 
     def last_rolled_date():
         """Most recent `date` value in ttf-daily.jsonl, or None if empty/
@@ -925,15 +984,26 @@ async def daily_rollup_task():
         return None
 
     # ---- startup back-fill ----
+    # v1.5.3: capped at 90 days. Without the cap, a corrupted ttf-daily.jsonl
+    # whose last `date` is years ago would trigger thousands of write_day()
+    # calls at startup, each re-globbing every rotated ttf.log* — startup
+    # blocks for minutes and audit retention is only 14 days anyway, so
+    # anything older yields empty results. 90d is generous slack above the
+    # 14d audit horizon.
     try:
         today_utc = datetime.now(timezone.utc).date()
         last = last_rolled_date()
         if last:
-            from datetime import date as _date
-            start = _date.fromisoformat(last) + timedelta(days=1)
+            start = date.fromisoformat(last) + timedelta(days=1)
         else:
             # First run ever: just back-fill yesterday.
             start = today_utc - timedelta(days=1)
+        # Clamp to 90 days before today, regardless of where `last` is.
+        floor_date = today_utc - timedelta(days=90)
+        if start < floor_date:
+            log.warning(f"daily rollup: back-fill clamped from {start} to "
+                        f"{floor_date} (90-day cap)")
+            start = floor_date
         d = start
         while d < today_utc:
             write_day(d)
@@ -977,7 +1047,11 @@ async def main():
     # Graceful shutdown
     stop = asyncio.Event()
     for sig in (signal.SIGTERM, signal.SIGINT):
-        asyncio.get_event_loop().add_signal_handler(sig, stop.set)
+        # v1.5.3: get_event_loop() outside an actively-running loop is
+        # deprecated on Python 3.13+. Inside main() the loop is already
+        # running (asyncio.run drives us), so get_running_loop() is correct
+        # and warning-free.
+        asyncio.get_running_loop().add_signal_handler(sig, stop.set)
 
     async with websockets.serve(handle_client, WS_HOST, WS_PORT):
         reader_task = asyncio.create_task(log_reader())
