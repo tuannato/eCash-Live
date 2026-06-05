@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-iqRBH348thjoY2fUVexgmDdcoVT+bWX0h9ktlljbF6g=';
+  script-src 'self' 'sha256-5RqfMj+a/N5Qti76CPF1LrzFgt9RczWgmpYvrg9J6Ew=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -6876,7 +6876,7 @@
                 <li><strong>Treat every link as suspect.</strong> Do not click URLs in messages from strangers; phishing kits routinely appear here.</li>
                 <li><strong>Never share your seed phrase, private key, or wallet password.</strong> No legitimate project will ever ask for them in chat or in a message.</li>
                 <li><strong>Watch for impersonation.</strong> Anyone can put any name in a message; verify identities through trusted channels.</li>
-                <li><strong>Token airdrops can be honeypots.</strong> Unsolicited tokens may carry malicious contracts — researching before interacting is safer.</li>
+                <li><strong>Token airdrops can be honeypots.</strong> Unsolicited tokens may contain phishing links or scam info — researching before interacting is safer.</li>
               </ul>
             </div>
           </div>
@@ -7536,6 +7536,120 @@ function scheduleTtfRender() {
     try { refreshDetailIfActive(); }
     catch (e) { console.warn('[ttf-feed] refreshDetailIfActive failed', e); }
   });
+}
+
+// ============ TTF DEFERRAL (v1.2.7) ============
+// Bounded "wait for ttf-feed" buffer between TX_FINALIZED and pushing a
+// perceived (ws/node/poll) sample. Defends against a class of bugs where
+// the chronik WS delivers a queued TX_FINALIZED on tab resume but the
+// ttf-feed sample for that same txid is lost forever (relay broadcasts
+// live; no per-client replay — see ttf-relay.py handle_client). Without
+// a wait, the perceived computation `Date.now() - anchor` produces a
+// number inflated by the entire background-sleep duration (the analysis
+// in handover docs: a real 3.8s TTF showed as 40s on a backgrounded phone).
+//
+// Two layers of protection now stack:
+//   1. _ttfAnchorSpansSleep (existing): drops samples with anchor BEFORE
+//      state.lastHiddenAt. Robust when visibilitychange fires reliably.
+//   2. Defer (this module): holds the perceived sample for ~4s so a
+//      node-precise sample via applyTtfFromNode can win first. Covers
+//      the case where visibilitychange didn't fire (some Android Chrome
+//      builds skip it on hot wake) but ttf-feed delivered cleanly.
+//
+// Defer is a NARROW augmentation: only one site is converted to defer
+// (the TX_FINALIZED tracked-tx path in the chronik WS handler — the
+// path the analysis pinned the 40s phantom to). Poll-reconcile and
+// untracked-rescue paths keep their eager behavior to minimize impact
+// on existing logic (per user spec). pushTtfSample remains THE single
+// entry point for state.ttfSamples mutations (invariant preserved).
+//
+// Spinner policy (option b per spec): no spinner during defer. Row
+// stays at the existing "—" placeholder. Reasoning: the architecture
+// invariant ("Spinner ⟳ only when feed connected + currently in 3s
+// upgrade window") was written for the upgrade-EXISTING case; the new
+// defer is waiting-for-FIRST. Conflating the two would muddy the
+// invariant. The 4s wait is short enough that users see one transition
+// (— → number) rather than two (— → spin → number → maybe-overwrite).
+const TTF_DEFER_FALLBACK_MS = 4000;
+
+// txid → { ref, refSource, finalizedAtMs, timerId }
+// Bounded by concurrent un-resolved finalize events. Entries clear via
+// either applyTtfFromNode (cancels) or the per-tx timer (resolves).
+// Not TPS-scaling: at most one entry per in-flight perceived finalize.
+const deferredTtf = new Map();
+
+function _deferTtfFallback(txid, ref, refSource, finalizedAtMs) {
+  // First-finalize-wins. A redelivered TX_FINALIZED for an already-deferred
+  // tx must NOT restart the timer — that would extend the wait artificially
+  // and (worse) overwrite the captured finalizedAtMs with a later value.
+  if (deferredTtf.has(txid)) return;
+  const timerId = setTimeout(() => _resolveDeferredTtf(txid), TTF_DEFER_FALLBACK_MS);
+  deferredTtf.set(txid, { ref, refSource, finalizedAtMs, timerId });
+}
+
+function _cancelDeferredTtf(txid) {
+  const d = deferredTtf.get(txid);
+  if (!d) return;
+  clearTimeout(d.timerId);
+  deferredTtf.delete(txid);
+}
+
+function _resolveDeferredTtf(txid) {
+  const d = deferredTtf.get(txid);
+  if (!d) return;
+  deferredTtf.delete(txid);
+
+  const tx = state.txs.get(txid);
+  // Belt-and-suspenders against the race where applyTtfFromNode's
+  // _cancelDeferredTtf and this timer's macrotask were both scheduled
+  // before either ran. If node-precise already won, do nothing.
+  if (tx && (tx.ttfSource === 'node-precise' || tx.ttfSource === 'race-backfilled')) return;
+
+  // CRITICAL: compute using the captured finalizedAtMs, NOT Date.now().
+  // setTimeout can fire many seconds late on backgrounded tabs; using a
+  // live timestamp would re-introduce the very inflation we're avoiding.
+  const ttf = Math.max(0, d.finalizedAtMs - d.ref);
+
+  // Apply the SAME sleep-anchor guard the eager path had — this is why
+  // converting to defer doesn't weaken the wake-bug fix. Anchors that
+  // straddle a hidden→visible transition are still dropped, never sampled.
+  if (_ttfAnchorSpansSleep(d.ref)) {
+    if (tx && tx.ttfSource !== 'node-precise' && tx.ttfSource !== 'race-backfilled') {
+      tx.ttf = null;
+      tx.ttfSource = 'stale-sleep';
+      tx.ttfResolved = true;
+      if (tx.row) {
+        try { updateTxRow(tx); } catch (e) {}
+      }
+      scheduleTtfRender();
+    }
+    ttfLog('[ava-debug] TX_FINALIZED defer-resolved DISCARDED (anchor spans sleep) for', txid?.slice(0, 12));
+    return;
+  }
+
+  // Honest fallback: same logic the eager path used, just running now
+  // instead of immediately. Skip-or-upgrade still applies — never let a
+  // perceived value overwrite an authoritative one.
+  if (tx && tx.ttfSource !== 'node-precise' && tx.ttfSource !== 'race-backfilled') {
+    tx.ttf = ttf;
+    tx.ttfSource = d.refSource;
+  }
+  if (ttf > 0 && ttf < TTF_SANITY_MAX_MS && d.refSource !== 'poll') {
+    pushTtfSample(txid, ttf, d.refSource);
+    ttfLog('[ava-debug] TX_FINALIZED defer-resolved ttf=', ttf, 'ms (' + d.refSource + ', fallback)');
+    if (typeof updateStats === 'function') {
+      try { updateStats(); } catch (e) {}
+    }
+  } else if (d.refSource === 'poll') {
+    ttfLog('[ava-debug] TX_FINALIZED defer-resolved ttf=', ttf, 'ms (poll — not sampled)');
+  } else {
+    ttfLog('[ava-debug] TX_FINALIZED defer-resolved REJECTED ttf=', ttf, 'ms (outside 0-' + TTF_SANITY_MAX_MS + 'ms window)');
+  }
+
+  if (tx && tx.row) {
+    try { updateTxRow(tx); } catch (e) {}
+  }
+  scheduleTtfRender();
 }
 
 // Debug-log gate (v1.1.2). Default OFF — production users opening
@@ -8489,6 +8603,11 @@ async function loadChronikClient() {
 //      filtered out client-side (dust, type, etc.) and never made it
 //      into state.
 function applyTtfFromNode(txid, ttfMs) {
+  // v1.2.7: node-precise wins over any in-flight perceived defer. Cancel
+  // before mutation so the timer's macrotask doesn't fire stale fallback
+  // logic after this function completes. _cancelDeferredTtf is a safe
+  // no-op when there's nothing deferred.
+  _cancelDeferredTtf(txid);
   const tx = state.txs.get(txid);
   if (!tx) {
     // Tx not in state yet — buffer for later. See behavior #2 above.
@@ -9402,38 +9521,23 @@ function setupWebSocket() {
               }
               ttfLog('[ava-debug] TX_FINALIZED discarded (anchor spans sleep) for', msg.txid?.slice(0, 12));
             } else if (ref) {
-              const wsTtf = Math.max(0, now - ref);
-              // Same skip-or-upgrade guard as the poll finalize path: never
-              // let a recomputed perceived value overwrite an authoritative
-              // node-precise / race-backfilled one already on the tx (see
-              // the poll path above for the panel-flip rationale).
-              const wSrc = tx.ttfSource;
-              if (wSrc !== 'node-precise' && wSrc !== 'race-backfilled') {
-                tx.ttf = wsTtf;
-                tx.ttfSource = refSource;
-              }
-              // Honest value: no magnitude ceiling (v1.2.0). The old `< 60s`
-              // cap silently dropped genuinely-slow finalizes during network
-              // degradation — the exact event a TTF monitor must report. The
-              // replay-inflation case the cap used to catch is already handled
-              // upstream: this whole block only runs when the tx was still
-              // 'pending'/'polling' (see the gate where we set state='final'),
-              // so a redelivered stale TX_FINALIZED for an already-final tx
-              // never reaches here. TTF_SANITY_MAX_MS is a clock-skew backstop
-              // only. We still exclude 'poll' source from the rolling average:
-              // polling adds 0-5s of unquantifiable jitter per-sample — those
-              // still show on the per-tx detail panel but stay out of the stat.
-              if (tx.ttf > 0 && tx.ttf < TTF_SANITY_MAX_MS && refSource !== 'poll') {
-                pushTtfSample(msg.txid, tx.ttf, refSource);
-                ttfLog('[ava-debug] TX_FINALIZED ttf=', tx.ttf, 'ms (' + refSource + ') total samples=', state.ttfSamples.length);
-                if (typeof updateStats === 'function') {
-                  try { updateStats(); } catch (e) {}
-                }
-              } else if (refSource === 'poll') {
-                ttfLog('[ava-debug] TX_FINALIZED ttf=', tx.ttf, 'ms (poll — not sampled)');
-              } else {
-                ttfLog('[ava-debug] TX_FINALIZED REJECTED ttf=', tx.ttf, 'ms (outside 0-60s window, source=' + refSource + ')');
-              }
+              // v1.2.7: defer the perceived computation. Gives the node-precise
+              // ttf-feed up to TTF_DEFER_FALLBACK_MS to deliver a sample via
+              // applyTtfFromNode (which cancels the deferred timer). If the
+              // feed doesn't deliver in time, _resolveDeferredTtf computes the
+              // fallback using the captured `now` (NOT a live Date.now() at
+              // timer-fire time, which would be inflated on a backgrounded
+              // tab). The sleep-anchor guard runs again inside the resolver,
+              // so wake-induced inflation is dropped at resolve time too.
+              //
+              // Behavior change: tx.ttf stays null for up to 4s; row shows the
+              // existing "—" placeholder during the wait. No spinner (option
+              // b per spec — defer is "waiting for FIRST sample", which is
+              // conceptually distinct from the existing upgrade spinner that
+              // signals "may upgrade EXISTING value"). Stats untouched until
+              // resolve, so a stuck wait doesn't pollute the rolling average.
+              _deferTtfFallback(msg.txid, ref, refSource, now);
+              ttfLog('[ava-debug] TX_FINALIZED deferred (' + TTF_DEFER_FALLBACK_MS + 'ms wait for node-precise)', msg.txid?.slice(0, 12), 'source=' + refSource);
             } else {
               // ===== RACE CONDITION RESCUE =====
               // No reference timestamp at all. This typically happens when
@@ -10206,41 +10310,45 @@ function parseTransaction(txData) {
     else if (entry.txType === 'MINT') tx.token.action = 'MINT';
     else if (entry.txType === 'BURN') tx.token.action = 'BURN';
 
-    // Async fetch token metadata
-    fetchTokenInfo(tx.token.tokenId).then(info => {
-      if (info) {
-        tx.token.ticker = info.ticker;
-        tx.token.name = info.name;
-        tx.token.decimals = info.decimals || 0;
-        // Pass through the richer fields so the detail panel can render them.
-        tx.token.url = info.url || '';
-        tx.token.hash = info.hash || '';
-        tx.token.authPubkey = info.authPubkey || '';
-        tx.token.dataBlob = info.data || '';
-        tx.token.initialQuantity = info.initialQuantity || '';
-        tx.token.mintBatonVout = info.mintBatonVout;
-        tx.token.protocol = info.protocol || tx.token.type;
-        tx.token.protocolType = info.protocolType || '';
-        tx.token.protocolNumber = info.protocolNumber;
-        tx.token.genesisTxid = info.genesisTxid;
-        tx.token.genesisBlockHeight = info.genesisBlockHeight;
-        tx.token.genesisTimestamp = info.genesisTimestamp;
-        if (tx.row) updateTxRow(tx);
-        refreshDetailIfActive();
-        // Re-render the corresponding msg card if this tx surfaces one
-        // (Agora cards rely on token ticker/decimals to format qty/price,
-        // and those are only known once token info resolves).
-        try {
-          const card = document.querySelector(`.msg-card[data-msgid="${tx.id}"]`);
-          if (card) {
-            const enriched = card.querySelector('.agora-meta');
-            if (enriched && typeof renderAgoraMeta === 'function') {
-              enriched.innerHTML = renderAgoraMeta(tx) || '';
+    // Async fetch token metadata, with bounded retry on transient failure.
+    // Previous behaviour was fire-and-forget: a single chronik.token() failure
+    // left tx.token.ticker undefined for the entire session, surfacing as a
+    // permanently-stuck "(loading…)" in the detail panel. Now we re-try up to
+    // 3 times spaced ~2.5s apart (slightly past the fetchTokenInfo cool-down
+    // window so each attempt actually hits the network). renderDetail also
+    // has a self-heal path for txs that already missed this initial attempt.
+    tx._tokenInfoTries = 0;
+    const tryFetchTokenInfo = () => {
+      tx._tokenInfoTries++;
+      fetchTokenInfo(tx.token.tokenId).then(info => {
+        if (applyTokenInfoToTx(tx, info)) {
+          if (tx.row) updateTxRow(tx);
+          refreshDetailIfActive();
+          // Re-render the corresponding msg card if this tx surfaces one
+          // (Agora cards rely on token ticker/decimals to format qty/price,
+          // and those are only known once token info resolves).
+          try {
+            const card = document.querySelector(`.msg-card[data-msgid="${tx.id}"]`);
+            if (card) {
+              const enriched = card.querySelector('.agora-meta');
+              if (enriched && typeof renderAgoraMeta === 'function') {
+                enriched.innerHTML = renderAgoraMeta(tx) || '';
+              }
             }
-          }
-        } catch {}
-      }
-    });
+          } catch {}
+        } else if (tx._tokenInfoTries < 3) {
+          // Transient null (timeout / 5xx / inside cool-down window).
+          // Schedule one more attempt. 2500ms > TOKEN_INFO_FAIL_TTL_MS so
+          // the retry isn't swallowed by the throttle sentinel.
+          setTimeout(tryFetchTokenInfo, 2500);
+        }
+        // After 3 attempts: give up here. renderDetail's self-heal path
+        // will re-trigger fetchTokenInfo next time the user opens or
+        // hovers this tx, which covers the rare sustained-outage case
+        // without scheduling indefinitely from ingest path.
+      });
+    };
+    tryFetchTokenInfo();
   }
 
   // ============ Agora detection (verified against real chain data) ============
@@ -10484,50 +10592,117 @@ function parseTransaction(txData) {
   return tx;
 }
 
+// Shared helper: copy a resolved token-info bundle onto a tx.token object.
+// Extracted so the three sites that consume fetchTokenInfo (parseTransaction's
+// initial fetch, parseTransaction's retry, and renderDetail's self-heal) all
+// apply the same fields in the same way. Returns true if anything was written.
+// Caller is responsible for the downstream paint side-effects (updateTxRow,
+// refreshDetailIfActive, msg-card re-render) since those vary per call site.
+function applyTokenInfoToTx(tx, info) {
+  if (!info || !tx || !tx.token) return false;
+  tx.token.ticker = info.ticker;
+  tx.token.name = info.name;
+  tx.token.decimals = info.decimals || 0;
+  tx.token.url = info.url || '';
+  tx.token.hash = info.hash || '';
+  tx.token.authPubkey = info.authPubkey || '';
+  tx.token.dataBlob = info.data || '';
+  tx.token.initialQuantity = info.initialQuantity || '';
+  tx.token.mintBatonVout = info.mintBatonVout;
+  tx.token.protocol = info.protocol || tx.token.type;
+  tx.token.protocolType = info.protocolType || '';
+  tx.token.protocolNumber = info.protocolNumber;
+  tx.token.genesisTxid = info.genesisTxid;
+  tx.token.genesisBlockHeight = info.genesisBlockHeight;
+  tx.token.genesisTimestamp = info.genesisTimestamp;
+  return true;
+}
+
+// Successful fetches: cached for the session — genesis-info is immutable
+// post-confirmation, so a hit is always reusable.
 const tokenInfoCache = new Map();
+// In-flight requests: tokenId → pending Promise. Lets concurrent callers
+// (e.g. a block-popup prewarm racing a user click on the same token, or
+// renderDetail's self-heal racing parseTransaction's retry) share ONE network
+// round-trip instead of stampeding chronik.token() in parallel.
+const tokenInfoInflight = new Map();
+// Transient-failure throttle: tokenId → wall-clock ms before which the next
+// call returns null fast without hitting the network. Prevents per-render
+// hammering during a brief chronik outage. Bounded — entries expire and
+// the next caller after the window retries. This replaces the previous
+// `tokenInfoCache.set(tokenId, null)` on catch, which was the v1.x bug
+// where ONE transient timeout (5xx during endpoint rotation, WS reconnect)
+// poisoned a tokenId for the entire session, leaving its ticker stuck as
+// "(loading…)" with no retry path until page reload.
+const tokenInfoRetryAfter = new Map();
+const TOKEN_INFO_FAIL_TTL_MS = 2000;
+
 async function fetchTokenInfo(tokenId) {
-  if (tokenInfoCache.has(tokenId)) return tokenInfoCache.get(tokenId);
-  try {
-    const info = await chronik.token(tokenId);
-    // Chronik 3.x returns a richer genesisInfo object. We surface every
-    // field the explorer.e.cash token page shows so the detail panel can
-    // match. Note: not every field exists for every token protocol
-    // (e.g. ALP tokens have a `data` blob; SLP NFT children don't have
-    // initialQuantity in the typical sense). All extraction is guarded
-    // with optional chaining + fallbacks.
-    const gi = info.genesisInfo || {};
-    const result = {
-      ticker: gi.tokenTicker || '',
-      name: gi.tokenName || '',
-      decimals: gi.decimals || 0,
-      url: gi.url || gi.tokenDocumentUrl || '',
-      hash: gi.hash || gi.tokenDocumentHash || '',
-      authPubkey: gi.authPubkey || '',
-      data: gi.data || '',
-      // Initial supply at genesis. Chronik 3 exposes this as a BigInt-ish
-      // string. We keep it as a string and convert at render time so we
-      // can use BigInt + decimals correctly without precision loss.
-      initialQuantity: gi.initialQuantity || gi.initial_quantity || '',
-      mintBatonVout: (typeof gi.mintBatonVout === 'number') ? gi.mintBatonVout : null,
-      // Token protocol/standard (eg "SLP_TOKEN_TYPE_FUNGIBLE", "ALP_TOKEN_TYPE_STANDARD")
-      protocol: info.tokenType?.protocol || '',
-      protocolType: info.tokenType?.type || '',
-      protocolNumber: info.tokenType?.number,
-      // For SLP NFT children — the parent group's tokenId
-      groupTokenId: info.groupTokenId || '',
-      // The genesis tx itself + its block (used to link to "Genesis tx" row)
-      genesisTxid: info.tokenId || tokenId,
-      genesisBlockHeight: info.block?.height,
-      genesisTimestamp: info.timeFirstSeen
-        ? parseInt(info.timeFirstSeen, 10) * 1000
-        : (info.block?.timestamp ? info.block.timestamp * 1000 : null),
-    };
-    tokenInfoCache.set(tokenId, result);
-    return result;
-  } catch (e) {
-    tokenInfoCache.set(tokenId, null);
-    return null;
-  }
+  // Successful hit — serve immediately.
+  const cached = tokenInfoCache.get(tokenId);
+  if (cached) return cached;
+  // In-flight dedup: a previous caller's Promise is still pending; share it.
+  const pending = tokenInfoInflight.get(tokenId);
+  if (pending) return pending;
+  // Inside the post-failure cool-down window: return null fast so re-renders
+  // (refreshDetailIfActive fires on every TTF update / state transition)
+  // don't hammer the endpoint. The window is short (2s) — outside it, the
+  // next caller will hit the network again.
+  const retryAfter = tokenInfoRetryAfter.get(tokenId);
+  if (retryAfter && Date.now() < retryAfter) return null;
+
+  const p = (async () => {
+    try {
+      const info = await chronik.token(tokenId);
+      // Chronik 3.x returns a richer genesisInfo object. We surface every
+      // field the explorer.e.cash token page shows so the detail panel can
+      // match. Note: not every field exists for every token protocol
+      // (e.g. ALP tokens have a `data` blob; SLP NFT children don't have
+      // initialQuantity in the typical sense). All extraction is guarded
+      // with optional chaining + fallbacks.
+      const gi = info.genesisInfo || {};
+      const result = {
+        ticker: gi.tokenTicker || '',
+        name: gi.tokenName || '',
+        decimals: gi.decimals || 0,
+        url: gi.url || gi.tokenDocumentUrl || '',
+        hash: gi.hash || gi.tokenDocumentHash || '',
+        authPubkey: gi.authPubkey || '',
+        data: gi.data || '',
+        // Initial supply at genesis. Chronik 3 exposes this as a BigInt-ish
+        // string. We keep it as a string and convert at render time so we
+        // can use BigInt + decimals correctly without precision loss.
+        initialQuantity: gi.initialQuantity || gi.initial_quantity || '',
+        mintBatonVout: (typeof gi.mintBatonVout === 'number') ? gi.mintBatonVout : null,
+        // Token protocol/standard (eg "SLP_TOKEN_TYPE_FUNGIBLE", "ALP_TOKEN_TYPE_STANDARD")
+        protocol: info.tokenType?.protocol || '',
+        protocolType: info.tokenType?.type || '',
+        protocolNumber: info.tokenType?.number,
+        // For SLP NFT children — the parent group's tokenId
+        groupTokenId: info.groupTokenId || '',
+        // The genesis tx itself + its block (used to link to "Genesis tx" row)
+        genesisTxid: info.tokenId || tokenId,
+        genesisBlockHeight: info.block?.height,
+        genesisTimestamp: info.timeFirstSeen
+          ? parseInt(info.timeFirstSeen, 10) * 1000
+          : (info.block?.timestamp ? info.block.timestamp * 1000 : null),
+      };
+      tokenInfoCache.set(tokenId, result);
+      tokenInfoRetryAfter.delete(tokenId);
+      return result;
+    } catch (e) {
+      // Transient failure: stamp a cool-down but DO NOT cache null. The
+      // next call after the window will retry; renderDetail's self-heal
+      // and parseTransaction's bounded retry both rely on this property.
+      tokenInfoRetryAfter.set(tokenId, Date.now() + TOKEN_INFO_FAIL_TTL_MS);
+      return null;
+    } finally {
+      tokenInfoInflight.delete(tokenId);
+    }
+  })();
+
+  tokenInfoInflight.set(tokenId, p);
+  return p;
 }
 
 function parseOpReturn(hex) {
@@ -11636,6 +11811,29 @@ function _renderDetailInner(tx) {
   const tokenSec = $('d-token-section');
   if (tx.token) {
     tokenSec.style.display = '';
+    // Self-heal: ticker missing means either (a) parseTransaction's initial
+    // fetch is still in-flight (benign — we'll re-render when it resolves),
+    // or (b) all bounded retries failed and the tx is permanently stuck as
+    // "(loading…)". (b) is the user-visible bug we're fixing. Triggering
+    // fetchTokenInfo here from the render path gives the panel a second
+    // chance: opening / hovering / re-rendering a stuck tx restarts the
+    // network attempt (fetchTokenInfo dedupes inflight, and its cool-down
+    // throttles us during a sustained outage). Guarded by a per-tx flag so
+    // refreshDetailIfActive's high-frequency calls don't spam.
+    if (!tx.token.ticker && tx.token.tokenId && !tx._tokenInfoFetching) {
+      tx._tokenInfoFetching = true;
+      fetchTokenInfo(tx.token.tokenId).then(info => {
+        tx._tokenInfoFetching = false;
+        // Re-check: parseTransaction's path may have filled this in while
+        // our promise was pending. If so, the re-render that path scheduled
+        // already covered the paint — no need to double-render.
+        if (info && !tx.token.ticker) {
+          applyTokenInfoToTx(tx, info);
+          if (tx.row) updateTxRow(tx);
+          refreshDetailIfActive();
+        }
+      });
+    }
     // Hero block — large icon + display name + sub-line
     const isNft = (tx.token.type || '').includes('NFT');
     const isAlp = (tx.token.type || '').startsWith('ALP');
@@ -13262,6 +13460,21 @@ async function btlFetchPage() {
         wlToken: wlTags.token,
         tintKind,
       });
+      // v1.2.7 PREWARM: blockTxs already delivered the full tokenEntries, so
+      // each unique tokenId in the page is one fire-and-forget chronik.token()
+      // away from being cached. By the time the user clicks any row, the
+      // pin-tx flow's fetchTokenInfo either hits the cache (1 RTT total for
+      // chronik.tx) or joins an inflight Promise (still 1 RTT). Without
+      // prewarm: 2 sequential RTTs (chronik.tx then chronik.token), visible
+      // as "(loading…)" in the detail panel. The inflight-dedup in
+      // fetchTokenInfo (also v1.2.7) makes prewarm + click race-safe — only
+      // one network call per unique tokenId. Cost is bounded by unique
+      // tokens-per-page (typical 5–30, far less than page size).
+      if (refs && refs.tokenIds && refs.tokenIds.length > 0 && typeof fetchTokenInfo === 'function') {
+        for (const tid of refs.tokenIds) {
+          try { fetchTokenInfo(tid); } catch (e) { /* prewarm is best-effort */ }
+        }
+      }
     });
     btlState.page += 1;
     btlRenderRows();
