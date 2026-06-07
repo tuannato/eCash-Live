@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-9GER4bUFv98Bu5/nwGESD+TMZZCQUEqXLxOJyzIjaoU=';
+  script-src 'self' 'sha256-ZHGOL+Z6Bu1ysiyLHR8me+abo81rWFmFs3CPhZfCmb8=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -6580,7 +6580,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.2.8">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.2.8</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.2.9">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.2.9</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -6701,9 +6701,14 @@
       </nav>
       <div class="meta">
         <div class="cell"><span class="k">Block</span><span class="v linkable" id="m-height" title="Open block in explorer">—</span></div>
-        <div class="cell"><span class="k">Mempool</span><span class="v"><span id="m-mem">0</span> <span class="u">tx</span></span></div>
+        <!-- v1.2.9: Mempool now hide-narrow (desktop ≥1100px only). At mid
+             and mobile, Online-now replaces it in this slot. -->
+        <div class="cell hide-narrow"><span class="k">Mempool</span><span class="v"><span id="m-mem">0</span> <span class="u">tx</span></span></div>
         <div class="cell hide-medium" title="Mempool transactions finalized by Avalanche pre-consensus, awaiting inclusion in a block"><span class="k">Finalized</span><span class="v"><span class="cyan" id="m-prefinal">0</span> <span class="u">tx</span></span></div>
-        <div class="cell hide-narrow" title="Time elapsed since the most recent block was mined"><span class="k">Since block</span><span class="v" id="m-lastblock">—</span></div>
+        <!-- v1.2.9: Online-now replaces "Since block" (which was hide-narrow).
+             Always visible (no hide class) so desktop, mid, AND mobile all
+             show it; on mid/mobile it sits in the slot vacated by Mempool. -->
+        <div class="cell" title="Visitors watching this page right now (server-side count of live WebSocket connections to the TTF feed)"><span class="k">Online now</span><span class="v"><span class="cyan" id="m-online">—</span></span></div>
         <div class="cell hide-medium" title="Token transactions seen since this session started"><span class="k">Tokens</span><span class="v amber" id="m-tokens">0</span></div>
         <div class="cell"><span class="k">XEC / USD</span><span class="v gold" id="m-price">—</span></div>
       </div>
@@ -8935,12 +8940,23 @@ function connectTtfFeed() {
       const okNum = (v) => typeof v === 'number' && isFinite(v) && v >= 0;
       const okMsOrNull = (v) =>
         v === null || (typeof v === 'number' && isFinite(v) && v >= 0 && v < 600_000);
+      // v1.5.4 additive fields. okNumOrNull accepts null (older relay versions
+      // omit these; we treat them as "not available" downstream).
+      const okNumOrNull = (v) =>
+        v === null || v === undefined || (typeof v === 'number' && isFinite(v) && v >= 0);
+      // pctFinalUnder3s is a 0..1 fraction; allow 1.0 strictly and let
+      // formatter coerce >0.9995 to "100%".
+      const okPctOrNull = (v) =>
+        v === null || v === undefined || (typeof v === 'number' && isFinite(v) && v >= 0 && v <= 1.01);
       if (okNum(data.tps) && data.tps < 100_000
           && okMsOrNull(data.ttfP10Ms)
           && okMsOrNull(data.ttfP50Ms)
           && okMsOrNull(data.ttfP90Ms)
           && okMsOrNull(data.ttfMeanMs)
-          && okNum(data.sampleCount)) {
+          && okNum(data.sampleCount)
+          && okNumOrNull(data.currentClients)
+          && okNumOrNull(data.tpsPeak24h)
+          && okPctOrNull(data.pctFinalUnder3s)) {
         state.relayStats = {
           tps: data.tps,
           ttfP10Ms: data.ttfP10Ms,
@@ -8949,6 +8965,10 @@ function connectTtfFeed() {
           ttfMeanMs: data.ttfMeanMs,
           sampleCount: data.sampleCount | 0,
           windowSec: typeof data.windowSec === 'number' ? data.windowSec : 86400,
+          // v1.5.4 — keep as-is (null/undefined preserved for back-compat).
+          currentClients: (typeof data.currentClients === 'number') ? (data.currentClients | 0) : null,
+          tpsPeak24h: (typeof data.tpsPeak24h === 'number') ? data.tpsPeak24h : null,
+          pctFinalUnder3s: (typeof data.pctFinalUnder3s === 'number') ? data.pctFinalUnder3s : null,
         };
         state.relayStatsAt = Date.now();
         // Re-render through the rAF coalescer so a burst (initial hello+stats
@@ -9253,7 +9273,14 @@ async function startLivePoller() {
       // poll, and is far less misleading than chronically under-counting a
       // busy mempool. `txs.length` remains the last-resort fallback if numTxs
       // is somehow absent.
+      //
+      // v1.2.9: also expose this size to state so updateStats() can append
+      // "/<chronik>" to the panel-02 header WHEN we've hit the local MAX_TXS
+      // cap. Below cap, the panel header just shows preFinal (matches the
+      // "what I've surfaced" semantic). At cap, " / X" makes it visually
+      // obvious that there's more mempool the node sees than we're tracking.
       const shownMem = (mp.numTxs != null) ? mp.numTxs : txs.length;
+      state.realMempoolSize = shownMem;
       $('m-mem').textContent = shownMem.toLocaleString('en-US');
 
       // ===== Polling-based avalanche TTF detection =====
@@ -9398,14 +9425,22 @@ async function startLivePoller() {
       }
 
       // Determine how many new tx we should actually process this cycle.
-      // state.pageSize.all === true when user picked "All" in the dropdown;
-      // in that case we accept up to MEMPOOL_BURST_CAP. Otherwise we cap to
-      // the visible row budget so we don't parse rows that will be trimmed.
-      const pageSizeAll = state.pageSize && state.pageSize.all;
-      const visibleBudget = (state.pageSize && state.pageSize.col2)
-        ? state.pageSize.col2 + 10  // a little headroom so trimming doesn't churn
-        : 30;
-      const cap = pageSizeAll ? MEMPOOL_BURST_CAP : visibleBudget;
+      // v1.2.9: cap is now ALWAYS MEMPOOL_BURST_CAP (2000), independent of
+      // pageSize. Previously the cap was tied to pageSize.col2 + headroom,
+      // which made mobile (default pageSize=20 → cap=30) under-ingest the
+      // mempool. That throttle had two side effects:
+      //   1. state.txs.size stayed small on mobile, so the panel-02 header
+      //      "X awaiting" counter showed 20-ish even when chronik reported
+      //      hundreds of mempool tx. Desktop with "All" picked showed the
+      //      true count; the discrepancy was confusing.
+      //   2. Late-arriving finalize events for tx we never ingested would
+      //      have no local row to update (rare in practice — most finalize
+      //      events match recent tx that we just polled).
+      // The trim step (trimList) still clips rendered DOM rows to pageSize,
+      // so the visual layout is unchanged. We only changed the data side.
+      // 2000-per-cycle parse is well under 100ms on a mobile CPU; the heavy
+      // path (DOM insertion) is gated by pageSize regardless.
+      const cap = MEMPOOL_BURST_CAP;
       // v1.1.4/1.1.5: chronik's /unconfirmed-txs iterates the node's mempool
       // map, keyed by txid (hash order) — NOT time order. So the returned array
       // is effectively random w.r.t. firstSeen. We sort newest-first and slice
@@ -14381,6 +14416,22 @@ setInterval(() => {
 }, 1000);
 
 // ============ STATS ============
+// v1.2.9 helper: compact number format (1234 → "1.2k", 2000 → "2k",
+// 12500 → "12.5k"). Used for the panel-02 header and mobile tab badge
+// when state.txs has saturated at MAX_TXS — at that point both the
+// local cap and the chronik truth tend to be ≥1000, and the full form
+// (e.g. "2,000 / 3,150 awaiting") overflows the mobile tab badge.
+// Below 1000 we render the raw number (no "k" suffix) since the format
+// would be lossy.
+function _fmtK(n) {
+  if (typeof n !== 'number' || !isFinite(n)) return '—';
+  if (n < 1000) return String(n);
+  const k = n / 1000;
+  // 2000 → "2k", 2050 → "2.1k". Drop trailing ".0" so 2000 reads cleanly.
+  const s = k.toFixed(1);
+  return (s.endsWith('.0') ? s.slice(0, -2) : s) + 'k';
+}
+
 function updateStats() {
   // Mempool count - from our state for prefinal
   let preFinal = 0, polling = 0, mempool = 0;
@@ -14389,7 +14440,33 @@ function updateStats() {
     if (tx.state === 'final') preFinal++;
   });
   $('r-polling').textContent = polling;
-  $('r-mempool').textContent = preFinal;
+  // r-mempool counts tx in 'final' state from local state.txs (capped at
+  // MAX_TXS=2000). This semantics matches "how many tx have I personally
+  // surfaced and are awaiting block inclusion" — desktop and mobile should
+  // agree on this number. They previously diverged because the poll loop
+  // throttled INGESTION by pageSize.col2 (mobile default 20 → cap 30 →
+  // state.txs stays small → preFinal small). That throttle was decoupled
+  // in v1.2.9; ingestion now uses MEMPOOL_BURST_CAP regardless of filter,
+  // so any viewport sees the same preFinal value.
+  //
+  // v1.2.9: when state.txs has saturated at MAX_TXS, the preFinal count
+  // alone can be misread as "the entire mempool". We append "/ X"
+  // (X = chronik's true mempool size from state.realMempoolSize) so the
+  // visual makes the cap obvious. We trigger on state.txs.size >= MAX_TXS
+  // — not on preFinal alone — because the cap evicts ANY oldest tx
+  // regardless of state, so a busy network with many polling tx could
+  // push preFinal below MAX_TXS even while at cap.
+  //
+  // Both numbers are rendered compact (e.g. "2k / 3.1k") because the full
+  // form ("2,000 / 3,150") overflows the mobile tab badge and reads
+  // crowded even on desktop. updateMobileBadges() mirrors this format
+  // for the col-02 tab.
+  let rMempoolText = String(preFinal);
+  if (state.txs.size >= MAX_TXS && typeof state.realMempoolSize === 'number'
+      && state.realMempoolSize > preFinal) {
+    rMempoolText = `${_fmtK(preFinal)} / ${_fmtK(state.realMempoolSize)}`;
+  }
+  $('r-mempool').textContent = rMempoolText;
   $('m-prefinal').textContent = preFinal;
   $('m-tokens').textContent = state.totalTokensToday;
 
@@ -14547,6 +14624,27 @@ function updateStats() {
     $('f-finalized-24h').innerHTML = eye + '—';
   }
 
+  // ============ Online now · v1.2.9 ============
+  // m-online sits in the topbar slot vacated by "Since block" (desktop) /
+  // "Mempool" (mid + mobile). Source: state.relayStats.currentClients, which
+  // the relay (v1.5.4+) sets to len(clients) on every snapshot+persist.
+  // Older relay versions don't include the field — currentClients is null in
+  // that case and we render an em-dash to signal "feature unavailable" without
+  // alarm. When the value is 0 we also render em-dash because the headline is
+  // most useful when somebody IS watching; "0 watching" reads as "stop
+  // watching" rather than as a normal idle state.
+  const onlineEl = $('m-online');
+  if (onlineEl) {
+    if (ttfFeedState.connected && statsFresh && state.relayStats
+        && typeof state.relayStats.currentClients === 'number') {
+      const cc = state.relayStats.currentClients;
+      onlineEl.textContent = cc > 0 ? String(cc) : '—';
+    } else {
+      // Eye prefix when feed unavailable; em-dash otherwise (older relay).
+      onlineEl.textContent = '—';
+    }
+  }
+
   // Stream uptime — time since the page loaded (rough proxy for connection lifetime)
   if (state.sessionStart) {
     const upMs = Date.now() - state.sessionStart;
@@ -14562,11 +14660,16 @@ function updateStats() {
     if ($('f-uptime')) $('f-uptime').textContent = fmtUp;
   }
 
-  // Last block time — clock since the most recent block (MM:SS format)
-  if (state.lastBlockTime) {
+  // Last block time — clock since the most recent block (MM:SS format).
+  // v1.2.9: the "Since block" topbar cell was removed (replaced by
+  // "Online now"). state.lastBlockTime is still maintained for other
+  // uses (block age decay coloring elsewhere), but writes here are
+  // guarded with `el &&` so the missing element doesn't throw.
+  const lastBlockEl = $('m-lastblock');
+  if (lastBlockEl && state.lastBlockTime) {
     const elapsed = Date.now() - state.lastBlockTime;
     if (elapsed < 0) {
-      $('m-lastblock').textContent = '00:00';
+      lastBlockEl.textContent = '00:00';
     } else {
       const totalSec = Math.floor(elapsed / 1000);
       const m = Math.floor(totalSec / 60);
@@ -14575,9 +14678,9 @@ function updateStats() {
       if (m >= 60) {
         const h = Math.floor(m / 60);
         const mm = m % 60;
-        $('m-lastblock').textContent = `${h}:${String(mm).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        lastBlockEl.textContent = `${h}:${String(mm).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
       } else {
-        $('m-lastblock').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        lastBlockEl.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
       }
     }
   }
@@ -14769,7 +14872,21 @@ document.getElementById('d-pinstate')?.addEventListener('click', () => {
 // Update tab badges
 function updateMobileBadges() {
   const c1 = $('col1-list')?.children.length || 0;
-  const c2 = $('col2-list')?.children.length || 0;
+  // v1.2.9: c2 mirrors panel-02 header semantic — preFinal from state.txs
+  // (NOT DOM rows, which were filter-dependent). When state.txs hits
+  // MAX_TXS we render compact "preFinal / chronikTotal" (e.g. "2k/3.1k")
+  // to fit the narrow badge. Same logic & format as r-mempool in
+  // updateStats() — _fmtK is defined alongside it; keep both sites in
+  // sync if the semantic changes.
+  let preFinal = 0;
+  state.txs.forEach(tx => { if (tx.state === 'final') preFinal++; });
+  let c2;
+  if (state.txs.size >= MAX_TXS && typeof state.realMempoolSize === 'number'
+      && state.realMempoolSize > preFinal) {
+    c2 = `${_fmtK(preFinal)}/${_fmtK(state.realMempoolSize)}`;
+  } else {
+    c2 = String(preFinal);
+  }
   const m = state.messages.length;
   if ($('tab-badge-1')) $('tab-badge-1').textContent = c1;
   if ($('tab-badge-2')) $('tab-badge-2').textContent = c2;
@@ -19045,8 +19162,16 @@ const TOOLTIP_CONTENT = {
               <div class="so-desc">The median time across the last 24 hours — see <em>How finality is measured</em> below.</div>
             </div>
             <div class="so-defrow">
-              <div class="so-name">TPS · 24h <span class="so-badge net">Network</span></div>
-              <div class="so-desc">Finalized transactions per second, averaged across the same 24-hour window. When the network is very quiet the value can drop below 0.01 tps; in that case the cell reads <code>&lt; 0.01 tps</code> rather than rounding to zero (the rounded form would suggest no traffic at all, which the 24h window doesn't actually claim).</div>
+              <div class="so-name">TPS · 24h avg <span class="so-badge net">Network</span></div>
+              <div class="so-desc">Finalized transactions per second, averaged across the 24-hour window. When the network is very quiet the value can drop below 0.01 tps; in that case the cell reads <code>&lt; 0.01 tps</code> rather than rounding to zero (the rounded form would suggest no traffic at all, which the 24h window doesn't actually claim).</div>
+            </div>
+            <div class="so-defrow">
+              <div class="so-name">Peak TPS · 24h <span class="so-badge net">Network</span></div>
+              <div class="so-desc">The highest sustained transactions-per-second rate observed in any 1-minute window across the past 24 hours. Per-minute averaging is intentional: a single 1-second burst (one transaction at a quiet moment, in particular) shouldn't dominate the headline number. The figure rises during organic activity spikes and stays low when the network sat idle.</div>
+            </div>
+            <div class="so-defrow">
+              <div class="so-name">% finalized &lt; 3s <span class="so-badge net">Network</span></div>
+              <div class="so-desc">Share of the 24h finalized transactions whose time-to-finality landed under 3 seconds — the "fast lane" rate. Three seconds is roughly the timing threshold beyond which a payment starts to feel like a wait rather than an instant action, so this percentage tracks how much of the recent traffic finished comfortably below that bar. Reads <code>100%</code> (no decimal) when everything finished under 3s.</div>
             </div>
             <div class="so-defrow">
               <div class="so-name">Tx · 24h <span class="so-badge net">Network</span></div>
@@ -19364,19 +19489,40 @@ function refreshStatsOverviewIfActive() {
   // ---------- Network · 24h section ----------
   // Available iff we have stats, they're fresh, AND the WS is currently
   // connected. Any of those failing → every Network card renders 'missing'.
+  // v1.2.9: card grid expanded from 6 → 8. Headlines (rows 1-2) now lead
+  // with the four most user-visible figures, two of which are NEW:
+  //   Row 1   TPS · 24h avg           Peak TPS · 24h
+  //   Row 2   % finalized < 3s        TTF · p50
+  //   Row 3   Transactions total       TTF · mean
+  //   Row 4   TTF · p10               TTF · p90
+  // Peak TPS and % finalized < 3s come from relay v1.5.4+. Older relays
+  // omit these fields (state.relayStats.tpsPeak24h / .pctFinalUnder3s are
+  // null) — those two cards render the radar-slash icon, the others fill
+  // normally.
   const s = state.relayStats;
   const fresh = s && (Date.now() - state.relayStatsAt) < STATS_FRESH_MS;
   const netAvailable = !!(s && fresh && ttfFeedState.connected);
+
+  // Formatter for the new % finalized <3s card. v gets a single decimal
+  // place unless it rounds to 100% — then no decimal (cleaner headline).
+  const fmtPct = (v) => {
+    if (typeof v !== 'number' || !isFinite(v)) return ['—', ''];
+    const pct = v * 100;
+    if (pct >= 99.95) return ['100', '%'];
+    return [pct.toFixed(1), '%'];
+  };
 
   let netCards;
   if (!netAvailable) {
     // Every Network card → radar-slash icon. Placeholders preserve grid
     // layout so cards don't jump when stats arrive. Order matches the
-    // populated branch below.
+    // populated branch below (Option B).
     netCards =
-        card('Transactions / second', '', '', true,  'missing')
-      + card('Transactions total',    '', '', true,  'missing')
+        card('TPS · 24h avg',           '', '', true,  'missing')
+      + card('Peak TPS · 24h',          '', '', true,  'missing')
+      + card('% finalized &lt; 3s',     '', '', true,  'missing')
       + card('Time-to-finality · p50',  '', '', true,  'missing')
+      + card('Transactions total',      '', '', false, 'missing')
       + card('Time-to-finality · mean', '', '', false, 'missing')
       + card('Time-to-finality · p10',  '', '', false, 'missing')
       + card('Time-to-finality · p90',  '', '', false, 'missing');
@@ -19391,20 +19537,42 @@ function refreshStatsOverviewIfActive() {
       // a misleading 0.00 tps.
       tpsVal = 'n/a'; tpsUnit = '';
     }
+    // Peak TPS: same number-format style as the avg TPS card so the two
+    // headlines read as a pair. Missing → radar-slash for that card only
+    // (older relay; everything else stays populated).
+    let peakState = 'ok', peakVal = '—', peakUnit = '';
+    if (typeof s.tpsPeak24h !== 'number') {
+      peakState = 'missing';
+    } else if (s.tpsPeak24h <= 0) {
+      // Zero traffic in the entire ring — show n/a rather than 0.00.
+      peakVal = 'n/a'; peakUnit = '';
+    } else {
+      peakVal = s.tpsPeak24h.toFixed(2);
+      peakUnit = 'tps';
+    }
+    // % finalized < 3s. Missing → radar-slash for that card.
+    let pctState = 'ok', pctVal = '—', pctUnit = '';
+    if (typeof s.pctFinalUnder3s !== 'number') {
+      pctState = 'missing';
+    } else {
+      const [v, u] = fmtPct(s.pctFinalUnder3s);
+      pctVal = v; pctUnit = u;
+    }
     const [p10v, p10u]   = fmtMs(s.ttfP10Ms);
     const [p50v, p50u]   = fmtMs(s.ttfP50Ms);
     const [p90v, p90u]   = fmtMs(s.ttfP90Ms);
     const [meanv, meanu] = fmtMs(s.ttfMeanMs);
     const tx24h = s.sampleCount.toLocaleString('en-US');
-    // Order: TPS · Tx as headlines, then p50 (headline) above the supporting
-    // p10/p90/mean. p50 is the value the headline cell shows, so it leads.
+    // Option B order — 4 headlines first, then supporting metrics.
     netCards =
-        card('Transactions / second', tpsVal, tpsUnit, true)
-      + card('Transactions total',    tx24h,  '',      true)
-      + card('Time-to-finality · p50',  p50v,  p50u,    true)
-      + card('Time-to-finality · mean', meanv, meanu)
-      + card('Time-to-finality · p10',  p10v,  p10u)
-      + card('Time-to-finality · p90',  p90v,  p90u);
+        card('TPS · 24h avg',           tpsVal,  tpsUnit, true)
+      + card('Peak TPS · 24h',          peakVal, peakUnit, true, peakState)
+      + card('% finalized &lt; 3s',     pctVal,  pctUnit, true, pctState)
+      + card('Time-to-finality · p50',  p50v,    p50u,    true)
+      + card('Transactions total',      tx24h,   '')
+      + card('Time-to-finality · mean', meanv,   meanu)
+      + card('Time-to-finality · p10',  p10v,    p10u)
+      + card('Time-to-finality · p90',  p90v,    p90u);
   }
 
   // ---------- Session section ----------
