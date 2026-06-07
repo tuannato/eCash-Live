@@ -1,5 +1,5 @@
 # =============================================================================
-# ttf-relay.py v1.5.3
+# ttf-relay.py v1.5.4
 #
 # Tails Bitcoin ABC's debug.log, parses Avalanche pre-consensus events,
 # computes TTF (time-to-final) for each transaction, and broadcasts the
@@ -7,6 +7,20 @@
 # subscribes to this feed to display node-precise TTF values instead of
 # the client-side approximation (which includes WebSocket and propagation
 # latency).
+#
+# v1.5.4 changes (additive schema, no breaking change):
+#   1. Three new fields in the periodic `stats` frame and persisted ring:
+#      - `currentClients`:  live len(clients) at snapshot time. Lets the
+#                           frontend show "online now" without each tab
+#                           guessing from its own connect/disconnect log.
+#      - `tpsPeak24h`:      max per-minute averaged TPS within the 24h
+#                           ring. Per-minute (not per-second) so a single
+#                           noisy second doesn't drag the headline.
+#      - `pctFinalUnder3s`: 0.0–1.0, fraction of finalized tx with TTF
+#                           below 3000ms. Derived from the merged
+#                           histogram — O(1), no extra accumulator.
+#      All three are additive — older clients ignore unknown fields and
+#      keep working with the existing percentile/mean/TPS metrics.
 #
 # v1.5.3 changes (audit-driven cleanup, no schema break to live feed):
 #   1. tail_log() rotation bug fixed. The previous "seek to end on first
@@ -234,6 +248,14 @@ _HIST_EDGES = [
     _HIST_LO_MS * (_HIST_HI_MS / _HIST_LO_MS) ** (i / _HIST_BIN_COUNT)
     for i in range(1, _HIST_BIN_COUNT + 1)
 ]
+
+# v1.5.4: precompute the bin index for the "<3s fast lane" cutoff. Bin i
+# represents the range (_HIST_EDGES[i-1], _HIST_EDGES[i]]. We want all bins
+# whose upper edge is at most 3000ms — those samples are guaranteed <3s.
+# A bin whose upper edge straddles 3000ms is excluded (could be either
+# side); the 3% conservative bias is acceptable for a headline metric.
+_PCT_UNDER_3S_LIMIT = 3000.0
+_PCT_UNDER_3S_BIN_COUNT = sum(1 for e in _HIST_EDGES if e <= _PCT_UNDER_3S_LIMIT)
 
 
 # -----------------------------------------------------------------------------
@@ -494,6 +516,13 @@ class StatsRing:
         ttf_sum = 0
         merged_hist = [0] * _HIST_BIN_COUNT
 
+        # v1.5.4: tpsPeak24h. We aggregate samples into per-minute groups
+        # (6 ring buckets × 10s = 1 minute) and find max(count) / 60. A
+        # single 10s burst doesn't dominate (would otherwise spike to
+        # `count/10` which is unrepresentative). Map from `minute_bucket`
+        # (= abs_idx // 6) → cumulative count in that minute.
+        minute_counts = {}
+
         for slot in self.slots:
             a = slot["idx"]
             if a < oldest_abs or a > cur_abs or slot["count"] == 0:
@@ -513,6 +542,12 @@ class StatsRing:
             ttf_sum += slot["ttf_sum"]
             for i, c in enumerate(slot["hist"]):
                 merged_hist[i] += c
+            # Group this slot's count into its minute bucket. We use the
+            # un-fracted count here because the peak metric describes
+            # "what was the busiest minute in the ring", not "what's the
+            # current trailing-edge rate".
+            minute_idx = a // 6
+            minute_counts[minute_idx] = minute_counts.get(minute_idx, 0) + slot["count"]
 
         tps = total_count / STATS_WINDOW_SEC if STATS_WINDOW_SEC else 0.0
         mean = (ttf_sum / int_count) if int_count else None
@@ -524,6 +559,18 @@ class StatsRing:
         p50 = _hist_percentile(merged_hist, int_count, 0.50)
         p90 = _hist_percentile(merged_hist, int_count, 0.90)
 
+        # v1.5.4: derived metrics from the merged ring data.
+        # tpsPeak24h: max per-minute TPS. Each minute_bucket holds the
+        # total samples in that minute → divide by 60 to get rate.
+        tps_peak = (max(minute_counts.values()) / 60.0) if minute_counts else 0.0
+        # pctFinalUnder3s: cumulative count in bins fully below 3000ms.
+        # See _PCT_UNDER_3S_BIN_COUNT. Skip if no samples to avoid 0/0.
+        if int_count > 0:
+            under_3s = sum(merged_hist[:_PCT_UNDER_3S_BIN_COUNT])
+            pct_under_3s = under_3s / int_count
+        else:
+            pct_under_3s = None
+
         return {
             "tps": round(tps, 4),
             "ttfP10Ms": round(p10) if p10 is not None else None,
@@ -532,6 +579,11 @@ class StatsRing:
             "ttfMeanMs": round(mean) if mean is not None else None,
             "sampleCount": int_count,
             "windowSec": STATS_WINDOW_SEC,
+            # v1.5.4 additions — additive, older clients ignore.
+            "tpsPeak24h": round(tps_peak, 4),
+            "pctFinalUnder3s": round(pct_under_3s, 4) if pct_under_3s is not None else None,
+            # currentClients injected at broadcast site (snapshot doesn't see
+            # the clients set). See stats_broadcaster.
         }
 
     # --- persistence -----------------------------------------------------
@@ -590,10 +642,18 @@ stats_ring = StatsRing()
 def persist_stats_ring():
     """Atomically write the ring to disk (write-temp-then-rename) so a crash
     mid-write can't corrupt the file. Called every STATS_PERSIST_SEC and once
-    on shutdown."""
+    on shutdown.
+
+    v1.5.4: ring's to_json() doesn't see the clients set, so we splice
+    currentClients in here. The bot reads this file directly (no WS) to
+    answer /ecashlive_status, so the field has to be on disk too — not
+    just in live WS frames.
+    """
     try:
+        payload = stats_ring.to_json()
+        payload["currentClients"] = len(clients)
         tmp = STATS_PERSIST_PATH.with_suffix(".json.tmp")
-        tmp.write_text(json.dumps(stats_ring.to_json()))
+        tmp.write_text(json.dumps(payload))
         tmp.replace(STATS_PERSIST_PATH)
     except Exception as e:
         log.warning(f"stats persist failed: {e}")
@@ -806,6 +866,11 @@ async def stats_broadcaster():
         await asyncio.sleep(STATS_BROADCAST_SEC)
         now = time.time()
         snap = stats_ring.snapshot(now)
+        # v1.5.4: inject live client count. snapshot() can't see the
+        # clients set (it's a method on StatsRing, not the server), so we
+        # add it at the broadcast site. Same field is persisted to
+        # ttf-stats.json so the bot can read "online now" without WS.
+        snap["currentClients"] = len(clients)
         frame = {"type": "stats", "emittedAt": int(now * 1000), **snap}
         if clients:
             try:
@@ -835,6 +900,11 @@ async def handle_client(ws):
         try:
             now = time.time()
             snap = stats_ring.snapshot(now)
+            # v1.5.4: include live client count in the welcome snapshot.
+            # +0 (not +1) because this client was added to clients before
+            # the welcome send (line above), so len(clients) already
+            # includes them.
+            snap["currentClients"] = len(clients)
             await ws.send(json.dumps(
                 {"type": "stats", "emittedAt": int(now * 1000), **snap}))
         except Exception as e:
