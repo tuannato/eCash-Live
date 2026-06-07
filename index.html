@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-5RqfMj+a/N5Qti76CPF1LrzFgt9RczWgmpYvrg9J6Ew=';
+  script-src 'self' 'sha256-9GER4bUFv98Bu5/nwGESD+TMZZCQUEqXLxOJyzIjaoU=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -1188,6 +1188,17 @@
   }
   .detail-head .r .pin-state.unpinned { color: var(--text-3); }
   .detail-head .r .pin-state { color: var(--cyan); }
+  /* v1.2.8: pinned indicator is now an interactive unpin affordance.
+     Pointer + soft hover state hints at clickability without redesigning
+     the chip. Unpinned variant stays non-interactive (cursor:default
+     overrides the inherited parent cursor). */
+  .detail-head .r #d-pinstate { cursor: pointer; transition: opacity 0.12s; }
+  .detail-head .r #d-pinstate:hover .pin-state:not(.unpinned) {
+    opacity: 0.7;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .detail-head .r #d-pinstate:has(.pin-state.unpinned) { cursor: default; }
 
   .detail-empty {
     flex: 1;
@@ -2779,6 +2790,33 @@
   .btl-row:hover {
     background: rgba(1,160,224,0.06);
   }
+  /* v1.2.7: pinned row in either popup (block popup OR watching-list history).
+     Shares the same accent treatment for instant recognition — the inset
+     left edge (2px cyan) marks state, the soft background fill makes the
+     row visually "lifted" so the user can locate it after scrolling, and
+     the same .pinned class is applied by refreshPopupPinnedMarkers() in
+     either popup. Hover still applies on top (combined selector below). */
+  .btl-row.pinned,
+  .wl-history-row.pinned {
+    background: rgba(1,160,224,0.14);
+    box-shadow: inset 3px 0 0 var(--cyan);
+  }
+  .btl-row.pinned:hover,
+  .wl-history-row.pinned:hover {
+    background: rgba(1,160,224,0.20);
+  }
+  /* Watchlist tint takes precedence over the cyan pin marker — the row is
+     already tinted lime (wallet) or purple (token). For visual hierarchy
+     we keep the watchlist background but swap the left-edge bar to cyan
+     so the pinned state is still readable on a tinted row. */
+  .btl-row.watched.pinned,
+  .wl-history-row.watched.pinned {
+    box-shadow: inset 3px 0 0 var(--cyan), inset 5px 0 0 var(--watch);
+  }
+  .btl-row.watched.watched-token.pinned,
+  .wl-history-row.watched.watched-token.pinned {
+    box-shadow: inset 3px 0 0 var(--cyan), inset 5px 0 0 var(--purple-light);
+  }
   .btl-row .btl-idx {
     color: var(--text-3); font-size: 10px;
     text-align: right;
@@ -3278,6 +3316,11 @@
     align-items: center;
     gap: 10px;
     transition: all 0.15s;
+    /* v1.2.8: card body is clickable (opens the history modal). Action
+       buttons in the row stopPropagation in their handlers, so clicks
+       on ⏻/⎘/✎/↔ don't trigger the open. Cursor cue communicates the
+       new affordance. */
+    cursor: pointer;
   }
   .wl-card:hover {
     border-color: var(--watch);
@@ -3434,17 +3477,21 @@
     box-shadow: inset 0 0 8px rgba(167,255,55,0.15);
   }
   .wl-card .wl-actions-row {
-    display: flex; gap: 4px; align-items: center;
+    display: flex; gap: 6px; align-items: center;
   }
   .wl-card .wl-act-btn {
-    width: 22px; height: 22px;
+    /* v1.2.8: enlarged from 22px → 28px. The watchlist cards have plenty
+       of horizontal room and the previous tap targets were borderline on
+       touch. Bigger affordance, same look — slightly larger glyph reads
+       cleanly without dominating the row. */
+    width: 28px; height: 28px;
     border: 1px solid var(--line-2);
-    border-radius: 3px;
+    border-radius: 4px;
     background: transparent;
     color: var(--text-3);
     cursor: pointer;
     display: inline-flex; align-items: center; justify-content: center;
-    font-size: 11px;
+    font-size: 13px;
     transition: all 0.15s;
     padding: 0;
   }
@@ -3629,6 +3676,91 @@
     max-width: 560px;
     max-height: 70vh;
   }
+  /* v1.2.7: dialog body — flex column by default (narrow). At ≥1100px the
+     .history-multicol class flips it to flex-row so the borrowed #detail
+     panel sits beside the list. min-height:0 lets nested overflow scroll. */
+  .wl-history-main {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1 1 auto;
+  }
+  .wl-history-left {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1 1 auto;
+    gap: 6px;
+  }
+  .wl-history-left-actions {
+    display: flex; justify-content: center; padding-top: 4px;
+  }
+  /* Hidden by default; shown only when .history-multicol gates it on. */
+  .wl-history-right { display: none; }
+  .wl-history-detail-mount {
+    flex: 1 1 auto; min-height: 0; min-width: 0;
+    overflow: auto;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: rgba(0,0,0,0.20);
+  }
+  .wl-history-right-hint {
+    font-family: 'Fira Code', monospace; font-size: 10px;
+    color: var(--text-3);
+    padding: 6px 10px;
+    text-align: center;
+  }
+  @media (min-width: 1100px) {
+    .wl-dialog-history.history-multicol {
+      max-width: min(1200px, 96vw);
+      max-height: 88vh;
+      /* v1.2.8: lock height so the centered overlay doesn't re-position
+         when the detail panel content changes on hover (different txs
+         have different content lengths → dialog height shifted → modal
+         re-centered → visible jitter). With a fixed height the dialog
+         occupies the same viewport rectangle for the whole session;
+         only inner panels scroll. */
+      height: 88vh;
+    }
+    .wl-dialog-history.history-multicol .wl-history-main {
+      flex-direction: row;
+      gap: 14px;
+      flex: 1 1 auto;
+    }
+    .wl-dialog-history.history-multicol .wl-history-left {
+      flex: 0 0 480px;
+      min-width: 0;
+    }
+    .wl-dialog-history.history-multicol .wl-history-right {
+      display: flex; flex-direction: column;
+      flex: 1 1 auto;
+      min-width: 0; min-height: 0;
+      overflow: hidden;
+    }
+    /* In wide mode the list fills the available vertical space (overrides
+       the narrow-mode 320px cap so the right-column detail isn't forced
+       awkwardly tall vs. a short left list). */
+    .wl-dialog-history.history-multicol .wl-history-list {
+      max-height: none;
+    }
+    /* v1.2.8: bound the borrowed #detail panel inside the modal so its
+       content scrolls internally rather than re-sizing the mount. Same
+       pattern btl uses for its right column (lines ~2673). Without this,
+       a tx with lots of inputs/outputs causes the panel to grow and
+       push the modal taller → the wl-overlay re-centers → visible
+       "jitter" as the user hovers between rows. The !important on
+       overflow-y is needed to win over #detail's base overflow:hidden
+       which is correct in the main layout but wrong inside the mount. */
+    .wl-dialog-history.history-multicol .wl-history-detail-mount #detail {
+      flex: 1 1 auto;
+      min-height: 0;
+      height: auto;
+      max-height: none;
+      overflow-y: auto !important;
+      overflow-x: hidden;
+      display: block;
+    }
+  }
   .wl-dialog .wl-title {
     font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 16px;
     color: var(--text);
@@ -3747,6 +3879,13 @@
     gap: 8px;
     align-items: center;
     font-size: 11px;
+    /* v1.2.7: row body is click-to-pin (txid link still opens explorer
+       independently via its own anchor). Pointer cursor signals this. */
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .wl-history-row:hover {
+    background: rgba(1,160,224,0.06);
   }
   .wl-history-row:last-child { border-bottom: none; }
   .wl-history-row .wlh-time {
@@ -6441,7 +6580,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.2.6">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.2.6</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.2.8">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.2.8</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -6616,7 +6755,7 @@
             <a id="d-explorer" class="explorer-btn" href="#" target="_blank" rel="noopener" style="display:none">
               <span>explorer</span><span class="arrow">↗</span>
             </a>
-            <span id="d-pinstate"><span class="pin-state unpinned">— unpinned</span></span>
+            <span id="d-pinstate" title="Click to unpin"><span class="pin-state unpinned">— unpinned</span></span>
           </span>
         </div>
 
@@ -7382,15 +7521,34 @@
       <span class="wl-history-name" id="wl-history-name">—</span>
       <span class="wl-history-addr mono" id="wl-history-addr">—</span>
     </div>
-    <div class="wl-history-toolbar">
-      <button class="wl-btn wl-history-sync-btn" id="wl-history-sync-btn" title="Fetch this address/token's tx history from chronik">⟲ Sync from chronik</button>
-      <span class="wl-history-status" id="wl-history-status"></span>
-    </div>
-    <div class="wl-history-list" id="wl-history-list">
-      <div class="wl-history-empty">No tracked tx yet — they'll appear here as they happen. Press <b>Sync</b> to pull full history from chronik.</div>
+    <!-- v1.2.7: dialog body is a flex container. Default (narrow) = single
+         column (left only). Wide (≥1100px, .history-multicol class) = two
+         columns with the borrowed #detail panel on the right. The split
+         mirrors the block popup's 3-col → 2-col → mobile-overlay model;
+         here we have just 2-col → mobile-overlay (no chain rail needed). -->
+    <div class="wl-history-main">
+      <div class="wl-history-left">
+        <div class="wl-history-toolbar">
+          <button class="wl-btn wl-history-sync-btn" id="wl-history-sync-btn" title="Fetch this address/token's tx history from chronik">⟲ Sync from chronik</button>
+          <span class="wl-history-status" id="wl-history-status"></span>
+        </div>
+        <div class="wl-history-list" id="wl-history-list">
+          <div class="wl-history-empty">No tracked tx yet — they'll appear here as they happen. Press <b>Sync</b> to pull full history from chronik.</div>
+        </div>
+        <div class="wl-history-left-actions">
+          <button class="wl-btn wl-history-loadmore-btn" id="wl-history-loadmore-btn" style="display:none;">Load more</button>
+        </div>
+      </div>
+      <!-- Right column shown only at ≥1100px (CSS-gated via .history-multicol).
+           #wl-history-detail-mount is the slot the real #detail node moves
+           into via historyBorrowDetailPanel(); the hint sits above it as
+           the placeholder when nothing is hovered/pinned yet. -->
+      <div class="wl-history-right">
+        <div class="wl-history-right-hint">Hover a row to preview · click to pin · click again to unpin</div>
+        <div class="wl-history-detail-mount" id="wl-history-detail-mount"></div>
+      </div>
     </div>
     <div class="wl-actions">
-      <button class="wl-btn wl-history-loadmore-btn" id="wl-history-loadmore-btn" style="display:none;">Load more</button>
       <button class="wl-btn wl-btn-cancel" id="wl-history-close-btn">Close</button>
     </div>
   </div>
@@ -9702,7 +9860,23 @@ function setupWebSocket() {
         }
       },
       onError: (e) => console.warn('[ecash-live] WS error:', e?.message || e),
-      onConnect: () => console.log('[ecash-live] WebSocket connected'),
+      onConnect: () => {
+        console.log('[ecash-live] WebSocket connected');
+        // v1.2.7: also reconcile on (re)connect. The existing visibility-resume
+        // path catches the obvious case (tab away → tab back), but doesn't
+        // cover hot wake from system sleep where some browsers (notably
+        // Android Chrome on certain builds) don't fire visibilitychange.
+        // Symptom this fixes: txs confirmed into older blocks while the
+        // browser was asleep stay stranded in the mempool column on resume
+        // because no new BLOCK_FINALIZED arrives until the chain moves
+        // forward AGAIN. Hooking the reconcile to WS reconnect means the
+        // sweep runs as soon as the network comes back, even when no new
+        // block arrives. scheduleResumeReconcile is 2s-debounced + bounded
+        // (RECONCILE_TX_CAP 600, BATCH_SIZE 8), and is a no-op on initial
+        // connect (state.txs is empty, _runReconcile returns at
+        // `tracked.length === 0`), so it's safe to call here unconditionally.
+        try { scheduleResumeReconcile(); } catch (e) {}
+      },
       onEnd: () => console.log('[ecash-live] WebSocket closed'),
       autoReconnect: true,
     });
@@ -11547,8 +11721,20 @@ function renderDetail(tx) {
   // (the 1.1.3 "spinner never disappears after 3s" bug). Folding the live
   // hasPendingNodePreciseWait() result into the key forces exactly one
   // re-render when the window closes, which clears the spinner.
+  // The trailing token-info component (v1.2.7) is for the symmetric bug on
+  // the popup-pin path: btlPinTx calls renderDetail with tx.token populated
+  // but ticker empty (fetchTokenInfo still in flight). When the fetch resolves
+  // and refreshDetailIfActive() fires, none of the keyed fields had changed —
+  // tx.token mutates outside the key — so the memo early-returned and the
+  // ticker stayed as "(loading…)" until the user unpinned (pinState flip
+  // forced a re-render). Including a 0/1 sentinel ('1' = ticker loaded)
+  // flips the key exactly once when the info lands, triggering one paint.
+  // We use a sentinel instead of the ticker string itself because (a) tickers
+  // are immutable on-chain post-genesis so a binary suffices and (b) keeps
+  // the key length bounded regardless of how long the ticker is.
+  const tokenLoaded = tx && tx.token ? (tx.token.ticker ? '1' : '0') : '-';
   const key = tx
-    ? `${tx.id}|${tx.state}|${tx.confidence}|${pinState}|${tx.includedBlock || ''}|${tx.ttf == null ? 'n' : tx.ttf}|${tx.ttfSource || ''}|${tx.ttfResolved ? '1' : '0'}|${hasPendingNodePreciseWait(tx.id) ? 'spin' : 'nospin'}`
+    ? `${tx.id}|${tx.state}|${tx.confidence}|${pinState}|${tx.includedBlock || ''}|${tx.ttf == null ? 'n' : tx.ttf}|${tx.ttfSource || ''}|${tx.ttfResolved ? '1' : '0'}|${hasPendingNodePreciseWait(tx.id) ? 'spin' : 'nospin'}|tk${tokenLoaded}`
     : `null|${pinState}`;
   if (key === _lastDetailKey) return;
   _lastDetailKey = key;
@@ -13196,12 +13382,100 @@ async function btlChainGoTo(height) {
 //   • 3-col desktop → detail panel is already in the right column → render there.
 //   • 2-col desktop → close the popup and pin to the main tx-detail panel.
 //   • mobile        → keep popup open, show the detail panel as an overlay.
+// v1.2.7: paint a .pinned marker on whichever popup row matches state.pinnedTx.
+// Hits both .btl-row (block popup) and .wl-history-row (watching-list history
+// modal) selectors in one pass — keeps the visual in sync regardless of pin
+// origin (popup click, hover-then-click, main-list click, msg-card click,
+// programmatic state.pinnedTx assignment, etc).
+//
+// Cheap: at most ~200 popup rows total (one page each), and the function
+// only runs on pin/unpin events — not in any hot path or per-frame loop.
+// Re-rendering rows (btlRenderRows, _renderSyncedHistory) calls this once
+// at the end so a fresh row inherits its pinned state immediately.
+function refreshPopupPinnedMarkers() {
+  const pinId = state.pinnedTx ? state.pinnedTx.id : null;
+  document.querySelectorAll('.btl-row.pinned, .wl-history-row.pinned').forEach(r => {
+    if (!pinId || r.dataset.txid !== pinId) r.classList.remove('pinned');
+  });
+  if (pinId) {
+    // CSS.escape guard: same pattern as evictTxRow's sel.
+    const sel = '.btl-row[data-txid="' + (window.CSS && CSS.escape ? CSS.escape(pinId) : pinId) + '"], '
+              + '.wl-history-row[data-txid="' + (window.CSS && CSS.escape ? CSS.escape(pinId) : pinId) + '"]';
+    try {
+      document.querySelectorAll(sel).forEach(r => r.classList.add('pinned'));
+    } catch (e) {}
+  }
+}
+
+// v1.2.7: programmatic unpin entry point that mirrors the "click pinned row
+// again" UX in both popups. Single source of truth for: state cleanup, mobile-
+// overlay teardown, detail-panel redraw, and popup-row marker refresh. Used
+// by the click handlers below (re-click on the pinned row → unpin).
+function unpinFromPopup() {
+  state.pinnedTx = null;
+  // If the detail panel was surfaced as a mobile overlay (anything below
+  // 1100px), tear it down. closeMobileDetail already drops .mobile-open,
+  // clears state.pinnedTx (idempotent — we just did it), and removes any
+  // .tx-row.pinned + popup row markers.
+  const detail = document.getElementById('detail');
+  if (detail && detail.classList.contains('mobile-open')) {
+    try { closeMobileDetail(); } catch (e) {}
+  } else {
+    // v1.2.8: 3-col / wide desktop path. closeMobileDetail isn't applicable
+    // (panel is not in overlay mode), but main-feed .tx-row.pinned markers
+    // still need clearing — they were set by the main-feed click handler
+    // independently of the popup. Without this, unpinning via the detail
+    // chip leaves the originating tx-row in col1/col2 visually highlighted
+    // even though state.pinnedTx is now null.
+    document.querySelectorAll('.tx-row.pinned').forEach(r => r.classList.remove('pinned'));
+  }
+  // Repaint the (now empty) detail panel — covers the 3-col case where
+  // the panel is inside the popup and needs to clear, and the no-pin case
+  // where the panel was inline on a wide layout.
+  try { renderDetail(null); } catch (e) {}
+  try { refreshPopupPinnedMarkers(); } catch (e) {}
+}
+
 async function btlPinTx(txid) {
   if (!txid) return;
   const threeCol = window.matchMedia('(min-width: 1100px)').matches;
   const mobile = (typeof isMobile === 'function' && isMobile());
 
   let tx = state.txs.get(txid);
+  if (!tx) {
+    // v1.2.7: prefer the parsed tx the hover handler already cached on the
+    // btl row. The full chronik tx was delivered by chronik.blockTxs() at
+    // page-load time and retained in btlState.rows[i].raw / .parsed. If the
+    // user hovered before clicking, parseTransaction already ran and the
+    // result is reusable — saves one chronik.tx() round-trip on click.
+    // Falls through to the network path if hover never touched this row or
+    // if filtering / page-replacement dropped the entry.
+    let cachedRow = null;
+    if (Array.isArray(btlState.rows)) {
+      for (const r of btlState.rows) {
+        if (r.txid === txid) { cachedRow = r; break; }
+      }
+    }
+    if (cachedRow && cachedRow.raw) {
+      try {
+        if (!cachedRow.parsed) cachedRow.parsed = parseTransaction(cachedRow.raw);
+        tx = cachedRow.parsed;
+        if (cachedRow.raw.block) {
+          tx.state = 'included';
+          tx.includedBlock = cachedRow.raw.block.height ?? cachedRow.raw.block.blockInfo?.height;
+        }
+        if (!tryAdmitTx(txid)) {
+          const mountHint = document.querySelector('.btl-right-hint');
+          if (threeCol && mountHint) mountHint.textContent = 'Cache full — try again.';
+          return;
+        }
+        state.txs.set(txid, tx);
+      } catch (e) {
+        console.warn('[btl] cached-parse pin failed, falling back to network', e);
+        tx = null;
+      }
+    }
+  }
   if (!tx) {
     // Fetch on click only.
     const mountHint = document.querySelector('.btl-right-hint');
@@ -13232,16 +13506,27 @@ async function btlPinTx(txid) {
   if (threeCol) {
     // Detail panel is already re-parented into the right column.
     renderDetail(tx);
-  } else if (mobile) {
-    // Keep popup open; surface the detail panel as a mobile overlay.
+  } else {
+    // v1.2.7: ALL non-3-col widths (was just mobile <768px; now also 768-1099
+    // mid-tablet/desktop range) use the same stacked-overlay UX. Keeps the
+    // popup behind, surfaces the detail panel as a full-coverage modal via
+    // the .mobile-open class. Two reasons for the merge:
+    //   1. Mid-screen used to close the popup + pin to the main detail panel,
+    //      which lost the user's place in the block tx list. Stacking
+    //      preserves context — dismiss the detail and the popup is right
+    //      where they left it.
+    //   2. Symmetry with the watching-list history modal (same change in
+    //      this release), so the layout split has exactly one threshold
+    //      (1100px) instead of two.
     renderDetail(tx);
     const detail = document.getElementById('detail');
     if (detail) detail.classList.add('mobile-open');
-  } else {
-    // 2-col: close popup, pin to the main detail panel.
-    closeBlockTxList();
-    renderDetail(tx);
   }
+  // v1.2.7: paint the pinned-row marker on whichever popup row matches the
+  // new pin. Toggle-unpin (re-click on same row) is handled at the row
+  // click site; this helper just keeps the visual in sync regardless of
+  // pin source (popup click, hover, main-list click, etc.).
+  try { refreshPopupPinnedMarkers(); } catch (e) {}
 }
 
 function btlChainSearch(value) {
@@ -13342,6 +13627,19 @@ function closeBlockTxList() {
   // Restore scroll
   document.body.style.overflow = '';
   btlState.block = null;
+  // v1.2.7: drop hover state if it was pointing at a btl-row's parsed tx.
+  // btl-row txs aren't in state.txs (only pinned ones are admitted), so a
+  // stale hoveredTx reference here would survive popup close and could be
+  // re-rendered by a later refreshDetailIfActive(). Clearing unconditionally
+  // is safe — hovering on the popup is the only way state.hoveredTx could
+  // hold a non-state.txs tx in this UI surface. Also nudge the detail panel
+  // back to a clean state when nothing is pinned.
+  if (state.hoveredTx && !state.txs.has(state.hoveredTx.id)) {
+    state.hoveredTx = null;
+    if (!state.pinnedTx) {
+      try { renderDetail(null); } catch (e) {}
+    }
+  }
   btlState.rows = [];
 }
 
@@ -13459,6 +13757,16 @@ async function btlFetchPage() {
         wlAddr: wlTags.addr,
         wlToken: wlTags.token,
         tintKind,
+        // v1.2.7 HOVER PREVIEW: retain the full chronik tx so mouseenter can
+        // render the detail panel without a network call. Memory cost is
+        // bounded — closeBlockTxList() clears btlState.rows on popup close,
+        // and "Load more" replaces the array (prior pages' raw data drops).
+        // Worst case = BTL_PAGE_SIZE (200) × ~1-5KB/tx ≈ 0.2-1 MB transient.
+        // The `parsed` slot is lazy: filled on first hover via
+        // parseTransaction(raw), reused by subsequent hovers + by btlPinTx
+        // on click (so click-after-hover is free, no double fetch+parse).
+        raw: tx,
+        parsed: null,
       });
       // v1.2.7 PREWARM: blockTxs already delivered the full tokenEntries, so
       // each unique tokenId in the page is one fire-and-forget chronik.token()
@@ -13585,13 +13893,70 @@ function btlRenderRows() {
         window.open(explorerTx(r.txid), '_blank', 'noopener');
         return;
       }
+      // v1.2.7: toggle-unpin if this row is already the pinned one.
+      // Symmetric UX — clicking pinned row a second time removes the pin
+      // and tears down the mobile-overlay (or empties the borrowed panel
+      // on 3-col). Click on a DIFFERENT row swaps pin via btlPinTx below.
+      if (state.pinnedTx && state.pinnedTx.id === r.txid) {
+        try { unpinFromPopup(); } catch (e) {}
+        return;
+      }
       // Anywhere else on the row → pin the tx to detail.
       btlPinTx(r.txid);
+    });
+    // v1.2.7 HOVER PREVIEW: mirrors the main tx-list hover pattern
+    // (see lines ~11185-11202). Hover-gate uses the 3-col breakpoint
+    // (1100px) — below that the panel is hidden behind the popup
+    // overlay so hovering wouldn't surface anything useful, and at
+    // those widths the click path already covers preview-by-pinning.
+    // Lazy-parses the raw tx on first hover and caches on the row entry;
+    // subsequent hovers + the click handler reuse the same parsed object.
+    //
+    // state.hoveredTx is set unconditionally (matches main list) so that
+    // refreshDetailIfActive() picks up the hover target when no tx is pinned.
+    // closeBlockTxList() clears state.hoveredTx to prevent a stale btl-row
+    // tx from being re-rendered after the popup tears down.
+    a.addEventListener('mouseenter', () => {
+      if (!window.matchMedia('(min-width: 1100px)').matches) return;
+      if (!r.parsed) {
+        try {
+          r.parsed = parseTransaction(r.raw);
+          // v1.2.8: stamp included-block info onto the parsed tx so the
+          // detail panel renders the correct avalanche state ("included
+          // in block") and block link instead of the parseTransaction
+          // default of state='pending' (which surfaces as "mempool ·
+          // awaiting" + block "—"). Mirrors btlPinTx's stamping on the
+          // click-fetch path — without this the hover preview shows
+          // wrong basic info on every confirmed tx in the popup.
+          if (r.raw && r.raw.block) {
+            r.parsed.state = 'included';
+            r.parsed.includedBlock = r.raw.block.height ?? r.raw.block.blockInfo?.height;
+          }
+        }
+        catch (e) { console.warn('[btl] hover parse failed', r.txid?.slice(0, 12), e); return; }
+      }
+      state.hoveredTx = r.parsed;
+      if (!state.pinnedTx) {
+        try { renderDetail(r.parsed); }
+        catch (e) { console.error('[btl] hover renderDetail:', e); }
+      }
+    });
+    a.addEventListener('mouseleave', () => {
+      if (!window.matchMedia('(min-width: 1100px)').matches) return;
+      if (state.hoveredTx === r.parsed) state.hoveredTx = null;
+      if (!state.pinnedTx) {
+        try { renderDetail(null); }
+        catch (e) { console.error('[btl] leave renderDetail:', e); }
+      }
     });
     frag.appendChild(a);
   }
   body.innerHTML = '';
   body.appendChild(frag);
+  // v1.2.7: ensure the freshly-rendered rows pick up .pinned if any of them
+  // matches state.pinnedTx (e.g. user paginated, scrolled, or re-rendered
+  // after a watchlist tag refresh while a pin from this popup was active).
+  try { refreshPopupPinnedMarkers(); } catch (e) {}
   $('btl-progress').textContent =
     `${btlState.rows.length.toLocaleString('en-US')} loaded` +
     (btlState.block?.txCount ? ` of ${btlState.block.txCount.toLocaleString('en-US')}` : '') +
@@ -14274,6 +14639,10 @@ function closeMobileDetail() {
   _setDetailBgInert(false);
   state.pinnedTx = null;
   document.querySelectorAll('.tx-row.pinned').forEach(r => r.classList.remove('pinned'));
+  // v1.2.7: same cleanup for popup row markers so the visual is consistent
+  // when the mobile-overlay detail is dismissed (swipe-down, backdrop tap,
+  // close button, programmatic close).
+  document.querySelectorAll('.btl-row.pinned, .wl-history-row.pinned').forEach(r => r.classList.remove('pinned'));
 }
 
 // Toggle `inert` on the background tx columns while the mobile detail panel
@@ -14323,6 +14692,18 @@ function _setDetailBgInert(on) {
 })();
 
 document.getElementById('detail-close')?.addEventListener('click', closeMobileDetail);
+
+// v1.2.8: click the "◆ pinned" chip in the detail panel head to unpin.
+// Mirrors the toggle-unpin on popup rows — gives the user a second, more
+// discoverable exit from a pinned state without forcing them back to the
+// originating row. No-op when not currently pinned (the chip reads
+// "hovering" or "— unpinned"). Cursor is already pointer via CSS, with
+// hover underline as the affordance hint; title="Click to unpin" covers
+// accessibility/touch users who can't preview cursor changes.
+document.getElementById('d-pinstate')?.addEventListener('click', () => {
+  if (!state.pinnedTx) return;
+  try { unpinFromPopup(); } catch (e) {}
+});
 
 // Swipe-down-to-close gesture for the detail panel on mobile.
 // The drag is recognized only when starting at the very top of the panel (within
@@ -14922,7 +15303,6 @@ function renderWatchlist() {
       <div class="wl-actions-row">
         ${isToken ? '' : '<button class="wl-act-btn wl-act-chat" title="Chat with this address" aria-label="Chat with this address">↔</button>'}
         <button class="wl-act-btn wl-act-toggle ${entry.enabled === false ? 'is-off' : ''}" aria-pressed="${entry.enabled === false ? 'false' : 'true'}" title="${entry.enabled === false ? 'Watching paused — click to resume' : 'Watching active — click to pause'}" aria-label="Toggle watching">⏻</button>
-        <button class="wl-act-btn wl-act-history" title="Show recent tx for this ${isToken ? 'token' : 'address'}" aria-label="Show history">☰</button>
         <button class="wl-act-btn wl-act-copy" title="Copy ${isToken ? 'token ID' : 'address'}" aria-label="Copy">⎘</button>
         <button class="wl-act-btn wl-act-edit" title="Edit (rename, change mode, remove)" aria-label="Edit">✎</button>
       </div>
@@ -14957,10 +15337,6 @@ function renderWatchlist() {
       setWatchlistEnabled(entry.addr, entry.enabled === false);
     });
 
-    card.querySelector('.wl-act-history').addEventListener('click', (e) => {
-      e.stopPropagation();
-      openHistoryModal(entry.addr);
-    });
     card.querySelector('.wl-act-copy').addEventListener('click', async (e) => {
       e.stopPropagation();
       const btn = e.currentTarget;
@@ -14972,6 +15348,15 @@ function renderWatchlist() {
     card.querySelector('.wl-act-edit').addEventListener('click', (e) => {
       e.stopPropagation();
       openWatchlistEditDialog(entry.addr);
+    });
+    // v1.2.8: clicking the card body opens the history modal (replaces
+    // the ☰ button that used to live in the action row). The action
+    // buttons themselves all stopPropagation in their own handlers, so
+    // clicks on ⏻/⎘/✎/↔/mode-pills don't reach here — only "empty"
+    // card-body clicks open the modal. Cursor affordance is via the
+    // .wl-card { cursor: pointer } rule.
+    card.addEventListener('click', () => {
+      openHistoryModal(entry.addr);
     });
     wrap.appendChild(card);
   }
@@ -15162,6 +15547,249 @@ function _resetHistoryFetch() {
   historyFetch.synced = false; historyFetch.loading = false;
 }
 
+// v1.2.7: detail-panel re-parenting for the watching-list history modal.
+// Mirrors btlBorrowDetailPanel / btlRestoreDetailPanel exactly: MOVE the
+// real #detail node into the modal's right column while the modal is open
+// at ≥1100px width, restore it on close (or when leaving wide mode). At
+// narrower widths the right column is CSS-hidden and the panel stays in
+// its main-layout home — clicks surface it as a .mobile-open overlay
+// stacked on top of the modal instead.
+//
+// Defensive: refuses to borrow if the block popup currently owns the
+// panel (_btlDetailHome set), and the block-popup version refuses if we
+// own it (_historyDetailHome set). The two popups SHOULD be mutually
+// exclusive in normal use, but the guard prevents a stale parent
+// pointer from corrupting the panel's home on a rapid open/close race.
+let _historyDetailHome = null;   // { parent, next } to restore to
+function historyBorrowDetailPanel() {
+  const detail = document.getElementById('detail');
+  const mount = document.getElementById('wl-history-detail-mount');
+  if (!detail || !mount) return;
+  if (!window.matchMedia('(min-width: 1100px)').matches) return;  // 2-col mode only
+  if (detail.parentElement === mount) return;                      // already borrowed
+  if (typeof _btlDetailHome !== 'undefined' && _btlDetailHome) return; // block popup owns it
+  _historyDetailHome = { parent: detail.parentElement, next: detail.nextSibling };
+  mount.appendChild(detail);
+}
+function historyRestoreDetailPanel() {
+  const detail = document.getElementById('detail');
+  if (!detail || !_historyDetailHome) return;
+  const { parent, next } = _historyDetailHome;
+  if (parent) {
+    if (next && next.parentElement === parent) parent.insertBefore(detail, next);
+    else parent.appendChild(detail);
+  }
+  _historyDetailHome = null;
+}
+
+// v1.2.8: lazy background refresh for stale state.txs entries surfaced
+// by the history-modal resolver. Non-included tx + chronik available →
+// fire a one-shot chronik.tx; if the response carries block info, stamp
+// state='included' + includedBlock and trigger one re-render if this tx
+// is currently displayed. Per-tx _refreshInFlight gate prevents repeated
+// hover/click loops from stacking calls on the same txid. No-op for txs
+// already in the 'included' state (would be wasted RTT).
+function _refreshTxIfStale(tx) {
+  if (!tx || !chronik || typeof chronik.tx !== 'function') return;
+  if (tx.state === 'included') return;
+  if (tx._refreshInFlight) return;
+  tx._refreshInFlight = true;
+  chronik.tx(tx.id).then(raw => {
+    tx._refreshInFlight = false;
+    const h = raw && raw.block && (raw.block.height ?? raw.block.blockInfo?.height);
+    if (h != null && tx.state !== 'included') {
+      tx.state = 'included';
+      tx.includedBlock = h;
+      tx.includedAt = tx.includedAt || Date.now();
+      // Repaint only if the user is still looking at this tx — avoids
+      // a paint hit while the popup is closed or another tx is hovered.
+      if (state.pinnedTx === tx || state.hoveredTx === tx) {
+        try { renderDetail(tx); } catch (e) {}
+      }
+      // Also evict the row from any mempool/polling column it might be
+      // stranded in — same effect as the reconcile pass but targeted to
+      // this single tx (mirrors _runReconcile's evict + state-flip).
+      if (tx.row) {
+        try { evictTxRow(tx.id, true); } catch (e) {}
+      }
+    }
+  }).catch(() => { tx._refreshInFlight = false; });
+}
+
+// v1.2.7: resolve a history-row txid to a parsed tx object usable by
+// renderDetail(). Three sources, tried in order — cheapest first:
+//   1. historyFetch.rows cached `raw`/`parsed` (synced mode, in-memory).
+//   2. state.txs (live-tracked row that's still in the cache).
+//   3. chronik.tx() network fetch (fallback for cache misses / live-only
+//      rows whose tx aged out of state.txs).
+// Returns the parsed tx or null on failure. parseTransaction kicks off
+// fetchTokenInfo internally — deduped by v1.2.7's inflight cache when
+// the same tokenId is hovered repeatedly or already in flight.
+async function _resolveHistoryTx(txid) {
+  if (!txid) return null;
+  // 1. Synced-row cache. Iterate historyFetch.rows for this txid; if found
+  //    with raw, parse-and-cache. Tiny linear scan (bounded by page size).
+  if (Array.isArray(historyFetch.rows)) {
+    for (const r of historyFetch.rows) {
+      if (r.txid !== txid) continue;
+      if (r.parsed) return r.parsed;
+      if (r.raw) {
+        try {
+          r.parsed = parseTransaction(r.raw);
+          // Preserve the included-block info from the chronik tx — without
+          // this, the detail panel would treat a historical confirmed tx as
+          // "still pending" and the TTF/block fields would be blank.
+          if (r.raw.block) {
+            r.parsed.state = 'included';
+            r.parsed.includedBlock = r.raw.block.height ?? r.raw.block.blockInfo?.height;
+          }
+          return r.parsed;
+        } catch (e) {
+          console.warn('[wl-history] parse failed', txid?.slice(0, 12), e);
+        }
+      }
+      break;
+    }
+  }
+  // 2. Live-tracked in state.txs.
+  const live = state.txs.get(txid);
+  if (live) {
+    // v1.2.8: state.txs may hold a stale snapshot — e.g. tx was 'pending'
+    // when the browser slept and confirmed during sleep; reconcile is the
+    // primary correction path (see onConnect/scheduleResumeReconcile)
+    // but a hover that beats reconcile would surface "mempool · awaiting"
+    // for a tx the chain has already confirmed. Defense-in-depth:
+    // background-refresh non-included txs via chronik.tx, stamp included-
+    // block on success, and re-render the panel if this tx is still on
+    // screen. Guarded by per-tx _refreshInFlight + 'included' short-
+    // circuit so the same hover doesn't repeatedly fire chronik calls.
+    _refreshTxIfStale(live);
+    return live;
+  }
+  // 3. Network fallback. Same pattern as btlPinTx: fetch raw via chronik,
+  //    parse, stamp included-block. NOTE: we do NOT admit into state.txs
+  //    on hover — too much churn against MAX_TXS cap. Only when the user
+  //    clicks-to-pin does this enter state.txs (handled by the caller).
+  if (chronik && typeof chronik.tx === 'function') {
+    try {
+      const raw = await chronik.tx(txid);
+      const parsed = parseTransaction(raw);
+      if (raw.block) {
+        parsed.state = 'included';
+        parsed.includedBlock = raw.block.height ?? raw.block.blockInfo?.height;
+      }
+      // Cache on the synced-row entry if we have one (so subsequent hovers
+      // on the same live-tracked row reuse without re-fetching).
+      if (Array.isArray(historyFetch.rows)) {
+        for (const r of historyFetch.rows) {
+          if (r.txid === txid) { r.raw = raw; r.parsed = parsed; break; }
+        }
+      }
+      return parsed;
+    } catch (e) {
+      console.warn('[wl-history] chronik.tx failed', txid?.slice(0, 12), e?.message || e);
+    }
+  }
+  return null;
+}
+
+// v1.2.7: pin a tx from the history modal. Three-mode dispatch mirrors
+// btlPinTx — 3-col borrows the panel, narrow uses the mobile overlay.
+// The mid-screen "close popup + pin to main panel" branch is intentionally
+// gone (matches the block popup change in this release).
+async function _pinFromHistorySrc(txid) {
+  if (!txid) return;
+  // Toggle-unpin: re-click on the pinned row tears down the pin.
+  if (state.pinnedTx && state.pinnedTx.id === txid) {
+    try { unpinFromPopup(); } catch (e) {}
+    return;
+  }
+  const tx = await _resolveHistoryTx(txid);
+  if (!tx) return;
+  // Admission into state.txs if not already there. Pinned txs should be
+  // reachable by subsequent renderDetail() refreshes; not admitting would
+  // mean the pin loses its tx reference if anything triggers a state.txs
+  // lookup elsewhere. Falls back gracefully if the cap rejects.
+  if (!state.txs.has(txid)) {
+    if (typeof tryAdmitTx === 'function') {
+      if (!tryAdmitTx(txid)) return;  // cache full — refuse silently
+    }
+    state.txs.set(txid, tx);
+  }
+  state.pinnedTx = tx;
+  const threeCol = window.matchMedia('(min-width: 1100px)').matches;
+  if (threeCol) {
+    // Panel is borrowed into the modal — just render.
+    renderDetail(tx);
+  } else {
+    // Narrow: stack the detail panel on top of the modal as a mobile overlay.
+    renderDetail(tx);
+    const detail = document.getElementById('detail');
+    if (detail) detail.classList.add('mobile-open');
+  }
+  try { refreshPopupPinnedMarkers(); } catch (e) {}
+}
+
+// v1.2.7: delegated hover handler on the wl-history-list. Mirrors the
+// btl hover pattern — gated to wide (≥1100px) only since the panel is
+// hidden behind the modal at narrower widths. Resolves the tx via the
+// same priority chain as click (cache → state.txs → network), so a
+// hover that triggers a network fetch primes the cache for the click.
+async function _historyRowHoverEnter(row) {
+  if (!window.matchMedia('(min-width: 1100px)').matches) return;
+  const txid = row.dataset.txid;
+  if (!txid) return;
+  const tx = await _resolveHistoryTx(txid);
+  if (!tx) return;
+  state.hoveredTx = tx;
+  if (!state.pinnedTx) {
+    try { renderDetail(tx); } catch (e) {}
+  }
+}
+function _historyRowHoverLeave(row) {
+  if (!window.matchMedia('(min-width: 1100px)').matches) return;
+  const txid = row.dataset.txid;
+  if (state.hoveredTx && state.hoveredTx.id === txid) {
+    state.hoveredTx = null;
+    if (!state.pinnedTx) {
+      try { renderDetail(null); } catch (e) {}
+    }
+  }
+}
+
+// v1.2.7: wire delegation ONCE on the history list element. Survives every
+// re-render (renderHistoryList / _renderSyncedHistory rebuild innerHTML).
+// We attach: click (with txid-link bypass), mouseover/mouseout (delegated
+// per-row enter/leave detection via relatedTarget).
+function _wireHistoryListDelegation() {
+  const list = document.getElementById('wl-history-list');
+  if (!list || list._delegationWired) return;
+  list._delegationWired = true;
+  list.addEventListener('click', (e) => {
+    // txid is an inline <a> — let the browser handle it (open explorer).
+    if (e.target.closest('.wlh-txid')) return;
+    const row = e.target.closest('.wl-history-row');
+    if (!row || !list.contains(row)) return;
+    const txid = row.dataset.txid;
+    if (!txid) return;
+    _pinFromHistorySrc(txid).catch(err => console.warn('[wl-history] pin failed', err));
+  });
+  // mouseover/mouseout fire for every descendant transition, so guard with
+  // relatedTarget to detect TRUE row-enter / row-leave events only.
+  list.addEventListener('mouseover', (e) => {
+    const row = e.target.closest('.wl-history-row');
+    if (!row || !list.contains(row)) return;
+    if (e.relatedTarget && row.contains(e.relatedTarget)) return;  // intra-row move
+    _historyRowHoverEnter(row);
+  });
+  list.addEventListener('mouseout', (e) => {
+    const row = e.target.closest('.wl-history-row');
+    if (!row || !list.contains(row)) return;
+    if (e.relatedTarget && row.contains(e.relatedTarget)) return;  // intra-row move
+    _historyRowHoverLeave(row);
+  });
+}
+
 function openHistoryModal(addr) {
   const entry = watchlist.byAddr.get(addr);
   if (!entry) return;
@@ -15176,11 +15804,46 @@ function openHistoryModal(addr) {
   if (lm) lm.style.display = 'none';
   const sync = document.getElementById('wl-history-sync-btn');
   if (sync) { sync.disabled = false; sync.textContent = '⟲ Sync from chronik'; }
+  // v1.2.7: flip on the multi-col class BEFORE the overlay shows so CSS
+  // grids are correct on first paint. The class is a no-op on <1100px
+  // (right column stays display:none); on wide it expands the dialog and
+  // exposes the slot for the borrowed #detail panel.
+  const overlay = document.getElementById('wl-history-overlay');
+  const dialog = overlay && overlay.querySelector('.wl-dialog-history');
+  if (dialog) dialog.classList.add('history-multicol');
   renderHistoryList();   // local view first
-  document.getElementById('wl-history-overlay').classList.add('show');
+  overlay.classList.add('show');
+  // Wire delegated click+hover ONCE for the list; safe to call every open
+  // (the function self-flags via list._delegationWired).
+  try { _wireHistoryListDelegation(); } catch (e) {}
+  // Borrow the real #detail panel into the right column (wide only).
+  try { historyBorrowDetailPanel(); } catch (e) {}
+  // Repaint markers in case the user opened this modal while a tx from
+  // another surface is already pinned (matches the visual immediately).
+  try { refreshPopupPinnedMarkers(); } catch (e) {}
 }
 function closeHistoryModal() {
-  document.getElementById('wl-history-overlay').classList.remove('show');
+  const overlay = document.getElementById('wl-history-overlay');
+  overlay.classList.remove('show');
+  // v1.2.7: restore the borrowed detail panel BEFORE the dialog tears down
+  // so the panel doesn't end up orphaned inside a hidden subtree on a fast
+  // reopen. Then strip the multi-col class.
+  try { historyRestoreDetailPanel(); } catch (e) {}
+  const dialog = overlay && overlay.querySelector('.wl-dialog-history');
+  if (dialog) dialog.classList.remove('history-multicol');
+  // Same hovered-tx hygiene as closeBlockTxList: drop any history-row-derived
+  // hoveredTx that isn't a member of state.txs (those are ephemeral parse
+  // results, not admitted live txs).
+  if (state.hoveredTx && !state.txs.has(state.hoveredTx.id)) {
+    state.hoveredTx = null;
+    if (!state.pinnedTx) {
+      try { renderDetail(null); } catch (e) {}
+    }
+  }
+  // Clear pin markers on history rows (the rows are about to be torn down
+  // by _resetHistoryFetch's clear, but defensive against a future code path
+  // that leaves them in the DOM).
+  document.querySelectorAll('.wl-history-row.pinned').forEach(r => r.classList.remove('pinned'));
   currentHistoryAddr = null;
   _resetHistoryFetch();
 }
@@ -15215,11 +15878,22 @@ async function _fetchHistoryPage(page) {
 
 // Turn a raw chronik tx into a compact display row using the app's canonical
 // parser so amounts/token/msg read the same as everywhere else.
+// v1.2.7: also retain the raw chronik tx + the parsed result on the row so
+// the click/hover resolver (_resolveHistoryTx) can serve from cache. Memory
+// cost is bounded — historyFetch.rows is reset on close / re-sync / address
+// change, and each page is HISTORY_PAGE_SIZE (200) ≈ a few hundred KB worst
+// case. Mirrors the equivalent btl row enrichment from earlier in v1.2.7.
 function _historyRowFromRawTx(raw) {
   let parsed = null;
   try { parsed = parseTransaction(raw); } catch (e) {}
   const txid = raw.txid || (parsed && parsed.id);
   if (!txid) return null;
+  // Stamp included-block info onto parsed so renderDetail treats this as a
+  // confirmed historical tx (not "still pending" with blank TTF/block fields).
+  if (parsed && raw.block) {
+    parsed.state = 'included';
+    parsed.includedBlock = raw.block.height ?? raw.block.blockInfo?.height;
+  }
   const ts = (raw.timeFirstSeen ? Number(raw.timeFirstSeen) * 1000 : null)
           ?? (raw.block?.timestamp ? Number(raw.block.timestamp) * 1000 : Date.now());
   let kind = 'XEC', label = 'XEC', amt = '—';
@@ -15233,7 +15907,7 @@ function _historyRowFromRawTx(raw) {
   if (parsed && Number.isFinite(parsed.valueXec) && kind === 'XEC') {
     amt = parsed.valueXec.toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' XEC';
   }
-  return { txid, ts, kind, label, amt, confirmed: !!(raw.block) };
+  return { txid, ts, kind, label, amt, confirmed: !!(raw.block), raw, parsed };
 }
 
 async function syncHistoryFromChronik() {
@@ -15303,6 +15977,7 @@ function _renderSyncedHistory() {
     for (const r of historyFetch.rows) {
       const row = document.createElement('div');
       row.className = 'wl-history-row';
+      row.dataset.txid = r.txid;
       const time = new Date(r.ts).toLocaleString('en-US', { hour12: false, month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
       row.innerHTML = `
         <span class="wlh-time">${time}</span>
@@ -15315,6 +15990,10 @@ function _renderSyncedHistory() {
       list.appendChild(row);
     }
   }
+  // v1.2.7: keep pinned highlight in sync after a re-render (sync, load more,
+  // live update). refreshPopupPinnedMarkers reads state.pinnedTx and stamps
+  // the .pinned class on whichever row matches.
+  try { refreshPopupPinnedMarkers(); } catch (e) {}
   _setHistoryStatus(`${historyFetch.rows.length} shown · synced`);
   const lm = document.getElementById('wl-history-loadmore-btn');
   if (lm) lm.style.display = (historyFetch.page + 1 < historyFetch.numPages) ? 'inline-block' : 'none';
@@ -15338,6 +16017,7 @@ function renderHistoryList() {
   for (const h of entry.history) {
     const row = document.createElement('div');
     row.className = 'wl-history-row';
+    row.dataset.txid = h.txid;
     const time = new Date(h.ts).toLocaleTimeString('en-US', { hour12: false });
     const tag = h.tokenTicker
       ? `<span class="wlh-tag">TOKEN</span>`
@@ -15358,6 +16038,11 @@ function renderHistoryList() {
     `;
     list.appendChild(row);
   }
+  // v1.2.7: pin-marker sync mirrors the synced-view path. Live updates to
+  // entry.history (a new tracked tx hitting the watchlist) re-render the
+  // list while the modal is open; the pinned row, if any, must keep its
+  // .pinned class across the rebuild.
+  try { refreshPopupPinnedMarkers(); } catch (e) {}
 }
 
 // Wire dialog buttons
