@@ -1,0 +1,12 @@
+{
+  "_comment": "eChan sprite manifest. Defines how many variants exist per emotion. Filename convention: variant 1 = echan_<emotion>.webp, variant N≥2 = echan_<emotion>_N.webp. Add a sprite: drop the file + bump its count here. Remove a sprite: delete file + decrement count. eChan picks a random variant on each emotion change (never the same one twice in a row when ≥2 exist). Fallback if this file is missing or malformed: 1 per emotion (base file only).",
+  "version": 1,
+  "emotions": {
+    "neutral":   1,
+    "happy":     1,
+    "thinking":  1,
+    "alert":     1,
+    "celebrate": 1,
+    "sleepy":    1
+  }
+}

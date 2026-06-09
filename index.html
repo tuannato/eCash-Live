@@ -6552,6 +6552,17 @@
     50%      { filter: drop-shadow(0 0 12px rgba(1,160,224,0.55)); }
   }
 </style>
+
+<!-- =====================================================================
+     eChan companion module (v1.3.0 Phase 1a)
+     =====================================================================
+     External CSS + JS at /vendor/companion/. Sits outside the CSP inline-
+     script hash, so iterating on companion styles/logic does NOT require
+     update-csp-hash.sh. See /vendor/companion/echan.js header for the
+     module's architecture + roadmap (Phase 1a → 1e).
+     ===================================================================== -->
+<link rel="stylesheet" href="./vendor/companion/echan.css">
+
 </head>
 <body>
 
@@ -6580,7 +6591,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.2.9">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.2.9</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.3.0">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.3.0</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -20869,5 +20880,12 @@ initChronik();
 // footer + detail panel.
 startTtfFeedModule();
 </script>
+
+<!-- eChan companion controller. `defer` guarantees DOMContentLoaded has
+     already fired when the module's IIFE runs, so init() can find
+     #stage-wrap without a readyState dance. External script under 'self'
+     — covered by the script-src whitelist, no CSP hash needed. -->
+<script src="./vendor/companion/echan.js" defer></script>
+
 </body>
 </html>

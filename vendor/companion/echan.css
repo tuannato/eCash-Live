@@ -1,0 +1,754 @@
+/* =============================================================================
+ * eChan companion — Phase 1c stylesheet (v1.3.0 final)
+ * =============================================================================
+ *
+ * Changes vs 1c-pre:
+ *  - NEW: sound toggle row in the settings popover. Reuses the existing
+ *    settings-row pattern with a single-button On/Off control on the
+ *    right side. aria-pressed drives the active-state styling so the
+ *    button reads correctly to screen readers.
+ *  - No other changes — everything in 1c-pre carries forward.
+ *
+ * Invariants unchanged: external file, outside CSP hash, z-index 60,
+ * name is ALWAYS "eChan" mixed case.
+ * ===========================================================================*/
+
+.echan-root {
+  --ec-rail-w-shown:  22px;
+  --ec-rail-w-hidden: 14px;
+  --ec-body-h-desktop: 170px;
+  --ec-body-h-mobile:  180px;
+  --ec-body-w-desktop: 540px;
+  --ec-avatar-d:        140px;
+  --ec-avatar-d-mobile: 120px;
+
+  --ec-glow:        var(--cyan, #01a0e0);
+  --ec-glow-soft:   rgba(1, 160, 224, 0.22);
+  --ec-glow-strong: rgba(1, 160, 224, 0.50);
+  --ec-bg:          var(--bg-2, #0e121c);
+  --ec-line:        var(--line, rgba(255, 255, 255, 0.08));
+  --ec-line-cyan:   rgba(1, 160, 224, 0.30);
+  --ec-text:        var(--text, #d8e2f0);
+  --ec-text-dim:    var(--text-2, #98a4b8);
+  --ec-text-faint:  var(--text-3, #5e6a7e);
+  --ec-amber:       var(--amber, #ffb020);
+  --ec-magenta:     var(--magenta, #ff3da3);
+
+  --ec-anim-slide:  280ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ec-anim-fade:   200ms ease-out;
+  --ec-anim-pos:    380ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* =============================================================================
+ * ROOT
+ * ===========================================================================*/
+.echan-root {
+  position: fixed;
+  left: 0;
+  bottom: calc(var(--ec-footer-actual, var(--footer-h, 44px)) + 220px);
+  width: var(--ec-body-w-desktop);
+  height: var(--ec-body-h-desktop);
+  z-index: 60;
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  pointer-events: none;
+  transition: bottom var(--ec-anim-pos);
+}
+.echan-root.echan-deskpos-footer {
+  bottom: var(--ec-footer-actual, var(--footer-h, 44px));
+}
+
+/* =============================================================================
+ * RAIL
+ * ===========================================================================*/
+.echan-rail {
+  flex: 0 0 var(--ec-rail-w-hidden);
+  width: var(--ec-rail-w-hidden);
+  background: var(--ec-bg);
+  border-top:    1px solid var(--ec-line);
+  border-right:  1px solid var(--ec-line);
+  border-bottom: 1px solid var(--ec-line);
+  box-shadow:
+    inset 1px 0 0 rgba(1, 160, 224, 0.18),
+    inset -1px 0 4px rgba(1, 160, 224, 0.10);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0;
+  gap: 10px;
+  cursor: pointer;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    flex-basis var(--ec-anim-slide),
+    width      var(--ec-anim-slide),
+    box-shadow 220ms ease,
+    background 220ms ease,
+    border-color 220ms ease;
+  position: relative;
+  z-index: 2;
+}
+.echan-root.echan-shown .echan-rail {
+  flex-basis: var(--ec-rail-w-shown);
+  width:      var(--ec-rail-w-shown);
+  justify-content: space-between;
+  box-shadow:
+    inset 1px 0 0 var(--ec-line-cyan),
+    inset -1px 0 6px rgba(1, 160, 224, 0.16);
+}
+.echan-rail:hover,
+.echan-rail:focus-visible {
+  outline: none;
+  background: rgba(14, 18, 28, 1);
+  box-shadow:
+    inset 1px 0 0 var(--ec-glow),
+    inset -1px 0 8px var(--ec-glow-strong);
+}
+
+.echan-rail-chev {
+  width: 12px;
+  height: 12px;
+  position: relative;
+  flex-shrink: 0;
+  transition: transform var(--ec-anim-slide);
+}
+.echan-rail-chev::before,
+.echan-rail-chev::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 2px;
+  background: var(--ec-text-dim);
+  border-radius: 1px;
+  transform-origin: center;
+  transition: background 180ms ease, box-shadow 180ms ease;
+}
+.echan-rail-chev::before { transform: translate(-50%, -50%) translateX(-2px) translateY(-2.5px) rotate( 42deg); }
+.echan-rail-chev::after  { transform: translate(-50%, -50%) translateX(-2px) translateY( 2.5px) rotate(-42deg); }
+.echan-rail:hover .echan-rail-chev::before,
+.echan-rail:hover .echan-rail-chev::after {
+  background: var(--ec-glow);
+  box-shadow: 0 0 4px var(--ec-glow-soft);
+}
+.echan-root.echan-shown .echan-rail-chev { transform: rotate(180deg); }
+
+.echan-rail-gear {
+  width: 13px;
+  height: 13px;
+  color: var(--ec-glow);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease 60ms, color 180ms ease, transform 220ms ease;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M19.43 12.98c.04-.32.07-.65.07-.98s-.03-.66-.07-.98l2.11-1.65a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.61-.22l-2.49 1a7.03 7.03 0 0 0-1.69-.98l-.38-2.65A.5.5 0 0 0 14 2h-4a.5.5 0 0 0-.5.42l-.38 2.65c-.61.25-1.17.58-1.69.98l-2.49-1a.5.5 0 0 0-.61.22l-2 3.46a.5.5 0 0 0 .12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65a.5.5 0 0 0-.12.64l2 3.46c.14.24.43.34.68.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.38-2.65c.61-.25 1.17-.58 1.69-.98l2.49 1c.25.1.54 0 .68-.22l2-3.46a.5.5 0 0 0-.12-.64l-2.11-1.65zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z'/></svg>") center/contain no-repeat;
+          mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M19.43 12.98c.04-.32.07-.65.07-.98s-.03-.66-.07-.98l2.11-1.65a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.61-.22l-2.49 1a7.03 7.03 0 0 0-1.69-.98l-.38-2.65A.5.5 0 0 0 14 2h-4a.5.5 0 0 0-.5.42l-.38 2.65c-.61.25-1.17.58-1.69.98l-2.49-1a.5.5 0 0 0-.61.22l-2 3.46a.5.5 0 0 0 .12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65a.5.5 0 0 0-.12.64l2 3.46c.14.24.43.34.68.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.38-2.65c.61-.25 1.17-.58 1.69-.98l2.49 1c.25.1.54 0 .68-.22l2-3.46a.5.5 0 0 0-.12-.64l-2.11-1.65zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z'/></svg>") center/contain no-repeat;
+  background-color: currentColor;
+  flex-shrink: 0;
+}
+.echan-root.echan-shown .echan-rail-gear {
+  opacity: 0.85;
+  pointer-events: auto;
+}
+.echan-rail-gear:hover { opacity: 1; transform: rotate(50deg); }
+
+/* =============================================================================
+ * POSITION TOGGLE
+ * ===========================================================================*/
+.echan-rail-postoggle {
+  width: 11px;
+  height: 11px;
+  position: relative;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease 100ms, transform var(--ec-anim-slide);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.echan-rail-postoggle::before,
+.echan-rail-postoggle::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 7px;
+  height: 1.8px;
+  background: var(--ec-text-dim);
+  border-radius: 1px;
+  transform-origin: center;
+  transition: background 180ms ease, box-shadow 180ms ease;
+}
+.echan-rail-postoggle::before { transform: translate(-50%, -50%) translateX(-1.8px) translateY(-1px) rotate( 42deg); }
+.echan-rail-postoggle::after  { transform: translate(-50%, -50%) translateX( 1.8px) translateY(-1px) rotate(-42deg); }
+.echan-root.echan-shown .echan-rail-postoggle {
+  opacity: 0.7;
+  pointer-events: auto;
+}
+.echan-rail-postoggle:hover { opacity: 1; }
+.echan-rail-postoggle:hover::before,
+.echan-rail-postoggle:hover::after {
+  background: var(--ec-glow);
+  box-shadow: 0 0 4px var(--ec-glow-soft);
+}
+.echan-root.echan-deskpos-footer .echan-rail-postoggle { transform: rotate(180deg); }
+
+.echan-rail-chev      { order: 2; }
+.echan-rail-gear      { order: 1; }
+.echan-rail-postoggle { order: 3; }
+.echan-root.echan-deskpos-footer .echan-rail-gear      { order: 3; }
+.echan-root.echan-deskpos-footer .echan-rail-postoggle { order: 1; }
+
+/* =============================================================================
+ * NOTIFICATION PULSE
+ * ===========================================================================*/
+@keyframes echan-rail-pulse {
+  0%, 100% {
+    box-shadow:
+      inset 1px 0 0 rgba(255, 176, 32, 0.50),
+      inset -1px 0 6px rgba(255, 176, 32, 0.20);
+    border-color: rgba(255, 176, 32, 0.35);
+  }
+  50% {
+    box-shadow:
+      inset 1px 0 0 rgba(255, 176, 32, 1.00),
+      inset -1px 0 14px rgba(255, 176, 32, 0.60),
+      0 0 12px rgba(255, 176, 32, 0.32);
+    border-color: rgba(255, 176, 32, 0.70);
+  }
+}
+.echan-rail.echan-rail-pulse-on {
+  animation: echan-rail-pulse 2.4s ease-in-out infinite;
+}
+
+/* =============================================================================
+ * BODY
+ * ===========================================================================*/
+.echan-body {
+  flex: 1 1 auto;
+  position: relative;
+  background: var(--ec-bg);
+  border-top:    1px solid var(--ec-line);
+  border-right:  1px solid var(--ec-line);
+  border-bottom: 1px solid var(--ec-line);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 -4px 14px rgba(0, 0, 0, 0.32);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  overflow: hidden;
+  pointer-events: auto;
+  transform: translateX(-100%);
+  opacity: 0;
+  transition:
+    transform var(--ec-anim-slide),
+    opacity   var(--ec-anim-fade);
+  z-index: 1;
+}
+.echan-root.echan-shown .echan-body {
+  transform: translateX(0);
+  opacity: 1;
+}
+.echan-body::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 56px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--ec-glow), transparent);
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+/* =============================================================================
+ * AVATAR
+ * ===========================================================================*/
+.echan-avatar {
+  width: var(--ec-avatar-d);
+  height: var(--ec-avatar-d);
+  position: relative;
+  align-self: center;
+  justify-self: start;
+  margin: 14px 10px 14px 14px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0a0d18;
+  box-shadow:
+    inset 0 0 0 1px var(--ec-line-cyan),
+    inset 0 0 12px rgba(1, 160, 224, 0.10),
+    0 0 10px rgba(1, 160, 224, 0.10),
+    0 2px 10px rgba(0, 0, 0, 0.45);
+  transition: box-shadow 320ms ease;
+  isolation: isolate;
+  cursor: pointer;
+}
+.echan-avatar:hover {
+  box-shadow:
+    inset 0 0 0 1px var(--ec-glow),
+    inset 0 0 14px rgba(1, 160, 224, 0.18),
+    0 0 14px rgba(1, 160, 224, 0.20),
+    0 2px 10px rgba(0, 0, 0, 0.45);
+}
+
+.echan-avatar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 110% 90% at 50% 45%, transparent 50%, rgba(0,0,0,0.38) 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.echan-avatar img.echan-sprite {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 220ms ease, filter 420ms ease;
+  pointer-events: none;
+  z-index: 1;
+}
+.echan-avatar img.echan-sprite.active { opacity: 1; }
+.echan-avatar img.echan-sprite[data-emotion="sleepy"].active {
+  filter: brightness(0.78) saturate(0.6) hue-rotate(-6deg);
+}
+
+@keyframes echan-breathe {
+  0%, 100% { transform: scale(1.000); filter: brightness(1.00); }
+  50%      { transform: scale(1.012); filter: brightness(1.04); }
+}
+.echan-avatar.breathing { animation: echan-breathe 3.2s ease-in-out infinite; }
+
+/* =============================================================================
+ * CRT GLITCH TRANSITION
+ * ===========================================================================*/
+@keyframes echan-glitch-distort {
+  0%, 100% { filter: none; transform: translate(0, 0); }
+  10% { filter: hue-rotate(-25deg) brightness(1.35) saturate(1.6) contrast(1.1); transform: translate(-3px, 0); }
+  22% { filter: hue-rotate(40deg) brightness(0.78) saturate(1.4) contrast(1.4); transform: translate(2px, 1px); }
+  34% { filter: hue-rotate(-15deg) brightness(1.2) saturate(2.0); transform: translate(-1px, 0); }
+  46% { filter: hue-rotate(30deg) brightness(0.9); transform: translate(2px, -1px); }
+  55% { filter: brightness(1.5) contrast(1.8) saturate(0.3); transform: translate(-2px, 0); }
+  68% { filter: hue-rotate(-30deg) brightness(0.95); transform: translate(1px, 1px); }
+  80% { filter: hue-rotate(12deg) brightness(1.08); transform: translate(-1px, 0); }
+  92% { filter: brightness(1.04); transform: translate(0.5px, 0); }
+}
+@keyframes echan-glitch-scanline {
+  0%, 100% { opacity: 0; transform: translateY(0); }
+  15% { opacity: 1; transform: translateY(-3px); }
+  35% { opacity: 0.85; transform: translateY(2px); }
+  55% { opacity: 1; transform: translateY(-1px); }
+  75% { opacity: 0.55; transform: translateY(2px); }
+  90% { opacity: 0.25; }
+}
+@keyframes echan-glitch-jitter {
+  0%, 100% { /* reserved for future independent transform tuning */ }
+}
+
+.echan-avatar.echan-glitching {
+  animation:
+    echan-glitch-distort 320ms steps(10, end),
+    echan-glitch-jitter  320ms steps(10, end);
+}
+.echan-avatar.echan-glitching::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 240, 255, 0.10) 0px,
+    rgba(0, 240, 255, 0.10) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  mix-blend-mode: screen;
+  animation: echan-glitch-scanline 320ms steps(10, end);
+}
+
+.echan-root.echan-pri-3 .echan-avatar {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 176, 32, 0.6),
+    inset 0 0 16px rgba(255, 176, 32, 0.22),
+    0 0 18px rgba(255, 176, 32, 0.28),
+    0 2px 12px rgba(0, 0, 0, 0.5);
+}
+.echan-root.echan-pri-owner .echan-avatar {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 61, 163, 0.55),
+    inset 0 0 16px rgba(255, 61, 163, 0.22),
+    0 0 18px rgba(255, 61, 163, 0.28),
+    0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* =============================================================================
+ * QUICK-ACTIONS POPOVER
+ * ===========================================================================*/
+.echan-quickactions {
+  position: absolute;
+  left: calc(14px + var(--ec-avatar-d) + 6px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--ec-bg);
+  border: 1px solid var(--ec-line);
+  border-radius: 5px;
+  padding: 5px;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  pointer-events: auto;
+  z-index: 4;
+  box-shadow:
+    0 0 14px rgba(1, 160, 224, 0.16),
+    0 6px 22px rgba(0, 0, 0, 0.55);
+  min-width: 150px;
+}
+.echan-root.echan-quickactions-open .echan-quickactions { display: flex; }
+
+.echan-qa-btn {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--ec-text-dim);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 7px 11px;
+  border-radius: 3px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 160ms ease, color 160ms ease;
+  white-space: nowrap;
+  text-transform: none;
+}
+.echan-qa-btn:hover,
+.echan-qa-btn:focus-visible {
+  background: rgba(1, 160, 224, 0.12);
+  color: #fff;
+  outline: none;
+}
+.echan-qa-btn:disabled {
+  color: var(--ec-text-faint);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.echan-qa-btn::before {
+  content: "·";
+  display: inline-block;
+  margin-right: 6px;
+  color: var(--ec-glow);
+  opacity: 0.75;
+  font-weight: 700;
+}
+
+/* =============================================================================
+ * TEXT PANE
+ * ===========================================================================*/
+.echan-text {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 18px 18px 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.echan-text-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-family: 'Fira Code', 'SF Mono', Monaco, monospace;
+  font-size: 10.5px;
+  color: var(--ec-glow);
+  text-shadow: 0 0 5px var(--ec-glow-soft);
+  user-select: none;
+  flex-shrink: 0;
+  text-transform: none;
+}
+.echan-text-head .echan-name {
+  font-weight: 600;
+  text-transform: none !important;   /* never "ECHAN" */
+  letter-spacing: 0;
+}
+.echan-text-head .echan-chev {
+  font-weight: 700;
+  opacity: 0.7;
+}
+.echan-text-head .echan-cat {
+  font-size: 9px;
+  color: var(--ec-text-faint);
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  margin-left: auto;
+  text-shadow: none;
+}
+
+.echan-text-body {
+  flex: 1 1 auto;
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--ec-text);
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.echan-text-advance {
+  position: absolute;
+  right: 14px;
+  bottom: 8px;
+  font-size: 11px;
+  color: var(--ec-glow);
+  text-shadow: 0 0 6px var(--ec-glow-soft);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease;
+}
+.echan-text-advance.visible {
+  opacity: 0.85;
+  animation: echan-advance-pulse 1.4s ease-in-out infinite;
+}
+@keyframes echan-advance-pulse {
+  0%, 100% { transform: translateX(0); opacity: 0.7; }
+  50%      { transform: translateX(2px); opacity: 1; }
+}
+
+/* =============================================================================
+ * PAGE DOTS
+ * ===========================================================================*/
+.echan-pages {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+.echan-pages.visible { opacity: 1; }
+.echan-page-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--ec-text-faint);
+  transition: background 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+}
+.echan-page-dot.active {
+  background: var(--ec-glow);
+  border-color: var(--ec-glow);
+  box-shadow: 0 0 4px var(--ec-glow-soft);
+}
+.echan-pages-more {
+  font-family: 'Fira Code', monospace;
+  font-size: 9px;
+  color: var(--ec-text-faint);
+  letter-spacing: -0.02em;
+  margin-left: 3px;
+  line-height: 1;
+}
+
+/* =============================================================================
+ * SETTINGS POPOVER
+ * ===========================================================================*/
+.echan-settings {
+  position: absolute;
+  left: calc(var(--ec-rail-w-shown) + 6px);
+  bottom: 8px;
+  width: 210px;
+  background: var(--ec-bg);
+  border: 1px solid var(--ec-line);
+  border-radius: 5px;
+  padding: 11px 13px;
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 12.5px;
+  color: var(--ec-text);
+  box-shadow:
+    0 0 14px rgba(1, 160, 224, 0.16),
+    0 6px 22px rgba(0, 0, 0, 0.55);
+  pointer-events: auto;
+  z-index: 5;
+  display: none;
+}
+.echan-root.echan-settings-open .echan-settings { display: block; }
+
+.echan-settings-title {
+  font-family: 'Fira Code', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ec-glow);
+  text-shadow: 0 0 5px var(--ec-glow-soft);
+  margin-bottom: 9px;
+}
+.echan-settings-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 9px;
+}
+.echan-settings-row:last-child { margin-bottom: 0; }
+.echan-settings-row .echan-settings-label {
+  font-family: 'Fira Code', monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ec-text-faint);
+}
+
+.echan-settings-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 3px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--ec-line);
+  border-radius: 4px;
+  padding: 3px;
+}
+.echan-settings-modes button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--ec-text-dim);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 6px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+  text-transform: none;
+}
+.echan-settings-modes button:hover { color: var(--ec-text); }
+.echan-settings-modes button.active {
+  background: linear-gradient(180deg, rgba(1, 160, 224, 0.38), rgba(1, 160, 224, 0.18));
+  color: #fff;
+  text-shadow: 0 0 5px var(--ec-glow-soft);
+}
+
+/* =============================================================================
+ * SOUND TOGGLE — single On/Off button on the right side of its row
+ *
+ * Differs from mode-segment buttons (which are a 3-way pick): sound is
+ * binary. Layout uses flex row with label on left, button on right —
+ * cleaner than wedging a 2-button segmented control. aria-pressed drives
+ * active-state styling so the button reads correctly to screen readers.
+ * ===========================================================================*/
+.echan-settings-row.echan-settings-row-inline {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.echan-settings-soundbtn {
+  appearance: none;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--ec-line);
+  color: var(--ec-text-dim);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+  text-transform: none;
+  min-width: 44px;
+}
+.echan-settings-soundbtn:hover {
+  color: var(--ec-text);
+  border-color: var(--ec-line-cyan);
+}
+.echan-settings-soundbtn[aria-pressed="true"] {
+  background: linear-gradient(180deg, rgba(1, 160, 224, 0.38), rgba(1, 160, 224, 0.18));
+  color: #fff;
+  border-color: var(--ec-line-cyan);
+  text-shadow: 0 0 5px var(--ec-glow-soft);
+}
+
+/* =============================================================================
+ * MOBILE
+ * ===========================================================================*/
+@media (max-width: 939px) {
+  .echan-root {
+    width: 100vw;
+    height: var(--ec-body-h-mobile);
+    bottom: var(--ec-footer-actual, var(--footer-h, 44px));
+  }
+  .echan-rail-postoggle { display: none; }
+  .echan-root.echan-shown .echan-rail {
+    justify-content: center;
+    gap: 16px;
+  }
+  .echan-rail {
+    flex-basis: 18px;
+    width: 18px;
+  }
+  .echan-root.echan-shown .echan-rail {
+    flex-basis: 26px;
+    width: 26px;
+  }
+  .echan-rail-chev { width: 14px; height: 14px; }
+  .echan-rail-chev::before,
+  .echan-rail-chev::after { width: 10px; height: 2px; }
+  .echan-rail-gear { width: 15px; height: 15px; }
+
+  .echan-avatar {
+    width:  var(--ec-avatar-d-mobile);
+    height: var(--ec-avatar-d-mobile);
+    margin: 12px 8px 12px 10px;
+    border-radius: 10px;
+  }
+  .echan-text { padding: 12px 14px 18px 6px; }
+  .echan-text-body { font-size: 13px; line-height: 1.5; }
+  .echan-text-head { font-size: 10px; margin-bottom: 5px; }
+  .echan-settings {
+    left: calc(26px + 6px);
+    width: 196px;
+  }
+  .echan-quickactions {
+    left: calc(10px + var(--ec-avatar-d-mobile) + 6px);
+    min-width: 140px;
+    padding: 4px;
+  }
+  .echan-qa-btn { font-size: 11.5px; padding: 6px 10px; }
+}
+
+/* =============================================================================
+ * REDUCED MOTION
+ * ===========================================================================*/
+@media (prefers-reduced-motion: reduce) {
+  .echan-root,
+  .echan-body,
+  .echan-rail,
+  .echan-rail-chev,
+  .echan-rail-postoggle,
+  .echan-rail-gear { transition: none; }
+  .echan-avatar.breathing { animation: none; }
+  .echan-text-advance.visible { animation: none; }
+  .echan-rail.echan-rail-pulse-on { animation: none; }
+  .echan-avatar.echan-glitching { animation: none; }
+  .echan-avatar.echan-glitching::before { animation: none; opacity: 0; }
+}
+
+/* =============================================================================
+ * DEBUG ESCAPE HATCH
+ * ===========================================================================*/
+body.echan-debug .echan-body { transform: translateX(0) !important; opacity: 1 !important; }
+body.echan-debug .echan-avatar,
+body.echan-debug .echan-text,
+body.echan-debug .echan-rail   { outline: 1px dashed magenta; }
