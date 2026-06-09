@@ -1,13 +1,19 @@
 /* =============================================================================
- * eChan companion — Phase 1c stylesheet (v1.3.0 final)
+ * eChan companion — 1.3.0 stylesheet
  * =============================================================================
  *
- * Changes vs 1c-pre:
- *  - NEW: sound toggle row in the settings popover. Reuses the existing
- *    settings-row pattern with a single-button On/Off control on the
- *    right side. aria-pressed drives the active-state styling so the
- *    button reads correctly to screen readers.
- *  - No other changes — everything in 1c-pre carries forward.
+ * Changes vs 1c:
+ *  - Mobile dialog height: 180 → 150px. Avatar: 120 → 104px. Tighter
+ *    fit for small viewports.
+ *  - Text body scroll restored — overflow:auto with edge fade-masks
+ *    (top + bottom) so long messages stay readable on any viewport.
+ *    iOS gets -webkit-overflow-scrolling: touch for momentum. Page dots
+ *    and advance indicator remain absolute-positioned siblings, untouched
+ *    by the mask.
+ *  - Breathing animation removed. The `.echan-avatar.breathing` rule and
+ *    its keyframe are gone. Idle visual life is provided entirely by
+ *    message-driven glitch transitions now; ambient pose-flips were
+ *    competing with real emotion changes and producing jumpy results.
  *
  * Invariants unchanged: external file, outside CSP hash, z-index 60,
  * name is ALWAYS "eChan" mixed case.
@@ -17,10 +23,10 @@
   --ec-rail-w-shown:  22px;
   --ec-rail-w-hidden: 14px;
   --ec-body-h-desktop: 170px;
-  --ec-body-h-mobile:  180px;
+  --ec-body-h-mobile:  150px;       /* was 180 — tighter for small screens */
   --ec-body-w-desktop: 540px;
   --ec-avatar-d:        140px;
-  --ec-avatar-d-mobile: 120px;
+  --ec-avatar-d-mobile: 104px;      /* was 120 — proportional shrink */
 
   --ec-glow:        var(--cyan, #01a0e0);
   --ec-glow-soft:   rgba(1, 160, 224, 0.22);
@@ -265,7 +271,12 @@
 }
 
 /* =============================================================================
- * AVATAR
+ * AVATAR — breathing removed; sprites stay still between emotion changes.
+ *
+ * Idle visual life now comes entirely from message-driven glitch
+ * transitions. The "breathing" pose-cycle was producing flickery results
+ * when message-driven emotions arrived mid-cycle. Cleaner to keep one
+ * sprite per dialogue segment, glitch on transition.
  * ===========================================================================*/
 .echan-avatar {
   width: var(--ec-avatar-d);
@@ -319,12 +330,6 @@
 .echan-avatar img.echan-sprite[data-emotion="sleepy"].active {
   filter: brightness(0.78) saturate(0.6) hue-rotate(-6deg);
 }
-
-@keyframes echan-breathe {
-  0%, 100% { transform: scale(1.000); filter: brightness(1.00); }
-  50%      { transform: scale(1.012); filter: brightness(1.04); }
-}
-.echan-avatar.breathing { animation: echan-breathe 3.2s ease-in-out infinite; }
 
 /* =============================================================================
  * CRT GLITCH TRANSITION
@@ -492,6 +497,20 @@
   text-shadow: none;
 }
 
+/* Text body — scrollable on overflow with edge fade-masks.
+ *
+ * Why fade-masks instead of a visible scrollbar:
+ *  - Standard scrollbars compete visually with eChan's HUD frame
+ *  - The fade-out at top + bottom is a known affordance for "more content
+ *    above/below" without committing pixels to a permanent indicator
+ *  - When content fits (most messages), the fade just creates a subtle
+ *    edge that doesn't hurt the design
+ *  - When content overflows, the same fade naturally indicates more text
+ *
+ * iOS gets -webkit-overflow-scrolling:touch for momentum scroll. Modern
+ * iOS supports CSS overflow:auto natively but the legacy flag is harmless.
+ * Page dots + advance indicator are absolute-positioned OUTSIDE
+ * .echan-text-body so they don't get masked. */
 .echan-text-body {
   flex: 1 1 auto;
   font-family: 'Space Grotesk', system-ui, sans-serif;
@@ -501,6 +520,39 @@
   color: var(--ec-text);
   word-break: break-word;
   overflow-wrap: anywhere;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  mask-image: linear-gradient(
+    180deg,
+    transparent 0,
+    black 6px,
+    black calc(100% - 6px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    transparent 0,
+    black 6px,
+    black calc(100% - 6px),
+    transparent 100%
+  );
+  /* Thin custom scrollbar — only visible during active scroll on most
+   * platforms; styled to match the cyan line palette so even when shown
+   * it feels native to the dialog. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--ec-line-cyan) transparent;
+}
+.echan-text-body::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.echan-text-body::-webkit-scrollbar-thumb {
+  background: var(--ec-line-cyan);
+  border-radius: 2px;
+}
+.echan-text-body::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .echan-text-advance {
@@ -640,14 +692,7 @@
   text-shadow: 0 0 5px var(--ec-glow-soft);
 }
 
-/* =============================================================================
- * SOUND TOGGLE — single On/Off button on the right side of its row
- *
- * Differs from mode-segment buttons (which are a 3-way pick): sound is
- * binary. Layout uses flex row with label on left, button on right —
- * cleaner than wedging a 2-button segmented control. aria-pressed drives
- * active-state styling so the button reads correctly to screen readers.
- * ===========================================================================*/
+/* Sound toggle */
 .echan-settings-row.echan-settings-row-inline {
   flex-direction: row;
   align-items: center;
@@ -682,6 +727,12 @@
 
 /* =============================================================================
  * MOBILE
+ *
+ * Smaller dialog (150px) for tighter fit on phones. Avatar shrinks
+ * proportionally to 104px. Text scales down to 12.5px to compensate for
+ * the reduced vertical room; line-height keeps multi-line messages
+ * readable. The scroll/fade-mask combo on .echan-text-body applies the
+ * same as desktop so long messages remain accessible.
  * ===========================================================================*/
 @media (max-width: 939px) {
   .echan-root {
@@ -710,12 +761,12 @@
   .echan-avatar {
     width:  var(--ec-avatar-d-mobile);
     height: var(--ec-avatar-d-mobile);
-    margin: 12px 8px 12px 10px;
-    border-radius: 10px;
+    margin: 10px 8px 10px 10px;
+    border-radius: 9px;
   }
-  .echan-text { padding: 12px 14px 18px 6px; }
-  .echan-text-body { font-size: 13px; line-height: 1.5; }
-  .echan-text-head { font-size: 10px; margin-bottom: 5px; }
+  .echan-text { padding: 10px 14px 18px 6px; }
+  .echan-text-body { font-size: 12.5px; line-height: 1.45; }
+  .echan-text-head { font-size: 9.5px; margin-bottom: 4px; }
   .echan-settings {
     left: calc(26px + 6px);
     width: 196px;
@@ -738,7 +789,6 @@
   .echan-rail-chev,
   .echan-rail-postoggle,
   .echan-rail-gear { transition: none; }
-  .echan-avatar.breathing { animation: none; }
   .echan-text-advance.visible { animation: none; }
   .echan-rail.echan-rail-pulse-on { animation: none; }
   .echan-avatar.echan-glitching { animation: none; }

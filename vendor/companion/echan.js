@@ -1,28 +1,32 @@
 /* =============================================================================
- * eChan companion — Phase 1c controller (v1.3.0 final)
+ * eChan companion — 1.3.0-polish controller
  * =============================================================================
  *
- * Changes vs 1c-pre:
- *  - NEW: UI sound effects module. Three WebAudio-synthesized sounds —
- *    no audio files needed, no CSP additions. Off by default; toggled
- *    via new settings row. Volume 0.15 master (intentionally quiet —
- *    sound is texture, not punctuation). Muted automatically when
- *    quiet-hour is active. AudioContext is lazy (created on first
- *    sound request, after a user gesture, to satisfy autoplay policy).
- *      * playTypeBlip — triangle wave ~440Hz ±15Hz jitter, 12ms, per
- *        non-whitespace char of typewriter, throttled 50ms min interval
- *      * playArrival  — sine 660→880Hz rise, 120ms, when a new message
- *        starts displaying
- *      * playGlitch   — bandpass-filtered noise burst, 80ms, when the
- *        avatar's glitch transition fires
- *  - NEW: 5× avatar click easter egg. Counts clicks within a 1.5s window;
- *    on 5th rapid click, fires a random easter-category line from the
- *    seed at celebrate emotion. 30s cooldown prevents spam. Single-click
- *    behavior (open quick-actions menu) unchanged — easter is purely
- *    additive.
- *  - NEW: state.soundEnabled persisted as 'ecashlive.echan.sound'.
+ * Changes vs 1c:
+ *  - "Chat mode" label → "Chattiness".
+ *  - Mode-aware content tick cadence. Quiet mode now stops the engine
+ *    entirely (owner-pushed announcements still flow). Casual cadence is
+ *    35-60s. Chatty cadence is 12-22s (was uniform 22-38s across all
+ *    modes — so Chatty actually felt slower than its name implied).
+ *  - Emotion fallback chain. New emotions studying / observing / shy are
+ *    registered; if no sprite art exists for them yet, setEmotion walks
+ *    the fallback chain (studying → thinking, observing → neutral, shy →
+ *    happy). The intent (line says "studying") is preserved; only the
+ *    sprite visual falls back temporarily. Once you ship art and bump
+ *    manifest, fallback evaporates automatically.
+ *  - Category emotion defaults. seed.json may now declare a
+ *    `categoryDefaults` map (e.g. education → studying). Lines with no
+ *    `emotion` field inherit the default for their category. Lines with
+ *    `emotion` set override the default as before.
+ *  - Breathing animation REMOVED. State field, both functions, and the
+ *    init/visibility hookup all gone. Idle visual life is entirely
+ *    message-driven glitch transitions now.
+ *  - Wake-from-sleep: visibility-return fires one immediate content
+ *    tick after a 500ms settle delay, so users coming back from sleep
+ *    see eChan come alive within ~1s rather than waiting the full
+ *    cadence window. contentTick self-schedules so no double-tick.
  *
- * Invariants unchanged: external script, outside CSP, name is always
+ * Invariants unchanged: external script, outside CSP, name always
  * "eChan" mixed case.
  * ===========================================================================*/
 
@@ -37,23 +41,39 @@
   const SPRITE_MANIFEST_URL  = './vendor/companion/sprites/manifest.json';
   const SEED_URL             = './vendor/companion/seed.json';
 
+  /* EMOTIONS map — the `fallback` field is the chain used by setEmotion
+   * when the requested emotion's sprite pool is empty. Drawing new art
+   * later (echan_studying.webp + manifest count bump) makes the pool
+   * non-empty, which short-circuits the fallback automatically. */
   const EMOTIONS = {
-    neutral:   { label: 'Neutral',   idle: true  },
-    happy:     { label: 'Happy',     idle: true  },
-    thinking:  { label: 'Thinking',  idle: true  },
-    alert:     { label: 'Alert',     idle: false },
-    celebrate: { label: 'Celebrate', idle: false },
-    sleepy:    { label: 'Sleepy',    idle: true  },
+    neutral:   { label: 'Neutral',   idle: true,  fallback: null      },
+    happy:     { label: 'Happy',     idle: true,  fallback: null      },
+    thinking:  { label: 'Thinking',  idle: true,  fallback: null      },
+    alert:     { label: 'Alert',     idle: false, fallback: null      },
+    celebrate: { label: 'Celebrate', idle: false, fallback: null      },
+    sleepy:    { label: 'Sleepy',    idle: true,  fallback: null      },
+    /* New in 1.3.0-polish — pending art */
+    studying:  { label: 'Studying',  idle: true,  fallback: 'thinking' },
+    observing: { label: 'Observing', idle: true,  fallback: 'neutral'  },
+    shy:       { label: 'Shy',       idle: false, fallback: 'happy'    },
   };
   const EMOTION_KEYS  = Object.keys(EMOTIONS);
-  const IDLE_EMOTIONS = EMOTION_KEYS.filter(k => EMOTIONS[k].idle);
 
   const MODES = {
     quiet:  { label: 'Quiet',  desc: 'Announcements only' },
     casual: { label: 'Casual', desc: 'Default — occasional commentary' },
-    chatty: { label: 'Chatty', desc: 'Everything' },
+    chatty: { label: 'Chatty', desc: 'Frequent commentary' },
   };
   const DEFAULT_MODE   = 'casual';
+
+  /* Per-mode content tick intervals [minMs, maxMs] — null = engine off.
+   * Quiet truly stops scheduling; owner-pushed messages via
+   * window.__echanReceive still display when source==='owner'. */
+  const CONTENT_TICK_INTERVAL = {
+    quiet:  null,
+    casual: [35000, 60000],
+    chatty: [12000, 22000],
+  };
 
   const DESKPOS_PERCH  = 'perch';
   const DESKPOS_FOOTER = 'footer';
@@ -73,13 +93,8 @@
   const TYPE_MS_PER_CHAR       = 28;
   const ADVANCE_AUTO_MS        = 7000;
   const ADVANCE_MIN_VISIBLE_MS = 1500;
-  const BREATHE_MIN_MS         = 8000;
-  const BREATHE_MAX_MS         = 12000;
-  const BREATHE_HOLD_MS        = 1800;
   const PAGE_DOTS_MAX          = 5;
 
-  const CONTENT_TICK_MIN_MS    = 22000;
-  const CONTENT_TICK_MAX_MS    = 38000;
   const SEEN_RING_MAX          = 200;
   const IDLE_SHORT_MS          = 4 * 60 * 1000;
   const IDLE_LONG_MS           = 15 * 60 * 1000;
@@ -89,15 +104,15 @@
   const NETWORK_QUIET_TPS      = 0.6;
   const QUIET_HOUR_MS          = 60 * 60 * 1000;
 
+  /* Delay between visibility-return and the wake tick. Lets the browser
+   * repaint the page first so the dialogue lands feeling smooth. */
+  const WAKE_TICK_DELAY_MS     = 500;
+
   const GLITCH_TOTAL_MS = 320;
   const GLITCH_SWAP_MS  = 140;
-
   const SPRITE_VARIANT_CAP = 20;
 
-  /* Sound config — see SOUND MODULE section below. Master gain at 0.15
-   * so even with all three sounds layered, total never exceeds ~0.5
-   * (quieter than dashboard's existing tx-chime if one is added later). */
-  const SOUND_MASTER_GAIN          = 0.20;
+  const SOUND_MASTER_GAIN          = 0.15;
   const SOUND_TYPE_FREQ_BASE_HZ    = 440;
   const SOUND_TYPE_FREQ_JITTER_HZ  = 15;
   const SOUND_TYPE_DUR_MS          = 12;
@@ -108,7 +123,6 @@
   const SOUND_GLITCH_DUR_MS        = 80;
   const SOUND_GLITCH_BANDPASS_HZ   = 1200;
 
-  /* Easter — rapid-click detection on avatar. */
   const EASTER_CLICK_COUNT       = 5;
   const EASTER_CLICK_WINDOW_MS   = 1500;
   const EASTER_COOLDOWN_MS       = 30000;
@@ -160,8 +174,6 @@
     typewriterIndex: 0,
     advanceTimer: null,
     advanceArmedAt: 0,
-    /* Idle animation */
-    breatheTimer: null,
     /* Resize tracking */
     footerObs: null,
     footerTarget: null,
@@ -173,17 +185,18 @@
     /* Content engine */
     seedLoaded: false,
     seedByTrigger: {},
+    categoryDefaults: {},      /* category → default emotion name */
     seenIds: null,
     lastInteraction: Date.now(),
     contentTimer: null,
     /* Network polling */
     networkTimer: null,
     lastNetState: 'normal',
-    /* Audio — lazy-created on first sound request */
+    /* Audio */
     audioCtx: null,
     audioMasterGain: null,
     lastTypeBlipAt: 0,
-    /* Easter — rapid avatar click detection */
+    /* Easter */
     avatarClickCount: 0,
     avatarClickWindowTimer: null,
     lastEasterFireAt: 0,
@@ -227,25 +240,8 @@
   }
 
   /* ===========================================================================
-   * SOUND MODULE — WebAudio synthesis, no audio files
-   *
-   * Architecture notes:
-   *  - AudioContext is created LAZILY on first sound request, not at boot.
-   *    Browser autoplay policies require a user gesture before audio can
-   *    play; since sound is off by default and the user must click the
-   *    On button to enable it, that click itself satisfies the gesture
-   *    requirement. We trigger ensureAudio() inside toggleSound() so the
-   *    context is ready before any sound function runs.
-   *  - Master gain at 0.15 — intentionally quiet. Three sounds layered
-   *    peaks around 0.5 worst case, which still sits below dashboard's
-   *    own audible thresholds.
-   *  - All sound calls early-out cheaply when !state.soundEnabled or
-   *    when quiet-hour is active. Zero CPU when off.
-   *  - Each sound creates fresh OscillatorNode/BufferSource per play —
-   *    they're cheap and auto-disconnect when they stop(). No node-reuse
-   *    pattern needed at this volume of plays.
+   * SOUND MODULE
    * =========================================================================*/
-
   function ensureAudio() {
     if (state.audioCtx) return state.audioCtx;
     try {
@@ -255,113 +251,77 @@
       state.audioMasterGain = state.audioCtx.createGain();
       state.audioMasterGain.gain.value = SOUND_MASTER_GAIN;
       state.audioMasterGain.connect(state.audioCtx.destination);
-    } catch (e) {
-      /* Some embedded contexts (iframes with sandboxing) deny construction.
-       * Sound silently disabled — no error to user. */
-      return null;
-    }
+    } catch (e) { return null; }
     return state.audioCtx;
   }
-
-  /* Common precondition for all play functions. Centralized so adding a
-   * future global mute (e.g. system-wide DND) is one-line. */
   function canPlaySound() {
     return state.soundEnabled && !isQuietActive();
   }
-
   function playTypeBlip() {
     if (!canPlaySound()) return;
     const now = performance.now();
     if (now - state.lastTypeBlipAt < SOUND_TYPE_MIN_INTERVAL_MS) return;
     state.lastTypeBlipAt = now;
-
     const ctx = ensureAudio();
     if (!ctx) return;
-
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'triangle';
-    const jitter = (Math.random() - 0.5) * 2 * SOUND_TYPE_FREQ_JITTER_HZ;
-    osc.frequency.value = SOUND_TYPE_FREQ_BASE_HZ + jitter;
-
+    osc.frequency.value = SOUND_TYPE_FREQ_BASE_HZ + (Math.random() - 0.5) * 2 * SOUND_TYPE_FREQ_JITTER_HZ;
     const t = ctx.currentTime;
     const dur = SOUND_TYPE_DUR_MS / 1000;
     gain.gain.setValueAtTime(0.5, t);
-    /* Exponential fall-off shapes the click as a transient — sharper
-     * decay than linearRamp, sounds less "machinish". */
     gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
-
     osc.connect(gain);
     gain.connect(state.audioMasterGain);
     osc.start(t);
     osc.stop(t + dur);
   }
-
   function playArrival() {
     if (!canPlaySound()) return;
     const ctx = ensureAudio();
     if (!ctx) return;
-
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine';
-
     const t = ctx.currentTime;
     const dur = SOUND_ARRIVAL_DUR_MS / 1000;
     osc.frequency.setValueAtTime(SOUND_ARRIVAL_F1_HZ, t);
     osc.frequency.exponentialRampToValueAtTime(SOUND_ARRIVAL_F2_HZ, t + dur);
-
     gain.gain.setValueAtTime(0.0, t);
-    /* 20ms attack to avoid click on start, then exponential decay. */
     gain.gain.linearRampToValueAtTime(0.4, t + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
-
     osc.connect(gain);
     gain.connect(state.audioMasterGain);
     osc.start(t);
     osc.stop(t + dur);
   }
-
   function playGlitch() {
     if (!canPlaySound()) return;
     const ctx = ensureAudio();
     if (!ctx) return;
-
-    /* White noise buffer — sample-rate-aware so duration is exact across
-     * 44.1kHz and 48kHz devices. */
     const dur = SOUND_GLITCH_DUR_MS / 1000;
     const bufLen = Math.floor(ctx.sampleRate * dur);
     const buffer = ctx.createBuffer(1, bufLen, ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufLen; i++) data[i] = (Math.random() * 2 - 1) * 0.5;
-
     const noise = ctx.createBufferSource();
     noise.buffer = buffer;
-
-    /* Bandpass at 1.2kHz isolates a "tear" frequency band — broadband
-     * noise would just sound like static. Q=2 keeps the resonance tight. */
     const bandpass = ctx.createBiquadFilter();
     bandpass.type = 'bandpass';
     bandpass.frequency.value = SOUND_GLITCH_BANDPASS_HZ;
     bandpass.Q.value = 2;
-
     const gain = ctx.createGain();
     const t = ctx.currentTime;
     gain.gain.setValueAtTime(0.0, t);
     gain.gain.linearRampToValueAtTime(0.3, t + 0.01);
     gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
-
     noise.connect(bandpass);
     bandpass.connect(gain);
     gain.connect(state.audioMasterGain);
     noise.start(t);
     noise.stop(t + dur);
   }
-
-  /* Toggle handler — exposed via settings UI + devtools. The On switch
-   * triggers ensureAudio() so the AudioContext is created with a real
-   * user gesture (autoplay policy compliance). Confirmation arrival
-   * tone fires only on enable, not on disable. */
   function toggleSound() {
     state.soundEnabled = !state.soundEnabled;
     lsSet(STORAGE.sound, state.soundEnabled ? '1' : '0');
@@ -378,7 +338,7 @@
   }
 
   /* ===========================================================================
-   * SPRITE MANIFEST LOADER
+   * SPRITE MANIFEST
    * =========================================================================*/
   async function loadSpriteManifest() {
     let raw = null;
@@ -396,8 +356,11 @@
     const src = (raw && raw.emotions && typeof raw.emotions === 'object') ? raw.emotions : {};
     for (const name of EMOTION_KEYS) {
       const v = Number(src[name]);
-      if (Number.isInteger(v) && v >= 1 && v <= SPRITE_VARIANT_CAP) counts[name] = v;
-      else                                                          counts[name] = 1;
+      /* count of 0 is legal — means "no art yet, use fallback chain in
+       * setEmotion". Required for the 3 new emotions to participate in
+       * dialogue routing even before sprites exist. */
+      if (Number.isInteger(v) && v >= 0 && v <= SPRITE_VARIANT_CAP) counts[name] = v;
+      else                                                          counts[name] = (EMOTIONS[name].fallback ? 0 : 1);
     }
     state.spriteCounts = counts;
   }
@@ -438,7 +401,6 @@
       onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } },
     }, railChev, railGear, railPosToggle);
 
-    /* AVATAR */
     const avatar = el('div', {
       class: 'echan-avatar',
       role: 'button',
@@ -450,7 +412,7 @@
     state.sprites = {};
     for (const name of EMOTION_KEYS) {
       state.sprites[name] = [];
-      const count = (state.spriteCounts && state.spriteCounts[name]) || 1;
+      const count = (state.spriteCounts && state.spriteCounts[name]) || 0;
       for (let i = 1; i <= count; i++) {
         const filename = spriteFilename(name, i);
         const img = el('img', {
@@ -476,7 +438,6 @@
       state.lastVariantIdx[name] = -1;
     }
 
-    /* TEXT pane */
     const textHead = el('div', { class: 'echan-text-head' },
       el('span', { class: 'echan-name', text: 'eChan' }),
       el('span', { class: 'echan-chev', text: '›' }),
@@ -534,8 +495,6 @@
       modeRow.appendChild(btn);
     }
 
-    /* Sound toggle — single On/Off button. Inline label + button on one
-     * row (echan-settings-row-inline modifier). */
     const soundBtn = el('button', {
       class: 'echan-settings-soundbtn',
       type: 'button',
@@ -548,7 +507,9 @@
     return el('div', { class: 'echan-settings', role: 'menu' },
       el('div', { class: 'echan-settings-title', text: 'settings' }),
       el('div', { class: 'echan-settings-row' },
-        el('div', { class: 'echan-settings-label', text: 'Chat mode' }),
+        /* "Chat mode" → "Chattiness" — describes the axis being controlled
+         * rather than a generic feature category. */
+        el('div', { class: 'echan-settings-label', text: 'Chattiness' }),
         modeRow,
       ),
       el('div', { class: 'echan-settings-row echan-settings-row-inline' },
@@ -575,20 +536,6 @@
     );
   }
 
-  /* ===========================================================================
-   * AVATAR CLICK — quick-actions toggle + easter counter
-   *
-   * Single click opens the quick-actions menu (unchanged behavior).
-   * Rapid-fire clicks accumulate in the easter counter; if 5 land within
-   * EASTER_CLICK_WINDOW_MS, the easter line fires. 30s cooldown stops
-   * spam. Counter resets after a 1.5s gap with no new click.
-   *
-   * Important: the menu still toggles on every click during a rapid
-   * series — open/close/open/close. That's intentional. When the 5th
-   * click hits, easter fires AND we forcibly close the menu so the
-   * final state is "menu closed, easter message displayed". Feels like
-   * the user unlocked something.
-   * =========================================================================*/
   function onAvatarClick(e) {
     e.stopPropagation();
     toggleQuickActions();
@@ -611,9 +558,6 @@
     }
   }
 
-  /* Pulls a random easter-category line from seed (all are trigger:manual
-   * so they don't fire from contentTick on their own). Uses priority 2
-   * so it lands even in Casual mode. Marked as seen so deduping applies. */
   function triggerEaster() {
     const pool = (state.seedByTrigger['manual'] || []).filter(l =>
       l.category === 'easter' && isLineEligible(l)
@@ -624,7 +568,7 @@
       id: pick.id,
       category: pick.category,
       priority: 2,
-      emotion: pick.emotion || 'celebrate',
+      emotion: resolveEmotionForLine(pick) || 'celebrate',
       text: pick.text,
     });
     markSeen(pick.id);
@@ -734,6 +678,10 @@
       state.queue = state.queue.filter(m => m.priority >= 3);
       refreshPageDots();
     }
+    /* Restart engine timer at the new cadence (or stop scheduling
+     * altogether if the new mode is quiet). scheduleContentTick
+     * internally consults CONTENT_TICK_INTERVAL[state.mode]. */
+    scheduleContentTick();
   }
 
   /* ===========================================================================
@@ -783,29 +731,59 @@
   }
 
   /* ===========================================================================
-   * EMOTION + GLITCH
+   * EMOTION SWITCHING + FALLBACK CHAIN
+   *
+   * setEmotion(name, opts):
+   *   opts.glitch  — boolean, default true (skip for passive changes)
+   *   opts.variant — optional 0-based variant idx (force pick)
+   *
+   * Fallback resolution:
+   *   If the requested emotion's sprite pool is empty (e.g. studying has
+   *   no art yet), walk EMOTIONS[name].fallback until a non-empty pool
+   *   is found. The variant pick + lastVariantIdx tracking use the
+   *   RESOLVED name (so we correctly remember "we just showed thinking
+   *   variant 2 as a fallback for studying"). state.currentEmotion uses
+   *   the REQUESTED name (so dialogue intent is preserved).
+   *
+   *   When you ship real art (echan_studying.webp + manifest count 1+),
+   *   the studying pool becomes non-empty and the fallback chain
+   *   short-circuits automatically. No code change needed.
    * =========================================================================*/
   function setEmotion(name, opts) {
     opts = opts || {};
     if (!EMOTIONS[name]) name = 'neutral';
-    const pool = state.sprites[name];
-    if (!pool || !pool.length) return;
+    const requestedName = name;
 
+    /* Walk fallback chain until we find a non-empty pool or run out. */
+    let resolvedName = name;
+    let pool = state.sprites[resolvedName];
+    while ((!pool || !pool.length) && EMOTIONS[resolvedName] && EMOTIONS[resolvedName].fallback) {
+      resolvedName = EMOTIONS[resolvedName].fallback;
+      pool = state.sprites[resolvedName];
+    }
+    if (!pool || !pool.length) return;   /* nothing usable — bail silently */
+
+    /* Pick variant from the RESOLVED pool. */
     let idx = 0;
     if (typeof opts.variant === 'number' && opts.variant >= 0 && opts.variant < pool.length) {
       idx = opts.variant;
     } else if (pool.length > 1) {
-      const last = state.lastVariantIdx[name];
+      const last = state.lastVariantIdx[resolvedName];
       do { idx = Math.floor(Math.random() * pool.length); }
       while (idx === last);
     }
-    state.lastVariantIdx[name] = idx;
+    state.lastVariantIdx[resolvedName] = idx;
 
     const next = pool[idx];
     const prev = state.activeSprite;
-    if (next === prev) return;
+    if (next === prev) {
+      /* Same sprite — still update intent name in case caller wants the
+       * semantic state to change without a visual swap. */
+      state.currentEmotion = requestedName;
+      return;
+    }
 
-    state.currentEmotion = name;
+    state.currentEmotion = requestedName;
 
     if (state.glitchSwapTimer) { clearTimeout(state.glitchSwapTimer); state.glitchSwapTimer = null; }
     if (state.glitchEndTimer)  { clearTimeout(state.glitchEndTimer);  state.glitchEndTimer  = null; }
@@ -817,7 +795,6 @@
       // eslint-disable-next-line no-unused-expressions
       void state.avatar.offsetWidth;
       state.avatar.classList.add('echan-glitching');
-      /* Audio cue paired with the visual — fires once per glitch. */
       playGlitch();
 
       state.glitchSwapTimer = setTimeout(() => {
@@ -839,22 +816,25 @@
     }
   }
 
-  function scheduleBreathe() {
-    clearTimeout(state.breatheTimer);
-    const delay = BREATHE_MIN_MS + Math.random() * (BREATHE_MAX_MS - BREATHE_MIN_MS);
-    state.breatheTimer = setTimeout(doBreathe, delay);
-  }
-  function doBreathe() {
-    if (document.hidden || state.lockedEmotion) { scheduleBreathe(); return; }
-    const choices = IDLE_EMOTIONS.filter(k => k !== state.currentEmotion);
-    if (!choices.length) { scheduleBreathe(); return; }
-    const pick = choices[Math.floor(Math.random() * choices.length)];
-    const restore = state.currentEmotion;
-    setEmotion(pick, { glitch: false });
-    setTimeout(() => {
-      if (!state.lockedEmotion) setEmotion(restore, { glitch: false });
-      scheduleBreathe();
-    }, BREATHE_HOLD_MS);
+  /* ===========================================================================
+   * EMOTION RESOLVER — line → emotion name
+   *
+   * Order of precedence:
+   *   1. line.emotion (explicit per-line override)
+   *   2. state.categoryDefaults[line.category] (seed.json category default)
+   *   3. 'neutral' (final fallback)
+   *
+   * Used by every place that pulls a line from seed and pushes it as a
+   * message: maybeGreet, contentTick, pollNetwork, triggerEaster.
+   * =========================================================================*/
+  function resolveEmotionForLine(line) {
+    if (!line) return 'neutral';
+    if (line.emotion && EMOTIONS[line.emotion]) return line.emotion;
+    if (line.category && state.categoryDefaults && state.categoryDefaults[line.category]) {
+      const def = state.categoryDefaults[line.category];
+      if (EMOTIONS[def]) return def;
+    }
+    return 'neutral';
   }
 
   /* ===========================================================================
@@ -882,10 +862,7 @@
 
     state.textCat.textContent = msg.category ? '· ' + msg.category : '';
     state.lockedEmotion = msg.emotion || 'neutral';
-    setEmotion(state.lockedEmotion);   /* default = with glitch */
-
-    /* Arrival chime — fires before the typewriter starts so it's a
-     * "here it comes" cue, not overlapping with the per-char blips. */
+    setEmotion(state.lockedEmotion);
     playArrival();
 
     startTypewriter(msg.text || '');
@@ -896,6 +873,9 @@
     stopTypewriter();
     state.typewriterIndex = 0;
     state.textBody.textContent = '';
+    /* Reset scroll position when a new message starts so long-text
+     * messages always begin at the top. */
+    state.textBody.scrollTop = 0;
     if (prefersReducedMotion()) {
       state.textBody.textContent = text;
       armAdvance();
@@ -905,8 +885,6 @@
       if (state.typewriterIndex >= text.length) { armAdvance(); return; }
       const ch = text.charAt(state.typewriterIndex);
       state.textBody.textContent = text.slice(0, ++state.typewriterIndex);
-      /* Skip blip on whitespace so emoji-heavy lines don't sound choppy.
-       * playTypeBlip self-throttles to SOUND_TYPE_MIN_INTERVAL_MS. */
       if (ch && ch.trim().length) playTypeBlip();
       state.typewriterTimer = setTimeout(tick, TYPE_MS_PER_CHAR);
     };
@@ -990,22 +968,27 @@
    * CONTENT ENGINE
    * =========================================================================*/
   async function loadSeed() {
-    let lines = null;
+    let data = null;
     try {
       const res = await fetch(SEED_URL, { cache: 'no-cache' });
       if (res.ok) {
-        const data = await res.json();
-        if (data && Array.isArray(data.lines)) lines = data.lines;
+        data = await res.json();
       } else {
         console.warn('[eChan] seed.json fetch failed:', res.status);
       }
     } catch (e) {
       console.warn('[eChan] seed.json fetch error:', e && e.message);
     }
+    let lines = (data && Array.isArray(data.lines)) ? data.lines : null;
     if (!lines || !lines.length) {
       console.warn('[eChan] using fallback seed (in-code, 3 lines)');
       lines = FALLBACK_SEED;
     }
+    /* categoryDefaults is optional — empty object if missing, which makes
+     * resolveEmotionForLine fall straight through to 'neutral'. */
+    state.categoryDefaults = (data && data.categoryDefaults && typeof data.categoryDefaults === 'object')
+      ? data.categoryDefaults
+      : {};
     buildSeedIndex(lines);
     state.seedLoaded = true;
   }
@@ -1100,15 +1083,23 @@
 
     pushMessage({
       id: pick.id, category: pick.category, priority: pick.priority || 1,
-      emotion: pick.emotion, text: pick.text,
+      emotion: resolveEmotionForLine(pick), text: pick.text,
     });
     markSeen(pick.id);
     lsSet(STORAGE.greeted, String(Date.now()));
     lsSet(STORAGE.visits, String(visits + 1));
   }
 
+  /* contentTick — runs at the cadence set by CONTENT_TICK_INTERVAL[mode].
+   * Self-schedules at the end so wake-from-sleep can call it directly
+   * without double-scheduling. Bails cheaply in quiet mode (engine off). */
   function contentTick() {
+    /* Schedule next tick first — keeps cadence steady regardless of
+     * whether this tick produced output. scheduleContentTick is a no-op
+     * in quiet mode (returns early without setting a timer). */
     scheduleContentTick();
+
+    if (state.mode === 'quiet') return;
     if (!state.seedLoaded) return;
     if (document.hidden) return;
     if (isQuietActive()) return;
@@ -1128,13 +1119,17 @@
 
     pushMessage({
       id: pick.id, category: pick.category, priority: pick.priority || 1,
-      emotion: pick.emotion, text: pick.text,
+      emotion: resolveEmotionForLine(pick), text: pick.text,
     });
     markSeen(pick.id);
   }
+
   function scheduleContentTick() {
     clearTimeout(state.contentTimer);
-    const delay = CONTENT_TICK_MIN_MS + Math.random() * (CONTENT_TICK_MAX_MS - CONTENT_TICK_MIN_MS);
+    const interval = CONTENT_TICK_INTERVAL[state.mode];
+    if (!interval) return;   /* quiet mode → engine off */
+    const [min, max] = interval;
+    const delay = min + Math.random() * (max - min);
     state.contentTimer = setTimeout(contentTick, delay);
   }
 
@@ -1161,7 +1156,7 @@
         if (pick) {
           pushMessage({
             id: pick.id, category: pick.category, priority: pick.priority || 1,
-            emotion: pick.emotion, text: pick.text,
+            emotion: resolveEmotionForLine(pick), text: pick.text,
           });
           markSeen(pick.id);
         }
@@ -1187,16 +1182,21 @@
    * =========================================================================*/
   function onVisibilityChange() {
     if (document.hidden) {
-      clearTimeout(state.breatheTimer);
       stopTypewriter();
       clearTimeout(state.advanceTimer);
       clearTimeout(state.contentTimer);
       clearTimeout(state.networkTimer);
     } else {
+      /* Resume work. Finish any in-progress typewriter so the message
+       * isn't half-revealed when the user returns. */
       if (state.activeMessage) finishTypewriter();
-      scheduleBreathe();
-      scheduleContentTick();
       scheduleNetworkPoll();
+      /* Wake-from-sleep: fire an immediate content tick after a brief
+       * settle delay, rather than waiting the full mode cadence. The
+       * tick self-schedules the next one at normal cadence, so no
+       * double-tick risk. Eliminates the long silence after returning
+       * from a hidden tab. */
+      setTimeout(contentTick, WAKE_TICK_DELAY_MS);
     }
   }
   function onDocClick(e) {
@@ -1250,6 +1250,7 @@
           seedCategories: Object.keys(state.seedByTrigger).reduce((acc, k) => {
             acc[k] = state.seedByTrigger[k].length; return acc;
           }, {}),
+          categoryDefaults: Object.assign({}, state.categoryDefaults),
           spriteCounts: state.spriteCounts ? Object.assign({}, state.spriteCounts) : null,
           seenCount: state.seenIds ? state.seenIds.size : 0,
           isQuiet:  isQuietActive(),
@@ -1264,7 +1265,6 @@
           clearQuiet: () => { lsRemove(STORAGE.quietUntil); },
           forceGreet: () => { lsRemove(STORAGE.greeted); maybeGreet(); },
           triggerEaster,
-          /* Sound controls */
           toggleSound,
           playTypeBlip, playArrival, playGlitch,
           qa: { stats: qaStats, latestBlock: qaLatestBlock, tip: qaTip, quietHour: qaQuietHour },
@@ -1284,8 +1284,6 @@
     const savedPos = lsGet(STORAGE.deskpos, DESKPOS_PERCH);
     state.deskpos = (savedPos === DESKPOS_FOOTER) ? DESKPOS_FOOTER : DESKPOS_PERCH;
     const savedShown = lsGet(STORAGE.shown, '1');
-    /* Sound default = OFF. Only enabled if storage explicitly says '1'.
-     * First-time users get silence; they discover sound via the toggle. */
     state.soundEnabled = lsGet(STORAGE.sound, '0') === '1';
 
     state.seenIds = loadSeenRing();
@@ -1301,10 +1299,11 @@
 
     setDeskPos(state.deskpos, false);
 
+    /* First-paint emotion — passive (no glitch). Breathing animation
+     * removed — single sprite stays put until the next message-driven
+     * emotion change. */
     requestAnimationFrame(() => {
       setEmotion('neutral', { glitch: false });
-      state.avatar.classList.add('breathing');
-      scheduleBreathe();
     });
 
     setupResizeTracking();
