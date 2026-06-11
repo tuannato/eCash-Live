@@ -1,5 +1,5 @@
 {
-  "_comment": "eChan seed content — v1.3.1. Hand-editable; reload page to apply. Triggers: welcome:firstVisit, welcome:returning, time:morning|afternoon|evening|night, network:quiet|busy, idle:short, idle:long, random, manual, and v1.3.1 event triggers: event:block, event:blockfinal, event:bigtx (whale ≥1B XEC), event:sharktx (100M–1B XEC), event:fastttf, event:slowttf, event:blockdrought, event:fusion, event:watchlist, event:onchainmsg, event:trend:tps_up, event:trend:tps_down, event:trend:ttf_up, event:trend:ttf_down, event:trend:peak. Event lines may use template vars: {height} {txCount} {valueXec} {ttfMs} {pct} {peakTps} {watched} {msgType} {mins} — a line referencing a var the event doesn't carry is skipped. Emotions: neutral, happy, thinking, alert, celebrate, sleepy, studying, observing, shy, annoyed. Lines WITHOUT an emotion field inherit categoryDefaults[category]; an explicit emotion field overrides. priority: 1 shows in Chatty, 2 in Casual+, 3 always (announcements). v1.3.1 audit additions: optional per-line \"requires\" condition checked against live state (net:quiet | net:busy | net:notbusy | feed:up) — line is skipped when the condition isn't true right now. Live template vars usable in ANY line: {liveTps} {liveTtf}(seconds) {livePeak} {liveTxCount} {tipHeight} {ttfSec}(seconds) — auto-skipped while data is stale. Tour (v1.3.2): trigger 'tour:step' with ordered `step` field + optional `spot` selector; fully translatable via seed.<lang>.json.",
+  "_comment": "eChan seed — Português (pt-BR). Generated from English seed.json; same schema/ids/triggers/vars. English source: seed.json. Technical terms kept in English by design.",
   "version": 2,
   "categoryDefaults": {
     "welcome": "happy",
@@ -23,7 +23,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": true,
-      "text": "Hey 👋 I'm eChan — your eCash co-pilot. First time here? Let me show you around, it takes 60 seconds 👇"
+      "text": "Oi! 👋 Eu sou a eChan — sua copiloto do eCash. Primeira vez aqui? Deixa eu te mostrar o site, leva só 60 segundos 👇"
     },
     {
       "id": "welcome-return-1",
@@ -33,7 +33,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Welcome back ✨ The chain's been ticking while you were away."
+      "text": "Bem-vindo de volta! ✨ A blockchain continuou batendo enquanto você esteve fora."
     },
     {
       "id": "welcome-return-2",
@@ -43,7 +43,7 @@
       "emotion": "neutral",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Hey, you're back. Let's see what's happening on-chain."
+      "text": "Ei, você voltou. Vamos ver o que está rolando on-chain."
     },
     {
       "id": "welcome-settings-1",
@@ -53,7 +53,7 @@
       "weight": 1,
       "ttlOnce": false,
       "emotion": "shy",
-      "text": "One tiny favor 🥺 My chattiness lives in settings (click me → ⚙️). Casual is fine... just please don't put me on Quiet. Watching blocks alone gets lonely."
+      "text": "Um favorzinho 🥺 Meu nível de conversa fica nas configurações (clique em mim → ⚙️). Casual tá ótimo... só não me coloca no Silencioso, por favor. Assistir blocks sozinha é solitário demais."
     },
     {
       "id": "welcome-settings-2",
@@ -63,7 +63,7 @@
       "weight": 1,
       "ttlOnce": false,
       "emotion": "shy",
-      "text": "You can tune how much I talk in settings ⚙️ But Quiet mode? 🥺 Who would warn you about the whales then... think of the whales 🐋"
+      "text": "Você ajusta o quanto eu falo nas configurações ⚙️ Mas o modo Silencioso? 🥺 Quem te avisaria das baleias então... pensa nas baleias 🐋"
     },
     {
       "id": "greet-morning-1",
@@ -73,7 +73,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Morning ☀️ Coffee's brewing, blocks are landing. Let's see what XEC does today."
+      "text": "Bom dia ☀️ O café tá passando, os blocks tão chegando. Vamos ver o que o XEC apronta hoje."
     },
     {
       "id": "greet-morning-2",
@@ -83,7 +83,7 @@
       "emotion": "neutral",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Early start? The mempool's still warming up.",
+      "text": "Acordou cedo? O mempool ainda tá aquecendo.",
       "requires": "net:notbusy"
     },
     {
@@ -94,7 +94,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Afternoon. Prime time to watch the flow 🌊"
+      "text": "Boa tarde. Hora nobre pra assistir o fluxo 🌊"
     },
     {
       "id": "greet-evening-1",
@@ -104,7 +104,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Evening 🌆 The chain hums on, regardless of the hour."
+      "text": "Boa noite 🌆 A blockchain segue zumbindo, não importa a hora."
     },
     {
       "id": "greet-night-1",
@@ -114,7 +114,7 @@
       "emotion": "sleepy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Burning the midnight oil? 🌙 The mempool's calm — nice time to read tx details without distraction.",
+      "text": "Virando a noite? 🌙 O mempool tá calmo — ótima hora pra ler detalhes de tx sem distração.",
       "requires": "net:notbusy"
     },
     {
@@ -125,7 +125,7 @@
       "emotion": "sleepy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Late shift. The chain doesn't sleep, even if you should 😉"
+      "text": "Turno da madrugada. A blockchain não dorme, mas você devia 😉"
     },
     {
       "id": "edu-preconsensus-1",
@@ -134,7 +134,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Pre-consensus is what makes eCash feel instant 💡 Avalanche locks a tx in ~3s — long before it's buried in a block. No more 'wait for confirmations'."
+      "text": "Pre-consensus é o que faz o eCash parecer instantâneo 💡 O Avalanche trava uma tx em ~3 s — muito antes de ela entrar num block. Acabou o 'espera as confirmações'."
     },
     {
       "id": "edu-preconsensus-2",
@@ -143,7 +143,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "How does pre-consensus work? Stakers vote on each tx before it's mined. ~3s later they all agree — and that's final. No reversals."
+      "text": "Como funciona o pre-consensus? Os stakers votam em cada tx antes de minerar. ~3 segundos depois todos concordam — e pronto, é final. Sem reversões."
     },
     {
       "id": "edu-postconsensus-1",
@@ -152,7 +152,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Post-consensus is block-level Avalanche 🔒 Once a block is locked, no chain reorg can undo it. Different from pre-consensus, which works on individual txs."
+      "text": "Post-consensus é o Avalanche no nível de block 🔒 Block travado, nenhum reorg desfaz. Diferente do pre-consensus, que trabalha tx por tx."
     },
     {
       "id": "edu-ttf-1",
@@ -161,7 +161,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "TTF = Time To Finality ⏱️ How long until a tx is irreversible. Sub-second to a few seconds on a healthy chain. The ⚠ icon means the node feed is offline."
+      "text": "TTF = Time To Finality ⏱️ Quanto tempo até uma tx ser irreversível. De subsegundo a poucos segundos numa rede saudável. O ícone ⚠ significa que o feed do nó está offline."
     },
     {
       "id": "edu-tps-1",
@@ -170,7 +170,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "TPS = transactions per second 📊 eCash targets 5M long-term. What you're seeing now is the warm-up — current limits, not theoretical ones."
+      "text": "TPS = transações por segundo 📊 O eCash mira 5M no longo prazo. O que você vê agora é o aquecimento — limites atuais, não teóricos."
     },
     {
       "id": "edu-mempool-1",
@@ -179,7 +179,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "The mempool is the chain's waiting room 🚪 Txs sit here for ~3s under pre-consensus, then get locked in. On Bitcoin they'd wait ~10 minutes per confirm."
+      "text": "O mempool é a sala de espera da blockchain 🚪 As txs ficam ~3 s aqui sob pre-consensus e são travadas. No Bitcoin, esperariam ~10 minutos por confirmação."
     },
     {
       "id": "edu-agora-1",
@@ -188,7 +188,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Agora is eCash's peer-to-peer token marketplace 🏪 No central exchange, no order books — just on-chain offers anyone can take. Settlement in seconds."
+      "text": "Agora é o mercado de tokens peer-to-peer do eCash 🏪 Sem exchange central, sem livro de ordens — só ofertas on-chain que qualquer um pode pegar. Liquidação em segundos."
     },
     {
       "id": "edu-agora-2",
@@ -197,7 +197,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "How Agora works: seller posts a token offer on-chain. Buyer claims it with a single tx. No middleman, no custody, no waiting period."
+      "text": "Como o Agora funciona: o vendedor publica uma oferta de token on-chain. O comprador pega com uma única tx. Sem intermediário, sem custódia, sem espera."
     },
     {
       "id": "edu-chronik-1",
@@ -206,7 +206,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Chronik is eCash's indexer 🗂️ It's how wallets and dashboards (like this one) actually query history fast. Without it, you'd be parsing raw blocks yourself."
+      "text": "Chronik é o indexador do eCash 🗂️ É como wallets e dashboards (tipo este) consultam o histórico rápido. Sem ele, você estaria processando blocks crus na unha."
     },
     {
       "id": "edu-heartbeat-1",
@@ -215,7 +215,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Heartbeat is eCash's real-time difficulty algorithm 💓 It keeps blocks at a steady ~10min interval — way more consistent than the chain it forked from."
+      "text": "Heartbeat é o algoritmo de dificuldade em tempo real do eCash 💓 Mantém os blocks num ritmo constante de ~10 min — bem mais consistente que a cadeia da qual ele bifurcou."
     },
     {
       "id": "edu-heartbeat-2",
@@ -224,7 +224,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Heartbeat 💓 adjusts difficulty in real time — long block gaps get easier, fast bursts get harder. The chain keeps its rhythm."
+      "text": "O Heartbeat 💓 ajusta a dificuldade em tempo real — intervalos longos a derrubam, rajadas a sobem. A cadeia mantém o próprio ritmo."
     },
     {
       "id": "edu-heartbeat-3",
@@ -233,7 +233,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Why are eCash blocks so regular? Heartbeat 💓 — per-block real-time difficulty targeting that tames hashrate swings."
+      "text": "Por que os blocks do eCash são tão regulares? Heartbeat 💓 — mira de dificuldade em tempo real, block a block, domando as oscilações de hashrate."
     },
     {
       "id": "edu-ifp-1",
@@ -242,7 +242,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "IFP = Infrastructure Funding Policy. A slice of each mined block funds eCash core development 🛠️ Self-sustaining funding, no foundation begging."
+      "text": "IFP = Infrastructure Funding Policy. Uma fatia de cada block minerado financia o desenvolvimento do núcleo do eCash 🛠️ Financiamento autossustentável, sem pedir pra fundação."
     },
     {
       "id": "edu-stakers-1",
@@ -251,7 +251,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Avalanche stakers are the ~3s magic 🗳️ Run a node, lock some XEC, and your vote helps finalize txs. Decentralization with skin in the game."
+      "text": "Os stakers do Avalanche são a mágica dos ~3 s 🗳️ Rode um nó, trave XEC, e seu voto ajuda a finalizar txs. Descentralização com a pele em jogo."
     },
     {
       "id": "edu-alp-1",
@@ -260,7 +260,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Purple tag on a tx? That's an ALP token 💜 Like SLP but with built-in mint controls — eCash's modern token layer. Lighter, faster, more secure."
+      "text": "Tag roxa numa tx? É um token ALP 💜 Como o SLP mas com controles de mint embutidos — a camada de tokens moderna do eCash. Mais leve, rápida e segura."
     },
     {
       "id": "edu-slp-1",
@@ -269,7 +269,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Blue tag = SLP, the original token protocol on this chain lineage 🔵 ALP (purple tag) is the eCash evolution — same ideas, refined."
+      "text": "Tag azul = SLP, o protocolo de tokens original desta linhagem de cadeia 🔵 O ALP (tag roxa) é a evolução do eCash — mesmas ideias, refinadas."
     },
     {
       "id": "edu-cashfusion-1",
@@ -278,7 +278,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "CashFusion txs have many similar-amount inputs and outputs 🥷 Privacy mixing on-chain. The participants agree off-chain, settle in one batch tx."
+      "text": "Txs de CashFusion têm muitos inputs e outputs de valores parecidos 🥷 Mistura de privacidade on-chain. Os participantes combinam off-chain e liquidam numa tx em lote."
     },
     {
       "id": "edu-coinbase-1",
@@ -287,7 +287,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Miners sometimes leave messages in the coinbase tx 📜 The first input of every block carries notes, signals, sometimes jokes. eCash blocks have personality."
+      "text": "Mineradores às vezes deixam mensagens na coinbase tx 📜 O primeiro input de cada block carrega notas, sinais, às vezes piadas. Os blocks do eCash têm personalidade."
     },
     {
       "id": "edu-xec-unit-1",
@@ -296,7 +296,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Fun unit fact 🪙 1 XEC = 100 satoshis. eCash redenominated to keep numbers human-readable — no more counting decimals like the old chain."
+      "text": "Curiosidade de unidade 🪙 1 XEC = 100 satoshis. O eCash redenominou pra deixar os números legíveis — chega de contar casas decimais como na cadeia antiga."
     },
     {
       "id": "edu-utxo-1",
@@ -305,7 +305,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Your wallet doesn't really 'hold XEC' — the chain does 🌐 You hold private keys that prove ownership of unspent outputs (UTXOs). Lose the keys, lose the access."
+      "text": "Sua wallet não 'guarda XEC' de verdade — a cadeia guarda 🌐 Você guarda chaves privadas que provam a posse de outputs não gastos (UTXOs). Perdeu as chaves, perdeu o acesso."
     },
     {
       "id": "edu-address-1",
@@ -314,7 +314,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "eCash addresses start with 'ecash:qq...' 📬 They're derived from public keys via hashing — one-way, so the address never reveals the key behind it."
+      "text": "Endereços eCash começam com 'ecash:qq...' 📬 Derivam de chaves públicas via hashing — mão única, o endereço nunca revela a chave por trás."
     },
     {
       "id": "edu-supply-1",
@@ -323,7 +323,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "eCash supply caps at 21 trillion XEC — same '21' as Bitcoin, decimal moved. No inflation surprises."
+      "text": "O supply do eCash tem teto de 21 trilhões de XEC — o mesmo '21' do Bitcoin, com a vírgula deslocada. Sem surpresas inflacionárias."
     },
     {
       "id": "edu-staking-1",
@@ -332,7 +332,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Avalanche stakers earn real block rewards 💰 Lock XEC, run a node, get paid for securing finality."
+      "text": "Stakers do Avalanche ganham recompensas de block de verdade 💰 Trave XEC, rode um nó, receba por garantir a finalidade."
     },
     {
       "id": "edu-rebrand-1",
@@ -341,7 +341,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "eCash rebranded from BCHA in July 2021 with a 1:1,000,000 redenomination — old chain, new identity."
+      "text": "O eCash se renomeou a partir do BCHA em julho de 2021 com redenominação 1:1.000.000 — cadeia antiga, identidade nova."
     },
     {
       "id": "edu-decimals-1",
@@ -350,7 +350,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "XEC has just 2 decimal places — like dollars and cents 💵 Easier mental math than 8 decimals."
+      "text": "O XEC tem só 2 casas decimais — como reais e centavos 💵 Matemática de cabeça bem mais fácil que com 8 casas."
     },
     {
       "id": "edu-cashtab-1",
@@ -359,7 +359,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Cashtab is eCash's reference wallet — runs in your browser, supports tokens, messages, instant settling."
+      "text": "Cashtab é a wallet de referência do eCash — roda no navegador, suporta tokens, mensagens e liquidação instantânea."
     },
     {
       "id": "edu-onchainmsg-1",
@@ -368,7 +368,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "You can write messages on-chain with eCash 📝 OP_RETURN outputs carry text forever."
+      "text": "Você pode escrever mensagens on-chain com o eCash 📝 Outputs OP_RETURN carregam texto pra sempre."
     },
     {
       "id": "edu-bigblock-1",
@@ -377,7 +377,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "eCash inherited big-block DNA — built to scale on-chain, not push users to side layers."
+      "text": "O eCash herdou DNA de big-block — feito pra escalar on-chain, não pra empurrar usuários pra camadas paralelas."
     },
     {
       "id": "edu-twolayer-1",
@@ -386,7 +386,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Avalanche adds speed; PoW anchors history. Two consensus layers, one chain — belt and suspenders 🔗"
+      "text": "O Avalanche traz velocidade; o PoW ancora a história. Duas camadas de consenso, uma cadeia — cinto e suspensório 🔗"
     },
     {
       "id": "fun-popcorn-1",
@@ -396,7 +396,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Big CashFusion round once finalized 3,200 tx in 60 seconds 🍿 Watching it scroll by was like popcorn popping."
+      "text": "Uma grande rodada de CashFusion finalizou 3.200 txs em 60 segundos uma vez 🍿 Ver aquilo rolar era pipoca estourando."
     },
     {
       "id": "fun-vs-btc-1",
@@ -406,7 +406,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "BTC: 'wait 60 minutes to be sure.' eCash: 'why wait?' ⚡ Same lineage, different priorities."
+      "text": "BTC: 'espera 60 minutos pra ter certeza.' eCash: 'esperar pra quê?' ⚡ Mesma linhagem, prioridades diferentes."
     },
     {
       "id": "fun-name-1",
@@ -416,7 +416,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "My name? Just eChan. e for eCash, chan for ... well, you'll figure it out 😉"
+      "text": "Meu nome? Só eChan. e de eCash, chan de... bom, você vai descobrir 😉"
     },
     {
       "id": "fun-tokens-1",
@@ -426,7 +426,7 @@
       "emotion": "celebrate",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Tokens on eCash mean the chain isn't just money — it's a venue 🎪 Mints, trades, marketplaces, all settling in seconds."
+      "text": "Tokens no eCash fazem a cadeia ser mais que dinheiro — é um palco 🎪 Mints, trades, mercados, tudo liquidando em segundos."
     },
     {
       "id": "net-quiet-1",
@@ -436,7 +436,7 @@
       "emotion": "sleepy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Quiet stretch 😴 Mempool's idling. Perfect time to dig into tx details without rush."
+      "text": "Trecho calmo 😴 O mempool tá em marcha lenta. Hora perfeita pra fuçar detalhes de tx sem pressa."
     },
     {
       "id": "net-quiet-2",
@@ -446,7 +446,7 @@
       "emotion": "neutral",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Slow lane today. Even stakers need a coffee break ☕"
+      "text": "Pista lenta hoje. Até staker precisa de um café ☕"
     },
     {
       "id": "net-busy-1",
@@ -456,7 +456,7 @@
       "emotion": "alert",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Mempool's heating up 🔥 Could be a fusion round, an airdrop, or a token mint going viral."
+      "text": "O mempool tá esquentando 🔥 Pode ser uma rodada de fusion, um airdrop ou um mint de token viralizando."
     },
     {
       "id": "net-busy-2",
@@ -466,7 +466,7 @@
       "emotion": "celebrate",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Look at that flow! ⚡ TPS is climbing — pre-consensus stakers are getting their workout."
+      "text": "Olha esse fluxo! ⚡ O TPS tá subindo — os stakers do pre-consensus estão malhando."
     },
     {
       "id": "idle-short-1",
@@ -476,7 +476,7 @@
       "emotion": "thinking",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Still here 👁️ Just watching the chain do its thing."
+      "text": "Ainda aqui 👁️ Só observando a blockchain fazer o dela."
     },
     {
       "id": "idle-short-2",
@@ -486,7 +486,7 @@
       "emotion": "neutral",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Calm chain. Sometimes the most interesting thing is when nothing dramatic happens.",
+      "text": "Cadeia tranquila. Às vezes o mais interessante é quando nada dramático acontece.",
       "requires": "net:notbusy"
     },
     {
@@ -497,7 +497,7 @@
       "emotion": "sleepy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "You still there? 😴 No worries, I'll keep watching."
+      "text": "Você ainda tá aí? 😴 Relaxa, eu continuo de vigia."
     },
     {
       "id": "idle-long-2",
@@ -507,7 +507,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Long quiet stretch. Hope you're getting something good done elsewhere ✨"
+      "text": "Um longo silêncio. Espero que você esteja fazendo algo bom por aí ✨"
     },
     {
       "id": "easter-spam-1",
@@ -517,7 +517,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Okay okay, I'm flattered 😏 What do you want?"
+      "text": "Tá, tá, fiquei lisonjeada 😏 O que você quer?"
     },
     {
       "id": "easter-spam-2",
@@ -527,7 +527,7 @@
       "emotion": "celebrate",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Ten out of ten click rate 🌟 You found the easter egg."
+      "text": "Taxa de clique nota dez 🌟 Você achou o easter egg."
     },
     {
       "id": "easter-name-1",
@@ -537,7 +537,7 @@
       "emotion": "thinking",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Hmm? You poked me. I exist 🤨 What's up."
+      "text": "Hum? Você me cutucou. Eu existo 🤨 Que foi?"
     },
     {
       "id": "ambient-thought-1",
@@ -546,7 +546,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Random thought 💭 — every confirmed tx you see was independently checked by hundreds of nodes. Distributed trust, in real time."
+      "text": "Pensamento aleatório 💭 — cada tx confirmada que você vê foi checada de forma independente por centenas de nós. Confiança distribuída, em tempo real."
     },
     {
       "id": "ambient-thought-2",
@@ -555,7 +555,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Some addresses on this chain have been quietly active for years. The chain remembers everything — graceful or messy."
+      "text": "Alguns endereços desta cadeia estão silenciosamente ativos há anos. A cadeia lembra de tudo — do elegante ao bagunçado."
     },
     {
       "id": "ambient-thought-3",
@@ -565,7 +565,7 @@
       "emotion": "neutral",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Watching a block land is watching consensus crystallize 🧊 Hundreds of independent observers all arriving at the same answer at the same time."
+      "text": "Ver um block pousar é ver o consenso cristalizar 🧊 Centenas de observadores independentes chegando à mesma resposta ao mesmo tempo."
     },
     {
       "id": "ambient-thought-4",
@@ -575,7 +575,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "The whole chain runs on math nobody's broken in 15+ years 🧮 Hashing, signatures, consensus — all open, all checkable."
+      "text": "A cadeia inteira roda em matemática que ninguém quebrou em 15+ anos 🧮 Hashing, assinaturas, consenso — tudo aberto, tudo verificável."
     },
     {
       "id": "ambient-thought-5",
@@ -584,7 +584,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Avalanche didn't replace mining on eCash — it works alongside it 🤝 Miners produce blocks, stakers vote on order. Two systems, one chain."
+      "text": "O Avalanche não substituiu a mineração no eCash — eles trabalham lado a lado 🤝 Mineradores produzem blocks, stakers votam a ordem. Dois sistemas, uma cadeia."
     },
     {
       "id": "evt-block-1",
@@ -593,7 +593,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Block {height} just landed 📦 {txCount} txs sealed inside."
+      "text": "Block {height} acabou de pousar 📦 {txCount} txs seladas dentro."
     },
     {
       "id": "evt-block-2",
@@ -602,7 +602,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Fresh block — {height}. The chain grows."
+      "text": "Block fresquinho — {height}. A cadeia cresce."
     },
     {
       "id": "evt-block-3",
@@ -611,7 +611,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "{txCount} txs just got their permanent home in block {height} 🧱"
+      "text": "{txCount} txs acabaram de ganhar lar permanente no block {height} 🧱"
     },
     {
       "id": "evt-bfinal-1",
@@ -620,7 +620,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Avalanche locked block {height} 🔒 Irreversible now."
+      "text": "O Avalanche travou o block {height} 🔒 Irreversível agora."
     },
     {
       "id": "evt-bfinal-2",
@@ -629,7 +629,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Block {height} finalized — no reorg can touch it."
+      "text": "Block {height} finalizado — nenhum reorg encosta nele."
     },
     {
       "id": "evt-bigtx-1",
@@ -638,7 +638,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "🐋 WHALE ALERT — {valueXec} XEC just changed hands. That's a market-moving stack."
+      "text": "🐋 ALERTA DE BALEIA — {valueXec} XEC acabaram de trocar de mãos. Uma pilha que mexe com o mercado."
     },
     {
       "id": "evt-bigtx-2",
@@ -647,7 +647,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "A whale surfaces 🐋 {valueXec} XEC on the move. Everybody act natural."
+      "text": "Uma baleia emerge 🐋 {valueXec} XEC em movimento. Todo mundo agindo normal."
     },
     {
       "id": "evt-bigtx-3",
@@ -656,7 +656,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "{valueXec} XEC in one tx. Some people really do carry the chain on their backs 🐋"
+      "text": "{valueXec} XEC numa tx só. Tem gente que realmente carrega a cadeia nas costas 🐋"
     },
     {
       "id": "evt-shark-1",
@@ -665,7 +665,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "🦈 Shark in the water — {valueXec} XEC just moved."
+      "text": "🦈 Tubarão na água — {valueXec} XEC acabaram de se mover."
     },
     {
       "id": "evt-shark-2",
@@ -674,7 +674,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Someone shifted {valueXec} XEC 🦈 Not a whale, but I noticed."
+      "text": "Alguém moveu {valueXec} XEC 🦈 Não é baleia, mas eu notei."
     },
     {
       "id": "evt-shark-3",
@@ -683,7 +683,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "{valueXec} XEC on the move 🦈 Respectable bag."
+      "text": "{valueXec} XEC em movimento 🦈 Uma bolsa respeitável."
     },
     {
       "id": "evt-fastttf-1",
@@ -693,7 +693,7 @@
       "emotion": "celebrate",
       "weight": 1,
       "ttlOnce": false,
-      "text": "{ttfSec}s to finality ⚡ Blink and you missed it."
+      "text": "{ttfSec} s até a finalidade ⚡ Piscou, perdeu."
     },
     {
       "id": "evt-fastttf-2",
@@ -703,7 +703,7 @@
       "emotion": "celebrate",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Just clocked a {ttfSec}s finalization. Avalanche is fast today."
+      "text": "Acabei de cronometrar uma finalização de {ttfSec} s. O Avalanche tá rápido hoje."
     },
     {
       "id": "evt-slowttf-1",
@@ -712,7 +712,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "That tx took {ttfMs}ms to finalize 😤 Unacceptable. I'm going to have words with the slow avalanche peers."
+      "text": "Aquela tx levou {ttfMs}ms pra finalizar 😤 Inaceitável. Vou ter uma conversinha com os avalanche peers lentos."
     },
     {
       "id": "evt-slowttf-2",
@@ -721,7 +721,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "{ttfMs}ms?? Who's running their staking node on a potato 🥔"
+      "text": "{ttfMs}ms?? Quem tá rodando o staking node numa batata 🥔"
     },
     {
       "id": "evt-slowttf-3",
@@ -730,7 +730,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Finality took {ttfMs}ms just now. Someone's peer needs a performance review."
+      "text": "A finalidade levou {ttfMs}ms agorinha. O peer de alguém precisa de avaliação de desempenho."
     },
     {
       "id": "evt-drought-1",
@@ -739,7 +739,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "{mins} minutes and no block 😤 Did the miners go for coffee? All of them? At once?"
+      "text": "{mins} minutos e nenhum block 😤 Os mineradores foram tomar café? Todos? Ao mesmo tempo?"
     },
     {
       "id": "evt-drought-2",
@@ -748,7 +748,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Still no block after {mins} minutes. I'm drafting a strongly-worded letter to the hashrate."
+      "text": "Ainda sem block depois de {mins} minutos. Estou redigindo uma carta bem séria pro hashrate."
     },
     {
       "id": "evt-drought-3",
@@ -757,7 +757,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Block drought: {mins} min. Statistically normal, emotionally devastating."
+      "text": "Seca de blocks: {mins} min. Estatisticamente normal, emocionalmente devastador."
     },
     {
       "id": "evt-fusion-1",
@@ -766,7 +766,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "CashFusion round in progress 🥷 Privacy, live on-chain."
+      "text": "Rodada de CashFusion em andamento 🥷 Privacidade, ao vivo on-chain."
     },
     {
       "id": "evt-fusion-2",
@@ -775,7 +775,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Fusion shuffle detected — coins getting mixed as we speak."
+      "text": "Mistura fusion detectada — moedas sendo embaralhadas neste instante."
     },
     {
       "id": "evt-watch-1",
@@ -784,7 +784,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Your watchlist just lit up 👁️ {watched} saw activity."
+      "text": "Sua watchlist acabou de acender 👁️ {watched} teve atividade."
     },
     {
       "id": "evt-watch-2",
@@ -793,7 +793,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Heads up — {watched} on your watchlist just moved."
+      "text": "Atenção — {watched} da sua watchlist acabou de se mover."
     },
     {
       "id": "evt-msg-1",
@@ -802,7 +802,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Someone just wrote on-chain 📝 Fresh message in the feed."
+      "text": "Alguém acabou de escrever on-chain 📝 Mensagem nova no feed."
     },
     {
       "id": "evt-msg-2",
@@ -811,7 +811,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "New {msgType} just landed in the on-chain feed."
+      "text": "Um novo {msgType} acabou de chegar no feed on-chain."
     },
     {
       "id": "evt-tpsup-1",
@@ -820,7 +820,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "TPS up {pct}% 📈 The chain's waking up."
+      "text": "TPS subiu {pct}% 📈 A cadeia tá acordando."
     },
     {
       "id": "evt-tpsup-2",
@@ -830,7 +830,7 @@
       "emotion": "celebrate",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Activity's climbing — TPS rose {pct}% in the last half hour ⚡"
+      "text": "A atividade tá escalando — o TPS subiu {pct}% na última meia hora ⚡"
     },
     {
       "id": "evt-tpsdn-1",
@@ -839,7 +839,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "TPS cooled off {pct}%. Quiet hours on-chain."
+      "text": "O TPS esfriou {pct}%. Horas calmas on-chain."
     },
     {
       "id": "evt-tpsdn-2",
@@ -849,7 +849,7 @@
       "emotion": "sleepy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Things slowed down — TPS off {pct}% from earlier. The chain breathes too."
+      "text": "As coisas desaceleraram — TPS {pct}% abaixo de antes. A cadeia também respira."
     },
     {
       "id": "evt-ttfdn-1",
@@ -859,7 +859,7 @@
       "emotion": "celebrate",
       "weight": 1,
       "ttlOnce": false,
-      "text": "TTF p50 dropped {pct}% ⚡ Finality getting snappier."
+      "text": "O TTF p50 caiu {pct}% ⚡ A finalidade tá ficando ágil."
     },
     {
       "id": "evt-ttfdn-2",
@@ -868,7 +868,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Finality improved {pct}% over the last half hour. The peers are in sync today."
+      "text": "A finalidade melhorou {pct}% na última meia hora. Os peers estão em sintonia hoje."
     },
     {
       "id": "evt-ttfup-1",
@@ -877,7 +877,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "TTF p50 crept up {pct}%. Network's chewing on something."
+      "text": "O TTF p50 subiu {pct}%. A rede tá mastigando alguma coisa."
     },
     {
       "id": "evt-ttfup-2",
@@ -886,7 +886,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Finality {pct}% slower than half an hour ago 😤 I'm watching you, avalanche peers."
+      "text": "Finalidade {pct}% mais lenta que meia hora atrás 😤 Tô de olho em vocês, avalanche peers."
     },
     {
       "id": "evt-peak-1",
@@ -896,7 +896,7 @@
       "emotion": "celebrate",
       "weight": 1,
       "ttlOnce": false,
-      "text": "New 24h TPS peak: {peakTps} 🚀"
+      "text": "Novo pico de TPS em 24h: {peakTps} 🚀"
     },
     {
       "id": "evt-peak-2",
@@ -906,7 +906,7 @@
       "emotion": "celebrate",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Record of the day — TPS just peaked at {peakTps} 🎉"
+      "text": "Recorde do dia — o TPS acabou de atingir {peakTps} 🎉"
     },
     {
       "id": "amb-live-1",
@@ -915,7 +915,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Right now: {liveTps} TPS, median finality {liveTtf}s — live, node-measured, no refresh needed 📡"
+      "text": "Agora mesmo: {liveTps} TPS, finalidade mediana de {liveTtf} s — ao vivo, medido no nó, sem recarregar 📡"
     },
     {
       "id": "amb-live-2",
@@ -924,7 +924,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Chain tip is block {tipHeight} as we speak ⛓️ I'll tell you when the next one lands."
+      "text": "A ponta da cadeia está no block {tipHeight} enquanto conversamos ⛓️ Aviso quando o próximo pousar."
     },
     {
       "id": "amb-live-3",
@@ -933,7 +933,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Everything on this dashboard streams in live — what you see is what the network is doing right now 📺"
+      "text": "Tudo neste dashboard chega em streaming — o que você vê é o que a rede está fazendo agora 📺"
     },
     {
       "id": "net-live-busy-1",
@@ -943,7 +943,7 @@
       "weight": 1,
       "ttlOnce": false,
       "requires": "net:busy",
-      "text": "It's busy out there right now 🔥 Keep an eye on the tx panel — good show."
+      "text": "Tá movimentado lá fora agora 🔥 Fica de olho no painel de txs — o show tá bom."
     },
     {
       "id": "net-live-quiet-1",
@@ -953,7 +953,7 @@
       "weight": 1,
       "ttlOnce": false,
       "requires": "net:quiet",
-      "text": "Quiet at the moment. When the mempool picks up, you'll see it here before anywhere else."
+      "text": "Calmo no momento. Quando o mempool acordar, você verá aqui antes de qualquer lugar."
     },
     {
       "id": "edu-livettf-1",
@@ -962,7 +962,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "The TTF numbers here come straight from a node measuring real finality as it happens — observer-grade, not estimated 📏"
+      "text": "Os números de TTF aqui vêm direto de um nó medindo finalidade real na hora — nível observatório, não estimativa 📏"
     },
     {
       "id": "fun-live-1",
@@ -971,7 +971,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "I don't do reruns — every block and tx I react to happened seconds ago ⚡"
+      "text": "Eu não faço reprise — cada block e tx que eu reajo aconteceu segundos atrás ⚡"
     },
     {
       "id": "net-stats-1",
@@ -980,7 +980,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Past 24h: {liveTxCount} txs finalized, peak {livePeak} TPS 📊 All measured live, all irreversible."
+      "text": "Últimas 24h: {liveTxCount} txs finalizadas, pico de {livePeak} TPS 📊 Tudo medido ao vivo, tudo irreversível."
     },
     {
       "id": "net-stats-2",
@@ -989,7 +989,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Today's peak so far: {livePeak} TPS — current {liveTps}. The chain breathes in waves 🌊"
+      "text": "Pico de hoje até agora: {livePeak} TPS — atual {liveTps}. A cadeia respira em ondas 🌊"
     },
     {
       "id": "amb-stats-1",
@@ -998,7 +998,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Median finality is sitting at {liveTtf}s right now. Blocks are just bookkeeping at this point 😎"
+      "text": "A finalidade mediana está em {liveTtf} s agora. A essa altura, blocks são só contabilidade 😎"
     },
     {
       "id": "fun-stats-1",
@@ -1007,7 +1007,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "I've watched {liveTxCount} txs finalize in the last 24h. Still not bored 👁️"
+      "text": "Eu vi {liveTxCount} txs finalizarem nas últimas 24h. Ainda não enjoei 👁️"
     },
     {
       "id": "edu-stats-1",
@@ -1016,7 +1016,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "That {liveTtf}s median finality? Avalanche pre-consensus. Most chains make you wait for blocks — eCash doesn't."
+      "text": "Aquela finalidade mediana de {liveTtf} s? Avalanche pre-consensus. A maioria das cadeias te faz esperar blocks — o eCash não."
     },
     {
       "id": "tour-0",
@@ -1027,7 +1027,7 @@
       "weight": 1,
       "ttlOnce": false,
       "emotion": "happy",
-      "text": "Hi! Welcome to the 60-second tour of eCash Live 👋 Tap my avatar (the girl right here!) to go forward — the ✕ chip exits anytime."
+      "text": "Oi! Bem-vindo ao tour de 60 segundos do eCash Live 👋 Toque no meu avatar (a garota aqui embaixo!) pra avançar — o chip ✕ sai a qualquer momento."
     },
     {
       "id": "tour-1",
@@ -1039,7 +1039,7 @@
       "ttlOnce": false,
       "emotion": "observing",
       "spot": "#section-col1",
-      "text": "Column 01 — brand-new transactions land here the instant the network hears them, and Avalanche peers start voting on each one immediately."
+      "text": "Coluna 01 — transações novinhas pousam aqui no instante em que a rede as ouve, e os peers do Avalanche começam a votar em cada uma na hora."
     },
     {
       "id": "tour-2",
@@ -1051,7 +1051,7 @@
       "ttlOnce": false,
       "emotion": "observing",
       "spot": "#section-col2",
-      "text": "Column 02 — the mempool. Watch a tx flip to Finalized in ~3 seconds ⚡ That's Avalanche pre-consensus: irreversible before it's even in a block."
+      "text": "Coluna 02 — o mempool. Veja uma tx virar Finalized em ~3 segundos ⚡ Isso é o Avalanche pre-consensus: irreversível antes mesmo de entrar num block."
     },
     {
       "id": "tour-3",
@@ -1063,7 +1063,7 @@
       "ttlOnce": false,
       "emotion": "observing",
       "spot": "#section-blockchain",
-      "text": "The block strip 🧱 Every card is a mined block — the color shift means Avalanche locked it permanently. Tip is at {tipHeight} right now."
+      "text": "A faixa de blocks 🧱 Cada cartão é um block minerado — a mudança de cor significa que o Avalanche o travou pra sempre. A ponta está em {tipHeight}."
     },
     {
       "id": "tour-4",
@@ -1075,7 +1075,7 @@
       "ttlOnce": false,
       "emotion": "happy",
       "spot": "#section-messages",
-      "text": "The on-chain feed 📝 Real messages people write into transactions — memos, CashFusion rounds, broadcasts. The chain has a social life."
+      "text": "O feed on-chain 📝 Mensagens reais que as pessoas escrevem em transações — memos, rodadas de CashFusion, broadcasts. A cadeia tem vida social."
     },
     {
       "id": "tour-5",
@@ -1087,7 +1087,7 @@
       "ttlOnce": false,
       "emotion": "alert",
       "spot": "#section-watchlist",
-      "text": "Your watchlist 👁️ Add any address or token here and I'll personally ping you the moment it moves."
+      "text": "Sua watchlist 👁️ Adicione qualquer endereço ou token e eu te aviso pessoalmente assim que ele se mover."
     },
     {
       "id": "tour-6",
@@ -1099,7 +1099,7 @@
       "ttlOnce": false,
       "emotion": "studying",
       "spot": "#f-tps-cell",
-      "text": "Down here: live network stats — TTF, TPS, Heartbeat 💓 Tap any cell for a deep-dive explainer. The numbers come straight from an eCash node."
+      "text": "Aqui embaixo: estatísticas de rede ao vivo — TTF, TPS, Heartbeat 💓 Toque em qualquer célula pra uma explicação a fundo. Os números vêm direto de um nó eCash."
     },
     {
       "id": "tour-7",
@@ -1111,7 +1111,7 @@
       "ttlOnce": false,
       "emotion": "shy",
       "spot": ".echan-root",
-      "text": "And this is me 💁 Click my avatar for quick actions, set my chattiness in settings, and I'll narrate whales 🐋, fast finality ⚡, and grumpy block droughts 😤 as they happen."
+      "text": "E essa sou eu 💁 Clique no meu avatar pra ações rápidas, ajuste meu nível de conversa nas configurações, e eu narro baleias 🐋, finalidade relâmpago ⚡ e secas de block rabugentas 😤 conforme acontecem."
     }
   ]
 }

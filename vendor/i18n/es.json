@@ -1,0 +1,128 @@
+{
+  "meta": {
+    "code": "es",
+    "name": "Español",
+    "source": "en",
+    "packVersion": 3
+  },
+  "ui": {
+    "qa.stats": "Estadísticas",
+    "qa.stats.title": "Abrir el panel de estadísticas de red",
+    "qa.block": "Último block",
+    "qa.block.title": "Abrir el popover del block más reciente",
+    "qa.tip": "Apoyar el proyecto",
+    "qa.tip.title": "Abrir el diálogo de propinas",
+    "qa.guide": "Guía",
+    "qa.guide.title": "Deja que eChan te muestre el dashboard",
+    "settings.title": "ajustes",
+    "settings.chattiness": "Nivel de charla",
+    "settings.sound": "Sonido",
+    "settings.help.aria": "¿Qué significan los modos?",
+    "mode.quiet": "Silencioso",
+    "mode.quiet.desc": "Silencio — solo pasan los anuncios del operador.",
+    "mode.casual": "Casual",
+    "mode.casual.desc": "Comenta cada ~45 s; reacciona a eventos importantes (ballenas, watchlist, tendencias).",
+    "mode.chatty": "Hablador",
+    "mode.chatty.desc": "Predeterminado — comentarios frecuentes cada ~15 s + reacción a todos los eventos.",
+    "chips.tour": "▶ Muéstrame el sitio",
+    "chips.later": "Más tarde",
+    "tour.back": "⟵ Atrás",
+    "tour.exit": "✕ Salir del tour",
+    "tour.done": "¡Fin del tour! 👋 Aquí estaré, narrando la blockchain en vivo.",
+    "lang.title": "Idioma / Language"
+  },
+  "tooltips": {
+    "ava-tx": {
+      "title": "Avalanche · Transaction Finality",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Pre-consensus</strong> permite que la red acuerde una transacción <em>antes</em> de que entre en ningún block.</p>\n          <p>En cuanto una transacción llega al mempool, los nodos de eCash que participan en Avalanche empiezan a consultarse entre sí — \"¿aceptas esta transacción?\" Cada consulta es un pequeño intercambio UDP contra un subconjunto de peers elegidos al azar, ponderados por la cantidad de eCash que tienen en stake.</p>\n          <p>El nodo que consulta registra el voto de cada peer y actualiza una <strong>puntuación de confianza</strong>. Cuando esa puntuación cruza el umbral de finalización, la transacción queda <strong>bloqueada para siempre</strong> — a partir de ese momento ningún double-spend ni transacción rival puede prosperar.</p>\n          <p>El proceso completo tarda de media <strong>~3 segundos</strong>, lo bastante rápido para que terminales de pago y exchanges acrediten saldos al instante. El anillo se rellena a medida que se acumulan los votos; el tic del candado marca el paso de \"votando\" a \"consenso permanente\".</p>\n          <p class=\"meta-note\">Activado en mainnet el 15 de noviembre de 2025.</p>\n        </div>\n        <div class=\"diagram-col\">${PRE_CONSENSUS_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "ava-block": {
+      "title": "Avalanche · Block Finality",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Post-consensus</strong> aplica el mismo mecanismo de votación de Avalanche a los <em>blocks</em>, operando por encima de la cadena proof-of-work clásica de Nakamoto.</p>\n          <p>Cada block nuevo pasa por tres etapas:</p>\n          <p>⛏ <strong>Mined</strong> — un minero encuentra un proof-of-work válido y difunde el block.</p>\n          <p>↻ <strong>Polling</strong> — todos los nodos de Avalanche consultan a sus peers, ponderados por su stake de eCash, sobre si aceptar este block como la nueva punta canónica de la cadena.</p>\n          <p>◆ <strong>Final</strong> — la confianza acumulada cruzó el umbral. El block ya no puede ser reemplazado ni reorganizado — ni siquiera por una mayoría hostil de hashpower. Una vez bloqueado, cualquier intento de reorg es rechazado como inválido por todos los nodos honestos.</p>\n          <p>El polling completo tarda de media <strong>3–5 segundos</strong> tras anunciarse el block, así que los depósitos pueden acreditarse con seguridad con <strong>1 confirmación</strong> — equivalente en seguridad a decenas de confirmaciones de Bitcoin.</p>\n          <p class=\"meta-note\">Protegiendo los blocks de eCash desde el 14 de septiembre de 2022.</p>\n        </div>\n        <div class=\"diagram-col\">${POST_CONSENSUS_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "tx-flow": {
+      "title": "Transaction Flow · How to read the colours",
+      "body": "\n      <div class=\"text-col\">\n        <p>Cada fila de las columnas <strong>Inputs</strong> / <strong>Outputs</strong> muestra una dirección y la cantidad que gastó o recibió en esta transacción.</p>\n        <p><span class=\"legend-dot\" style=\"background:#01a0e0;box-shadow:0 0 8px #01a0e0\"></span> <strong>Cian</strong> — dirección normal. Haz clic para abrirla en el block explorer.</p>\n        <p><span class=\"legend-dot\" style=\"background:#ffcb47;box-shadow:0 0 8px #ffcb47\"></span> <strong>Dorado</strong> — la dirección aparece en <em>ambos</em> lados, input y output. Normalmente es quien gasta recibiendo su <strong>cambio</strong>, pero en transacciones a uno mismo también marca consolidación de UTXOs.</p>\n        <p><span class=\"legend-dot\" style=\"background:#a7ff37;box-shadow:0 0 8px #a7ff37\"></span> <strong>Lima</strong> — dirección de tu <em>watchlist</em>. Se resalta en cada transacción para que detectes actividad en las wallets que te importan.</p>\n        <p><span class=\"legend-dot\" style=\"background:rgba(255,255,255,0.3)\"></span> <em>OP_RETURN</em> — output portador de datos (mensajes de chat, comandos de token). Sin dirección; no contiene valor gastable.</p>\n        <p>La cantidad de cada fila es el valor <strong>on-chain en bruto</strong>. En transacciones de tokens, la cantidad del token aparece primero (p. ej. <em>1,000 USDR · 5.46 XEC</em>) — los 5.46 XEC son solo el dust necesario para transportar el token.</p>\n      </div>\n    "
+    },
+    "heartbeat": {
+      "title": "Heartbeat · Real-Time Targeting",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Heartbeat</strong> es el algoritmo de ajuste de dificultad en tiempo real de eCash, activado en la actualización de red del <strong>15 de noviembre de 2024</strong>.</p>\n          <p>Las redes tipo Bitcoin apuntan a <strong>10 minutos de media</strong> entre blocks, pero las ráfagas de hashpower pueden producir varios blocks en minutos seguidos de largos silencios. Ese \"amontonamiento de blocks\" frustra a los usuarios e incomoda a los exchanges.</p>\n          <p>Heartbeat lo corrige con una <strong>segunda capa de dificultad</strong> sobre el ajuste estándar:</p>\n          <ul>\n            <li>Cuando los blocks llegan <strong>más rápido que la cadencia de 10 minutos</strong>, la dificultad <em>sube</em> de inmediato para frenar la producción en ráfaga.</li>\n            <li>Después la dificultad <strong>desciende de forma monótona</strong> hasta volver a la normalidad.</li>\n            <li>Los blocks que violan el objetivo en tiempo real son <strong>rechazados por el consenso Avalanche</strong> — aunque sean válidos según las reglas clásicas de Bitcoin.</li>\n          </ul>\n          <p>Resultado: tiempos de block más consistentes, menos exploits de mining pools (\"switch mining\") y una experiencia más predecible para todos.</p>\n          <p class=\"meta-note\">Heartbeat trabaja junto a Avalanche post-consensus (finalidad de blocks) y la Infrastructure Funding Policy — los tres pilares del consenso Nakamoto mejorado de eCash.</p>\n        </div>\n        <div class=\"diagram-col\">${HEARTBEAT_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "stats-overview": {
+      "title": "Network Statistics",
+      "body": "\n      <div class=\"so-wrap\">\n        <p class=\"so-lead\">La barra inferior de la página es el panel de cifras en vivo de la red eCash. Los números provienen de dos fuentes — un nodo eCash dedicado operado por nosotros, y tu sesión actual del navegador — y saber cuál es cuál ayuda a leer la barra correctamente.</p>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Headline cell · 24h ↔ session</h3>\n          <div class=\"so-card\">\n            <p>La celda principal de Time-to-Finality (TTF) puede mostrar la métrica de red de 24h o la de tu sesión. Elige aquí, o usa el botón <code>⇄</code> sobre la celda. Si el feed del nodo no está disponible, la celda vuelve siempre a la métrica de sesión, sin importar esta preferencia.</p>\n            <div class=\"stats-view-toggle\" id=\"stats-view-toggle\">\n              <button type=\"button\" data-view=\"p50\" id=\"stats-view-p50\">Mostrar red · 24h</button>\n              <button type=\"button\" data-view=\"session\" id=\"stats-view-session\">Mostrar sesión</button>\n            </div>\n            <span class=\"so-live-label\">Valores en vivo</span>\n            <div id=\"stats-live-grid\"><span style=\"color:var(--text-3);font-family:'Fira Code',monospace;font-size:11px\">— esperando el próximo stats frame —</span></div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Dos fuentes de datos</h3>\n          <div class=\"so-sources\">\n            <div class=\"so-source\">\n              <span class=\"so-src-name\"><span class=\"so-badge net\">Network</span> 24h</span>\n              <p>Agregados de ventana móvil de 24 horas medidos en el nodo y enviados a tu pestaña cada 5 segundos. Estas celdas reflejan lo que hace toda la red ahora mismo, independientemente de lo que tu pestaña haya observado.</p>\n            </div>\n            <div class=\"so-source\">\n              <span class=\"so-src-name\"><span class=\"so-badge ses\">Session</span></span>\n              <p>Contado por esta pestaña del navegador desde que cargó la página. Una pestaña nueva empieza en cero; recargar reinicia. Útil como vista personal de \"qué he visto\" y como respaldo cuando el feed del nodo no está disponible.</p>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Qué significa cada celda</h3>\n          <div class=\"so-defs\">\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Time-to-finality · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Tiempo mediano de las últimas 24 horas — ver <em>Cómo se mide la finalidad</em> más abajo.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">TPS · 24h avg <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Transacciones finalizadas por segundo, promediadas en la ventana de 24 horas. Con la red muy tranquila el valor puede caer bajo 0.01 tps; entonces la celda muestra <code>&lt; 0.01 tps</code> en lugar de redondear a cero (un cero redondeado sugeriría que no hubo ninguna transacción, algo que la ventana de 24h no afirma).</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Peak TPS · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">La mayor tasa sostenida de transacciones por segundo observada en cualquier ventana de 1 minuto durante las últimas 24 horas. El promedio por minuto es deliberado: un pico de 1 segundo (sobre todo una sola transacción en una red tranquila) no debería dominar la cifra titular. Sube con ráfagas de actividad genuina y se mantiene baja cuando la red está ociosa.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">% finalized &lt; 3s <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Porcentaje de transacciones finalizadas en 24h con time-to-finality bajo tres segundos — la tasa de \"carril rápido\". Tres segundos es aproximadamente el umbral donde un pago empieza a sentirse como espera en vez de instantáneo, así que este porcentaje sigue cuánto del tráfico reciente finaliza cómodamente por debajo. Muestra <code>100%</code> (sin decimales) cuando todo finalizó bajo 3s.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Tx · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Cuántas transacciones finalizaron en toda la red en las últimas 24 horas.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Avg block-lock <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Tiempo medio entre el minado de un block y su finalización por Avalanche. Distinto de time-to-finality: aquella mide el camino <em>pre</em>-consensus (transacciones en el mempool), mientras block-lock mide el camino <em>post</em>-consensus (blocks enteros ya en la cadena). Ambas en ámbito de sesión.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Avg block time <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Intervalo medio entre blocks consecutivos observados por esta pestaña. eCash apunta a 10 minutos mediante el algoritmo de dificultad en tiempo real Heartbeat. El botón <strong>?</strong> junto a esa celda abre la explicación de Heartbeat.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Tx · session <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Transacciones observadas por esta pestaña desde la carga. Vuelve a cero al recargar. Oculta de la barra en móvil, sigue visible en los valores en vivo de arriba.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Stream uptime <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Cuánto lleva esta pestaña conectada a la red eCash. Independiente del relay feed; se reinicia al recargar.</div>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Cómo se mide la finalidad</h3>\n          <p>Time-to-finality es la distancia entre dos momentos de la vida de una transacción. <strong>El inicio</strong> es cuando la transacción aparece por primera vez en el mempool del nodo. <strong>El final</strong> es cuando Avalanche pre-consensus la bloquea — el momento en que ya no puede ser reorganizada por peers rivales.</p>\n          <p>Ambos timestamps provienen de los logs del propio nodo, así que son consistentes y no se ven afectados por tu latencia de red. Las cifras de 24h son percentiles y medias sobre todas las transacciones finalizadas en la ventana móvil.</p>\n          <p style=\"margin-bottom:2px\">Cada percentil cuenta una historia distinta:</p>\n          <div class=\"so-pct\">\n            <div class=\"so-pct-item\"><div class=\"pk\">p50 · median</div><div class=\"pd\">La cifra titular: lo que experimenta una transacción típica, poco sensible a valores atípicos.</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">p90</div><div class=\"pd\">Captura la cola lenta — la gran mayoría termina bastante antes de esta marca.</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">p10</div><div class=\"pd\">Muestra cuán rápido es el 10% más veloz, útil para ver el suelo del protocolo.</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">Mean</div><div class=\"pd\">Media aritmética, sensible a extremos y normalmente algo mayor que p50.</div></div>\n          </div>\n          <p>Si el feed del nodo no está disponible, las celdas del footer vuelven a métricas de sesión medidas íntegramente en tu navegador. Ese valor puede superar el time-to-finality real porque incluye la latencia de WebSocket y de propagación entre el nodo y tu pestaña.</p>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Leer los iconos</h3>\n          <div class=\"so-legend\">\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"ttf-eye-wrap\" style=\"display:inline-flex;margin:0\">${TTF_EYE_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>El ojo</strong> — el feed del nodo no está disponible temporalmente, así que el valor junto a este icono es una medida <em>percibida</em>, calculada por completo en tu navegador según la metodología de arriba. Cuando el feed se reconecta, el ojo desaparece y el valor vuelve a precisión de nodo.</div>\n            </div>\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"radar-slash-wrap\" style=\"display:inline-flex;margin:0\">${RADAR_SLASH_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>Radar tachado</strong> — la celda no tiene valor que mostrar porque no hay conexión con el feed del nodo. Solo aparece en las tarjetas Network · 24h, porque las métricas de sesión siempre pueden calcularse en el navegador. Desaparece en cuanto el feed se reconecta y llega el siguiente stats frame.</div>\n            </div>\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"ttf-spinner-wrap\" style=\"display:inline-flex;margin:0\">${TTF_SPINNER_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>El spinner</strong> — se muestra en el panel de detalle de una transacción durante los ~3 segundos posteriores a su finalización. El valor mostrado se calculó localmente y puede refinarse al valor de precisión de nodo en cuanto llegue. Pasada la ventana de mejora, el spinner se detiene y el valor se considera definitivo.</div>\n            </div>\n          </div>\n        </div>\n      </div>\n    "
+    }
+  },
+  "dom": {
+    "#watchlist-empty-hint": {
+      "text": "añade una dirección para resaltar sus txs"
+    },
+    ".chat-chip-empty": {
+      "text": "sin dirección configurada — elige la tuya para ver tus propios mensajes"
+    },
+    "#btn-live": {
+      "title": "Modo de vista — clic para alternar: LIVE → CHAIN → FEED. Reduce la carga del DOM en mempools ocupados manteniendo el estado."
+    },
+    "#btn-pause": {
+      "title": "Pausar transacciones entrantes"
+    },
+    "#tip-btn": {
+      "title": "Invítame un café — tu tx se resaltará en el stream"
+    },
+    "#bc-goto-search": {
+      "placeholder": "ir al block #…"
+    },
+    "#btl-chain-search": {
+      "placeholder": "ir al block #…"
+    },
+    "#btl-search": {
+      "placeholder": "filtrar por prefijo o fragmento de txid…"
+    },
+    "#wl-input-addr": {
+      "placeholder": "ecash:q… o token ID de 64-hex"
+    },
+    "#wl-input-name": {
+      "placeholder": "ej. wallet-fría o mi colección NFT"
+    },
+    "#wl-edit-name": {
+      "placeholder": "ej. wallet-fría"
+    },
+    "#chat-pick-input": {
+      "placeholder": "ecash:q…"
+    },
+    "#chat-textarea": {
+      "placeholder": "escribe un mensaje · emoji ok · Enter para enviar · Shift+Enter nueva línea"
+    },
+    ".info-tile[data-tile=\"avalanche\"] .info-tile-title": {
+      "text": "¿Qué es Avalanche en eCash?"
+    },
+    ".info-tile[data-tile=\"avalanche\"] .info-tile-body": {
+      "html": "<p>Un protocolo de consenso que corre <strong>junto al</strong> Proof-of-Work Nakamoto de eCash, permitiendo que los nodos se consulten entre sí y acuerden blocks y (con Pre-Consensus) transacciones individuales en segundos.</p><p><strong>Post-Consensus</strong> (activo desde sep 2022) aporta finalidad de 1 block y prevención de ataques del 51%. <strong>Pre-Consensus</strong> (mainnet desde el 15/11/2025) finaliza transacciones en &lt;3 s antes de ser minadas — haciendo que eCash se sienta como efectivo para usuarios y exchanges.</p><p>Piensa en PoW como <em>escritura</em> (lenta, permanente) y en Avalanche como <em>habla</em> (rápida, fugaz) — eCash usa ambas.</p>"
+    },
+    ".info-tile[data-tile=\"agora\"] .info-tile-title": {
+      "text": "¿Qué es Agora en eCash?"
+    },
+    ".info-tile[data-tile=\"agora\"] .info-tile-body": {
+      "html": "<p>Un <strong>protocolo de intercambio atómico</strong> sin custodia construido sobre eCash Script. Lanzado en octubre de 2024, permite a cualquiera listar eTokens o NFTs en venta directamente on-chain — sin exchange, sin custodio, sin pedir permiso.</p><p>Los intercambios se liquidan con transacciones que el comprador se firma a sí mismo, posibles gracias al opcode <code>OP_CHECKDATASIG</code>. Los covenants viven on-chain, así que cualquiera puede explorar, pujar y liquidar sin un libro de órdenes centralizado.</p><p>Impulsa el DEX de eTokens dentro de Cashtab y exhibe las capacidades DeFi nativas de eCash con comisiones de menos de un centavo.</p>"
+    },
+    ".info-tile[data-tile=\"heartbeat\"] .info-tile-title": {
+      "text": "¿Qué es Heartbeat?"
+    },
+    ".info-tile[data-tile=\"heartbeat\"] .info-tile-body": {
+      "html": "<p>El <strong>algoritmo de ajuste de dificultad en tiempo real</strong> de eCash, activado el 15 de noviembre de 2024. Corre sobre el ajuste clásico de Bitcoin para <strong>suavizar los tiempos de block</strong> y acabar con el \"amontonamiento\" en que ráfagas de hashpower producen 5 blocks en 2 minutos seguidos de 30 minutos de silencio.</p><p>Cuando los blocks llegan más rápido que el objetivo de 10 minutos, la dificultad sube de inmediato y luego desciende de forma monótona hasta normalizarse. Los blocks que violan el objetivo en tiempo real son <strong>rechazados por el consenso Avalanche</strong> — aunque sean técnicamente válidos según las reglas clásicas de Bitcoin.</p><p>Resultado: tiempos de confirmación más consistentes, menos exploits de mining pools y una experiencia más predecible para toda la red.</p>"
+    },
+    ".info-tile[data-tile=\"chronik\"] .info-tile-title": {
+      "html": "¿Qué es <strong>Chronik</strong>?"
+    },
+    ".info-tile[data-tile=\"chronik\"] .info-tile-body": {
+      "html": "<p><strong>Chronik</strong> es el indexador eCash de alto rendimiento incluido en Bitcoin ABC. Es la capa de datos con la que habla cada wallet, explorer y dApp de eCash — incluido este stream en vivo.</p><p>Nativo en Rust e integrado estrechamente con el nodo, <strong>Chronik</strong> sirve datos de la cadena más el estado completo de tokens SLP / ALP a través de una API unificada HTTP + WebSocket. Las wallets obtienen historiales de dirección rápidos, conjuntos UTXO conscientes de tokens y streams de transacciones en vivo sin re-analizar la cadena.</p><p>Si alguna vez usaste Cashtab, agora.cash, este dashboard o el explorer de explorer.e.cash — cada byte de datos pasó por una instancia de <strong>Chronik</strong> para llegar ahí.</p>"
+    }
+  },
+  "domMap": {
+    ".info-tile-links-label": {
+      "Read more on e.cash": "Lee más en e.cash",
+      "Tool": "Herramienta",
+      "Trade now": "Opera ahora"
+    }
+  }
+}

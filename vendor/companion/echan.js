@@ -63,10 +63,74 @@
   /* ===========================================================================
    * CONFIG
    * =========================================================================*/
-  const VERSION              = '1.3.1';
+  const VERSION              = '1.3.2';
   const SPRITE_PATH          = './vendor/companion/sprites/';
   const SPRITE_MANIFEST_URL  = './vendor/companion/sprites/manifest.json';
   const SEED_URL             = './vendor/companion/seed.json';
+
+  /* ---- i18n (v1.3.2) ----
+   * Dashboard prose is translatable; English titles + technical terms
+   * (TPS, TTF, Avalanche, panel headers) stay English by design. Two pack
+   * files per language: vendor/i18n/<code>.json = { ui, tooltips } for
+   * the dashboard side (tooltips bridge via window.__ecI18n), and
+   * vendor/companion/seed.<code>.json = fully translated dialogue. Only
+   * the selected pack is fetched; every lookup falls back to English. */
+  const I18N_BASE = './vendor/i18n/';
+  const SEED_I18N = (code) => './vendor/companion/seed.' + code + '.json';
+  /* Order: English first, the rest alphabetical by code. `disp` is the
+   * always-2-character badge shown on the 🌐 button and list rows
+   * (pt-BR→PT, fil→PH, zh-CN→ZH, zh-TW→TW); native names disambiguate. */
+  const I18N_LANGS = [
+    { code: 'en',    disp: 'EN', native: 'English' },
+    { code: 'de',    disp: 'DE', native: 'Deutsch' },
+    { code: 'es',    disp: 'ES', native: 'Español' },
+    { code: 'fil',   disp: 'PH', native: 'Filipino' },
+    { code: 'fr',    disp: 'FR', native: 'Français' },
+    { code: 'id',    disp: 'ID', native: 'Bahasa Indonesia' },
+    { code: 'ja',    disp: 'JA', native: '日本語' },
+    { code: 'ko',    disp: 'KO', native: '한국어' },
+    { code: 'pt-BR', disp: 'PT', native: 'Português (BR)' },
+    { code: 'ru',    disp: 'RU', native: 'Русский' },
+    { code: 'th',    disp: 'TH', native: 'ไทย' },
+    { code: 'tr',    disp: 'TR', native: 'Türkçe' },
+    { code: 'uk',    disp: 'UK', native: 'Українська' },
+    { code: 'vi',    disp: 'VI', native: 'Tiếng Việt' },
+    { code: 'zh-CN', disp: 'ZH', native: '简体中文' },
+    { code: 'zh-TW', disp: 'TW', native: '繁體中文' },
+  ];
+  function langDisp(code) {
+    const L = I18N_LANGS.find(l => l.code === code);
+    return L ? L.disp : String(code).toUpperCase().slice(0, 2);
+  }
+
+  /* English UI strings — single source of truth; packs override by key.
+   * The eChan name itself is never translated. */
+  const UI_EN = {
+    'qa.stats':        'Stats',
+    'qa.stats.title':  'Open Network Statistics popover',
+    'qa.block':        'Latest block',
+    'qa.block.title':  'Open the most recent block popover',
+    'qa.tip':          'Tip the project',
+    'qa.tip.title':    'Open the tip dialog',
+    'qa.guide':        'Guide',
+    'qa.guide.title':  'Let eChan walk you through the dashboard',
+    'settings.title':  'settings',
+    'settings.chattiness': 'Chattiness',
+    'settings.sound':  'Sound',
+    'settings.help.aria': 'What do the modes mean?',
+    'mode.quiet':      'Quiet',
+    'mode.quiet.desc': 'Silent — only operator announcements get through.',
+    'mode.casual':     'Casual',
+    'mode.casual.desc': 'Comments every ~45s; reacts to important events (whales, watchlist, trends).',
+    'mode.chatty':     'Chatty',
+    'mode.chatty.desc': 'Default — frequent commentary every ~15s + reactions to every event.',
+    'chips.tour':      '▶ Show me around',
+    'chips.later':     'Later',
+    'tour.back':       '⟵ Back',
+    'tour.exit':       '✕ Exit tour',
+    'tour.done':       "That's the tour 👋 I'll be right here, narrating the chain live.",
+    'lang.title':      'Language',
+  };
 
   /* EMOTIONS map — six core sprites + four newer ones (studying, observing,
    * shy, annoyed). All are plain first-class emotions: sprite pools load
@@ -115,9 +179,17 @@
     visits:     'ecashlive.echan.visits',
     greeted:    'ecashlive.echan.greetedAt',
     quietUntil: 'ecashlive.echan.quietUntil',
+    statsRing:  'ecashlive.echan.statsring',
+    tourDone:    'ecashlive.echan.tourdone',
+    tourOffered: 'ecashlive.echan.touroffered',
+    lang:        'ecashlive.lang',
+    langOffered: 'ecashlive.echan.langoffered',
     sound:      'ecashlive.echan.sound',
   });
-  const LEGACY_KEYS = ['ecashlive.echan.dismissed'];
+  /* quietUntil joins the legacy list in 1.3.2: the "Quiet for 1 hour"
+   * quick-action was replaced by Guide, and a stored mute with no UI to
+   * cancel it would strand the user silent. */
+  const LEGACY_KEYS = ['ecashlive.echan.dismissed', 'ecashlive.echan.quietUntil'];
 
   const TYPE_MS_PER_CHAR       = 28;
   const ADVANCE_AUTO_MS        = 7000;
@@ -175,6 +247,12 @@
    * stale headline. Trend lines get a long deadline (they describe a
    * 30-min window, aging slowly); drought has none (it stays true). */
   const EVENT_BOOT_GRACE_MS = 10000;
+
+  /* Event cooldowns scale with chattiness (v1.3.2): the base cooldownMs
+   * values in EVENT_ROUTES are tuned for Casual; Chatty multiplies them
+   * down so a talkative eChan is also a more reactive one. Trend
+   * cooldowns scale identically. */
+  const EVENT_COOLDOWN_SCALE = { quiet: 1, casual: 1, chatty: 0.4 };
   const EVENT_STALE_MS = {
     block: 90e3, blockfinal: 90e3,
     bigtx: 120e3, sharktx: 120e3,
@@ -299,6 +377,7 @@
     /* v1.3.1 — event bus / trends / drought */
     busUnsub: null,
     busSubscribedAt: 0,                     /* boot-grace anchor */
+    chronikUp: true,                        /* chronik WS link (gates drought) */
     maxSeenHeight: -1,                      /* monotonic block guard */
     eventLastFireAt: Object.create(null),   /* route key → ts */
     lastCommentedBlock: -1,                 /* pairs blockfinal with block */
@@ -309,6 +388,21 @@
     lastSeenPeak: null,                     /* null until first frame — no reaction on load */
     trendLastFireAt: Object.create(null),   /* metric key → ts */
     trendTimer: null,
+    /* v1.3.2 — i18n + tour + chips */
+    lang: 'en',
+    i18n: null,                             /* loaded pack {ui, tooltips} or null=English */
+    tour: { active: false, step: 0, steps: [] },
+    tourSpotEl: null,
+    chipsEl: null,
+    langBtn: null,
+    langPop: null,
+    langPopOpen: false,
+    firstSession: false,        /* true during a visits===0 session */
+    settingsPleaDone: false,    /* the don't-mute-me line fires once */
+    appliedDomMap: null,        /* domMap of the currently applied pack */
+    domObserver: null,
+    domObserverTimer: null,
+    domApplying: false,
     /* Audio */
     audioCtx: null,
     audioMasterGain: null,
@@ -620,7 +714,8 @@
     for (const k of ['quiet', 'casual', 'chatty']) {
       const btn = el('button', {
         type: 'button',
-        text: MODES[k].label,
+        text: t('mode.' + k),
+        'data-i18n': 'mode.' + k,
         'data-mode': k,
         onclick: (e) => { e.stopPropagation(); setMode(k); },
       });
@@ -633,15 +728,17 @@
     const helpBtn = el('button', {
       class: 'echan-settings-help-btn',
       type: 'button',
-      'aria-label': 'What do the modes mean?',
+      'aria-label': t('settings.help.aria'),
       'aria-expanded': 'false',
       text: '?',
     });
     const helpRows = el('div', { class: 'echan-settings-help' });
     for (const k of ['quiet', 'casual', 'chatty']) {
       helpRows.appendChild(el('div', { class: 'echan-settings-help-row' },
-        el('span', { class: 'echan-settings-help-name', text: MODES[k].label }),
-        el('span', { class: 'echan-settings-help-desc', text: MODES[k].desc }),
+        el('span', { class: 'echan-settings-help-name', text: t('mode.' + k),
+                     'data-i18n': 'mode.' + k }),
+        el('span', { class: 'echan-settings-help-desc', text: t('mode.' + k + '.desc'),
+                     'data-i18n': 'mode.' + k + '.desc' }),
       ));
     }
 
@@ -655,17 +752,17 @@
     state.soundBtn = soundBtn;
 
     const settingsEl = el('div', { class: 'echan-settings', role: 'menu' },
-      el('div', { class: 'echan-settings-title', text: 'settings' }),
+      el('div', { class: 'echan-settings-title', text: t('settings.title'), 'data-i18n': 'settings.title' }),
       el('div', { class: 'echan-settings-row' },
         el('div', { class: 'echan-settings-labelrow' },
-          el('div', { class: 'echan-settings-label', text: 'Chattiness' }),
+          el('div', { class: 'echan-settings-label', text: t('settings.chattiness'), 'data-i18n': 'settings.chattiness' }),
           helpBtn,
         ),
         modeRow,
         helpRows,
       ),
       el('div', { class: 'echan-settings-row echan-settings-row-inline' },
-        el('div', { class: 'echan-settings-label', text: 'Sound' }),
+        el('div', { class: 'echan-settings-label', text: t('settings.sound'), 'data-i18n': 'settings.sound' }),
         soundBtn,
       ),
     );
@@ -678,24 +775,35 @@
   }
 
   function buildQuickActions() {
+    /* v1.3.2: "Quiet for 1 hour" replaced by "Guide" — the Quiet MODE
+     * covers long-term muting, and eChan now owns onboarding. Labels are
+     * data-i18n tagged for live language switching. */
     return el('div', { class: 'echan-quickactions', role: 'menu' },
-      el('button', { class: 'echan-qa-btn', type: 'button', text: 'Stats',
-        title: 'Open Network Statistics popover',
+      el('button', { class: 'echan-qa-btn', type: 'button', text: t('qa.stats'),
+        'data-i18n': 'qa.stats', 'data-i18n-title': 'qa.stats.title',
+        title: t('qa.stats.title'),
         onclick: (e) => { e.stopPropagation(); closeQuickActions(); qaStats(); } }),
-      el('button', { class: 'echan-qa-btn', type: 'button', text: 'Latest block',
-        title: 'Open the most recent block popover',
+      el('button', { class: 'echan-qa-btn', type: 'button', text: t('qa.block'),
+        'data-i18n': 'qa.block', 'data-i18n-title': 'qa.block.title',
+        title: t('qa.block.title'),
         onclick: (e) => { e.stopPropagation(); closeQuickActions(); qaLatestBlock(); } }),
-      el('button', { class: 'echan-qa-btn', type: 'button', text: 'Tip the project',
-        title: 'Open the tip dialog',
+      el('button', { class: 'echan-qa-btn', type: 'button', text: t('qa.tip'),
+        'data-i18n': 'qa.tip', 'data-i18n-title': 'qa.tip.title',
+        title: t('qa.tip.title'),
         onclick: (e) => { e.stopPropagation(); closeQuickActions(); qaTip(); } }),
-      el('button', { class: 'echan-qa-btn', type: 'button', text: 'Quiet for 1 hour',
-        title: 'Mute eChan for an hour',
-        onclick: (e) => { e.stopPropagation(); closeQuickActions(); qaQuietHour(); } }),
+      el('button', { class: 'echan-qa-btn', type: 'button', text: t('qa.guide'),
+        'data-i18n': 'qa.guide', 'data-i18n-title': 'qa.guide.title',
+        title: t('qa.guide.title'),
+        onclick: (e) => { e.stopPropagation(); closeQuickActions(); startTour(); } }),
     );
   }
 
   function onAvatarClick(e) {
     e.stopPropagation();
+    /* During the tour the avatar IS the next button — the dialog can be
+     * easy to miss as a tap target, the girl herself is not. No menu, no
+     * easter counting while guiding. */
+    if (state.tour.active) { nextTourStep(); return; }
     toggleQuickActions();
     bumpInteraction();
 
@@ -1008,6 +1116,13 @@
    *    70-of-90 seed lines at priority 1 never displayed in casual at all.
    *  - chatty: everything. */
   function pushMessage(msg) {
+    /* Tour owns the dialog: engine/event messages are dropped (returning
+     * false keeps cooldowns + seen-ring untouched); owner announcements
+     * queue silently and surface right after the tour. */
+    if (state.tour.active) {
+      if (msg.source === 'owner') { state.queue.push(msg); return true; }
+      return false;
+    }
     if (isQuietActive() && msg.source !== 'owner') return false;
     if (state.mode === 'quiet'  && msg.priority < 3) return false;
     if (state.mode === 'casual' && msg.priority < 2 && msg.source !== 'engine') return false;
@@ -1051,6 +1166,16 @@
      * synchronized even when the message waited in the queue. */
     if (msg.spotlight) spotlightCard(msg.spotlight);
 
+    /* Chip prompts (v1.3.2 — e.g. the first-visit tour offer): render the
+     * tappable choices and mark the offer as made so it never re-asks. */
+    if (msg.chips) {
+      showChips(msg.chips);
+      if (msg.offerFlag) lsSet(msg.offerFlag, '1');
+    } else {
+      clearChips();
+    }
+    if (msg.attract) addAttract();
+
     startTypewriter(msg.text || '');
     refreshPageDots();
   }
@@ -1090,11 +1215,14 @@
     state.advanceArmedAt = Date.now();
     state.textAdvance.classList.add('visible');
     clearTimeout(state.advanceTimer);
+    /* holdOpen (tour steps, chip prompts): wait for the user, no timer. */
+    if (state.activeMessage && state.activeMessage.holdOpen) return;
     const dwell = (state.activeMessage && state.activeMessage.dwellMs) || ADVANCE_AUTO_MS;
     state.advanceTimer = setTimeout(advance, dwell);
   }
   function advance() {
     clearTimeout(state.advanceTimer);
+    clearChips();
     state.textAdvance.classList.remove('visible');
     state.root.classList.remove('echan-pri-3', 'echan-pri-owner');
     state.lockedEmotion = null;
@@ -1109,8 +1237,15 @@
 
   function onTextClick() {
     if (!state.activeMessage) return;
-    if (state.typewriterTimer) finishTypewriter();
-    else if (Date.now() - state.advanceArmedAt >= ADVANCE_MIN_VISIBLE_MS) advance();
+    if (state.typewriterTimer) { finishTypewriter(); return; }
+    if (state.tour.active) {
+      if (Date.now() - state.advanceArmedAt >= ADVANCE_MIN_VISIBLE_MS) nextTourStep();
+      return;
+    }
+    /* Chip prompts (welcome offers) only resolve through a chip tap —
+     * a stray dialog tap must not dismiss the one-time decision. */
+    if (state.activeMessage.holdOpen) return;
+    if (Date.now() - state.advanceArmedAt >= ADVANCE_MIN_VISIBLE_MS) advance();
   }
 
   /* ===========================================================================
@@ -1153,18 +1288,277 @@
   /* ===========================================================================
    * CONTENT ENGINE
    * =========================================================================*/
-  async function loadSeed() {
-    let data = null;
+  /* ===========================================================================
+   * I18N RUNTIME (v1.3.2)
+   * =========================================================================*/
+  function t(key, fallback) {
+    const pack = state.i18n;
+    if (pack && pack.ui && typeof pack.ui[key] === 'string') return pack.ui[key];
+    if (UI_EN[key] !== undefined) return UI_EN[key];
+    return (fallback !== undefined) ? fallback : key;
+  }
+
+  async function loadLangPack(code) {
+    if (!code || code === 'en') { state.i18n = null; return; }
     try {
-      const res = await fetch(SEED_URL, { cache: 'no-cache' });
-      if (res.ok) {
-        data = await res.json();
-      } else {
-        console.warn('[eChan] seed.json fetch failed:', res.status);
-      }
+      const res = await fetch(I18N_BASE + code + '.json', { cache: 'no-cache' });
+      state.i18n = res.ok ? await res.json() : null;
+      if (!res.ok) console.warn('[eChan] lang pack fetch failed:', code, res.status);
     } catch (e) {
-      console.warn('[eChan] seed.json fetch error:', e && e.message);
+      state.i18n = null;
+      console.warn('[eChan] lang pack fetch error:', code, e && e.message);
     }
+  }
+
+  async function setLanguage(code) {
+    if (!I18N_LANGS.some(l => l.code === code)) return;
+    state.lang = code;
+    lsSet(STORAGE.lang, code);
+    try { document.documentElement.lang = code; } catch (e) {}
+    await loadLangPack(code);
+    await loadSeed();            /* dialogue re-fetched in the new language */
+    refreshUiTexts();
+    if (state.langBtn) {
+      const c = state.langBtn.querySelector('.echan-lang-code');
+      if (c) c.textContent = langDisp(code);
+    }
+    applyDomI18n();
+    startDomI18nObserver();
+    closeLangPopover();
+  }
+
+  /* Re-applies translated strings to everything built with data-i18n /
+   * data-i18n-title markers. Live apply — no reload needed. */
+  function refreshUiTexts() {
+    if (!state.root) return;
+    state.root.querySelectorAll('[data-i18n]').forEach(n => {
+      n.textContent = t(n.getAttribute('data-i18n'));
+    });
+    state.root.querySelectorAll('[data-i18n-title]').forEach(n => {
+      n.title = t(n.getAttribute('data-i18n-title'));
+    });
+    if (state.langBtn) state.langBtn.title = t('lang.title');
+  }
+
+  /* Bridge consumed by the inline module's showTooltip/showStackedTooltip
+   * hooks (see index v1.3.2): translated tooltip {title, body} by key, or
+   * null → English TOOLTIP_CONTENT fallback. */
+  function publishI18nBridge() {
+    window.__ecI18n = {
+      lang: () => state.lang,
+      tooltip: (key) => {
+        const p = state.i18n;
+        if (p && p.tooltips && p.tooltips[key]
+            && typeof p.tooltips[key].title === 'string'
+            && typeof p.tooltips[key].body === 'string') {
+          return p.tooltips[key];
+        }
+        return null;
+      },
+    };
+  }
+
+  /* ===========================================================================
+   * DASHBOARD DOM TRANSLATION (v1.3.2)
+   *
+   * Packs may carry two extra sections beyond ui/tooltips:
+   *   dom:    { "selector": { text?, html?, title?, placeholder? } } —
+   *           static strings (gray helper hints, hover titles,
+   *           placeholders, info-tile popovers). `text` replaces the
+   *           element's LAST text node so icon/dot spans survive; `html`
+   *           replaces innerHTML for rich content (only pack-authored
+   *           markup — same trust level as the tooltip bodies). Originals
+   *           cached in data-ec-orig-* for revert; data-ec-html-lang
+   *           marks applied language for idempotency (innerHTML
+   *           round-trips are browser-normalized, so equality checks
+   *           can't be trusted for loop prevention).
+   *   domMap: { "selector": { "EN VALUE": "translated", ... } } — value-
+   *           mapped, for labels the inline JS rewrites at runtime (e.g.
+   *           the LIVE→CHAIN→FEED view toggle). Idempotent by matching.
+   * A debounced MutationObserver re-applies forward translations when the
+   * dashboard re-renders translated regions (active only when lang≠en).
+   * English titles + technical terms are deliberately NOT in packs.
+   * =========================================================================*/
+  function lastTextNode(el) {
+    for (let i = el.childNodes.length - 1; i >= 0; i--) {
+      const n = el.childNodes[i];
+      if (n.nodeType === 3 && n.textContent.trim()) return n;
+    }
+    return null;
+  }
+
+  function applyDomI18n() {
+    state.domApplying = true;
+    try {
+      /* full restore first — handles switching pack→pack and pack→en */
+      document.querySelectorAll('[data-ec-orig-text]').forEach(el => {
+        const n = lastTextNode(el);
+        if (n) n.textContent = el.getAttribute('data-ec-orig-text');
+      });
+      document.querySelectorAll('[data-ec-orig-html]').forEach(el => {
+        el.innerHTML = el.getAttribute('data-ec-orig-html');
+        el.removeAttribute('data-ec-html-lang');
+      });
+      document.querySelectorAll('[data-ec-orig-title]').forEach(el => {
+        el.title = el.getAttribute('data-ec-orig-title');
+      });
+      document.querySelectorAll('[data-ec-orig-ph]').forEach(el => {
+        el.placeholder = el.getAttribute('data-ec-orig-ph');
+      });
+      revertDomMap();
+      applyDomForward();
+    } finally {
+      state.domApplying = false;
+    }
+  }
+
+  function applyDomForward() {
+    const pack = state.i18n;
+    if (!pack) return;
+    state.domApplying = true;
+    try {
+      const dom = pack.dom || {};
+      for (const sel in dom) {
+        let els; try { els = document.querySelectorAll(sel); } catch (e) { continue; }
+        els.forEach(el => {
+          const d = dom[sel];
+          if (typeof d.text === 'string') {
+            const n = lastTextNode(el);
+            if (n && n.textContent !== d.text) {
+              if (!el.hasAttribute('data-ec-orig-text')) el.setAttribute('data-ec-orig-text', n.textContent);
+              n.textContent = d.text;
+            }
+          }
+          if (typeof d.html === 'string'
+              && el.getAttribute('data-ec-html-lang') !== state.lang) {
+            if (!el.hasAttribute('data-ec-orig-html')) el.setAttribute('data-ec-orig-html', el.innerHTML);
+            el.innerHTML = d.html;
+            el.setAttribute('data-ec-html-lang', state.lang);
+          }
+          if (typeof d.title === 'string' && el.title !== d.title) {
+            if (!el.hasAttribute('data-ec-orig-title')) el.setAttribute('data-ec-orig-title', el.title);
+            el.title = d.title;
+          }
+          if (typeof d.placeholder === 'string' && 'placeholder' in el && el.placeholder !== d.placeholder) {
+            if (!el.hasAttribute('data-ec-orig-ph')) el.setAttribute('data-ec-orig-ph', el.placeholder);
+            el.placeholder = d.placeholder;
+          }
+        });
+      }
+      const map = pack.domMap || null;
+      state.appliedDomMap = map;
+      if (map) {
+        for (const sel in map) {
+          let els; try { els = document.querySelectorAll(sel); } catch (e) { continue; }
+          els.forEach(el => {
+            const n = lastTextNode(el);
+            if (!n) return;
+            const cur = n.textContent.trim();
+            if (map[sel][cur] !== undefined) n.textContent = map[sel][cur];
+          });
+        }
+      }
+    } finally {
+      state.domApplying = false;
+    }
+  }
+
+  function revertDomMap() {
+    const prev = state.appliedDomMap;
+    if (!prev) return;
+    for (const sel in prev) {
+      let els; try { els = document.querySelectorAll(sel); } catch (e) { continue; }
+      const rev = {};
+      for (const k in prev[sel]) rev[prev[sel][k]] = k;
+      els.forEach(el => {
+        const n = lastTextNode(el);
+        if (!n) return;
+        const cur = n.textContent.trim();
+        if (rev[cur] !== undefined) n.textContent = rev[cur];
+      });
+    }
+    state.appliedDomMap = null;
+  }
+
+  function startDomI18nObserver() {
+    stopDomI18nObserver();
+    const p = state.i18n;
+    if (!p || (!p.dom && !p.domMap)) return;
+    state.domObserver = new MutationObserver(() => {
+      if (state.domApplying) return;
+      clearTimeout(state.domObserverTimer);
+      state.domObserverTimer = setTimeout(applyDomForward, 300);
+    });
+    state.domObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
+  }
+  function stopDomI18nObserver() {
+    if (state.domObserver) { try { state.domObserver.disconnect(); } catch (e) {} }
+    state.domObserver = null;
+    clearTimeout(state.domObserverTimer);
+  }
+
+  /* ---- Language button (🌐), injected into the dashboard ctrl bar ----
+   * Injection instead of inline HTML keeps the index diff at zero for
+   * this feature; the old #btn-guide is hidden via echan.css (its modal
+   * stays in code, reachable from devtools). */
+  function injectLangButton() {
+    const tipBtn = document.getElementById('tip-btn');
+    const host = tipBtn && tipBtn.parentElement;
+    if (!host) return;
+    const btn = el('button', {
+      class: 'ctrl-btn echan-lang-ctrl', id: 'btn-echan-lang', type: 'button',
+      title: t('lang.title'), 'aria-haspopup': 'true', 'aria-expanded': 'false',
+      onclick: (e) => { e.stopPropagation(); toggleLangPopover(); } },
+      el('span', { class: 'echan-lang-globe', text: '🌐' }),
+      el('span', { class: 'echan-lang-code', text: langDisp(state.lang) }),
+    );
+    host.insertBefore(btn, tipBtn);
+    state.langBtn = btn;
+  }
+
+  function toggleLangPopover() {
+    if (state.langPopOpen) closeLangPopover(); else openLangPopover();
+  }
+  function openLangPopover() {
+    closeLangPopover();
+    if (!state.langBtn) return;
+    const rows = I18N_LANGS.map(L => el('button', {
+      class: 'echan-langpop-row' + (L.code === state.lang ? ' active' : ''),
+      type: 'button',
+      onclick: (e) => { e.stopPropagation(); setLanguage(L.code); } },
+      el('span', { class: 'echan-langpop-code', text: L.disp }),
+      el('span', { class: 'echan-langpop-native', text: L.native }),
+    ));
+    const pop = el('div', { class: 'echan-langpop', role: 'menu', 'aria-label': 'Language' }, ...rows);
+    document.body.appendChild(pop);
+    const r = state.langBtn.getBoundingClientRect();
+    pop.style.right  = Math.max(8, window.innerWidth - r.right) + 'px';
+    pop.style.bottom = Math.max(8, window.innerHeight - r.top + 8) + 'px';
+    state.langPop = pop;
+    state.langPopOpen = true;
+    state.langBtn.setAttribute('aria-expanded', 'true');
+  }
+  function closeLangPopover() {
+    if (state.langPop) { try { state.langPop.remove(); } catch (e) {} }
+    state.langPop = null;
+    state.langPopOpen = false;
+    if (state.langBtn) state.langBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  /* Seed loader is language-aware (v1.3.2): seed.<lang>.json first, then
+   * the English seed.json — a missing or broken translation degrades to
+   * English, never to silence. */
+  async function loadSeed() {
+    const tryFetch = async (url) => {
+      try {
+        const res = await fetch(url, { cache: 'no-cache' });
+        return res.ok ? await res.json() : null;
+      } catch (e) { return null; }
+    };
+    let data = null;
+    if (state.lang && state.lang !== 'en') data = await tryFetch(SEED_I18N(state.lang));
+    if (!data) data = await tryFetch(SEED_URL);
+    if (!data) console.warn('[eChan] seed fetch failed (incl. English fallback)');
     let lines = (data && Array.isArray(data.lines)) ? data.lines : null;
     if (!lines || !lines.length) {
       console.warn('[eChan] using fallback seed (in-code, 3 lines)');
@@ -1258,6 +1652,76 @@
     return 'night';
   }
 
+  /* Guide-offer chips for the first-visit welcome. attract stays ON
+   * through the whole offer; only the guide decision clears it. */
+  function decorateWelcomeWithGuideChips(msg) {
+    msg.holdOpen = true;
+    msg.attract = true;
+    msg.offerFlag = STORAGE.tourOffered;
+    msg.chips = [
+      { label: t('chips.tour'), primary: true,
+        onTap: () => { clearChips(); startTour(); } },
+      { label: t('chips.later'),
+        onTap: () => { removeAttract(); clearChips(); advance(); queueSettingsPlea(); } },
+    ];
+  }
+
+  /* Very first message a new user sees: pick a language right in the
+   * dialog. Multilingual static prompt (can't come from a pack — no pack
+   * is chosen yet). Choosing switches the whole site live and rebuilds
+   * the welcome from the re-fetched seed, so it arrives translated. */
+  function pushLangPick(visits) {
+    const chips = I18N_LANGS.map(L => ({
+      label: L.native,
+      primary: L.code === 'en',
+      onTap: () => {
+        lsSet(STORAGE.langOffered, '1');
+        setLanguage(L.code).then(() => {
+          clearChips();
+          state.activeMessage = null;
+          pushFirstWelcome(visits);
+        });
+      },
+    }));
+    pushMessage({
+      id: 'lang-pick', category: 'welcome', priority: 2, source: 'engine',
+      emotion: 'happy',
+      text: '🌐 Language? · Ngôn ngữ? · ¿Idioma? · Língua? · Langue? · Sprache? · Язык? · 言語? · 언어? · 语言?',
+      holdOpen: true, attract: true, chips,
+      offerFlag: STORAGE.langOffered,
+    });
+  }
+
+  function pushFirstWelcome(visits) {
+    const pool = (state.seedByTrigger['welcome:firstVisit'] || []).filter(isLineEligible);
+    const got = pickAndFill(pool, liveVars());
+    if (!got) return;
+    const msg = {
+      id: got.pick.id, category: got.pick.category, priority: got.pick.priority || 2,
+      emotion: resolveEmotionForLine(got.pick), text: got.text, source: 'engine',
+    };
+    decorateWelcomeWithGuideChips(msg);
+    if (!pushMessage(msg)) return;
+    markSeen(got.pick.id);
+    lsSet(STORAGE.greeted, String(Date.now()));
+    lsSet(STORAGE.visits, String(visits + 1));
+  }
+
+  /* The chattiness pitch, reframed as a plea (per design: she begs not to
+   * be muted instead of dryly documenting settings). Fires once, after
+   * the user's guide decision. */
+  function queueSettingsPlea() {
+    if (state.settingsPleaDone) return;
+    state.settingsPleaDone = true;
+    const pool = (state.seedByTrigger['welcome:settings'] || []).filter(isLineEligible);
+    const got = pickAndFill(pool, liveVars());
+    if (!got) return;
+    if (pushMessage({
+      id: got.pick.id, category: got.pick.category, priority: got.pick.priority || 2,
+      emotion: resolveEmotionForLine(got.pick), text: got.text, source: 'engine',
+    })) markSeen(got.pick.id);
+  }
+
   function maybeGreet() {
     if (!state.seedLoaded) return;
     if (isQuietActive()) return;
@@ -1285,10 +1749,23 @@
     /* source:'engine' → cadence-governed, exempt from the casual priority
      * gate. Cooldown + visit bookkeeping only when actually accepted, so
      * a dropped greeting doesn't burn the 4h window invisibly. */
-    const accepted = pushMessage({
+    const greetMsg = {
       id: got.pick.id, category: got.pick.category, priority: got.pick.priority || 1,
       emotion: resolveEmotionForLine(got.pick), text: got.text, source: 'engine',
-    });
+    };
+    /* v1.3.2 first-visit flow: language pick (once) → welcome with the
+     * guide offer → don't-mute-me plea after their decision. The lang
+     * prompt replaces the greeting on the very first paint; the welcome
+     * is rebuilt AFTER the language switch so it arrives translated. */
+    if (visits === 0 && lsGet(STORAGE.tourOffered, '0') !== '1') {
+      state.firstSession = true;
+      if (lsGet(STORAGE.langOffered, '0') !== '1') {
+        pushLangPick(visits);
+        return;
+      }
+      decorateWelcomeWithGuideChips(greetMsg);
+    }
+    const accepted = pushMessage(greetMsg);
     if (!accepted) return;
     markSeen(got.pick.id);
     lsSet(STORAGE.greeted, String(Date.now()));
@@ -1305,6 +1782,7 @@
     scheduleContentTick();
 
     if (state.mode === 'quiet') return;
+    if (state.tour.active) return;
     if (!state.seedLoaded) return;
     if (document.hidden) return;
     if (isQuietActive()) return;
@@ -1351,6 +1829,22 @@
    * template filling, and dashboard spotlighting. Keeping policy on this
    * side means tuning never requires a CSP regen.
    * =========================================================================*/
+  /* Restore the persisted trend ring (v1.3.2): entries older than the
+   * ring's useful horizon are dropped; malformed payloads are discarded
+   * wholesale. Without this, every reload silenced trends for ~20 min. */
+  function restoreStatsRing() {
+    try {
+      const raw = lsGet(STORAGE.statsRing);
+      if (!raw) return;
+      const arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) return;
+      const horizon = Date.now() - (TREND_RING_MAX * TREND_SAMPLE_GAP_MS);
+      state.statsRing = arr
+        .filter(e => e && typeof e.t === 'number' && typeof e.tps === 'number' && e.t > horizon)
+        .slice(-TREND_RING_MAX);
+    } catch (e) { state.statsRing = []; }
+  }
+
   function subscribeBus() {
     if (window.__echanBus && typeof window.__echanBus.on === 'function') {
       state.busUnsub = window.__echanBus.on(onBusEvent);
@@ -1381,6 +1875,16 @@
   function onBusEvent(type, data) {
     if (type === 'stats') { recordStats(data); return; }
     if (!data) return;
+
+    /* chronik link status (v1.3.2) — processed before every other gate
+     * (incl. boot grace) so the flag always tracks reality. On reconnect
+     * the drought clock restarts: downtime is OUR outage, not a chain
+     * drought, and must not trigger an instant grumble. */
+    if (type === 'chronik') {
+      if (data.up && !state.chronikUp) state.lastBlockAt = Date.now();
+      state.chronikUp = !!data.up;
+      return;
+    }
 
     /* Bookkeeping happens UNCONDITIONALLY — the drought watchdog and the
      * monotonic guard must see every block, including boot-replayed and
@@ -1434,7 +1938,8 @@
 
     const now = Date.now();
     const last = state.eventLastFireAt[routeKey] || 0;
-    if (route.cooldownMs && now - last < route.cooldownMs) return;
+    const cdMs = (route.cooldownMs || 0) * (EVENT_COOLDOWN_SCALE[state.mode] || 1);
+    if (cdMs && now - last < cdMs) return;
     if (route.chance < 1 && Math.random() > route.chance) return;
 
     /* Freshness metadata: deadline by route, plus a block-specific check
@@ -1461,6 +1966,7 @@
       txCount:  (data.txCount  != null) ? Number(data.txCount).toLocaleString('en-US') : undefined,
       valueXec: (data.valueXec != null) ? fmtCompact(data.valueXec) : undefined,
       ttfMs:    (data.ms       != null) ? Math.round(data.ms) : undefined,
+      ttfSec:   (data.ms       != null) ? fmtTtfSec(data.ms) : undefined,
       watched:  data.label,
       msgType:  data.msgType,
       pct:      data.pct,
@@ -1476,6 +1982,29 @@
     return String(Math.round(v));
   }
 
+  /* TPS with magnitude-aware precision (v1.3.2 fix): the old toFixed(1)
+   * rendered a real 0.02 TPS as "0.0" — eChan quoting an obviously wrong
+   * number is worse than silence. Small values keep enough decimals to
+   * stay truthful; big values drop the noise. */
+  function fmtTps(v) {
+    if (typeof v !== 'number' || !isFinite(v)) return undefined;
+    if (v >= 10)  return String(Math.round(v));
+    if (v >= 1)   return v.toFixed(1).replace(/\.0$/, '');
+    if (v >= 0.1) return v.toFixed(2);
+    if (v > 0)    return v.toFixed(v >= 0.01 ? 2 : 3);
+    return '0';
+  }
+
+  /* TTF for dialogue: seconds, one decimal (v1.3.2 — "0.3s" reads more
+   * human than "287ms"). Grumpy lines intentionally keep raw {ttfMs} for
+   * comedic exaggeration. */
+  function fmtTtfSec(ms) {
+    if (typeof ms !== 'number' || !isFinite(ms)) return undefined;
+    const s = ms / 1000;
+    if (s >= 10) return String(Math.round(s));
+    return s.toFixed(1).replace(/\.0$/, '');
+  }
+
   /* Live template variables — usable in ANY seed line, not just event
    * lines. Values come from the freshest relay frame / bus state; when the
    * data isn't fresh the var is undefined, fillTemplate returns null, and
@@ -1485,11 +2014,13 @@
     const st = state.lastStats;
     const fresh = st && (Date.now() - state.lastStatsAt) < STATS_FRESH_MS;
     return {
-      liveTps:   (fresh && typeof st.tps === 'number')
-                   ? (st.tps >= 10 ? String(Math.round(st.tps)) : st.tps.toFixed(1))
-                   : undefined,
-      liveTtf:   (fresh && typeof st.ttfP50Ms === 'number') ? String(Math.round(st.ttfP50Ms)) : undefined,
-      tipHeight: (state.maxSeenHeight > 0) ? String(state.maxSeenHeight) : undefined,
+      liveTps:     (fresh && typeof st.tps === 'number') ? fmtTps(st.tps) : undefined,
+      /* seconds, not ms — see fmtTtfSec rationale */
+      liveTtf:     (fresh && typeof st.ttfP50Ms === 'number') ? fmtTtfSec(st.ttfP50Ms) : undefined,
+      livePeak:    (fresh && typeof st.tpsPeak24h === 'number') ? fmtTps(st.tpsPeak24h) : undefined,
+      liveTxCount: (fresh && typeof st.sampleCount === 'number' && st.sampleCount > 0)
+                     ? st.sampleCount.toLocaleString('en-US') : undefined,
+      tipHeight:   (state.maxSeenHeight > 0) ? String(state.maxSeenHeight) : undefined,
     };
   }
 
@@ -1546,6 +2077,174 @@
     if (!accepted) return false;
     markSeen(got.pick.id);
     return true;
+  }
+
+  /* ===========================================================================
+   * ATTRACT (v1.3.2) — high-visibility state for the first-visit dialog
+   *
+   * New users were scrolling straight past a politely glowing bubble. The
+   * attract class drives a strong, NEVER-expiring pulse on the dialog
+   * (CSS: .echan-root.echan-attract) that is only removed when the user
+   * makes a guide decision — picks "show me around" or "later". Language
+   * chips keep it on; the welcome that follows keeps it on; only the
+   * guide choice clears it.
+   * =========================================================================*/
+  function addAttract() {
+    if (state.root) state.root.classList.add('echan-attract');
+  }
+  function removeAttract() {
+    if (state.root) state.root.classList.remove('echan-attract');
+  }
+
+  /* ===========================================================================
+   * CHIPS (v1.3.2) — tappable inline choices in the dialog
+   *
+   * Transient by design: built at use time with already-translated labels
+   * (no data-i18n), cleared on advance/exit. Used for the first-visit
+   * tour offer and the in-tour exit affordance.
+   * =========================================================================*/
+  function showChips(defs) {
+    clearChips();
+    if (!state.textBody || !defs || !defs.length) return;
+    const chips = el('div', { class: 'echan-chips' },
+      ...defs.map(d => el('button', {
+        class: 'echan-chip' + (d.primary ? ' primary' : ''), type: 'button', text: d.label,
+        onclick: (e) => { e.stopPropagation(); try { d.onTap(); } catch (err) {} },
+      })));
+    state.textBody.insertAdjacentElement('afterend', chips);
+    state.chipsEl = chips;
+  }
+  function clearChips() {
+    if (state.chipsEl) { try { state.chipsEl.remove(); } catch (e) {} }
+    state.chipsEl = null;
+  }
+
+  /* ===========================================================================
+   * TOUR (v1.3.2) — eChan-led guided walkthrough
+   *
+   * Steps live in seed.json (trigger 'tour:step', ordered by `step`,
+   * optional `spot` selector) — which makes the whole tour translatable
+   * through the normal seed.<lang>.json pipeline. While active: the
+   * engine timers are stopped, events are dropped (cooldowns untouched —
+   * pushMessage returns false), owner messages still queue for after.
+   * Navigation: tap the dialog → next; ✕ chip or Esc → exit; the
+   * spotlight HOLD variant stays lit for the whole step, and on mobile
+   * the owning tab is activated first so the glow is actually visible.
+   * =========================================================================*/
+  function tourSteps() {
+    return (state.seedByTrigger['tour:step'] || [])
+      .slice()
+      .sort((a, b) => (a.step | 0) - (b.step | 0));
+  }
+
+  function startTour() {
+    if (state.tour.active) return;
+    if (!state.seedLoaded) return;
+    const steps = tourSteps();
+    if (!steps.length) return;
+    closeQuickActions();
+    closeSettings();
+    closeLangPopover();
+    /* Silence the world: engine timers off, queue flushed (events are
+     * ephemeral; owner messages will re-queue via pushMessage's tour
+     * gate if any arrive mid-tour). */
+    clearTimeout(state.contentTimer);
+    clearTimeout(state.advanceTimer);
+    stopTypewriter();
+    state.queue = [];
+    state.activeMessage = null;
+    state.tour = { active: true, step: 0, steps };
+    removeAttract();
+    if (state.avatar) state.avatar.classList.add('echan-avatar-tour');
+    if (!state.shown) show();
+    showTourStep(0);
+  }
+
+  function showTourStep(i) {
+    const stp = state.tour.steps[i];
+    if (!stp) { endTour(true); return; }
+    state.tour.step = i;
+    clearTourSpot();
+    if (stp.spot) activateTabFor(stp.spot);
+    /* Tour text may use live vars; a missing var renders as '…' rather
+     * than killing the step (tour must never dead-end). */
+    let text = fillTemplate(stp.text, liveVars());
+    if (text === null) text = String(stp.text).replace(/\{\w+\}/g, '…');
+    state.activeMessage = {
+      id: stp.id, category: 'tour', priority: 3,
+      emotion: resolveEmotionForLine(stp), text, tour: true, holdOpen: true,
+    };
+    state.textCat.textContent = '· tour ' + (i + 1) + '/' + state.tour.steps.length;
+    setEmotion(state.activeMessage.emotion);
+    playArrival();
+    if (stp.spot) holdSpotlight(stp.spot);
+    startTypewriter(text);
+    const chips = [];
+    if (i > 0) chips.push({ label: t('tour.back'), onTap: () => showTourStep(i - 1) });
+    chips.push({ label: t('tour.exit'), onTap: () => endTour(false) });
+    showChips(chips);
+    refreshPageDots();
+  }
+
+  function nextTourStep() { showTourStep(state.tour.step + 1); }
+
+  function endTour(completed) {
+    clearTourSpot();
+    clearChips();
+    if (state.avatar) state.avatar.classList.remove('echan-avatar-tour');
+    const wasActive = state.tour.active;
+    state.tour = { active: false, step: 0, steps: [] };
+    if (!wasActive) return;
+    lsSet(STORAGE.tourDone, '1');
+    state.activeMessage = null;
+    state.textCat.textContent = '';
+    state.textBody.textContent = '';
+    state.textAdvance.classList.remove('visible');
+    /* Resume normal life. */
+    scheduleContentTick();
+    scheduleNetworkPoll();
+    scheduleTrendEval();
+    if (completed) {
+      pushMessage({
+        id: 'tour-end', category: 'tour', priority: 2,
+        emotion: 'celebrate', text: t('tour.done'), source: 'engine',
+      });
+    } else if (state.queue.length) {
+      showNextMessage();
+    }
+    /* First-session epilogue: the "please don't mute me" plea. */
+    if (state.firstSession) queueSettingsPlea();
+  }
+
+  /* Persistent spotlight for tour steps — steady glow, removed on step
+   * change/exit (vs the 5s one-shot pulse used for event mentions). */
+  function holdSpotlight(selector) {
+    let target = null;
+    try { target = document.querySelector(selector); } catch (e) { return; }
+    if (!target) return;
+    target.classList.add('echan-spotlight-hold');
+    state.tourSpotEl = target;
+  }
+  function clearTourSpot() {
+    if (state.tourSpotEl) {
+      try { state.tourSpotEl.classList.remove('echan-spotlight-hold'); } catch (e) {}
+    }
+    state.tourSpotEl = null;
+  }
+
+  /* Mobile: make sure the panel that owns `selector` is the active tab
+   * before spotlighting inside it. Same section↔tab mapping as
+   * spotlightCard's tab glow. */
+  function activateTabFor(selector) {
+    if (!window.matchMedia || !window.matchMedia('(max-width: 939px)').matches) return;
+    let target = null;
+    try { target = document.querySelector(selector); } catch (e) { return; }
+    const section = target && target.closest('.col-section, .messages, .blockchain, .watchlist');
+    if (!section || !section.id) return;
+    if (section.classList.contains('mobile-active')) return;
+    const name = section.id.replace(/^section-/, '');
+    const tab = document.querySelector('.mobile-tab[data-section="' + cssEsc(name) + '"]');
+    if (tab) { try { tab.click(); } catch (e) {} }
   }
 
   /* ===========================================================================
@@ -1606,13 +2305,16 @@
     if (!ring.length || t - ring[ring.length - 1].t >= TREND_SAMPLE_GAP_MS) {
       ring.push({ t, tps: d.tps, ttfP50Ms: d.ttfP50Ms, sampleCount: d.sampleCount });
       if (ring.length > TREND_RING_MAX) ring.shift();
+      /* Persist (≤1 write/min by construction, ~2KB): a reload no longer
+       * resets the 30-min trend baseline to zero. */
+      try { lsSet(STORAGE.statsRing, JSON.stringify(ring)); } catch (e) {}
     }
     /* New 24h peak — edge-detected vs the last frame. First observation
      * only seeds the baseline so a page load doesn't celebrate stale news. */
     if (typeof d.tpsPeak24h === 'number') {
       if (state.lastSeenPeak !== null && d.tpsPeak24h > state.lastSeenPeak) {
         fireTrend('peak', 'event:trend:peak', 2, {
-          peakTps: d.tpsPeak24h >= 10 ? Math.round(d.tpsPeak24h) : d.tpsPeak24h.toFixed(1),
+          peakTps: fmtTps(d.tpsPeak24h),
         });
       }
       state.lastSeenPeak = Math.max(state.lastSeenPeak ?? 0, d.tpsPeak24h);
@@ -1642,7 +2344,7 @@
      * 30-min cooldown makes it re-grumble with an escalating count while
      * the drought persists. */
     const sinceBlock = Date.now() - state.lastBlockAt;
-    if (sinceBlock > BLOCK_DROUGHT_MS) {
+    if (state.chronikUp && sinceBlock > BLOCK_DROUGHT_MS) {
       fireTrend('drought', 'event:blockdrought', 2, {
         mins: Math.round(sinceBlock / 60000),
       });
@@ -1671,7 +2373,7 @@
   function fireTrend(metric, trigger, priority, vars) {
     const now = Date.now();
     const last = state.trendLastFireAt[metric] || 0;
-    if (now - last < TREND_COOLDOWN_MS) return;
+    if (now - last < TREND_COOLDOWN_MS * (EVENT_COOLDOWN_SCALE[state.mode] || 1)) return;
     if (pushEventLine(trigger, priority, vars, null)) state.trendLastFireAt[metric] = now;
   }
 
@@ -1767,6 +2469,11 @@
     }
   }
   function onDocClick(e) {
+    if (state.langPopOpen && state.langPop
+        && !state.langPop.contains(e.target)
+        && !(state.langBtn && state.langBtn.contains(e.target))) {
+      closeLangPopover();
+    }
     bumpInteraction();
     if (state.settingsOpen) {
       if (!e.target.closest('.echan-settings') && !e.target.closest('.echan-rail-gear')) {
@@ -1781,6 +2488,8 @@
   }
   function onKey(e) {
     if (e.key === 'Escape') {
+      if (state.tour.active)      { endTour(false); return; }
+      if (state.langPopOpen)      closeLangPopover();
       if (state.settingsOpen)     closeSettings();
       if (state.quickActionsOpen) closeQuickActions();
     }
@@ -1836,6 +2545,10 @@
           lastBlockAgoMin: Math.round((Date.now() - state.lastBlockAt) / 60000),
           statsFresh: (Date.now() - state.lastStatsAt) < STATS_FRESH_MS,
           statsRingLen: state.statsRing.length,
+          chronikUp: state.chronikUp,
+          lang: state.lang,
+          tourActive: state.tour.active,
+          startTour,
           eventLastFireAt: Object.assign({}, state.eventLastFireAt),
           /* simulate a bus event from devtools, e.g.
            *   __echan.bus('bigtx', {valueXec: 25000000, txid: 'abc'})
@@ -1864,10 +2577,16 @@
     const savedShown = lsGet(STORAGE.shown, '1');
     state.soundEnabled = lsGet(STORAGE.sound, '0') === '1';
 
+    /* Language before seed: the seed fetch is language-aware. */
+    const savedLang = lsGet(STORAGE.lang, 'en') || 'en';
+    state.lang = I18N_LANGS.some(l => l.code === savedLang) ? savedLang : 'en';
+    try { document.documentElement.lang = state.lang; } catch (e) {}
+    publishI18nBridge();
+
     state.seenIds = loadSeenRing();
 
     const manifestPromise = loadSpriteManifest();
-    const seedPromise = loadSeed();
+    const seedPromise = (async () => { await loadLangPack(state.lang); await loadSeed(); })();
 
     await manifestPromise;
 
@@ -1902,9 +2621,13 @@
     document.addEventListener('keydown',     unlockAudioOnGesture, { once: true, capture: true });
 
     publishApi();
+    restoreStatsRing();
     subscribeBus();
+    injectLangButton();
 
     seedPromise.then(() => {
+      applyDomI18n();
+      startDomI18nObserver();
       setTimeout(maybeGreet, 500);
       scheduleContentTick();
       scheduleNetworkPoll();

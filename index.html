@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-9XrUZXAIAmMdoi2Ap03HYAlssyOdez02v+Qnmq8bAC4=';
+  script-src 'self' 'sha256-+g1FSFLXpoTsE0Rb7P3cT31OELzc0e/3XZS6Ve02uqQ=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -6591,7 +6591,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.3.1">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.3.1</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.3.2">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.3.2</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -9953,9 +9953,17 @@ function setupWebSocket() {
         // (RECONCILE_TX_CAP 600, BATCH_SIZE 8), and is a no-op on initial
         // connect (state.txs is empty, _runReconcile returns at
         // `tracked.length === 0`), so it's safe to call here unconditionally.
+        // eChan (v1.3.2): chronik link status — gates the block-drought
+        // grumble so a dropped local connection isn't mistaken for a
+        // network-wide drought.
+        __ecBus.emit('chronik', { up: true });
         try { scheduleResumeReconcile(); } catch (e) {}
       },
-      onEnd: () => console.log('[ecash-live] WebSocket closed'),
+      onEnd: () => {
+        console.log('[ecash-live] WebSocket closed');
+        // eChan (v1.3.2): see A12 — drought grumbles pause while down.
+        __ecBus.emit('chronik', { up: false });
+      },
       autoReconnect: true,
     });
     ws.waitForOpen().then(() => {
@@ -19122,6 +19130,23 @@ const HEARTBEAT_DIAGRAM = `
   <line x1="20" y1="148" x2="460" y2="148" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="4,4"/>
 </svg>`;
 
+// eChan i18n (v1.3.2): translated tooltip bodies arrive as plain strings
+// from language packs, so the ${...} diagram interpolations that the
+// template literals below resolve at module load must be re-substituted
+// at display time. Called only on the i18n path; English content is
+// untouched. Unknown tokens pass through verbatim (forward-compatible).
+function _i18nFillDiagrams(s) {
+  const map = {
+    PRE_CONSENSUS_DIAGRAM, POST_CONSENSUS_DIAGRAM, HEARTBEAT_DIAGRAM,
+    TTF_EYE_SVG, RADAR_SLASH_SVG, TTF_SPINNER_SVG,
+  };
+  return String(s).replace(/\$\{\s*(\w+)(?:\s*\|\|\s*'')?\s*\}/g,
+    (m, k) => (k in map ? map[k] : m));
+}
+function _i18nTooltip(key) {
+  const c = window.__ecI18n && window.__ecI18n.tooltip && window.__ecI18n.tooltip(key);
+  return c ? { title: c.title, body: _i18nFillDiagrams(c.body) } : null;
+}
 const TOOLTIP_CONTENT = {
   'ava-tx': {
     title: 'Avalanche · Transaction Finality',
@@ -19317,7 +19342,7 @@ const stackedPopover = document.getElementById('info-popover-stacked');
 let activeStackedTrigger = null;
 
 function showTooltip(trigger, key) {
-  const content = TOOLTIP_CONTENT[key];
+  const content = _i18nTooltip(key) || TOOLTIP_CONTENT[key];
   if (!content || !popover) return;
   clearTimeout(popoverHideTimer);
   popover.innerHTML = `
@@ -19414,7 +19439,7 @@ function hideTooltip() {
 // Reuses the existing TOOLTIP_CONTENT registry — keys are identical, the
 // only thing that differs is which DOM element receives the body.
 function showStackedTooltip(trigger, key) {
-  const content = TOOLTIP_CONTENT[key];
+  const content = _i18nTooltip(key) || TOOLTIP_CONTENT[key];
   if (!content || !stackedPopover) return;
   stackedPopover.innerHTML = `
     <div class="title">
@@ -20656,9 +20681,8 @@ document.addEventListener('keydown', (e) => {
   if (!guideHasBeenSeen()) {
     const btn = document.getElementById('btn-guide');
     if (btn) btn.classList.add('guide-first-visit');
-    setTimeout(() => {
-      if (!guideHasBeenSeen()) openGuide(0);
-    }, 1200);
+    // eChan (v1.3.2): auto-open disabled — eChan's chip-driven tour is the
+    // onboarding path now. The modal itself stays (devtools: openGuide(0)).
   }
 })();
 

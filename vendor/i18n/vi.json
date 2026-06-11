@@ -1,0 +1,128 @@
+{
+  "meta": {
+    "code": "vi",
+    "name": "Tiếng Việt",
+    "source": "en",
+    "packVersion": 3
+  },
+  "ui": {
+    "qa.stats": "Thống kê",
+    "qa.stats.title": "Mở bảng Thống kê mạng lưới",
+    "qa.block": "Block mới nhất",
+    "qa.block.title": "Mở popover block gần nhất",
+    "qa.tip": "Ủng hộ dự án",
+    "qa.tip.title": "Mở hộp thoại tip",
+    "qa.guide": "Hướng dẫn",
+    "qa.guide.title": "Để eChan dẫn bạn tham quan dashboard",
+    "settings.title": "cài đặt",
+    "settings.chattiness": "Mức trò chuyện",
+    "settings.sound": "Âm thanh",
+    "settings.help.aria": "Các chế độ này nghĩa là gì?",
+    "mode.quiet": "Im lặng",
+    "mode.quiet.desc": "Im lặng — chỉ hiển thị thông báo từ người vận hành.",
+    "mode.casual": "Vừa phải",
+    "mode.casual.desc": "Bình luận mỗi ~45 giây; phản ứng với các sự kiện quan trọng (cá voi, watchlist, xu hướng).",
+    "mode.chatty": "Nói nhiều",
+    "mode.chatty.desc": "Mặc định — bình luận thường xuyên mỗi ~15 giây + phản ứng với mọi sự kiện.",
+    "chips.tour": "▶ Dẫn mình tham quan",
+    "chips.later": "Để sau",
+    "tour.exit": "✕ Thoát tour",
+    "tour.done": "Hết tour rồi 👋 Mình sẽ luôn ở đây, tường thuật blockchain theo thời gian thực.",
+    "lang.title": "Ngôn ngữ / Language",
+    "tour.back": "⟵ Quay lại"
+  },
+  "tooltips": {
+    "ava-tx": {
+      "title": "Avalanche · Transaction Finality",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Pre-consensus</strong> cho phép mạng lưới đồng thuận về một giao dịch <em>trước khi</em> nó được đưa vào bất kỳ block nào.</p>\n          <p>Ngay khi một giao dịch vào mempool, các node eCash tham gia Avalanche bắt đầu hỏi lẫn nhau về nó — \"bạn có chấp nhận giao dịch này không?\" Mỗi truy vấn là một trao đổi UDP nhỏ tới một nhóm peer được chọn ngẫu nhiên, có trọng số theo lượng eCash mà họ stake.</p>\n          <p>Node truy vấn theo dõi phiếu bầu của từng peer và cập nhật một <strong>điểm tin cậy</strong>. Khi điểm này vượt ngưỡng hoàn tất, giao dịch được <strong>khóa vĩnh viễn</strong> — từ thời điểm này không một double-spend hay giao dịch thay thế nào có thể thành công.</p>\n          <p>Toàn bộ quá trình trung bình chỉ mất <strong>~3 giây</strong>, đủ nhanh để máy POS và sàn giao dịch có thể ghi có số dư ngay lập tức. Vòng tròn được lấp đầy khi phiếu bầu tích lũy; dấu tick khóa đánh dấu bước chuyển từ \"đang bỏ phiếu\" sang \"đã đồng thuận vĩnh viễn\".</p>\n          <p class=\"meta-note\">Kích hoạt trên mainnet ngày 15 tháng 11, 2025.</p>\n        </div>\n        <div class=\"diagram-col\">${PRE_CONSENSUS_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "ava-block": {
+      "title": "Avalanche · Block Finality",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Post-consensus</strong> áp dụng cùng cơ chế bỏ phiếu Avalanche cho các <em>block</em>, hoạt động bên trên chuỗi proof-of-work Nakamoto cổ điển.</p>\n          <p>Mỗi block mới trải qua ba giai đoạn:</p>\n          <p>⛏ <strong>Mined</strong> — thợ đào tìm được proof-of-work hợp lệ và phát tán block.</p>\n          <p>↻ <strong>Polling</strong> — mọi node tham gia Avalanche truy vấn các peer, có trọng số theo lượng eCash stake, về việc có chấp nhận block này làm đỉnh chuỗi chính thức hay không.</p>\n          <p>◆ <strong>Final</strong> — độ tin cậy tích lũy đã vượt ngưỡng khóa. Block không thể bị thay thế hay tổ chức lại — kể cả bởi đa số hashpower thù địch. Một khi đã khóa, mọi nỗ lực reorg đều bị toàn bộ node trung thực từ chối là không hợp lệ.</p>\n          <p>Tổng thời gian polling trung bình <strong>3–5 giây</strong> sau khi block được công bố, nên tiền nạp có thể được ghi có an toàn chỉ với <strong>1 xác nhận</strong> — tương đương hàng chục xác nhận Bitcoin về độ an toàn.</p>\n          <p class=\"meta-note\">Bảo vệ các block eCash từ ngày 14 tháng 9, 2022.</p>\n        </div>\n        <div class=\"diagram-col\">${POST_CONSENSUS_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "tx-flow": {
+      "title": "Transaction Flow · How to read the colours",
+      "body": "\n      <div class=\"text-col\">\n        <p>Mỗi hàng trong cột <strong>Inputs</strong> / <strong>Outputs</strong> hiển thị một địa chỉ và số tiền nó đã chi hoặc nhận trong giao dịch này.</p>\n        <p><span class=\"legend-dot\" style=\"background:#01a0e0;box-shadow:0 0 8px #01a0e0\"></span> <strong>Xanh cyan</strong> — địa chỉ thông thường. Nhấp để mở trong block explorer.</p>\n        <p><span class=\"legend-dot\" style=\"background:#ffcb47;box-shadow:0 0 8px #ffcb47\"></span> <strong>Vàng gold</strong> — địa chỉ xuất hiện ở <em>cả hai</em> phía input và output. Thường là người chi tiêu nhận lại <strong>tiền thừa</strong>, nhưng trong giao dịch tự gửi nó cũng đánh dấu việc gộp UTXO.</p>\n        <p><span class=\"legend-dot\" style=\"background:#a7ff37;box-shadow:0 0 8px #a7ff37\"></span> <strong>Xanh lime</strong> — địa chỉ trong <em>danh sách theo dõi</em> của bạn. Được làm nổi bật trong mọi giao dịch để bạn dễ nhận ra hoạt động trên các ví mình quan tâm.</p>\n        <p><span class=\"legend-dot\" style=\"background:rgba(255,255,255,0.3)\"></span> <em>OP_RETURN</em> — output mang dữ liệu (tin nhắn chat, lệnh token). Không có địa chỉ; không chứa giá trị tiêu được.</p>\n        <p>Số tiền hiển thị trên mỗi hàng là giá trị <strong>on-chain thô</strong>. Với giao dịch token, số lượng token hiển thị trước (vd. <em>1,000 USDR · 5.46 XEC</em>) — phần 5.46 XEC chỉ là dust cần thiết để mang token.</p>\n      </div>\n    "
+    },
+    "heartbeat": {
+      "title": "Heartbeat · Real-Time Targeting",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Heartbeat</strong> là thuật toán điều chỉnh độ khó theo thời gian thực của eCash, kích hoạt trong đợt nâng cấp mạng ngày <strong>15 tháng 11, 2024</strong>.</p>\n          <p>Các mạng kiểu Bitcoin nhắm mục tiêu <strong>trung bình 10 phút</strong> giữa các block, nhưng những đợt bùng nổ hashpower có thể tạo ra nhiều block trong vài phút rồi tiếp theo là khoảng lặng kéo dài. Hiện tượng \"block dồn cục\" này gây khó chịu cho người dùng và phiền toái cho các sàn.</p>\n          <p>Heartbeat khắc phục bằng một <strong>lớp độ khó thứ hai</strong> chạy bên trên cơ chế điều chỉnh tiêu chuẩn:</p>\n          <ul>\n            <li>Khi các block đến <strong>nhanh hơn khoảng cách 10 phút</strong>, độ khó <em>tăng</em> ngay lập tức để hạn chế việc ra block dồn dập.</li>\n            <li>Độ khó sau đó <strong>giảm dần đều theo thời gian</strong> cho đến khi về mức bình thường.</li>\n            <li>Những block vi phạm mục tiêu thời gian thực sẽ bị <strong>đồng thuận Avalanche từ chối</strong> — kể cả khi chúng hợp lệ theo luật Bitcoin cổ điển.</li>\n          </ul>\n          <p>Kết quả: thời gian block ổn định hơn, ít chiêu trò khai thác của mining pool hơn (\"switch mining\"), và trải nghiệm dễ đoán hơn cho mọi người dùng mạng.</p>\n          <p class=\"meta-note\">Heartbeat hoạt động song song với Avalanche post-consensus (hoàn tất block) và Infrastructure Funding Policy — ba trụ cột của đồng thuận Nakamoto nâng cao trên eCash.</p>\n        </div>\n        <div class=\"diagram-col\">${HEARTBEAT_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "stats-overview": {
+      "title": "Network Statistics",
+      "body": "\n      <div class=\"so-wrap\">\n        <p class=\"so-lead\">Thanh footer dưới cùng của trang là bảng số liệu trực tiếp của mạng eCash. Các con số đến từ hai nguồn — một node eCash chuyên dụng do chúng tôi vận hành, và phiên trình duyệt hiện tại của bạn — biết rõ nguồn nào là nguồn nào sẽ giúp bạn đọc thanh số liệu chính xác.</p>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Headline cell · 24h ↔ session</h3>\n          <div class=\"so-card\">\n            <p>Ô Time-to-Finality (TTF) chính có thể hiển thị số liệu mạng 24h hoặc số liệu phiên của bạn. Chọn tại đây, hoặc dùng nút <code>⇄</code> ngay trên ô. Khi node feed không khả dụng, ô luôn quay về số liệu phiên bất kể lựa chọn này.</p>\n            <div class=\"stats-view-toggle\" id=\"stats-view-toggle\">\n              <button type=\"button\" data-view=\"p50\" id=\"stats-view-p50\">Hiện mạng · 24h</button>\n              <button type=\"button\" data-view=\"session\" id=\"stats-view-session\">Hiện phiên</button>\n            </div>\n            <span class=\"so-live-label\">Giá trị trực tiếp</span>\n            <div id=\"stats-live-grid\"><span style=\"color:var(--text-3);font-family:'Fira Code',monospace;font-size:11px\">— đang chờ stats frame tiếp theo —</span></div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Hai nguồn dữ liệu</h3>\n          <div class=\"so-sources\">\n            <div class=\"so-source\">\n              <span class=\"so-src-name\"><span class=\"so-badge net\">Network</span> 24h</span>\n              <p>Số liệu tổng hợp cuộn 24 giờ đo tại node và đẩy đến tab của bạn mỗi 5 giây. Các ô này phản ánh toàn mạng đang làm gì ngay lúc này và không phụ thuộc vào những gì tab của bạn đã quan sát.</p>\n            </div>\n            <div class=\"so-source\">\n              <span class=\"so-src-name\"><span class=\"so-badge ses\">Session</span></span>\n              <p>Được đếm bởi tab trình duyệt này kể từ khi tải trang. Tab mới bắt đầu từ số 0; tải lại trang sẽ đặt lại. Hữu ích như góc nhìn cá nhân \"mình đã thấy gì\" và làm phương án dự phòng khi node feed tạm thời không kết nối được.</p>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Ý nghĩa từng ô</h3>\n          <div class=\"so-defs\">\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Time-to-finality · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Thời gian trung vị trong 24 giờ qua — xem mục <em>Cách đo độ hoàn tất</em> bên dưới.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">TPS · 24h avg <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Số giao dịch hoàn tất mỗi giây, tính trung bình trên cửa sổ 24 giờ. Khi mạng rất yên ắng, giá trị có thể xuống dưới 0.01 tps; lúc đó ô hiển thị <code>&lt; 0.01 tps</code> thay vì làm tròn về 0 (con số làm tròn sẽ gợi ý rằng hoàn toàn không có giao dịch, điều mà cửa sổ 24h không hề khẳng định).</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Peak TPS · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Tốc độ giao dịch-mỗi-giây duy trì cao nhất quan sát được trong bất kỳ cửa sổ 1 phút nào suốt 24 giờ qua. Việc lấy trung bình theo phút là có chủ đích: một cú bùng nổ 1 giây đơn lẻ (đặc biệt là một giao dịch lúc mạng vắng) không nên chi phối con số chính. Giá trị tăng khi có đợt hoạt động thực sự và giữ thấp khi mạng nhàn rỗi.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">% finalized &lt; 3s <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Tỷ lệ giao dịch hoàn tất trong 24h có time-to-finality dưới 3 giây — tỷ lệ \"làn nhanh\". Ba giây xấp xỉ là ngưỡng thời gian mà quá nó, một khoản thanh toán bắt đầu tạo cảm giác phải chờ thay vì tức thì, nên phần trăm này theo dõi bao nhiêu phần lưu lượng gần đây hoàn tất thoải mái dưới ngưỡng đó. Hiển thị <code>100%</code> (không lẻ) khi mọi giao dịch đều xong dưới 3s.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Tx · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Số giao dịch hoàn tất trên toàn mạng trong 24 giờ qua.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Avg block-lock <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Thời gian trung bình từ lúc block được đào đến lúc được Avalanche hoàn tất. Khác với time-to-finality: chỉ số đó đo đường <em>pre</em>-consensus (giao dịch trong mempool), còn block-lock đo đường <em>post</em>-consensus (cả block đã nằm trên chuỗi). Cả hai đều tính trong phạm vi phiên.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Avg block time <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Khoảng cách trung bình giữa các block liên tiếp mà tab này quan sát được. eCash nhắm mục tiêu 10 phút thông qua thuật toán độ khó thời gian thực Heartbeat. Nút <strong>?</strong> riêng cạnh ô này mở phần giải thích Heartbeat.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Tx · session <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Số giao dịch tab này đã quan sát kể từ khi tải. Về 0 khi tải lại. Ẩn khỏi thanh trên di động, vẫn thấy được trong phần giá trị trực tiếp phía trên.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Stream uptime <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Thời gian tab này đã kết nối với mạng eCash. Độc lập với relay feed; đặt lại khi tải lại trang.</div>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Cách đo độ hoàn tất</h3>\n          <p>Time-to-finality là khoảng cách giữa hai thời điểm trong vòng đời một giao dịch. <strong>Điểm bắt đầu</strong> là khi giao dịch xuất hiện lần đầu trong mempool của node. <strong>Điểm kết thúc</strong> là khi Avalanche pre-consensus khóa nó lại — thời điểm nó không còn có thể bị reorg bởi các peer cạnh tranh.</p>\n          <p>Cả hai mốc thời gian đều lấy từ log của chính node, nên chúng nhất quán và không bị ảnh hưởng bởi độ trễ mạng của bạn. Các con số 24h là percentile và trung bình trên mọi giao dịch hoàn tất trong cửa sổ cuộn.</p>\n          <p style=\"margin-bottom:2px\">Mỗi percentile kể một câu chuyện khác nhau:</p>\n          <div class=\"so-pct\">\n            <div class=\"so-pct-item\"><div class=\"pk\">p50 · median</div><div class=\"pd\">Con số chính: thời gian một giao dịch điển hình trải qua, ít bị nhiễu bởi giá trị ngoại lệ.</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">p90</div><div class=\"pd\">Bắt phần đuôi chậm — hầu hết giao dịch xong sớm hơn mốc này nhiều.</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">p10</div><div class=\"pd\">Cho thấy nhóm 10% nhanh nhất nhanh đến đâu, hữu ích để nhận ra giới hạn dưới của giao thức.</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">Mean</div><div class=\"pd\">Trung bình cộng, nhạy với ngoại lệ cực đoan và thường nhỉnh hơn p50 một chút.</div></div>\n          </div>\n          <p>Nếu node feed không khả dụng, ô footer quay về số liệu phiên được đo hoàn toàn trong trình duyệt của bạn. Giá trị đó có thể cao hơn time-to-finality thực vì nó bao gồm cả độ trễ WebSocket và lan truyền giữa node và tab của bạn.</p>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Đọc các biểu tượng</h3>\n          <div class=\"so-legend\">\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"ttf-eye-wrap\" style=\"display:inline-flex;margin:0\">${TTF_EYE_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>Con mắt</strong> — node feed tạm thời không khả dụng, nên giá trị cạnh biểu tượng này là số đo <em>cảm nhận</em> được tính hoàn toàn trong trình duyệt của bạn, như mô tả trong phần phương pháp ở trên. Khi feed kết nối lại, con mắt biến mất và giá trị trở về độ chính xác cấp node.</div>\n            </div>\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"radar-slash-wrap\" style=\"display:inline-flex;margin:0\">${RADAR_SLASH_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>Radar gạch chéo</strong> — ô không có giá trị để hiển thị vì không có kết nối tới feed cấp node. Chỉ xuất hiện trên thẻ Network · 24h, vì số liệu phiên luôn tính được trong trình duyệt. Biểu tượng biến mất ngay khi feed kết nối lại và stats frame tiếp theo đến.</div>\n            </div>\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"ttf-spinner-wrap\" style=\"display:inline-flex;margin:0\">${TTF_SPINNER_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>Vòng xoay</strong> — hiển thị trong panel chi tiết giao dịch trong ~3 giây đầu sau khi nó hoàn tất. Giá trị đang hiển thị được tính cục bộ và có thể được tinh chỉnh thành giá trị cấp node ngay khi nó đến. Sau khi cửa sổ nâng cấp hết hạn, vòng xoay dừng và giá trị được coi là cuối cùng.</div>\n            </div>\n          </div>\n        </div>\n      </div>\n    "
+    }
+  },
+  "dom": {
+    "#watchlist-empty-hint": {
+      "text": "thêm một địa chỉ để làm nổi bật các tx của nó"
+    },
+    ".chat-chip-empty": {
+      "text": "chưa đặt địa chỉ — chọn địa chỉ của bạn để thấy các tin nhắn của chính mình"
+    },
+    "#btn-live": {
+      "title": "Chế độ xem — nhấp để chuyển vòng: LIVE → CHAIN → FEED. Giảm tải DOM khi mempool bận mà vẫn theo dõi đầy đủ trạng thái."
+    },
+    "#btn-pause": {
+      "title": "Tạm dừng giao dịch đến"
+    },
+    "#tip-btn": {
+      "title": "Mời mình một ly cà phê — tx của bạn sẽ được làm nổi bật trên stream"
+    },
+    "#bc-goto-search": {
+      "placeholder": "tới block #…"
+    },
+    "#btl-chain-search": {
+      "placeholder": "tới block #…"
+    },
+    "#btl-search": {
+      "placeholder": "lọc theo tiền tố hoặc chuỗi con của txid…"
+    },
+    "#wl-input-addr": {
+      "placeholder": "ecash:q… hoặc token ID 64-hex"
+    },
+    "#wl-input-name": {
+      "placeholder": "vd. ví-lạnh hoặc bộ sưu tập NFT"
+    },
+    "#wl-edit-name": {
+      "placeholder": "vd. ví-lạnh"
+    },
+    "#chat-pick-input": {
+      "placeholder": "ecash:q…"
+    },
+    "#chat-textarea": {
+      "placeholder": "nhập tin nhắn · dùng được emoji · Enter để gửi · Shift+Enter xuống dòng"
+    },
+    ".info-tile[data-tile=\"avalanche\"] .info-tile-title": {
+      "text": "Avalanche trên eCash là gì?"
+    },
+    ".info-tile[data-tile=\"avalanche\"] .info-tile-body": {
+      "html": "<p>Một giao thức đồng thuận chạy <strong>song song</strong> với Nakamoto Proof-of-Work của eCash, cho phép các node thăm dò lẫn nhau và đạt đồng thuận về block và (với Pre-Consensus) từng giao dịch riêng lẻ chỉ trong vài giây.</p><p><strong>Post-Consensus</strong> (hoạt động từ 9/2022) mang lại độ hoàn tất 1-block và chặn tấn công 51%. <strong>Pre-Consensus</strong> (mainnet từ 15/11/2025) hoàn tất giao dịch trong &lt;3 giây trước cả khi được đào — khiến eCash mang cảm giác tiền mặt thật với cả người dùng lẫn sàn giao dịch.</p><p>Hãy hình dung PoW là <em>chữ viết</em> (chậm, vĩnh viễn) còn Avalanche là <em>lời nói</em> (nhanh, tức thời) — eCash dùng cả hai.</p>"
+    },
+    ".info-tile[data-tile=\"agora\"] .info-tile-title": {
+      "text": "Agora trên eCash là gì?"
+    },
+    ".info-tile[data-tile=\"agora\"] .info-tile-body": {
+      "html": "<p>Một <strong>giao thức hoán đổi nguyên tử</strong> phi lưu ký xây trên eCash Script. Ra mắt tháng 10/2024, nó cho phép bất kỳ ai niêm yết eToken hoặc NFT để bán trực tiếp on-chain — không sàn, không bên giữ hộ, không cần xin phép.</p><p>Giao dịch được khớp bằng những tx mà người mua tự ký cho chính mình, khả thi nhờ opcode <code>OP_CHECKDATASIG</code>. Các covenant nằm ngay trên chuỗi nên ai cũng có thể xem, trả giá và khớp lệnh mà không cần sổ lệnh tập trung.</p><p>Vận hành DEX eToken bên trong Cashtab và phô diễn năng lực DeFi gốc của eCash với phí dưới một xu.</p>"
+    },
+    ".info-tile[data-tile=\"heartbeat\"] .info-tile-title": {
+      "text": "Heartbeat là gì?"
+    },
+    ".info-tile[data-tile=\"heartbeat\"] .info-tile-body": {
+      "html": "<p><strong>Thuật toán điều chỉnh độ khó theo thời gian thực</strong> của eCash, kích hoạt ngày 15/11/2024. Nó chạy bên trên cơ chế điều chỉnh độ khó Bitcoin cổ điển để <strong>làm mượt thời gian block</strong> và chấm dứt hiện tượng \"block dồn cục\" — khi các đợt bùng nổ hashpower tạo ra 5 block trong 2 phút rồi im lặng suốt 30 phút.</p><p>Khi block đến nhanh hơn mục tiêu 10 phút, độ khó tăng ngay lập tức rồi giảm dần đều cho đến khi về mức bình thường. Những block vi phạm mục tiêu thời gian thực bị <strong>đồng thuận Avalanche từ chối</strong> — kể cả khi chúng hợp lệ về mặt kỹ thuật theo luật Bitcoin cổ điển.</p><p>Kết quả: thời gian xác nhận giao dịch ổn định hơn, ít chiêu trò khai thác của mining pool hơn, và trải nghiệm dễ đoán hơn cho mọi người dùng mạng.</p>"
+    },
+    ".info-tile[data-tile=\"chronik\"] .info-tile-title": {
+      "html": "<strong>Chronik</strong> là gì?"
+    },
+    ".info-tile[data-tile=\"chronik\"] .info-tile-body": {
+      "html": "<p><strong>Chronik</strong> là indexer eCash hiệu năng cao đi kèm ngay trong Bitcoin ABC. Đây là lớp dữ liệu mà mọi ví, explorer và dApp trên eCash đều giao tiếp — bao gồm cả luồng trực tiếp này.</p><p>Viết bằng Rust và tích hợp chặt với node, <strong>Chronik</strong> phục vụ dữ liệu chuỗi cùng toàn bộ trạng thái token SLP / ALP qua một API HTTP + WebSocket thống nhất. Ví nhận được tra cứu lịch sử địa chỉ nhanh, tập UTXO hiểu token, và luồng giao dịch trực tiếp mà không phải tự phân tích lại chuỗi.</p><p>Nếu bạn từng dùng Cashtab, agora.cash, dashboard này, hay explorer tại explorer.e.cash — mọi byte dữ liệu chuỗi đều đã đi qua một instance <strong>Chronik</strong> để đến được đó.</p>"
+    }
+  },
+  "domMap": {
+    ".info-tile-links-label": {
+      "Read more on e.cash": "Đọc thêm trên e.cash",
+      "Tool": "Công cụ",
+      "Trade now": "Giao dịch ngay"
+    }
+  }
+}
