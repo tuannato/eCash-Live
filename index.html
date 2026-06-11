@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-ZHGOL+Z6Bu1ysiyLHR8me+abo81rWFmFs3CPhZfCmb8=';
+  script-src 'self' 'sha256-9XrUZXAIAmMdoi2Ap03HYAlssyOdez02v+Qnmq8bAC4=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -6591,7 +6591,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.3.0">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.3.0</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.3.1">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.3.1</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -7571,6 +7571,23 @@
 </div>
 
 <script type="module">
+// ============ ECHAN EVENT BUS (v1.3.1) ============
+// Minimal pub/sub bridging live network events from this module to the
+// external eChan companion (vendor/companion/echan.js). Fire-and-forget:
+// emit() never throws (subscriber errors are swallowed) so a companion
+// bug can never break the visualizer. Exposed on window because echan.js
+// lives outside this module's scope. Any page script could emit fake
+// events — same trust level as the existing __echanReceive surface;
+// eChan treats every payload as display-only text, never as HTML/code.
+window.__echanBus = (() => {
+  const subs = new Set();
+  return {
+    on(fn) { if (typeof fn === 'function') subs.add(fn); return () => subs.delete(fn); },
+    emit(type, data) { for (const fn of subs) { try { fn(type, data); } catch (e) {} } },
+  };
+})();
+const __ecBus = window.__echanBus;
+
 // ============ CONFIG ============
 // Public Chronik REST endpoints (fallback chain).
 // Override via ?endpoint=https://your-node.com (or comma-separated for multiple)
@@ -7910,6 +7927,12 @@ function pushTtfSample(txid, ttfMs, source) {
     _markTtfUpgradeWindow(txid, source);
     return;
   }
+
+  // eChan (v1.3.1): node-precise samples only — observer-grade numbers the
+  // companion can brag about. Client-derived samples (ws/poll/race) carry
+  // browser-clock noise, so they're not announced. Read-only side effect:
+  // does NOT touch state.ttfSamples (pushTtfSample invariant preserved).
+  if (source === 'node-precise') __ecBus.emit('ttf', { ms: ttfMs, precise: true, txid });
 
   const idx = state.ttfSamples.findIndex(s =>
     s && typeof s === 'object' && s.txid === txid);
@@ -8982,6 +9005,12 @@ function connectTtfFeed() {
           pctFinalUnder3s: (typeof data.pctFinalUnder3s === 'number') ? data.pctFinalUnder3s : null,
         };
         state.relayStatsAt = Date.now();
+        // eChan (v1.3.1): forward the relay snapshot — companion derives
+        // busy/quiet edges + 30-min trends from these, replacing its old
+        // DOM polling of #f-tps whenever the feed is healthy.
+        __ecBus.emit('stats', { tps: data.tps, ttfP50Ms: data.ttfP50Ms,
+          tpsPeak24h: (typeof data.tpsPeak24h === 'number') ? data.tpsPeak24h : null,
+          sampleCount: data.sampleCount | 0 });
         // Re-render through the rAF coalescer so a burst (initial hello+stats
         // back-to-back on connect) renders once, not twice.
         scheduleTtfRender();
@@ -9887,6 +9916,9 @@ function setupWebSocket() {
           const block = state.blocks.find(b => b.height === msg.blockHeight);
           if (block && block.state !== 'ava-final') {
             block.state = 'ava-final';
+            // eChan (v1.3.1): post-consensus lock announcement. Inside the
+            // state-transition guard so redelivered WS frames can't re-emit.
+            __ecBus.emit('blockfinal', { height: msg.blockHeight });
             if (block.minedAt) {
               const ttf = Date.now() - block.minedAt;
               if (ttf > 0 && ttf < 60_000) {
@@ -10471,6 +10503,10 @@ function parseTransaction(txData) {
 
   tx.totalOutXec = Number(totalSats) / 100;  // gross — surfaced in detail panel
   tx.valueXec    = Number(sentSats) / 100;   // headline "sent" amount
+  // eChan (v1.3.1): big-money movement. 100M XEC floor gated HERE (not in
+  // the companion) so emit volume stays near zero on a busy mempool. The
+  // companion splits the tier: ≥1B = whale dialogue, 100M-1B = shark.
+  if (tx.valueXec >= 100_000_000) __ecBus.emit('bigtx', { valueXec: tx.valueXec, txid: tx.id });
 
   // Calculate fee (sum inputs - sum outputs).
   // IMPORTANT: chronik mempool tx may not include input sats (need a 2nd lookup of prev tx).
@@ -12622,6 +12658,14 @@ function addMessageCard(tx) {
     }
   }
   if (!inserted) state.messages.push(msg);  // oldest so far → end
+  // eChan (v1.3.1): feed activity. After the dedup guard + sorted insert so
+  // each on-chain message emits exactly once regardless of WS/poll race.
+  // CashFusion gets its own event type; everything else is generic feed news.
+  if (msg.content && String(msg.content).startsWith('CashFusion')) {
+    __ecBus.emit('fusion', { txid: msg.txid });
+  } else {
+    __ecBus.emit('onchainmsg', { msgType: msg.type || 'message', txid: msg.txid });
+  }
 
   // Recency trim (was: blind pop). pop() removed the array TAIL by insertion
   // order, which after a poll flood could be a brand-new live message. Because
@@ -13009,6 +13053,9 @@ function addBlockToChain(b) {
   if (state.blocks.length > MAX_BLOCKS) {
     state.blocks = state.blocks.slice(-MAX_BLOCKS);
   }
+  // eChan (v1.3.1): new-block commentary feed. Dedup'd by the find()
+  // guard above — re-announced blocks return before reaching here.
+  __ecBus.emit('block', { height: b.height, txCount: b.txCount });
   b._isNew = true;
   renderChain();
 }
@@ -15346,6 +15393,15 @@ function applyWatchlistDecoration(row, tx) {
     }
     match.count = match.history.length;
     updateWatchlistCardCount(match.addr);
+    // eChan (v1.3.1): watchlist hit — inside the history-dedup guard so one
+    // emit per (entry, tx). Label prefers the user-assigned name; falls back
+    // to a shortened address/token id. valueXec may be 0 for token-only txs.
+    __ecBus.emit('watchlist', {
+      kind: match.kind || 'address',
+      label: match.name || (match.addr ? (String(match.addr).slice(0, 14) + '…') : 'entry'),
+      valueXec: tx.valueXec,
+      txid: tx.id,
+    });
     // If history modal is open showing this address, refresh it live
     if (currentHistoryAddr === match.addr) renderHistoryList();
   }

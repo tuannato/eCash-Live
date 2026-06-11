@@ -1,5 +1,32 @@
 /* =============================================================================
- * eChan companion — 1.3.0-polish controller
+ * eChan companion — 1.3.1 controller
+ * =============================================================================
+ *
+ * Changes vs 1.3.0:
+ *  - LIVE NETWORK REACTIONS via window.__echanBus: stats frames, block,
+ *    blockfinal, bigtx, ttf (node-precise), fusion, onchainmsg, watchlist.
+ *    Per-route cooldowns + random skip keep eChan from narrating spam.
+ *  - TIMELINESS GUARANTEES: 10s boot-grace ignores the history-replay
+ *    burst at page load (backfilled blocks/txs/messages are not "news");
+ *    block commentary requires strictly-increasing height; queued event
+ *    messages carry freshness deadlines and are dropped at display time
+ *    if stale — eChan never announces a block that's 4 heights old.
+ *  - Whale/shark tiers: ≥1B XEC = whale (event:bigtx), 100M–1B = shark
+ *    (event:sharktx). Inline emit floor 100M.
+ *  - TREND ENGINE: TPS/TTF-p50 ±25% vs 30-min baseline + new 24h peak.
+ *  - GRUMPY PATH: annoyed emotion on slow finality (>4s) and block
+ *    droughts (>30 min, escalating).
+ *  - SPOTLIGHT: mentioned tx/block/feed cards glow ~5s, display-synced.
+ *  - Emotion fallback machinery removed: studying/observing/shy/annoyed
+ *    are plain first-class emotions now — pools load from the manifest
+ *    like any other; empty pool = avatar keeps current sprite.
+ *  - Default chattiness: Chatty. "?" help beside the Chattiness label
+ *    expands inline mode descriptions (sourced from MODES map).
+ *  - Casual-mode fix: engine-sourced chatter bypasses the priority gate
+ *    (cadence already governs volume); markSeen/cooldowns only consumed
+ *    on actual display.
+ *  - AudioContext autoplay-policy fix: context is only created/resumed
+ *    after a real user gesture; sound calls no-op silently before that.
  * =============================================================================
  *
  * Changes vs 1c:
@@ -36,35 +63,37 @@
   /* ===========================================================================
    * CONFIG
    * =========================================================================*/
-  const VERSION              = '1.3.0';
+  const VERSION              = '1.3.1';
   const SPRITE_PATH          = './vendor/companion/sprites/';
   const SPRITE_MANIFEST_URL  = './vendor/companion/sprites/manifest.json';
   const SEED_URL             = './vendor/companion/seed.json';
 
-  /* EMOTIONS map — the `fallback` field is the chain used by setEmotion
-   * when the requested emotion's sprite pool is empty. Drawing new art
-   * later (echan_studying.webp + manifest count bump) makes the pool
-   * non-empty, which short-circuits the fallback automatically. */
+  /* EMOTIONS map — six core sprites + four newer ones (studying, observing,
+   * shy, annoyed). All are plain first-class emotions: sprite pools load
+   * straight from the manifest like any other. The old fallback-chain
+   * machinery ("show thinking while studying art is pending") is gone —
+   * if an emotion's pool is empty (art not uploaded yet / manifest 0),
+   * setEmotion simply bails and the avatar keeps its current sprite. */
   const EMOTIONS = {
-    neutral:   { label: 'Neutral',   idle: true,  fallback: null      },
-    happy:     { label: 'Happy',     idle: true,  fallback: null      },
-    thinking:  { label: 'Thinking',  idle: true,  fallback: null      },
-    alert:     { label: 'Alert',     idle: false, fallback: null      },
-    celebrate: { label: 'Celebrate', idle: false, fallback: null      },
-    sleepy:    { label: 'Sleepy',    idle: true,  fallback: null      },
-    /* New in 1.3.0-polish — pending art */
-    studying:  { label: 'Studying',  idle: true,  fallback: 'thinking' },
-    observing: { label: 'Observing', idle: true,  fallback: 'neutral'  },
-    shy:       { label: 'Shy',       idle: false, fallback: 'happy'    },
+    neutral:   { label: 'Neutral',   idle: true  },
+    happy:     { label: 'Happy',     idle: true  },
+    thinking:  { label: 'Thinking',  idle: true  },
+    alert:     { label: 'Alert',     idle: false },
+    celebrate: { label: 'Celebrate', idle: false },
+    sleepy:    { label: 'Sleepy',    idle: true  },
+    studying:  { label: 'Studying',  idle: true  },
+    observing: { label: 'Observing', idle: true  },
+    shy:       { label: 'Shy',       idle: false },
+    annoyed:   { label: 'Annoyed',   idle: false },
   };
   const EMOTION_KEYS  = Object.keys(EMOTIONS);
 
   const MODES = {
-    quiet:  { label: 'Quiet',  desc: 'Announcements only' },
-    casual: { label: 'Casual', desc: 'Default — occasional commentary' },
-    chatty: { label: 'Chatty', desc: 'Frequent commentary' },
+    quiet:  { label: 'Quiet',  desc: 'Silent — only operator announcements get through.' },
+    casual: { label: 'Casual', desc: 'Comments every ~45s; reacts to important events (whales, watchlist, trends).' },
+    chatty: { label: 'Chatty', desc: 'Default — frequent commentary every ~15s + reactions to every event.' },
   };
-  const DEFAULT_MODE   = 'casual';
+  const DEFAULT_MODE   = 'chatty';
 
   /* Per-mode content tick intervals [minMs, maxMs] — null = engine off.
    * Quiet truly stops scheduling; owner-pushed messages via
@@ -99,7 +128,82 @@
   const IDLE_SHORT_MS          = 4 * 60 * 1000;
   const IDLE_LONG_MS           = 15 * 60 * 1000;
   const GREET_COOLDOWN_MS      = 4 * 60 * 60 * 1000;
-  const NETWORK_POLL_MS        = 30000;
+  /* ---- v1.3.1: live network event reactions (via window.__echanBus) ----
+   * Each route: bus event → seed trigger + gate policy + optional dashboard
+   * spotlight selector builder. cooldownMs = min gap between reactions of
+   * one type; chance = random keep-probability applied AFTER the cooldown
+   * gate (1 = always). The inline module emits everything cheap; eChan
+   * decides what's actually worth talking about. txSel/msgSel are hoisted
+   * function declarations defined in the EVENT BUS section below. */
+  const EVENT_ROUTES = {
+    block:      { trigger: 'event:block',        priority: 1, cooldownMs: 10 * 60e3, chance: 0.3,
+                  spot: d => '#section-blockchain .block-card[data-height="' + d.height + '"]' },
+    blockfinal: { trigger: 'event:blockfinal',   priority: 1, cooldownMs: 0,         chance: 1,
+                  spot: d => '#section-blockchain .block-card[data-height="' + d.height + '"]' },
+    bigtx:      { trigger: 'event:bigtx',        priority: 2, cooldownMs: 5 * 60e3,  chance: 1,
+                  spot: d => txSel(d.txid) },
+    sharktx:    { trigger: 'event:sharktx',      priority: 2, cooldownMs: 5 * 60e3,  chance: 1,
+                  spot: d => txSel(d.txid) },
+    fastttf:    { trigger: 'event:fastttf',      priority: 1, cooldownMs: 15 * 60e3, chance: 1,
+                  spot: d => txSel(d.txid) },
+    slowttf:    { trigger: 'event:slowttf',      priority: 2, cooldownMs: 15 * 60e3, chance: 1,
+                  spot: d => txSel(d.txid) },
+    fusion:     { trigger: 'event:fusion',       priority: 1, cooldownMs: 10 * 60e3, chance: 1,
+                  spot: d => msgSel(d.txid) },
+    watchlist:  { trigger: 'event:watchlist',    priority: 2, cooldownMs: 3 * 60e3,  chance: 1,
+                  spot: d => txSel(d.txid) },
+    onchainmsg: { trigger: 'event:onchainmsg',   priority: 1, cooldownMs: 10 * 60e3, chance: 0.5,
+                  spot: d => msgSel(d.txid) },
+    blockdrought: { trigger: 'event:blockdrought', priority: 2, cooldownMs: 0, chance: 1, spot: null },
+  };
+  const FAST_TTF_MAX_MS  = 300;        /* brag below this */
+  const SLOW_TTF_MIN_MS  = 4000;       /* grumble above this */
+  const WHALE_XEC        = 1e9;        /* 🐋 whale: ≥1B XEC */
+  const SHARK_XEC        = 1e8;        /* 🦈 shark: 100M–1B XEC (inline emits from 100M up) */
+
+  /* ---- Timeliness guards (1.3.1 audit) ----
+   * EVENT_BOOT_GRACE_MS: the dashboard backfills recent blocks, txs, and
+   * feed messages at page load through the SAME functions that handle
+   * live arrivals — so the bus fires a burst of "events" that are
+   * actually history. Reacting to those produced bugs like announcing a
+   * block 4 heights behind tip. All non-stats events inside the grace
+   * window are observed (timestamps, max height) but never spoken.
+   *
+   * EVENT_STALE_MS: a queued event line can wait behind an active message;
+   * if it waits longer than its deadline, the news is no longer news —
+   * showNextMessage drops it at display time instead of reading out a
+   * stale headline. Trend lines get a long deadline (they describe a
+   * 30-min window, aging slowly); drought has none (it stays true). */
+  const EVENT_BOOT_GRACE_MS = 10000;
+  const EVENT_STALE_MS = {
+    block: 90e3, blockfinal: 90e3,
+    bigtx: 120e3, sharktx: 120e3,
+    fastttf: 120e3, slowttf: 120e3,
+    fusion: 120e3, onchainmsg: 120e3, watchlist: 180e3,
+    trend: 600e3,
+  };
+  const BLOCK_DROUGHT_MS = 30 * 60e3;  /* grumble after this long without a block */
+  const SPOTLIGHT_MS     = 5000;       /* dashboard card glow duration */
+
+  /* Trend detection over relay stats frames (5s cadence via bus). Frames
+   * are downsampled into a ring (1/min, ~40 entries, O(1) memory) and
+   * compared now-vs-30-min-ago. Noise floors stop a 0.01→0.02 TPS blip
+   * from reading as "+100%". Per-metric cooldown; eval cadence scales
+   * with chattiness. */
+  const TREND_PCT             = 25;
+  const TREND_BASELINE_MS     = 30 * 60e3;
+  const TREND_MIN_BASELINE_MS = 20 * 60e3;
+  const TREND_COOLDOWN_MS     = 30 * 60e3;
+  const TREND_RING_MAX        = 40;
+  const TREND_SAMPLE_GAP_MS   = 60e3;
+  const TREND_TPS_FLOOR       = 0.2;
+  const TREND_TTF_FLOOR_MS    = 50;
+  const TREND_EVAL_INTERVAL   = { quiet: null, casual: 5 * 60e3, chatty: 2 * 60e3 };
+
+  /* DOM TPS polling is FALLBACK-ONLY as of 1.3.1 — used when the ttf-feed
+   * is down and no stats frames arrive. Interval scales with chattiness. */
+  const NETWORK_POLL_INTERVAL = { quiet: null, casual: 30000, chatty: 15000 };
+  const STATS_FRESH_MS        = 30000;
   const NETWORK_BUSY_TPS       = 8;
   const NETWORK_QUIET_TPS      = 0.6;
   const QUIET_HOUR_MS          = 60 * 60 * 1000;
@@ -192,10 +296,24 @@
     /* Network polling */
     networkTimer: null,
     lastNetState: 'normal',
+    /* v1.3.1 — event bus / trends / drought */
+    busUnsub: null,
+    busSubscribedAt: 0,                     /* boot-grace anchor */
+    maxSeenHeight: -1,                      /* monotonic block guard */
+    eventLastFireAt: Object.create(null),   /* route key → ts */
+    lastCommentedBlock: -1,                 /* pairs blockfinal with block */
+    lastBlockAt: Date.now(),                /* seeded at boot — fresh load isn't a drought */
+    statsRing: [],                          /* downsampled [{t, tps, ttfP50Ms, sampleCount}] */
+    lastStats: null,
+    lastStatsAt: 0,
+    lastSeenPeak: null,                     /* null until first frame — no reaction on load */
+    trendLastFireAt: Object.create(null),   /* metric key → ts */
+    trendTimer: null,
     /* Audio */
     audioCtx: null,
     audioMasterGain: null,
     lastTypeBlipAt: 0,
+    userGestured: false,
     /* Easter */
     avatarClickCount: 0,
     avatarClickWindowTimer: null,
@@ -242,8 +360,18 @@
   /* ===========================================================================
    * SOUND MODULE
    * =========================================================================*/
+  /* Autoplay-policy compliance (1.3.1 fix): browsers refuse AudioContext
+   * creation/start before a user gesture. With sound persisted ON from a
+   * previous session, the first auto-arriving message used to call
+   * ensureAudio() pre-gesture → console warning + permanently-suspended
+   * context. Now: ensureAudio refuses to construct until a real gesture
+   * has happened (capture-phase pointerdown/keydown listeners in init set
+   * the flag — capture runs before any click handler, so the sound
+   * toggle's own click counts). A suspended context is also resume()d on
+   * the next gesture. All play* calls silently no-op until unlocked. */
   function ensureAudio() {
     if (state.audioCtx) return state.audioCtx;
+    if (!state.userGestured) return null;
     try {
       const Ctx = window.AudioContext || window.webkitAudioContext;
       if (!Ctx) return null;
@@ -253,6 +381,13 @@
       state.audioMasterGain.connect(state.audioCtx.destination);
     } catch (e) { return null; }
     return state.audioCtx;
+  }
+  function unlockAudioOnGesture() {
+    state.userGestured = true;
+    if (state.soundEnabled) {
+      const ctx = ensureAudio();
+      if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+    }
   }
   function canPlaySound() {
     return state.soundEnabled && !isQuietActive();
@@ -356,11 +491,8 @@
     const src = (raw && raw.emotions && typeof raw.emotions === 'object') ? raw.emotions : {};
     for (const name of EMOTION_KEYS) {
       const v = Number(src[name]);
-      /* count of 0 is legal — means "no art yet, use fallback chain in
-       * setEmotion". Required for the 3 new emotions to participate in
-       * dialogue routing even before sprites exist. */
       if (Number.isInteger(v) && v >= 0 && v <= SPRITE_VARIANT_CAP) counts[name] = v;
-      else                                                          counts[name] = (EMOTIONS[name].fallback ? 0 : 1);
+      else                                                          counts[name] = 1;
     }
     state.spriteCounts = counts;
   }
@@ -495,6 +627,24 @@
       modeRow.appendChild(btn);
     }
 
+    /* "?" help toggle (v1.3.1) — expands an inline panel describing the
+     * three modes. Descriptions come straight from MODES so they live in
+     * exactly one place. Not persisted; collapses with the popover. */
+    const helpBtn = el('button', {
+      class: 'echan-settings-help-btn',
+      type: 'button',
+      'aria-label': 'What do the modes mean?',
+      'aria-expanded': 'false',
+      text: '?',
+    });
+    const helpRows = el('div', { class: 'echan-settings-help' });
+    for (const k of ['quiet', 'casual', 'chatty']) {
+      helpRows.appendChild(el('div', { class: 'echan-settings-help-row' },
+        el('span', { class: 'echan-settings-help-name', text: MODES[k].label }),
+        el('span', { class: 'echan-settings-help-desc', text: MODES[k].desc }),
+      ));
+    }
+
     const soundBtn = el('button', {
       class: 'echan-settings-soundbtn',
       type: 'button',
@@ -504,19 +654,27 @@
     });
     state.soundBtn = soundBtn;
 
-    return el('div', { class: 'echan-settings', role: 'menu' },
+    const settingsEl = el('div', { class: 'echan-settings', role: 'menu' },
       el('div', { class: 'echan-settings-title', text: 'settings' }),
       el('div', { class: 'echan-settings-row' },
-        /* "Chat mode" → "Chattiness" — describes the axis being controlled
-         * rather than a generic feature category. */
-        el('div', { class: 'echan-settings-label', text: 'Chattiness' }),
+        el('div', { class: 'echan-settings-labelrow' },
+          el('div', { class: 'echan-settings-label', text: 'Chattiness' }),
+          helpBtn,
+        ),
         modeRow,
+        helpRows,
       ),
       el('div', { class: 'echan-settings-row echan-settings-row-inline' },
         el('div', { class: 'echan-settings-label', text: 'Sound' }),
         soundBtn,
       ),
     );
+    helpBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = settingsEl.classList.toggle('echan-modehelp-open');
+      helpBtn.setAttribute('aria-expanded', String(open));
+    });
+    return settingsEl;
   }
 
   function buildQuickActions() {
@@ -564,14 +722,18 @@
     );
     if (!pool.length) return;
     const pick = pool[Math.floor(Math.random() * pool.length)];
-    pushMessage({
+    /* Easter is user-initiated — treat as engine chatter so it shows in
+     * Casual too (it's pri 2 anyway, but the tag makes intent explicit). */
+    if (pushMessage({
       id: pick.id,
       category: pick.category,
       priority: 2,
       emotion: resolveEmotionForLine(pick) || 'celebrate',
       text: pick.text,
-    });
-    markSeen(pick.id);
+      source: 'engine',
+    })) {
+      markSeen(pick.id);
+    }
   }
 
   /* ===========================================================================
@@ -680,8 +842,11 @@
     }
     /* Restart engine timer at the new cadence (or stop scheduling
      * altogether if the new mode is quiet). scheduleContentTick
-     * internally consults CONTENT_TICK_INTERVAL[state.mode]. */
+     * internally consults CONTENT_TICK_INTERVAL[state.mode]. The
+     * fallback poller + trend engine are mode-scaled too (v1.3.1). */
     scheduleContentTick();
+    scheduleNetworkPoll();
+    scheduleTrendEval();
   }
 
   /* ===========================================================================
@@ -752,38 +917,27 @@
   function setEmotion(name, opts) {
     opts = opts || {};
     if (!EMOTIONS[name]) name = 'neutral';
-    const requestedName = name;
+    const pool = state.sprites[name];
+    if (!pool || !pool.length) return;   /* unknown sprite — silent bail */
 
-    /* Walk fallback chain until we find a non-empty pool or run out. */
-    let resolvedName = name;
-    let pool = state.sprites[resolvedName];
-    while ((!pool || !pool.length) && EMOTIONS[resolvedName] && EMOTIONS[resolvedName].fallback) {
-      resolvedName = EMOTIONS[resolvedName].fallback;
-      pool = state.sprites[resolvedName];
-    }
-    if (!pool || !pool.length) return;   /* nothing usable — bail silently */
-
-    /* Pick variant from the RESOLVED pool. */
     let idx = 0;
     if (typeof opts.variant === 'number' && opts.variant >= 0 && opts.variant < pool.length) {
       idx = opts.variant;
     } else if (pool.length > 1) {
-      const last = state.lastVariantIdx[resolvedName];
+      const last = state.lastVariantIdx[name];
       do { idx = Math.floor(Math.random() * pool.length); }
       while (idx === last);
     }
-    state.lastVariantIdx[resolvedName] = idx;
+    state.lastVariantIdx[name] = idx;
 
     const next = pool[idx];
     const prev = state.activeSprite;
     if (next === prev) {
-      /* Same sprite — still update intent name in case caller wants the
-       * semantic state to change without a visual swap. */
-      state.currentEmotion = requestedName;
+      state.currentEmotion = name;
       return;
     }
 
-    state.currentEmotion = requestedName;
+    state.currentEmotion = name;
 
     if (state.glitchSwapTimer) { clearTimeout(state.glitchSwapTimer); state.glitchSwapTimer = null; }
     if (state.glitchEndTimer)  { clearTimeout(state.glitchEndTimer);  state.glitchEndTimer  = null; }
@@ -840,19 +994,47 @@
   /* ===========================================================================
    * MESSAGE QUEUE + TYPEWRITER
    * =========================================================================*/
+  /* Returns true if the message was accepted (queued or displayed), false
+   * if a mode/quiet gate dropped it — callers MUST gate markSeen() and
+   * cooldown bookkeeping on this, otherwise dropped lines pollute the
+   * seen-ring and consume greeting/event cooldowns invisibly (the 1.3.1
+   * casual-mode silence bug).
+   *
+   * Gate semantics (fixed in 1.3.1):
+   *  - quiet:  only priority 3 / owner — engine is off anyway.
+   *  - casual: priority ≥2 for EVENTS/feed pushes, but engine-sourced
+   *    chatter (content tick, greetings) is exempt — its volume is already
+   *    governed by the mode's 35-60s cadence. Without the exemption, the
+   *    70-of-90 seed lines at priority 1 never displayed in casual at all.
+   *  - chatty: everything. */
   function pushMessage(msg) {
-    if (isQuietActive() && msg.source !== 'owner') return;
-    if (state.mode === 'quiet'  && msg.priority < 3) return;
-    if (state.mode === 'casual' && msg.priority < 2) return;
+    if (isQuietActive() && msg.source !== 'owner') return false;
+    if (state.mode === 'quiet'  && msg.priority < 3) return false;
+    if (state.mode === 'casual' && msg.priority < 2 && msg.source !== 'engine') return false;
     state.queue.push(msg);
     state.queue.sort((a, b) => (b.priority || 1) - (a.priority || 1));
     refreshPageDots();
     if (state.shown && !state.activeMessage) showNextMessage();
     else if (!state.shown && msg.priority >= 3) pulseRailOn();
+    return true;
+  }
+
+  /* A queued event message goes stale when its deadline passes or its
+   * route-specific check fires (e.g. a newer block has been seen). Stale
+   * news is silently skipped at dequeue — better to say nothing than to
+   * announce a block that's 4 heights behind tip. */
+  function isMsgStale(m) {
+    if (!m) return false;
+    if (m.eventAt && m.staleAfterMs && Date.now() - m.eventAt > m.staleAfterMs) return true;
+    if (typeof m.staleCheck === 'function') {
+      try { return !!m.staleCheck(); } catch (e) { return false; }
+    }
+    return false;
   }
 
   function showNextMessage() {
-    const msg = state.queue.shift();
+    let msg = state.queue.shift();
+    while (msg && isMsgStale(msg)) msg = state.queue.shift();
     if (!msg) { state.activeMessage = null; refreshPageDots(); return; }
     state.activeMessage = msg;
 
@@ -864,6 +1046,10 @@
     state.lockedEmotion = msg.emotion || 'neutral';
     setEmotion(state.lockedEmotion);
     playArrival();
+    /* v1.3.1: glow the dashboard card this message refers to (if any and
+     * if it's still in the DOM). Display-time trigger keeps glow + words
+     * synchronized even when the message waited in the queue. */
+    if (msg.spotlight) spotlightCard(msg.spotlight);
 
     startTypewriter(msg.text || '');
     refreshPageDots();
@@ -1027,9 +1213,24 @@
     persistSeenRing();
   }
 
+  /* Optional per-line `requires` condition — checked against LIVE state at
+   * pick time so eChan never claims a network condition that isn't true
+   * right now (e.g. "calm chain" mid-spike). Unknown values pass open so a
+   * seed typo degrades to "always eligible" rather than muting a line. */
+  function lineRequirementMet(req) {
+    switch (req) {
+      case 'net:quiet':   return state.lastNetState === 'quiet';
+      case 'net:busy':    return state.lastNetState === 'busy';
+      case 'net:notbusy': return state.lastNetState !== 'busy';
+      case 'feed:up':     return (Date.now() - state.lastStatsAt) < STATS_FRESH_MS;
+      default:            return true;
+    }
+  }
+
   function isLineEligible(line) {
     if (!line) return false;
     if (line.ttlOnce && state.seenIds && state.seenIds.has(line.id)) return false;
+    if (line.requires && !lineRequirementMet(line.requires)) return false;
     return true;
   }
 
@@ -1078,14 +1279,18 @@
     }
     if (!candidates.length) return;
 
-    const pick = weightedPick(candidates);
-    if (!pick) return;
+    const got = pickAndFill(candidates, liveVars());
+    if (!got) return;
 
-    pushMessage({
-      id: pick.id, category: pick.category, priority: pick.priority || 1,
-      emotion: resolveEmotionForLine(pick), text: pick.text,
+    /* source:'engine' → cadence-governed, exempt from the casual priority
+     * gate. Cooldown + visit bookkeeping only when actually accepted, so
+     * a dropped greeting doesn't burn the 4h window invisibly. */
+    const accepted = pushMessage({
+      id: got.pick.id, category: got.pick.category, priority: got.pick.priority || 1,
+      emotion: resolveEmotionForLine(got.pick), text: got.text, source: 'engine',
     });
-    markSeen(pick.id);
+    if (!accepted) return;
+    markSeen(got.pick.id);
     lsSet(STORAGE.greeted, String(Date.now()));
     lsSet(STORAGE.visits, String(visits + 1));
   }
@@ -1114,14 +1319,18 @@
     pool = pool.filter(isLineEligible);
     if (!pool.length) return;
 
-    const pick = weightedPick(pool);
-    if (!pick) return;
-
-    pushMessage({
-      id: pick.id, category: pick.category, priority: pick.priority || 1,
-      emotion: resolveEmotionForLine(pick), text: pick.text,
-    });
-    markSeen(pick.id);
+    /* pickAndFill enables live template vars ({liveTps}, {tipHeight}, …)
+     * in ordinary chatter. source:'engine' → exempt from the casual
+     * priority gate (cadence already governs volume). markSeen only on
+     * accept so dropped lines don't pollute the seen-ring. */
+    const got = pickAndFill(pool, liveVars());
+    if (!got) return;
+    if (pushMessage({
+      id: got.pick.id, category: got.pick.category, priority: got.pick.priority || 1,
+      emotion: resolveEmotionForLine(got.pick), text: got.text, source: 'engine',
+    })) {
+      markSeen(got.pick.id);
+    }
   }
 
   function scheduleContentTick() {
@@ -1134,16 +1343,357 @@
   }
 
   /* ===========================================================================
-   * NETWORK POLLER
+   * EVENT BUS (v1.3.1) — reactions to live network events
+   *
+   * The inline module defines window.__echanBus and emits cheap payloads
+   * at its existing handler sites. eChan subscribes here and applies all
+   * the editorial policy: per-route cooldowns, random skip, mode gating,
+   * template filling, and dashboard spotlighting. Keeping policy on this
+   * side means tuning never requires a CSP regen.
    * =========================================================================*/
-  function pollNetwork() {
-    if (document.hidden || isQuietActive()) { scheduleNetworkPoll(); return; }
-    const tpsEl = document.getElementById('f-tps');
-    if (!tpsEl) { scheduleNetworkPoll(); return; }
-    const txt = tpsEl.textContent.trim();
-    const tps = parseFloat(txt);
-    if (isNaN(tps)) { scheduleNetworkPoll(); return; }
+  function subscribeBus() {
+    if (window.__echanBus && typeof window.__echanBus.on === 'function') {
+      state.busUnsub = window.__echanBus.on(onBusEvent);
+      state.busSubscribedAt = Date.now();
+      return;
+    }
+    /* echan.js is defer-loaded after the inline module, so the bus should
+     * already exist — the retry covers exotic load orders only. */
+    let tries = 0;
+    const retry = () => {
+      if (window.__echanBus && typeof window.__echanBus.on === 'function') {
+        state.busUnsub = window.__echanBus.on(onBusEvent);
+        state.busSubscribedAt = Date.now();
+      } else if (++tries < 20) setTimeout(retry, 500);
+    };
+    setTimeout(retry, 500);
+  }
 
+  /* Selector builders for the spotlight — the three card surfaces the
+   * dashboard renders. CSS.escape guards exotic ids (txids are hex, but
+   * defensive costs nothing). */
+  function cssEsc(s) {
+    return (window.CSS && CSS.escape) ? CSS.escape(String(s)) : String(s);
+  }
+  function txSel(txid)  { return txid ? '.tx-row[data-txid="'   + cssEsc(txid) + '"]' : null; }
+  function msgSel(txid) { return txid ? '.msg-card[data-msgid="' + cssEsc(txid) + '"]' : null; }
+
+  function onBusEvent(type, data) {
+    if (type === 'stats') { recordStats(data); return; }
+    if (!data) return;
+
+    /* Bookkeeping happens UNCONDITIONALLY — the drought watchdog and the
+     * monotonic guard must see every block, including boot-replayed and
+     * commentary-skipped ones. */
+    let isNewTip = false;
+    if (type === 'block') {
+      state.lastBlockAt = Date.now();
+      if (typeof data.height === 'number' && data.height > state.maxSeenHeight) {
+        state.maxSeenHeight = data.height;
+        isNewTip = true;
+      }
+    }
+
+    /* Boot grace: the dashboard backfills recent blocks/txs/messages at
+     * page load through the same code paths as live arrivals. None of
+     * that is news — observe it (above), never speak it. */
+    if (Date.now() - state.busSubscribedAt < EVENT_BOOT_GRACE_MS) return;
+
+    /* Monotonic guard: only the new tip is "just landed". Re-announced,
+     * reorged, or out-of-order blocks are observed but not narrated. */
+    if (type === 'block' && !isNewTip) return;
+
+    /* ttf splits into brag vs grumble; the dead zone in between is the
+     * normal case and stays silent. */
+    let routeKey = type;
+    if (type === 'ttf') {
+      if (!data.precise) return;
+      if (data.ms < FAST_TTF_MAX_MS)      routeKey = 'fastttf';
+      else if (data.ms > SLOW_TTF_MIN_MS) routeKey = 'slowttf';
+      else return;
+    }
+    /* bigtx splits by size: whale (≥1B XEC) keeps the original trigger,
+     * shark (100M–1B) gets its own dialogue tier. The inline module emits
+     * from 100M up; values below that never reach us. */
+    if (type === 'bigtx') {
+      if (typeof data.valueXec !== 'number' || data.valueXec < SHARK_XEC) return;
+      routeKey = (data.valueXec >= WHALE_XEC) ? 'bigtx' : 'sharktx';
+    }
+
+    const route = EVENT_ROUTES[routeKey];
+    if (!route) return;
+    if (isQuietActive()) return;
+    if (state.mode === 'quiet' && route.priority < 3) return;
+
+    /* blockfinal only pairs with a block we actually commented on —
+     * otherwise every ~10min block would produce TWO lines. */
+    if (routeKey === 'blockfinal') {
+      if (data.height !== state.lastCommentedBlock) return;
+      state.lastCommentedBlock = -1;
+    }
+
+    const now = Date.now();
+    const last = state.eventLastFireAt[routeKey] || 0;
+    if (route.cooldownMs && now - last < route.cooldownMs) return;
+    if (route.chance < 1 && Math.random() > route.chance) return;
+
+    /* Freshness metadata: deadline by route, plus a block-specific check
+     * so a queued "Block N just landed" dies the moment N+1 is seen. */
+    const spotSel = route.spot ? route.spot(data) : null;
+    const fresh = {
+      eventAt: now,
+      staleAfterMs: EVENT_STALE_MS[routeKey] || null,
+      staleCheck: (routeKey === 'block' || routeKey === 'blockfinal')
+        ? () => (typeof data.height === 'number' && data.height < state.maxSeenHeight)
+        : null,
+    };
+    if (!pushEventLine(route.trigger, route.priority, eventVars(data), spotSel, fresh)) return;
+    state.eventLastFireAt[routeKey] = now;
+    if (routeKey === 'block') state.lastCommentedBlock = data.height;
+  }
+
+  /* Normalize a bus payload into the template variable namespace. Vars the
+   * payload doesn't carry stay undefined → fillTemplate skips lines that
+   * reference them. */
+  function eventVars(data) {
+    return {
+      height:   data.height,
+      txCount:  (data.txCount  != null) ? Number(data.txCount).toLocaleString('en-US') : undefined,
+      valueXec: (data.valueXec != null) ? fmtCompact(data.valueXec) : undefined,
+      ttfMs:    (data.ms       != null) ? Math.round(data.ms) : undefined,
+      watched:  data.label,
+      msgType:  data.msgType,
+      pct:      data.pct,
+      peakTps:  data.peakTps,
+      mins:     data.mins,
+    };
+  }
+
+  function fmtCompact(v) {
+    if (v >= 1e9) return (v / 1e9).toFixed(1).replace(/\.0$/, '') + 'B';
+    if (v >= 1e6) return (v / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (v >= 1e3) return (v / 1e3).toFixed(0) + 'K';
+    return String(Math.round(v));
+  }
+
+  /* Live template variables — usable in ANY seed line, not just event
+   * lines. Values come from the freshest relay frame / bus state; when the
+   * data isn't fresh the var is undefined, fillTemplate returns null, and
+   * the line is skipped. So "{liveTps} TPS right now" can never display a
+   * stale number — staleness gating falls out of the template mechanism. */
+  function liveVars() {
+    const st = state.lastStats;
+    const fresh = st && (Date.now() - state.lastStatsAt) < STATS_FRESH_MS;
+    return {
+      liveTps:   (fresh && typeof st.tps === 'number')
+                   ? (st.tps >= 10 ? String(Math.round(st.tps)) : st.tps.toFixed(1))
+                   : undefined,
+      liveTtf:   (fresh && typeof st.ttfP50Ms === 'number') ? String(Math.round(st.ttfP50Ms)) : undefined,
+      tipHeight: (state.maxSeenHeight > 0) ? String(state.maxSeenHeight) : undefined,
+    };
+  }
+
+  /* Shared pick+fill: weighted-pick from the pool, substitute {vars}; a
+   * line whose placeholders can't all be satisfied right now is dropped
+   * from the candidate pool and another tried (≤4 attempts). */
+  function pickAndFill(pool, vars) {
+    for (let attempt = 0; attempt < 4 && pool.length; attempt++) {
+      const pick = weightedPick(pool);
+      if (!pick) return null;
+      const text = fillTemplate(pick.text, vars);
+      if (text === null) { pool = pool.filter(l => l !== pick); continue; }
+      return { pick, text };
+    }
+    return null;
+  }
+
+  /* {placeholder} substitution. Returns null if ANY referenced var is
+   * missing — caller treats that as "line not usable for this event". */
+  function fillTemplate(text, vars) {
+    let ok = true;
+    const out = String(text).replace(/\{(\w+)\}/g, (m, k) => {
+      const v = vars ? vars[k] : undefined;
+      if (v === undefined || v === null) { ok = false; return m; }
+      return String(v);
+    });
+    return ok ? out : null;
+  }
+
+  /* Pick an eligible seed line for the trigger, fill its template, push.
+   * Lines whose placeholders can't all be satisfied are dropped from the
+   * candidate pool and another is tried (≤4 attempts) — defensive against
+   * seed edits referencing vars an event doesn't carry. Returns true if a
+   * message was actually pushed. */
+  function pushEventLine(trigger, priority, vars, spotlightSel, fresh) {
+    if (!state.seedLoaded) return false;
+    const pool = (state.seedByTrigger[trigger] || []).filter(isLineEligible);
+    /* Event vars win over live vars on key collision. */
+    const got = pickAndFill(pool, Object.assign(liveVars(), vars));
+    if (!got) return false;
+    /* Accept-gated: a casual-mode drop of a pri-1 event must NOT consume
+     * the route cooldown (caller sets it on true) or mark the line seen —
+     * otherwise Chatty users switching modes inherit ghost cooldowns. */
+    const accepted = pushMessage({
+      id: got.pick.id, category: got.pick.category,
+      priority: got.pick.priority || priority,
+      emotion: resolveEmotionForLine(got.pick),
+      text: got.text,
+      spotlight: spotlightSel || undefined,
+      eventAt:      fresh ? fresh.eventAt      : undefined,
+      staleAfterMs: fresh ? fresh.staleAfterMs : undefined,
+      staleCheck:   fresh ? fresh.staleCheck   : undefined,
+    });
+    if (!accepted) return false;
+    markSeen(got.pick.id);
+    return true;
+  }
+
+  /* ===========================================================================
+   * SPOTLIGHT — glow the dashboard card eChan is talking about
+   *
+   * Triggered from showNextMessage at DISPLAY time (not queue time) so the
+   * glow is synchronized with the dialogue actually being on screen. The
+   * target may have been evicted from the DOM by then (tx rows rotate
+   * fast) — querySelector miss is a silent no-op. Class removal is timed
+   * rather than animation-fill so a re-mention can re-trigger cleanly.
+   * =========================================================================*/
+  function spotlightCard(selector) {
+    if (!selector) return;
+    let el = null;
+    try { el = document.querySelector(selector); } catch (e) { return; }
+    if (!el) return;
+    el.classList.remove('echan-spotlight');
+    // eslint-disable-next-line no-unused-expressions
+    void el.offsetWidth;   /* restart animation if re-mentioned */
+    el.classList.add('echan-spotlight');
+    setTimeout(() => {
+      try { el.classList.remove('echan-spotlight'); } catch (e) {}
+    }, SPOTLIGHT_MS + 300);
+
+    /* Mobile (<940px): panels stack behind a tab strip and only the
+     * .mobile-active one is visible — an in-card glow inside a hidden
+     * panel says nothing. Light up the owning section's TAB as well so
+     * the user knows which panel the event lives in. Tab id mapping:
+     * #section-<name> ↔ .mobile-tab[data-section="<name>"]. */
+    if (window.matchMedia && window.matchMedia('(max-width: 939px)').matches) {
+      const section = el.closest('.col-section, .messages, .blockchain, .watchlist');
+      if (!section || !section.id) return;
+      const name = section.id.replace(/^section-/, '');
+      const tab = document.querySelector('.mobile-tab[data-section="' + cssEsc(name) + '"]');
+      if (!tab) return;
+      tab.classList.remove('echan-spotlight-tab');
+      // eslint-disable-next-line no-unused-expressions
+      void tab.offsetWidth;
+      tab.classList.add('echan-spotlight-tab');
+      setTimeout(() => {
+        try { tab.classList.remove('echan-spotlight-tab'); } catch (e) {}
+      }, SPOTLIGHT_MS + 300);
+    }
+  }
+
+  /* ===========================================================================
+   * TREND ENGINE (v1.3.1)
+   * =========================================================================*/
+  function recordStats(d) {
+    if (!d || typeof d.tps !== 'number') return;
+    state.lastStats = d;
+    state.lastStatsAt = Date.now();
+    /* Fresh stats frames double as the busy/quiet TPS source. */
+    evaluateTpsEdges(d.tps);
+    /* Downsample into the ring: at most one snapshot per minute. */
+    const ring = state.statsRing;
+    const t = Date.now();
+    if (!ring.length || t - ring[ring.length - 1].t >= TREND_SAMPLE_GAP_MS) {
+      ring.push({ t, tps: d.tps, ttfP50Ms: d.ttfP50Ms, sampleCount: d.sampleCount });
+      if (ring.length > TREND_RING_MAX) ring.shift();
+    }
+    /* New 24h peak — edge-detected vs the last frame. First observation
+     * only seeds the baseline so a page load doesn't celebrate stale news. */
+    if (typeof d.tpsPeak24h === 'number') {
+      if (state.lastSeenPeak !== null && d.tpsPeak24h > state.lastSeenPeak) {
+        fireTrend('peak', 'event:trend:peak', 2, {
+          peakTps: d.tpsPeak24h >= 10 ? Math.round(d.tpsPeak24h) : d.tpsPeak24h.toFixed(1),
+        });
+      }
+      state.lastSeenPeak = Math.max(state.lastSeenPeak ?? 0, d.tpsPeak24h);
+    }
+  }
+
+  /* Snapshot closest to 30 min ago — must itself be ≥20 min old so early
+   * page life doesn't compare now-vs-2-minutes-ago and overreact. */
+  function baselineSnapshot() {
+    const ring = state.statsRing;
+    if (!ring.length) return null;
+    const target = Date.now() - TREND_BASELINE_MS;
+    let best = null;
+    for (const s of ring) {
+      if (!best || Math.abs(s.t - target) < Math.abs(best.t - target)) best = s;
+    }
+    if (!best || Date.now() - best.t < TREND_MIN_BASELINE_MS) return null;
+    return best;
+  }
+
+  function evaluateTrends() {
+    scheduleTrendEval();
+    if (document.hidden || isQuietActive() || state.mode === 'quiet') return;
+
+    /* Block drought — checked before the stats-freshness gate because a
+     * drought is detectable even with the relay feed down. fireTrend's
+     * 30-min cooldown makes it re-grumble with an escalating count while
+     * the drought persists. */
+    const sinceBlock = Date.now() - state.lastBlockAt;
+    if (sinceBlock > BLOCK_DROUGHT_MS) {
+      fireTrend('drought', 'event:blockdrought', 2, {
+        mins: Math.round(sinceBlock / 60000),
+      });
+    }
+
+    const now = state.lastStats;
+    if (!now || Date.now() - state.lastStatsAt > STATS_FRESH_MS) return;
+    const base = baselineSnapshot();
+    if (!base) return;
+
+    /* TPS average */
+    if (typeof now.tps === 'number' && typeof base.tps === 'number' && base.tps >= TREND_TPS_FLOOR) {
+      const pct = Math.round(((now.tps - base.tps) / base.tps) * 100);
+      if (pct >= TREND_PCT)       fireTrend('tps', 'event:trend:tps_up',   2, { pct });
+      else if (pct <= -TREND_PCT) fireTrend('tps', 'event:trend:tps_down', 1, { pct: -pct });
+    }
+    /* TTF p50 — down = improvement (worth celebrating), up = degradation */
+    if (typeof now.ttfP50Ms === 'number' && typeof base.ttfP50Ms === 'number'
+        && base.ttfP50Ms >= TREND_TTF_FLOOR_MS) {
+      const pct = Math.round(((now.ttfP50Ms - base.ttfP50Ms) / base.ttfP50Ms) * 100);
+      if (pct <= -TREND_PCT)     fireTrend('ttf', 'event:trend:ttf_down', 2, { pct: -pct });
+      else if (pct >= TREND_PCT) fireTrend('ttf', 'event:trend:ttf_up',   1, { pct });
+    }
+  }
+
+  function fireTrend(metric, trigger, priority, vars) {
+    const now = Date.now();
+    const last = state.trendLastFireAt[metric] || 0;
+    if (now - last < TREND_COOLDOWN_MS) return;
+    if (pushEventLine(trigger, priority, vars, null)) state.trendLastFireAt[metric] = now;
+  }
+
+  function scheduleTrendEval() {
+    clearTimeout(state.trendTimer);
+    const interval = TREND_EVAL_INTERVAL[state.mode];
+    if (!interval) return;   /* quiet mode → trend engine off */
+    state.trendTimer = setTimeout(evaluateTrends, interval);
+  }
+
+  /* ===========================================================================
+   * TPS EDGE DETECTION + FALLBACK DOM POLLER
+   *
+   * v1.3.1: stats frames from the bus are the primary TPS source (5s
+   * cadence, exact relay numbers). The DOM poll of #f-tps survives only
+   * as a fallback for when the ttf-feed is disconnected; its interval
+   * scales with chattiness (quiet mode = no polling at all). Both sources
+   * funnel into evaluateTpsEdges so busy/quiet transitions behave
+   * identically regardless of origin.
+   * =========================================================================*/
+  function evaluateTpsEdges(tps) {
+    if (document.hidden || isQuietActive()) return;
     let now = 'normal';
     if (tps > NETWORK_BUSY_TPS)        now = 'busy';
     else if (tps < NETWORK_QUIET_TPS)  now = 'quiet';
@@ -1151,23 +1701,38 @@
     if (now !== state.lastNetState && now !== 'normal') {
       const trigger = (now === 'busy') ? 'network:busy' : 'network:quiet';
       const pool = (state.seedByTrigger[trigger] || []).filter(isLineEligible);
-      if (pool.length) {
-        const pick = weightedPick(pool);
-        if (pick) {
-          pushMessage({
-            id: pick.id, category: pick.category, priority: pick.priority || 1,
-            emotion: resolveEmotionForLine(pick), text: pick.text,
-          });
-          markSeen(pick.id);
+      const got = pickAndFill(pool, liveVars());
+      if (got) {
+        /* Edge lines are event-like: priority semantics apply (net-quiet
+         * at pri 1 stays Chatty-only; net-busy at pri 2 shows in Casual).
+         * markSeen gated on accept. */
+        if (pushMessage({
+          id: got.pick.id, category: got.pick.category, priority: got.pick.priority || 1,
+          emotion: resolveEmotionForLine(got.pick), text: got.text,
+        })) {
+          markSeen(got.pick.id);
         }
       }
     }
     state.lastNetState = now;
+  }
+
+  function pollNetwork() {
     scheduleNetworkPoll();
+    if (document.hidden || isQuietActive()) return;
+    /* Feed healthy → stats frames already drive edge detection. */
+    if (Date.now() - state.lastStatsAt < STATS_FRESH_MS) return;
+    const tpsEl = document.getElementById('f-tps');
+    if (!tpsEl) return;
+    const tps = parseFloat(tpsEl.textContent.trim());
+    if (isNaN(tps)) return;
+    evaluateTpsEdges(tps);
   }
   function scheduleNetworkPoll() {
     clearTimeout(state.networkTimer);
-    state.networkTimer = setTimeout(pollNetwork, NETWORK_POLL_MS);
+    const interval = NETWORK_POLL_INTERVAL[state.mode];
+    if (!interval) return;   /* quiet mode → no fallback polling */
+    state.networkTimer = setTimeout(pollNetwork, interval);
   }
 
   /* ===========================================================================
@@ -1186,11 +1751,13 @@
       clearTimeout(state.advanceTimer);
       clearTimeout(state.contentTimer);
       clearTimeout(state.networkTimer);
+      clearTimeout(state.trendTimer);
     } else {
       /* Resume work. Finish any in-progress typewriter so the message
        * isn't half-revealed when the user returns. */
       if (state.activeMessage) finishTypewriter();
       scheduleNetworkPoll();
+      scheduleTrendEval();
       /* Wake-from-sleep: fire an immediate content tick after a brief
        * settle delay, rather than waiting the full mode cadence. The
        * tick self-schedules the next one at normal cadence, so no
@@ -1265,6 +1832,17 @@
           clearQuiet: () => { lsRemove(STORAGE.quietUntil); },
           forceGreet: () => { lsRemove(STORAGE.greeted); maybeGreet(); },
           triggerEaster,
+          /* v1.3.1 — event bus / trend debug surface */
+          lastBlockAgoMin: Math.round((Date.now() - state.lastBlockAt) / 60000),
+          statsFresh: (Date.now() - state.lastStatsAt) < STATS_FRESH_MS,
+          statsRingLen: state.statsRing.length,
+          eventLastFireAt: Object.assign({}, state.eventLastFireAt),
+          /* simulate a bus event from devtools, e.g.
+           *   __echan.bus('bigtx', {valueXec: 25000000, txid: 'abc'})
+           *   __echan.bus('ttf', {ms: 5200, precise: true})        */
+          bus: (type, data) => onBusEvent(type, data || {}),
+          spotlight: spotlightCard,
+          evaluateTrends,
           toggleSound,
           playTypeBlip, playArrival, playGlitch,
           qa: { stats: qaStats, latestBlock: qaLatestBlock, tip: qaTip, quietHour: qaQuietHour },
@@ -1318,13 +1896,19 @@
     document.addEventListener('visibilitychange', state.visHandler);
     document.addEventListener('click', state.docClickHandler);
     document.addEventListener('keydown', state.keyHandler);
+    /* Audio unlock — capture phase fires before any click handler, so the
+     * very first interaction (including the sound toggle itself) counts. */
+    document.addEventListener('pointerdown', unlockAudioOnGesture, { once: true, capture: true });
+    document.addEventListener('keydown',     unlockAudioOnGesture, { once: true, capture: true });
 
     publishApi();
+    subscribeBus();
 
     seedPromise.then(() => {
       setTimeout(maybeGreet, 500);
       scheduleContentTick();
       scheduleNetworkPoll();
+      scheduleTrendEval();
     });
 
     console.log('[eChan] mounted', VERSION,
