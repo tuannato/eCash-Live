@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-+g1FSFLXpoTsE0Rb7P3cT31OELzc0e/3XZS6Ve02uqQ=';
+  script-src 'self' 'sha256-XytZO1Ap1wBVFIZY66Wgc1ZrDt9/rXay7UtyAjPkqXM=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -6591,7 +6591,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.3.2">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.3.2</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.3.3">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.3.3</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -9953,7 +9953,7 @@ function setupWebSocket() {
         // (RECONCILE_TX_CAP 600, BATCH_SIZE 8), and is a no-op on initial
         // connect (state.txs is empty, _runReconcile returns at
         // `tracked.length === 0`), so it's safe to call here unconditionally.
-        // eChan (v1.3.2): chronik link status — gates the block-drought
+        // eChan (v1.3.3): chronik link status — gates the block-drought
         // grumble so a dropped local connection isn't mistaken for a
         // network-wide drought.
         __ecBus.emit('chronik', { up: true });
@@ -9961,7 +9961,7 @@ function setupWebSocket() {
       },
       onEnd: () => {
         console.log('[ecash-live] WebSocket closed');
-        // eChan (v1.3.2): see A12 — drought grumbles pause while down.
+        // eChan (v1.3.3): see A12 — drought grumbles pause while down.
         __ecBus.emit('chronik', { up: false });
       },
       autoReconnect: true,
@@ -19130,7 +19130,7 @@ const HEARTBEAT_DIAGRAM = `
   <line x1="20" y1="148" x2="460" y2="148" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="4,4"/>
 </svg>`;
 
-// eChan i18n (v1.3.2): translated tooltip bodies arrive as plain strings
+// eChan i18n (v1.3.3): translated tooltip bodies arrive as plain strings
 // from language packs, so the ${...} diagram interpolations that the
 // template literals below resolve at module load must be re-substituted
 // at display time. Called only on the i18n path; English content is
@@ -20681,7 +20681,7 @@ document.addEventListener('keydown', (e) => {
   if (!guideHasBeenSeen()) {
     const btn = document.getElementById('btn-guide');
     if (btn) btn.classList.add('guide-first-visit');
-    // eChan (v1.3.2): auto-open disabled — eChan's chip-driven tour is the
+    // eChan (v1.3.3): auto-open disabled — eChan's chip-driven tour is the
     // onboarding path now. The modal itself stays (devtools: openGuide(0)).
   }
 })();
