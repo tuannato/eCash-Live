@@ -1,0 +1,233 @@
+{
+  "meta": {
+    "code": "de",
+    "name": "Deutsch",
+    "source": "en",
+    "packVersion": 5
+  },
+  "ui": {
+    "qa.stats": "Statistiken",
+    "qa.stats.title": "Netzwerk-Statistikpanel öffnen",
+    "qa.block": "Neuester Block",
+    "qa.block.title": "Popover des neuesten Blocks öffnen",
+    "qa.tip": "Projekt unterstützen",
+    "qa.tip.title": "Trinkgeld-Dialog öffnen",
+    "qa.guide": "Tour",
+    "qa.guide.title": "Lass dir von eChan das Dashboard zeigen",
+    "settings.title": "Einstellungen",
+    "settings.chattiness": "Gesprächigkeit",
+    "settings.sound": "Ton",
+    "settings.help.aria": "Was bedeuten die Modi?",
+    "mode.quiet": "Stumm",
+    "mode.quiet.desc": "Stille — nur Ansagen des Betreibers kommen durch.",
+    "mode.casual": "Gelegentlich",
+    "mode.casual.desc": "Kommentiert ca. alle 45 s; reagiert auf wichtige Ereignisse (Wale, Watchlist, Trends).",
+    "mode.chatty": "Gesprächig",
+    "mode.chatty.desc": "Standard — häufige Kommentare ca. alle 15 s + Reaktion auf jedes Ereignis.",
+    "chips.tour": "▶ Zeig mir alles",
+    "chips.later": "Später",
+    "tour.back": "⟵ Zurück",
+    "tour.exit": "✕ Tour beenden",
+    "tour.done": "Tour beendet! 👋 Ich bleibe hier und kommentiere die Blockchain live.",
+    "lang.title": "Sprache / Language",
+    "chips.lang": "🌐 Sprache"
+  },
+  "tooltips": {
+    "ava-tx": {
+      "title": "Avalanche · Transaction Finality",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Pre-consensus</strong> lässt das Netzwerk sich auf eine Transaktion einigen, <em>bevor</em> sie in irgendeinen Block gelangt.</p>\n          <p>Sobald eine Transaktion den Mempool erreicht, beginnen die an Avalanche teilnehmenden eCash-Nodes, einander zu befragen — „akzeptierst du diese Transaktion?“ Jede Abfrage ist ein kleiner UDP-Austausch mit einer zufällig gezogenen Teilmenge von Peers, gewichtet nach der Menge an eCash, die sie gestakt haben.</p>\n          <p>Der abfragende Node verfolgt die Stimme jedes Peers und aktualisiert einen <strong>Konfidenzwert</strong>. Überschreitet dieser Wert die Finalisierungsschwelle, ist die Transaktion <strong>für immer verriegelt</strong> — ab diesem Moment kann kein Double-Spend und keine konkurrierende Transaktion mehr gewinnen.</p>\n          <p>Der gesamte Prozess dauert im Schnitt <strong>~3 Sekunden</strong> — schnell genug, dass Kassenterminals und Exchanges Guthaben sofort gutschreiben können. Der Ring füllt sich, während Stimmen eintreffen; das Schloss-Häkchen markiert den Übergang von „Abstimmung läuft“ zu „permanenter Konsens“.</p>\n          <p class=\"meta-note\">Aktiviert im Mainnet am 15. November 2025.</p>\n        </div>\n        <div class=\"diagram-col\">${PRE_CONSENSUS_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "ava-block": {
+      "title": "Avalanche · Block Finality",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Post-consensus</strong> wendet denselben Avalanche-Abstimmungsmechanismus auf <em>Blocks</em> an und arbeitet oberhalb der klassischen Nakamoto-Proof-of-Work-Kette.</p>\n          <p>Jeder neue Block durchläuft drei Stufen:</p>\n          <p>⛏ <strong>Mined</strong> — ein Miner findet einen gültigen Proof-of-Work und verbreitet den Block.</p>\n          <p>↻ <strong>Polling</strong> — alle Avalanche-Nodes befragen ihre Peers, gewichtet nach eCash-Stake, ob dieser Block als neue kanonische Kettenspitze akzeptiert werden soll.</p>\n          <p>◆ <strong>Final</strong> — die angesammelte Konfidenz hat die Schwelle überschritten. Der Block kann nicht mehr ersetzt oder reorganisiert werden — selbst nicht von einer feindlichen Hashpower-Mehrheit. Einmal verriegelt, wird jeder Reorg-Versuch von allen ehrlichen Nodes als ungültig abgelehnt.</p>\n          <p>Das vollständige Polling dauert im Schnitt <strong>3–5 Sekunden</strong> nach Bekanntgabe des Blocks, sodass Einzahlungen sicher mit <strong>1 Bestätigung</strong> gutgeschrieben werden können — sicherheitstechnisch das Äquivalent dutzender Bitcoin-Bestätigungen.</p>\n          <p class=\"meta-note\">Schützt eCash-Blocks seit dem 14. September 2022.</p>\n        </div>\n        <div class=\"diagram-col\">${POST_CONSENSUS_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "tx-flow": {
+      "title": "Transaction Flow · How to read the colours",
+      "body": "\n      <div class=\"text-col\">\n        <p>Jede Zeile in den Spalten <strong>Inputs</strong> / <strong>Outputs</strong> zeigt eine Adresse und den Betrag, den sie in dieser Transaktion ausgegeben oder empfangen hat.</p>\n        <p><span class=\"legend-dot\" style=\"background:#01a0e0;box-shadow:0 0 8px #01a0e0\"></span> <strong>Cyan</strong> — gewöhnliche Adresse. Klicken öffnet sie im Block-Explorer.</p>\n        <p><span class=\"legend-dot\" style=\"background:#ffcb47;box-shadow:0 0 8px #ffcb47\"></span> <strong>Gold</strong> — die Adresse taucht auf <em>beiden</em> Seiten auf, Input und Output. Meist erhält der Sender sein <strong>Wechselgeld</strong> zurück, bei Selbst-Transaktionen markiert es aber auch UTXO-Konsolidierung.</p>\n        <p><span class=\"legend-dot\" style=\"background:#a7ff37;box-shadow:0 0 8px #a7ff37\"></span> <strong>Limette</strong> — Adresse aus deiner <em>Watchlist</em>. Wird in jeder Transaktion hervorgehoben, damit du Aktivität auf den Wallets bemerkst, die dir wichtig sind.</p>\n        <p><span class=\"legend-dot\" style=\"background:rgba(255,255,255,0.3)\"></span> <em>OP_RETURN</em> — datentragender Output (Chat-Nachrichten, Token-Befehle). Keine Adresse; enthält keinen ausgebbaren Wert.</p>\n        <p>Der Betrag pro Zeile ist der <strong>rohe On-Chain-Wert</strong>. Bei Token-Transaktionen steht die Token-Menge zuerst (z. B. <em>1,000 USDR · 5.46 XEC</em>) — die 5.46 XEC sind nur der Dust, der den Token transportiert.</p>\n      </div>\n    "
+    },
+    "heartbeat": {
+      "title": "Heartbeat · Real-Time Targeting",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Heartbeat</strong> ist eCashs Echtzeit-Schwierigkeitsanpassung, aktiviert im Netzwerk-Upgrade vom <strong>15. November 2024</strong>.</p>\n          <p>Bitcoin-artige Netzwerke zielen auf <strong>durchschnittlich 10 Minuten</strong> zwischen Blocks, doch Hashpower-Schübe können mehrere Blocks in wenigen Minuten produzieren, gefolgt von langer Stille. Dieses „Block-Klumpen“ frustriert Nutzer und stört Exchanges.</p>\n          <p>Heartbeat behebt das mit einer <strong>zweiten Schwierigkeitsschicht</strong> über der Standard-Anpassung:</p>\n          <ul>\n            <li>Kommen Blocks <strong>schneller als der 10-Minuten-Takt</strong>, <em>steigt</em> die Schwierigkeit sofort und bremst die Schub-Produktion.</li>\n            <li>Danach <strong>sinkt die Schwierigkeit monoton</strong>, bis das normale Plateau erreicht ist.</li>\n            <li>Blocks, die das Echtzeit-Ziel verletzen, werden <strong>vom Avalanche-Konsens abgelehnt</strong> — selbst wenn sie nach klassischen Bitcoin-Regeln gültig wären.</li>\n          </ul>\n          <p>Das Ergebnis: gleichmäßigere Blockzeiten, weniger Mining-Pool-Tricks („Switch Mining“) und ein berechenbareres Erlebnis für alle im Netzwerk.</p>\n          <p class=\"meta-note\">Heartbeat arbeitet Hand in Hand mit Avalanche post-consensus (Block-Finalität) und der Infrastructure Funding Policy — den drei Säulen von eCashs erweitertem Nakamoto-Konsens.</p>\n        </div>\n        <div class=\"diagram-col\">${HEARTBEAT_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "stats-overview": {
+      "title": "Network Statistics",
+      "body": "\n      <div class=\"so-wrap\">\n        <p class=\"so-lead\">Die Leiste am Seitenende ist das Live-Zahlenpanel des eCash-Netzwerks. Die Werte stammen aus zwei Quellen — einem dedizierten eCash-Node, den wir betreiben, und deiner aktuellen Browser-Sitzung — und zu wissen, was woher kommt, hilft beim richtigen Lesen der Leiste.</p>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Headline cell · 24h ↔ session</h3>\n          <div class=\"so-card\">\n            <p>Die Haupt-Zelle Time-to-Finality (TTF) kann die 24h-Netzwerkmetrik oder deine Sitzungsmetrik zeigen. Wähle hier, oder nutze den <code>⇄</code>-Knopf über der Zelle. Ist der Node-Feed nicht verfügbar, fällt die Zelle unabhängig von dieser Wahl immer auf die Sitzungsmetrik zurück.</p>\n            <div class=\"stats-view-toggle\" id=\"stats-view-toggle\">\n              <button type=\"button\" data-view=\"p50\" id=\"stats-view-p50\">Netzwerk · 24h zeigen</button>\n              <button type=\"button\" data-view=\"session\" id=\"stats-view-session\">Sitzung zeigen</button>\n            </div>\n            <span class=\"so-live-label\">Live-Werte</span>\n            <div id=\"stats-live-grid\"><span style=\"color:var(--text-3);font-family:'Fira Code',monospace;font-size:11px\">— warte auf den nächsten Stats-Frame —</span></div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Zwei Datenquellen</h3>\n          <div class=\"so-sources\">\n            <div class=\"so-source\">\n              <span class=\"so-src-name\"><span class=\"so-badge net\">Network</span> 24h</span>\n              <p>Rollierende 24-Stunden-Aggregate, am Node gemessen und alle 5 Sekunden an deinen Tab gepusht. Diese Zellen spiegeln wider, was das gesamte Netzwerk gerade tut — unabhängig davon, was dein Tab beobachtet hat.</p>\n            </div>\n            <div class=\"so-source\">\n              <span class=\"so-src-name\"><span class=\"so-badge ses\">Session</span></span>\n              <p>Von diesem Browser-Tab seit dem Laden der Seite gezählt. Ein neuer Tab startet bei null; Neuladen setzt zurück. Nützlich als persönliche „Was habe ich gesehen“-Sicht und als Rückfallebene, wenn der Node-Feed ausfällt.</p>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Was jede Zelle bedeutet</h3>\n          <div class=\"so-defs\">\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Time-to-finality · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Medianzeit der letzten 24 Stunden — siehe <em>Wie Finalität gemessen wird</em> unten.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">TPS · 24h avg <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Finalisierte Transaktionen pro Sekunde, gemittelt über das 24-Stunden-Fenster. Ist das Netzwerk sehr ruhig, kann der Wert unter 0.01 tps fallen; die Zelle zeigt dann <code>&lt; 0.01 tps</code>, statt auf null zu runden (eine gerundete Null würde suggerieren, es gäbe gar keine Transaktionen — was das 24h-Fenster nicht behauptet).</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Peak TPS · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Die höchste anhaltende Transaktionsrate pro Sekunde, beobachtet in irgendeinem 1-Minuten-Fenster der letzten 24 Stunden. Die Minuten-Mittelung ist Absicht: eine 1-Sekunden-Spitze (besonders eine einzelne Transaktion in ruhiger Lage) soll die Schlagzeilen-Zahl nicht dominieren. Sie steigt bei echten Aktivitätsschüben und bleibt niedrig, wenn das Netzwerk ruht.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">% finalized &lt; 3s <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Anteil der in 24h finalisierten Transaktionen mit Time-to-Finality unter drei Sekunden — die „Überholspur“-Quote. Drei Sekunden sind ungefähr die Schwelle, ab der sich eine Zahlung nach Warten statt nach sofort anfühlt; dieser Prozentsatz verfolgt also, wie viel des jüngsten Verkehrs bequem darunter finalisiert. Zeigt <code>100%</code> (ohne Nachkommastellen), wenn alles unter 3 s lag.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Tx · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Wie viele Transaktionen im gesamten Netzwerk in den letzten 24 Stunden finalisiert wurden.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Avg block-lock <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Durchschnittszeit zwischen dem Mining eines Blocks und seiner Finalisierung durch Avalanche. Anders als Time-to-Finality: jene misst den <em>Pre</em>-Consensus-Pfad (Transaktionen im Mempool), Block-Lock misst den <em>Post</em>-Consensus-Pfad (ganze Blocks bereits auf der Kette). Beide im Sitzungsumfang.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Avg block time <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Durchschnittlicher Abstand zwischen aufeinanderfolgenden Blocks, die dieser Tab beobachtet hat. eCash zielt per Echtzeit-Schwierigkeitsalgorithmus Heartbeat auf 10 Minuten. Der eigene <strong>?</strong>-Knopf neben dieser Zelle öffnet die Heartbeat-Erklärung.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Tx · session <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Transaktionen, die dieser Tab seit dem Laden beobachtet hat. Fällt beim Neuladen auf null. Auf Mobilgeräten aus der Leiste ausgeblendet, oben in den Live-Werten weiterhin sichtbar.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Stream uptime <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Wie lange dieser Tab mit dem eCash-Netzwerk verbunden ist. Unabhängig vom Relay-Feed; Neuladen setzt zurück.</div>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Wie Finalität gemessen wird</h3>\n          <p>Time-to-Finality ist der Abstand zwischen zwei Momenten im Leben einer Transaktion. <strong>Der Start</strong>: wenn die Transaktion erstmals im Mempool des Nodes auftaucht. <strong>Das Ende</strong>: wenn Avalanche pre-consensus sie verriegelt — der Moment, ab dem konkurrierende Peers sie nicht mehr reorganisieren können.</p>\n          <p>Beide Zeitstempel stammen aus den Logs des Nodes selbst, sind also konsistent und unbeeinflusst von deiner Netzwerklatenz. Die 24h-Zahlen sind Perzentile und Mittelwerte über alle im rollierenden Fenster finalisierten Transaktionen.</p>\n          <p style=\"margin-bottom:2px\">Jedes Perzentil erzählt eine andere Geschichte:</p>\n          <div class=\"so-pct\">\n            <div class=\"so-pct-item\"><div class=\"pk\">p50 · median</div><div class=\"pd\">Die Schlagzeilen-Zahl: was eine typische Transaktion erlebt, kaum anfällig für Ausreißer.</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">p90</div><div class=\"pd\">Erfasst das langsame Ende — die große Mehrheit ist deutlich vor dieser Marke fertig.</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">p10</div><div class=\"pd\">Zeigt, wie schnell die schnellsten 10 % sind — nützlich, um die Untergrenze des Protokolls zu sehen.</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">Mean</div><div class=\"pd\">Arithmetisches Mittel, empfindlich gegenüber Extremen und meist etwas über p50.</div></div>\n          </div>\n          <p>Ist der Node-Feed nicht verfügbar, fallen die Footer-Zellen auf Sitzungsmetriken zurück, die vollständig in deinem Browser gemessen werden. Dieser Wert kann die echte Time-to-Finality übersteigen, da er WebSocket- und Propagationslatenz zwischen Node und Tab einschließt.</p>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Die Symbole lesen</h3>\n          <div class=\"so-legend\">\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"ttf-eye-wrap\" style=\"display:inline-flex;margin:0\">${TTF_EYE_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>Das Auge</strong> — der Node-Feed ist vorübergehend nicht verfügbar, der Wert neben diesem Symbol ist also eine <em>gefühlte</em> Messung, vollständig in deinem Browser nach obiger Methodik berechnet. Verbindet sich der Feed wieder, verschwindet das Auge und der Wert kehrt zur Node-Präzision zurück.</div>\n            </div>\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"radar-slash-wrap\" style=\"display:inline-flex;margin:0\">${RADAR_SLASH_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>Durchgestrichenes Radar</strong> — die Zelle hat keinen Wert anzuzeigen, weil keine Verbindung zum Node-Feed besteht. Erscheint nur auf den Network · 24h-Karten, denn Sitzungsmetriken lassen sich immer im Browser berechnen. Verschwindet, sobald der Feed sich wieder verbindet und der nächste Stats-Frame eintrifft.</div>\n            </div>\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"ttf-spinner-wrap\" style=\"display:inline-flex;margin:0\">${TTF_SPINNER_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>Der Spinner</strong> — erscheint im Transaktions-Detailpanel für ~3 Sekunden nach der Finalisierung. Der angezeigte Wert wurde lokal berechnet und kann auf den node-präzisen Wert verfeinert werden, sobald dieser eintrifft. Nach Ablauf des Upgrade-Fensters stoppt der Spinner und der Wert gilt als endgültig.</div>\n            </div>\n          </div>\n        </div>\n      </div>\n    "
+    }
+  },
+  "dom": {
+    "#watchlist-empty-hint": {
+      "text": "füge eine Adresse hinzu, um ihre Txs hervorzuheben"
+    },
+    "#btn-live": {
+      "title": "Ansichtsmodus — Klick zum Durchschalten: LIVE → CHAIN → FEED. Reduziert die DOM-Last bei vollem Mempool, behält aber den Zustand."
+    },
+    "#btn-pause": {
+      "title": "Eingehende Transaktionen pausieren"
+    },
+    "#tip-btn": {
+      "title": "Spendier mir einen Kaffee — deine Tx wird im Stream hervorgehoben"
+    },
+    "#bc-goto-search": {
+      "placeholder": "zu Block #…"
+    },
+    "#btl-chain-search": {
+      "placeholder": "zu Block #…"
+    },
+    "#btl-search": {
+      "placeholder": "nach Txid-Präfix oder -Teil filtern…"
+    },
+    "#wl-input-addr": {
+      "placeholder": "ecash:q… oder 64-hex Token-ID"
+    },
+    "#wl-input-name": {
+      "placeholder": "z. B. Cold-Wallet oder meine NFT-Sammlung"
+    },
+    "#wl-edit-name": {
+      "placeholder": "z. B. Cold-Wallet"
+    },
+    "#chat-pick-input": {
+      "placeholder": "ecash:q…"
+    },
+    "#chat-textarea": {
+      "placeholder": "Nachricht eingeben · Emoji ok · Enter sendet · Shift+Enter neue Zeile"
+    },
+    ".info-tile[data-tile=\"avalanche\"] .info-tile-title": {
+      "text": "Was ist Avalanche auf eCash?"
+    },
+    ".info-tile[data-tile=\"avalanche\"] .info-tile-body": {
+      "html": "<p>Ein Konsensprotokoll, das <strong>neben</strong> eCashs Nakamoto-Proof-of-Work läuft und es Nodes erlaubt, einander zu befragen und sich in Sekunden auf Blocks und (mit Pre-Consensus) einzelne Transaktionen zu einigen.</p><p><strong>Post-Consensus</strong> (live seit Sep 2022) bringt 1-Block-Finalität und Schutz vor 51%-Angriffen. <strong>Pre-Consensus</strong> (Mainnet seit 15.11.2025) finalisiert Transaktionen in &lt;3 s vor dem Mining — eCash fühlt sich damit für Nutzer wie Exchanges nach Bargeld an.</p><p>Stell dir PoW als <em>Schrift</em> vor (langsam, dauerhaft) und Avalanche als <em>Sprache</em> (schnell, flüchtig) — eCash nutzt beides.</p>"
+    },
+    ".info-tile[data-tile=\"agora\"] .info-tile-title": {
+      "text": "Was ist Agora auf eCash?"
+    },
+    ".info-tile[data-tile=\"agora\"] .info-tile-body": {
+      "html": "<p>Ein verwahrungsfreies <strong>Atomic-Swap-Protokoll</strong> auf Basis von eCash Script. Gestartet im Oktober 2024, kann damit jeder eTokens oder NFTs direkt on-chain zum Verkauf listen — ohne Exchange, ohne Verwahrer, ohne Erlaubnis.</p><p>Trades werden durch Transaktionen abgewickelt, die der Käufer an sich selbst signiert — möglich dank des Opcodes <code>OP_CHECKDATASIG</code>. Die Covenants leben on-chain, jeder kann stöbern, bieten und abwickeln, ganz ohne zentrales Orderbuch.</p><p>Treibt die eToken-DEX in Cashtab an und zeigt eCashs native DeFi-Fähigkeiten bei Gebühren unter einem Cent.</p>"
+    },
+    ".info-tile[data-tile=\"heartbeat\"] .info-tile-title": {
+      "text": "Was ist Heartbeat?"
+    },
+    ".info-tile[data-tile=\"heartbeat\"] .info-tile-body": {
+      "html": "<p>eCashs <strong>Echtzeit-Schwierigkeitsanpassung</strong>, aktiviert am 15. November 2024. Sie läuft über der klassischen Bitcoin-Anpassung, um <strong>Blockzeiten zu glätten</strong> und das „Block-Klumpen“ zu beenden, bei dem Hashpower-Schübe 5 Blocks in 2 Minuten erzeugen, gefolgt von 30 Minuten Stille.</p><p>Kommen Blocks schneller als das 10-Minuten-Ziel, steigt die Schwierigkeit sofort und sinkt danach monoton, bis sie sich normalisiert. Blocks, die das Echtzeit-Ziel verletzen, werden <strong>vom Avalanche-Konsens abgelehnt</strong> — selbst wenn sie nach klassischen Bitcoin-Regeln technisch gültig wären.</p><p>Das Ergebnis: gleichmäßigere Bestätigungszeiten, weniger Mining-Pool-Exploits und ein berechenbareres Erlebnis für das ganze Netzwerk.</p>"
+    },
+    ".info-tile[data-tile=\"chronik\"] .info-tile-title": {
+      "html": "Was ist <strong>Chronik</strong>?"
+    },
+    ".info-tile[data-tile=\"chronik\"] .info-tile-body": {
+      "html": "<p><strong>Chronik</strong> ist der Hochleistungs-Indexer von eCash, der direkt in Bitcoin ABC steckt. Er ist die Datenschicht, mit der jedes Wallet, jeder Explorer und jede dApp auf eCash spricht — auch dieser Live-Stream.</p><p>Rust-nativ und eng mit dem Node integriert, liefert <strong>Chronik</strong> Kettendaten plus den vollständigen SLP-/ALP-Token-Status über eine einheitliche HTTP- + WebSocket-API. Wallets bekommen schnelle Adresshistorien, token-bewusste UTXO-Sätze und Live-Transaktionsströme, ohne die Kette selbst neu zu parsen.</p><p>Hast du je Cashtab, agora.cash, dieses Dashboard oder den Explorer auf explorer.e.cash genutzt — jedes Byte Kettendaten lief durch eine <strong>Chronik</strong>-Instanz, um dorthin zu gelangen.</p>"
+    },
+    ".btl-right-hint": {
+      "text": "Klick auf eine Tx zum Ansehen · die Txid öffnet den Explorer"
+    },
+    ".dlg-qr-hint": {
+      "text": "QR mit deiner Wallet-App scannen · oder unten einen Knopf antippen"
+    },
+    ".ee-hint": {
+      "text": "tippe das eCash-Logo, um e.cash zu besuchen · tippe woanders zum Schließen"
+    },
+    ".wl-history-right-hint": {
+      "text": "Zeile überfahren für Vorschau · Klick zum Anpinnen · erneuter Klick löst"
+    },
+    ".wl-history-empty": {
+      "html": "Noch keine verfolgte Tx — sie erscheinen hier, sobald sie passieren. Drücke <b>Sync</b>, um die volle Historie von chronik zu laden."
+    },
+    ".wl-sub:not(#wl-edit-sub):not(#chat-pick-sub)": {
+      "html": "Gib eine eCash-Adresse <span class=\"mono\">ecash:q…</span> oder eine 64-hex Token-/NFT-ID ein."
+    },
+    "#chat-pick-sub": {
+      "html": "Gib eine eCash-Adresse <span class=\"mono\">ecash:q…</span> ein."
+    },
+    ".chat-send-dialog .dlg-title": {
+      "text": "Über dein eCash-Wallet senden"
+    },
+    ".chat-send-dialog .dlg-sub": {
+      "html": "Deine Nachricht und die Empfänger wurden in einen BIP21-Zahlungslink verpackt. Öffne ihn in einem beliebigen eCash-Wallet — Cashtab füllt das Send-Formular automatisch aus. <strong style=\"color:var(--amber)\">Diese Seite sieht deine Seed-Phrase niemals.</strong>"
+    },
+    "#feed-warning-popover .popover-title": {
+      "text": "⚠ Sicherheitshinweis zum Feed"
+    },
+    "#feed-warning-popover > div:last-of-type": {
+      "html": "Der Feed zeigt <strong>alle On-Chain-Nachrichten aus dem gesamten eCash-Netzwerk</strong> — jeder kann alles verbreiten.<ul><li><strong>Betrachte jeden Link als verdächtig.</strong> Klicke keine URLs in Nachrichten von Fremden an; Phishing-Kits tauchen hier regelmäßig auf.</li><li><strong>Teile niemals deine Seed-Phrase, deinen privaten Schlüssel oder dein Wallet-Passwort.</strong> Kein seriöses Projekt wird je im Chat oder in einer Nachricht danach fragen.</li><li><strong>Achte auf Identitätsbetrug.</strong> Jeder kann beliebige Namen in eine Nachricht schreiben; verifiziere Identitäten über vertrauenswürdige Kanäle.</li><li><strong>Token-Airdrops können Fallen sein.</strong> Unaufgeforderte Tokens können Phishing-Links oder Betrugsinfos enthalten — vor der Interaktion zu recherchieren ist sicherer.</li></ul>"
+    },
+    "#chat-warning-popover .popover-title": {
+      "text": "⚠ Sicherheitshinweis zum Chat"
+    },
+    "#chat-warning-popover > div:last-of-type": {
+      "html": "Chat-Nachrichten sind <strong>permanente On-Chain-Transaktionen auf eCash</strong> — nach dem Broadcast weder löschbar noch editierbar, und jeder kann sie für immer lesen.<ul><li><strong>Alle Nachrichten sind 100 % öffentlich.</strong> Einmal gesendet, liegen sie auf jedem eCash-Node weltweit, für jeden indexierbar. Privaten Chat gibt es on-chain nicht.</li><li><strong>Dauerhafte Aufzeichnung.</strong> Denk nach, bevor du sendest — deine Worte überdauern dich auf der Blockchain.</li><li><strong>Achte auf Betrug.</strong> Auch wenn das Wallet eines Peers vertraut wirkt: Wer dessen Seed-Phrase besitzt, kann der Absender sein. Verifiziere große Transaktionen über einen anderen Kanal.</li><li><strong>Füge hier niemals Seed-Phrases, private Schlüssel oder Passwörter ein</strong> — sie wären für immer der Welt ausgeliefert.</li><li><strong>Diese Seite sieht deine Schlüssel niemals.</strong> Jeder Versand wird von deinem Wallet signiert (Cashtab/Electrum-XEC/etc); wir bauen nur den BIP21-Link.</li></ul>"
+    },
+    ".d-token-url-warn": {
+      "warn": "Tokens können in ihrer Genesis-Transaktion eine beliebige URL angeben — die URL wird vom Netzwerk NICHT geprüft. Phishing-Tokens können auf bösartige Seiten zeigen, die dein Wallet leeren wollen. Immer: (1) prüfen, ob die URL zur offiziellen Domain des Projekts passt, (2) niemals ein Wallet auf einer Seite verbinden, die du über eine Token-URL erreicht hast, ohne unabhängige Prüfung, (3) niemals und nirgendwo deine Seed-Phrase eingeben."
+    }
+  },
+  "domMap": {
+    ".info-tile-links-label": {
+      "Read more on e.cash": "Mehr lesen auf e.cash",
+      "Tool": "Werkzeug",
+      "Trade now": "Jetzt handeln"
+    },
+    ".chat-chip-empty": {
+      "no address set — pick yours to see your own chat lines": "keine Adresse gesetzt — wähle deine, um eigene Nachrichten zu sehen",
+      "add at least one peer wallet to load their messages": "füge mindestens ein Peer-Wallet hinzu, um dessen Nachrichten zu laden"
+    },
+    ".btl-empty": {
+      "Block has no transactions (?!)": "Block hat keine Transaktionen (?!)"
+    },
+    ".watchlist-empty-state": {
+      "No addresses tracked yet — click \"+ add\" to start watching one.": "Noch keine Adressen im Blick — klicke „+ add“, um eine zu beobachten."
+    }
+  },
+  "titleMap": {
+    "Click for a full stats explanation. Use the ⇄ button to toggle between the network 24h reading and your session reading.": "Klick für die vollständige Statistik-Erklärung. Mit dem ⇄-Knopf zwischen Netzwerk-24h-Wert und Sitzungswert wechseln.",
+    "Network transactions per second, rolling 24h. From the dedicated eCash node. Click for details.": "Netzwerk-Transaktionen pro Sekunde, rollierende 24h. Vom dedizierten eCash-Node. Klick für Details.",
+    "Total transactions finalized network-wide in the last 24 hours. From the dedicated eCash node. Click for details.": "Insgesamt netzweit finalisierte Transaktionen der letzten 24 Stunden. Vom dedizierten eCash-Node. Klick für Details.",
+    "Total transactions observed by this browser tab since the page was loaded. Click for details.": "Insgesamt von diesem Browser-Tab seit dem Laden beobachtete Transaktionen. Klick für Details.",
+    "Average time from block mined to Avalanche post-consensus finalized. Last 20 samples this session. Click for details.": "Durchschnittszeit vom Mining eines Blocks bis zur Avalanche-post-consensus-Finalisierung. Letzte 20 Proben dieser Sitzung. Klick für Details.",
+    "Average elapsed time between the last consecutive blocks observed this session. eCash targets a 10-minute average via the Heartbeat real-time difficulty algorithm.": "Durchschnittlicher Abstand zwischen den letzten aufeinanderfolgenden Blocks dieser Sitzung. eCash zielt per Echtzeit-Schwierigkeitsalgorithmus Heartbeat auf 10 Minuten.",
+    "How long this stream has been connected to the eCash network. Click for details.": "Wie lange dieser Stream mit dem eCash-Netzwerk verbunden ist. Klick für Details.",
+    "Toggle 24h ↔ session": "24h ↔ Sitzung umschalten",
+    "Visitors watching this page right now (server-side count of live WebSocket connections to the TTF feed)": "Besucher, die diese Seite gerade ansehen (serverseitige Zählung der Live-WebSocket-Verbindungen zum TTF-Feed)",
+    "Mempool transactions finalized by Avalanche pre-consensus, awaiting inclusion in a block": "Vom Avalanche pre-consensus finalisierte Mempool-Transaktionen, die auf die Aufnahme in einen Block warten",
+    "Mined by a Proof-of-Work miner": "Von einem Proof-of-Work-Miner gemined",
+    "What is Avalanche post-consensus?": "Was ist Avalanche post-consensus?",
+    "What is Heartbeat?": "Was ist Heartbeat?",
+    "What do these colours mean?": "Was bedeuten diese Farben?",
+    "Read 'What is eCash' on e.cash": "„What is eCash“ auf e.cash lesen",
+    "Visit e.cash": "e.cash besuchen",
+    "Connection status": "Verbindungsstatus",
+    "Add address to watchlist": "Adresse zur Watchlist hinzufügen",
+    "Add one or more peer addresses (or import from Watchlist)": "Füge eine oder mehrere Peer-Adressen hinzu (oder importiere aus der Watchlist)",
+    "Edit (rename, change mode, remove)": "Bearbeiten (umbenennen, Modus ändern, entfernen)",
+    "Highlight on either direction": "In beide Richtungen hervorheben",
+    "Highlight when this wallet receives (address in outputs)": "Hervorheben, wenn dieses Wallet empfängt (Adresse in den Outputs)",
+    "Highlight when this wallet sends (address in inputs)": "Hervorheben, wenn dieses Wallet sendet (Adresse in den Inputs)",
+    "Fetch this address/token's tx history from chronik": "Tx-Historie dieser Adresse/dieses Tokens von chronik holen",
+    "Watching paused — click to resume": "Beobachtung pausiert — Klick zum Fortsetzen",
+    "Watching active — click to pause": "Beobachtung aktiv — Klick zum Pausieren",
+    "Go to block": "Zum Block",
+    "Open block in explorer": "Block im Explorer öffnen",
+    "Open in explorer": "Im Explorer öffnen",
+    "View on explorer": "Im Explorer ansehen",
+    "open in explorer": "im Explorer öffnen",
+    "Click to copy": "Klick zum Kopieren",
+    "Click to unpin": "Klick zum Lösen",
+    "Close": "Schließen",
+    "Clear": "Leeren",
+    "Dismiss": "Verwerfen",
+    "Expand full message": "Ganze Nachricht ausklappen",
+    "Chat with sender": "Mit dem Absender chatten",
+    "Chat with this address": "Mit dieser Adresse chatten",
+    "Max rows shown per column": "Maximale Zeilen pro Spalte",
+    "Type a custom amount": "Eigenen Betrag eingeben",
+    "Use slider instead": "Stattdessen Schieberegler nutzen",
+    "Token transactions seen since this session started": "Seit Sitzungsbeginn gesehene Token-Transaktionen",
+    "Waiting for chronik to see this tx broadcast": "Warte darauf, dass chronik diese Tx im Broadcast sieht",
+    "No connection to node-precise feed": "Keine Verbindung zum node-präzisen Feed",
+    "Relay stats are temporarily unavailable. Reconnect attempt is in progress.": "Relay-Statistiken sind vorübergehend nicht verfügbar. Neuverbindung läuft.",
+    "Remove this entry from the watchlist": "Diesen Eintrag aus der Watchlist entfernen",
+    "Safety notice": "Sicherheitshinweis",
+    "Set your wallet address (so we can show your outgoing chat messages)": "Lege deine Wallet-Adresse fest (damit wir deine ausgehenden Chat-Nachrichten zeigen können)",
+    "Showing perceived value — node-precise feed unavailable": "Zeige gefühlten Wert — node-präziser Feed nicht verfügbar",
+    "Token/NFT icons: ON — click to hide and skip loading them": "Token-/NFT-Symbole: AN — Klick zum Ausblenden und Nicht-Laden",
+    "Token/NFT icons: OFF — click to show them again": "Token-/NFT-Symbole: AUS — Klick zum Wiederanzeigen",
+    "raw atomic units — decimals loading…": "rohe atomare Einheiten — Dezimalstellen laden…"
+  }
+}

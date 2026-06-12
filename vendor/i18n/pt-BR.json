@@ -3,7 +3,7 @@
     "code": "pt-BR",
     "name": "Português (BR)",
     "source": "en",
-    "packVersion": 3
+    "packVersion": 5
   },
   "ui": {
     "qa.stats": "Estatísticas",
@@ -29,7 +29,8 @@
     "tour.back": "⟵ Voltar",
     "tour.exit": "✕ Sair do tour",
     "tour.done": "Fim do tour! 👋 Estarei bem aqui, narrando a blockchain ao vivo.",
-    "lang.title": "Idioma / Language"
+    "lang.title": "Idioma / Language",
+    "chips.lang": "🌐 Idioma"
   },
   "tooltips": {
     "ava-tx": {
@@ -56,9 +57,6 @@
   "dom": {
     "#watchlist-empty-hint": {
       "text": "adicione um endereço para destacar as txs dele"
-    },
-    ".chat-chip-empty": {
-      "text": "nenhum endereço definido — escolha o seu para ver suas próprias mensagens"
     },
     "#btn-live": {
       "title": "Modo de visualização — clique para alternar: LIVE → CHAIN → FEED. Reduz a carga do DOM em mempools cheios mantendo o estado."
@@ -116,6 +114,48 @@
     },
     ".info-tile[data-tile=\"chronik\"] .info-tile-body": {
       "html": "<p><strong>Chronik</strong> é o indexador eCash de alto desempenho que vem dentro do Bitcoin ABC. É a camada de dados com que toda wallet, explorer e dApp do eCash conversa — incluindo este stream ao vivo.</p><p>Nativo em Rust e bem integrado ao nó, o <strong>Chronik</strong> serve dados da cadeia mais o estado completo de tokens SLP / ALP por uma API unificada HTTP + WebSocket. Wallets ganham consultas rápidas de histórico, conjuntos UTXO cientes de tokens e streams de transações ao vivo sem reprocessar a cadeia.</p><p>Se você já usou Cashtab, agora.cash, este dashboard ou o explorer em explorer.e.cash — cada byte de dados passou por uma instância do <strong>Chronik</strong> para chegar lá.</p>"
+    },
+    ".btl-right-hint": {
+      "text": "Clique numa tx para ver · o txid abre o explorer"
+    },
+    ".dlg-qr-hint": {
+      "text": "Escaneie o QR com seu app de wallet · ou toque num botão abaixo"
+    },
+    ".ee-hint": {
+      "text": "toque no logo do eCash para visitar e.cash · toque em outro lugar para fechar"
+    },
+    ".wl-history-right-hint": {
+      "text": "Passe o mouse para pré-visualizar · clique para fixar · clique de novo para desafixar"
+    },
+    ".wl-history-empty": {
+      "html": "Nenhuma tx rastreada ainda — elas aparecerão aqui conforme acontecem. Pressione <b>Sync</b> para puxar o histórico completo do chronik."
+    },
+    ".wl-sub:not(#wl-edit-sub):not(#chat-pick-sub)": {
+      "html": "Digite um endereço eCash <span class=\"mono\">ecash:q…</span> ou um ID de token/NFT de 64-hex."
+    },
+    "#chat-pick-sub": {
+      "html": "Digite um endereço eCash <span class=\"mono\">ecash:q…</span>."
+    },
+    ".chat-send-dialog .dlg-title": {
+      "text": "Enviar pela sua wallet eCash"
+    },
+    ".chat-send-dialog .dlg-sub": {
+      "html": "Sua mensagem e os destinatários foram empacotados em um link de pagamento BIP21. Abra-o em qualquer wallet eCash — o Cashtab preencherá o formulário Send automaticamente. <strong style=\"color:var(--amber)\">Este site nunca vê sua seed phrase.</strong>"
+    },
+    "#feed-warning-popover .popover-title": {
+      "text": "⚠ Aviso de segurança do Feed"
+    },
+    "#feed-warning-popover > div:last-of-type": {
+      "html": "O Feed mostra <strong>todas as mensagens on-chain de toda a rede eCash</strong> — qualquer um pode transmitir qualquer coisa.<ul><li><strong>Trate todo link como suspeito.</strong> Não clique em URLs de mensagens de estranhos; kits de phishing aparecem aqui com frequência.</li><li><strong>Nunca compartilhe sua seed phrase, chave privada ou senha da wallet.</strong> Nenhum projeto legítimo as pedirá no chat ou em uma mensagem.</li><li><strong>Cuidado com falsidade de identidade.</strong> Qualquer um pode colocar qualquer nome em uma mensagem; verifique identidades por canais confiáveis.</li><li><strong>Airdrops de token podem ser armadilhas.</strong> Tokens não solicitados podem conter links de phishing ou golpes — pesquisar antes de interagir é mais seguro.</li></ul>"
+    },
+    "#chat-warning-popover .popover-title": {
+      "text": "⚠ Aviso de segurança do Chat"
+    },
+    "#chat-warning-popover > div:last-of-type": {
+      "html": "Mensagens de chat são <strong>transações on-chain permanentes da eCash</strong> — não podem ser apagadas nem editadas após a transmissão, e qualquer um poderá lê-las para sempre.<ul><li><strong>Todas as mensagens são 100% públicas.</strong> Depois de enviadas, ficam guardadas em todos os nós eCash do mundo, indexáveis por qualquer um. Não existe chat privado on-chain.</li><li><strong>Registro permanente.</strong> Pense antes de enviar — suas palavras vão durar mais que você na blockchain.</li><li><strong>Atenção aos golpes.</strong> Mesmo que a wallet de um par pareça familiar, qualquer um com a seed phrase dela pode ser o remetente. Verifique transações grandes por outro canal.</li><li><strong>Nunca cole aqui seed phrases, chaves privadas ou senhas</strong> — elas ficariam expostas ao mundo para sempre.</li><li><strong>Este site nunca vê suas chaves.</strong> Todos os envios são assinados pela sua wallet (Cashtab/Electrum-XEC/etc); nós apenas montamos o link BIP21.</li></ul>"
+    },
+    ".d-token-url-warn": {
+      "warn": "Tokens podem declarar qualquer URL na sua transação gênese — a URL NÃO é verificada pela rede. Tokens de phishing podem apontar para sites maliciosos que tentam esvaziar sua wallet. Sempre: (1) verifique se a URL corresponde ao domínio oficial do projeto, (2) nunca conecte uma wallet em um site que você alcançou pela URL de um token sem verificação independente, (3) nunca digite sua seed phrase em lugar nenhum."
     }
   },
   "domMap": {
@@ -123,6 +163,71 @@
       "Read more on e.cash": "Leia mais em e.cash",
       "Tool": "Ferramenta",
       "Trade now": "Negocie agora"
+    },
+    ".chat-chip-empty": {
+      "no address set — pick yours to see your own chat lines": "nenhum endereço definido — escolha o seu para ver suas próprias mensagens",
+      "add at least one peer wallet to load their messages": "adicione pelo menos uma wallet de par para carregar as mensagens dela"
+    },
+    ".btl-empty": {
+      "Block has no transactions (?!)": "O block não tem transações (?!)"
+    },
+    ".watchlist-empty-state": {
+      "No addresses tracked yet — click \"+ add\" to start watching one.": "Nenhum endereço rastreado ainda — clique em \"+ add\" para começar a observar um."
     }
+  },
+  "titleMap": {
+    "Click for a full stats explanation. Use the ⇄ button to toggle between the network 24h reading and your session reading.": "Clique para a explicação completa das estatísticas. Use o botão ⇄ para alternar entre a leitura de rede 24h e a da sua sessão.",
+    "Network transactions per second, rolling 24h. From the dedicated eCash node. Click for details.": "Transações por segundo da rede, janela móvel de 24h. Do nó eCash dedicado. Clique para detalhes.",
+    "Total transactions finalized network-wide in the last 24 hours. From the dedicated eCash node. Click for details.": "Total de transações finalizadas em toda a rede nas últimas 24 horas. Do nó eCash dedicado. Clique para detalhes.",
+    "Total transactions observed by this browser tab since the page was loaded. Click for details.": "Total de transações observadas por esta aba desde o carregamento da página. Clique para detalhes.",
+    "Average time from block mined to Avalanche post-consensus finalized. Last 20 samples this session. Click for details.": "Tempo médio do block minerado até a finalização pelo Avalanche post-consensus. Últimas 20 amostras desta sessão. Clique para detalhes.",
+    "Average elapsed time between the last consecutive blocks observed this session. eCash targets a 10-minute average via the Heartbeat real-time difficulty algorithm.": "Intervalo médio entre os últimos blocks consecutivos observados nesta sessão. O eCash mira média de 10 minutos via o algoritmo de dificuldade em tempo real Heartbeat.",
+    "How long this stream has been connected to the eCash network. Click for details.": "Há quanto tempo este stream está conectado à rede eCash. Clique para detalhes.",
+    "Toggle 24h ↔ session": "Alternar 24h ↔ sessão",
+    "Visitors watching this page right now (server-side count of live WebSocket connections to the TTF feed)": "Visitantes assistindo esta página agora (contagem no servidor de conexões WebSocket ao vivo no feed TTF)",
+    "Mempool transactions finalized by Avalanche pre-consensus, awaiting inclusion in a block": "Transações do mempool finalizadas pelo Avalanche pre-consensus, aguardando inclusão em um block",
+    "Mined by a Proof-of-Work miner": "Minerado por um minerador Proof-of-Work",
+    "What is Avalanche post-consensus?": "O que é Avalanche post-consensus?",
+    "What is Heartbeat?": "O que é o Heartbeat?",
+    "What do these colours mean?": "O que significam essas cores?",
+    "Read 'What is eCash' on e.cash": "Leia 'What is eCash' em e.cash",
+    "Visit e.cash": "Visitar e.cash",
+    "Connection status": "Status da conexão",
+    "Add address to watchlist": "Adicionar endereço à watchlist",
+    "Add one or more peer addresses (or import from Watchlist)": "Adicione um ou mais endereços de pares (ou importe da Watchlist)",
+    "Edit (rename, change mode, remove)": "Editar (renomear, mudar modo, remover)",
+    "Highlight on either direction": "Destacar em ambas as direções",
+    "Highlight when this wallet receives (address in outputs)": "Destacar quando esta wallet recebe (endereço nos outputs)",
+    "Highlight when this wallet sends (address in inputs)": "Destacar quando esta wallet envia (endereço nos inputs)",
+    "Fetch this address/token's tx history from chronik": "Buscar o histórico de txs deste endereço/token no chronik",
+    "Watching paused — click to resume": "Observação pausada — clique para retomar",
+    "Watching active — click to pause": "Observação ativa — clique para pausar",
+    "Go to block": "Ir ao block",
+    "Open block in explorer": "Abrir block no explorer",
+    "Open in explorer": "Abrir no explorer",
+    "View on explorer": "Ver no explorer",
+    "open in explorer": "abrir no explorer",
+    "Click to copy": "Clique para copiar",
+    "Click to unpin": "Clique para desafixar",
+    "Close": "Fechar",
+    "Clear": "Limpar",
+    "Dismiss": "Dispensar",
+    "Expand full message": "Expandir mensagem completa",
+    "Chat with sender": "Conversar com o remetente",
+    "Chat with this address": "Conversar com este endereço",
+    "Max rows shown per column": "Máximo de linhas por coluna",
+    "Type a custom amount": "Digite um valor personalizado",
+    "Use slider instead": "Usar o controle deslizante",
+    "Token transactions seen since this session started": "Transações de token vistas desde o início desta sessão",
+    "Waiting for chronik to see this tx broadcast": "Aguardando o chronik ver esta tx transmitida",
+    "No connection to node-precise feed": "Sem conexão com o feed de precisão do nó",
+    "Relay stats are temporarily unavailable. Reconnect attempt is in progress.": "As estatísticas do relay estão temporariamente indisponíveis. Tentando reconectar.",
+    "Remove this entry from the watchlist": "Remover esta entrada da watchlist",
+    "Safety notice": "Aviso de segurança",
+    "Set your wallet address (so we can show your outgoing chat messages)": "Defina o endereço da sua wallet (para mostrarmos suas mensagens de chat enviadas)",
+    "Showing perceived value — node-precise feed unavailable": "Mostrando valor percebido — feed de precisão do nó indisponível",
+    "Token/NFT icons: ON — click to hide and skip loading them": "Ícones de Token/NFT: ON — clique para ocultar e não carregá-los",
+    "Token/NFT icons: OFF — click to show them again": "Ícones de Token/NFT: OFF — clique para mostrá-los de novo",
+    "raw atomic units — decimals loading…": "unidades atômicas brutas — carregando decimais…"
   }
 }

@@ -63,7 +63,7 @@
   /* ===========================================================================
    * CONFIG
    * =========================================================================*/
-  const VERSION              = '1.3.2';
+  const VERSION = '1.3.3';
   const SPRITE_PATH          = './vendor/companion/sprites/';
   const SPRITE_MANIFEST_URL  = './vendor/companion/sprites/manifest.json';
   const SEED_URL             = './vendor/companion/seed.json';
@@ -125,6 +125,7 @@
     'mode.chatty':     'Chatty',
     'mode.chatty.desc': 'Default — frequent commentary every ~15s + reactions to every event.',
     'chips.tour':      '▶ Show me around',
+    'chips.lang':       '🌐 Language',
     'chips.later':     'Later',
     'tour.back':       '⟵ Back',
     'tour.exit':       '✕ Exit tour',
@@ -183,7 +184,6 @@
     tourDone:    'ecashlive.echan.tourdone',
     tourOffered: 'ecashlive.echan.touroffered',
     lang:        'ecashlive.lang',
-    langOffered: 'ecashlive.echan.langoffered',
     sound:      'ecashlive.echan.sound',
   });
   /* quietUntil joins the legacy list in 1.3.2: the "Quiet for 1 hour"
@@ -367,6 +367,7 @@
     /* Content engine */
     seedLoaded: false,
     seedByTrigger: {},
+    langPanelEl: null,
     categoryDefaults: {},      /* category → default emotion name */
     seenIds: null,
     lastInteraction: Date.now(),
@@ -1402,6 +1403,9 @@
       document.querySelectorAll('[data-ec-orig-title]').forEach(el => {
         el.title = el.getAttribute('data-ec-orig-title');
       });
+      document.querySelectorAll('[data-ec-orig-warn]').forEach(el => {
+        el.setAttribute('data-warn', el.getAttribute('data-ec-orig-warn'));
+      });
       document.querySelectorAll('[data-ec-orig-ph]').forEach(el => {
         el.placeholder = el.getAttribute('data-ec-orig-ph');
       });
@@ -1443,6 +1447,26 @@
             if (!el.hasAttribute('data-ec-orig-ph')) el.setAttribute('data-ec-orig-ph', el.placeholder);
             el.placeholder = d.placeholder;
           }
+          /* "warn" rewrites data-warn — the page renders it as a pure-CSS
+           * hover tooltip via content: attr(data-warn) */
+          if (typeof d.warn === 'string' && el.getAttribute('data-warn') !== d.warn) {
+            if (!el.hasAttribute('data-ec-orig-warn')) el.setAttribute('data-ec-orig-warn', el.getAttribute('data-warn') || '');
+            el.setAttribute('data-warn', d.warn);
+          }
+        });
+      }
+      const tmap = pack.titleMap || null;
+      if (tmap) {
+        document.querySelectorAll('[title]').forEach(el => {
+          const cur = el.getAttribute('title');
+          const tr = tmap[cur];
+          if (tr !== undefined && tr !== cur) {
+            /* refresh the cached original every time — JS may have
+             * toggled the title to a different English state since the
+             * last pass, and restore must return to the CURRENT state */
+            el.setAttribute('data-ec-orig-title', cur);
+            el.title = tr;
+          }
         });
       }
       const map = pack.domMap || null;
@@ -1483,13 +1507,16 @@
   function startDomI18nObserver() {
     stopDomI18nObserver();
     const p = state.i18n;
-    if (!p || (!p.dom && !p.domMap)) return;
+    if (!p || (!p.dom && !p.domMap && !p.titleMap)) return;
     state.domObserver = new MutationObserver(() => {
       if (state.domApplying) return;
       clearTimeout(state.domObserverTimer);
       state.domObserverTimer = setTimeout(applyDomForward, 300);
     });
-    state.domObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
+    state.domObserver.observe(document.body, {
+      childList: true, subtree: true, characterData: true,
+      attributes: true, attributeFilter: ['title'],
+    });
   }
   function stopDomI18nObserver() {
     if (state.domObserver) { try { state.domObserver.disconnect(); } catch (e) {} }
@@ -1663,48 +1690,78 @@
         onTap: () => { clearChips(); startTour(); } },
       { label: t('chips.later'),
         onTap: () => { removeAttract(); clearChips(); advance(); queueSettingsPlea(); } },
+      { label: t('chips.lang'),
+        onTap: () => openLangPanel() },
     ];
   }
 
-  /* Very first message a new user sees: pick a language right in the
-   * dialog. Multilingual static prompt (can't come from a pack — no pack
-   * is chosen yet). Choosing switches the whole site live and rebuilds
-   * the welcome from the re-fetched seed, so it arrives translated. */
-  function pushLangPick(visits) {
-    const chips = I18N_LANGS.map(L => ({
-      label: L.native,
-      primary: L.code === 'en',
-      onTap: () => {
-        lsSet(STORAGE.langOffered, '1');
-        setLanguage(L.code).then(() => {
-          clearChips();
-          state.activeMessage = null;
-          pushFirstWelcome(visits);
-        });
-      },
-    }));
-    pushMessage({
-      id: 'lang-pick', category: 'welcome', priority: 2, source: 'engine',
-      emotion: 'happy',
-      text: '🌐 Language? · Ngôn ngữ? · ¿Idioma? · Língua? · Langue? · Sprache? · Язык? · 言語? · 언어? · 语言?',
-      holdOpen: true, attract: true, chips,
-      offerFlag: STORAGE.langOffered,
+  /* v1.3.3: the language choice lives INSIDE the welcome — a 🌐 chip next
+   * to "Later". Tapping it opens an overlay covering the whole text frame
+   * (the avatar stays visible). Pick a language → panel closes → the
+   * welcome re-runs in that language. ✕ just closes; the original welcome
+   * chips sit untouched underneath. */
+  function openLangPanel() {
+    closeLangPanel();
+    const frame = state.textBody && state.textBody.closest('.echan-text');
+    if (!frame) return;
+    const panel = el('div', {
+      class: 'echan-lang-panel',
+      /* swallow clicks so the welcome behind it never advances */
+      onclick: (e) => e.stopPropagation(),
     });
+    panel.appendChild(el('button', {
+      class: 'echan-lang-panel-close', type: 'button', text: '✕',
+      'aria-label': 'Close',
+      onclick: (e) => { e.stopPropagation(); closeLangPanel(); },
+    }));
+    panel.appendChild(el('div', { class: 'echan-lang-panel-grid' },
+      ...I18N_LANGS.map(L => el('button', {
+        class: 'echan-chip' + (L.code === state.lang ? ' primary' : ''),
+        type: 'button', text: L.native,
+        onclick: (e) => {
+          e.stopPropagation();
+          panel.classList.add('busy');   /* block double-taps while the pack loads */
+          setLanguage(L.code)
+            .then(() => { closeLangPanel(); rebuildWelcomeTranslated(); })
+            .catch(() => closeLangPanel());  /* never strand the overlay */
+        },
+      }))));
+    frame.appendChild(panel);
+    state.langPanelEl = panel;
   }
 
-  function pushFirstWelcome(visits) {
-    const pool = (state.seedByTrigger['welcome:firstVisit'] || []).filter(isLineEligible);
+  function closeLangPanel() {
+    if (state.langPanelEl) { try { state.langPanelEl.remove(); } catch (e) {} }
+    state.langPanelEl = null;
+  }
+
+  /* Re-render the first-visit welcome after a language switch. Greeting
+   * bookkeeping (visits, greeted, markSeen) already happened on first
+   * display — this only replaces the visible message, so no re-counting.
+   * NOTE: no isLineEligible here — the welcome line is ttlOnce and already
+   * marked seen at first display, so filtering would empty the pool and
+   * silently strand the chips (the v1.3.3 stuck-panel bug). */
+  function rebuildWelcomeTranslated() {
+    const pool = (state.seedByTrigger['welcome:firstVisit'] || []).slice();
     const got = pickAndFill(pool, liveVars());
-    if (!got) return;
-    const msg = {
-      id: got.pick.id, category: got.pick.category, priority: got.pick.priority || 2,
-      emotion: resolveEmotionForLine(got.pick), text: got.text, source: 'engine',
-    };
-    decorateWelcomeWithGuideChips(msg);
-    if (!pushMessage(msg)) return;
-    markSeen(got.pick.id);
-    lsSet(STORAGE.greeted, String(Date.now()));
-    lsSet(STORAGE.visits, String(visits + 1));
+    if (got) {
+      const msg = {
+        id: got.pick.id, category: got.pick.category, priority: got.pick.priority || 2,
+        emotion: resolveEmotionForLine(got.pick), text: got.text, source: 'engine',
+      };
+      decorateWelcomeWithGuideChips(msg);
+      clearChips();
+      state.activeMessage = null;
+      pushMessage(msg);
+      return;
+    }
+    /* Seed unavailable in this language — keep the current text but rebuild
+     * the welcome chips (labels now in the new UI language) so the dialog
+     * is never left without controls. */
+    if (state.activeMessage) {
+      decorateWelcomeWithGuideChips(state.activeMessage);
+      showChips(state.activeMessage.chips);
+    }
   }
 
   /* The chattiness pitch, reframed as a plea (per design: she begs not to
@@ -1759,10 +1816,6 @@
      * is rebuilt AFTER the language switch so it arrives translated. */
     if (visits === 0 && lsGet(STORAGE.tourOffered, '0') !== '1') {
       state.firstSession = true;
-      if (lsGet(STORAGE.langOffered, '0') !== '1') {
-        pushLangPick(visits);
-        return;
-      }
       decorateWelcomeWithGuideChips(greetMsg);
     }
     const accepted = pushMessage(greetMsg);
@@ -2115,6 +2168,7 @@
     state.chipsEl = chips;
   }
   function clearChips() {
+    closeLangPanel();
     if (state.chipsEl) { try { state.chipsEl.remove(); } catch (e) {} }
     state.chipsEl = null;
   }

@@ -3,7 +3,7 @@
     "code": "vi",
     "name": "Tiếng Việt",
     "source": "en",
-    "packVersion": 3
+    "packVersion": 5
   },
   "ui": {
     "qa.stats": "Thống kê",
@@ -29,7 +29,8 @@
     "tour.exit": "✕ Thoát tour",
     "tour.done": "Hết tour rồi 👋 Mình sẽ luôn ở đây, tường thuật blockchain theo thời gian thực.",
     "lang.title": "Ngôn ngữ / Language",
-    "tour.back": "⟵ Quay lại"
+    "tour.back": "⟵ Quay lại",
+    "chips.lang": "🌐 Ngôn ngữ"
   },
   "tooltips": {
     "ava-tx": {
@@ -56,9 +57,6 @@
   "dom": {
     "#watchlist-empty-hint": {
       "text": "thêm một địa chỉ để làm nổi bật các tx của nó"
-    },
-    ".chat-chip-empty": {
-      "text": "chưa đặt địa chỉ — chọn địa chỉ của bạn để thấy các tin nhắn của chính mình"
     },
     "#btn-live": {
       "title": "Chế độ xem — nhấp để chuyển vòng: LIVE → CHAIN → FEED. Giảm tải DOM khi mempool bận mà vẫn theo dõi đầy đủ trạng thái."
@@ -116,6 +114,48 @@
     },
     ".info-tile[data-tile=\"chronik\"] .info-tile-body": {
       "html": "<p><strong>Chronik</strong> là indexer eCash hiệu năng cao đi kèm ngay trong Bitcoin ABC. Đây là lớp dữ liệu mà mọi ví, explorer và dApp trên eCash đều giao tiếp — bao gồm cả luồng trực tiếp này.</p><p>Viết bằng Rust và tích hợp chặt với node, <strong>Chronik</strong> phục vụ dữ liệu chuỗi cùng toàn bộ trạng thái token SLP / ALP qua một API HTTP + WebSocket thống nhất. Ví nhận được tra cứu lịch sử địa chỉ nhanh, tập UTXO hiểu token, và luồng giao dịch trực tiếp mà không phải tự phân tích lại chuỗi.</p><p>Nếu bạn từng dùng Cashtab, agora.cash, dashboard này, hay explorer tại explorer.e.cash — mọi byte dữ liệu chuỗi đều đã đi qua một instance <strong>Chronik</strong> để đến được đó.</p>"
+    },
+    ".btl-right-hint": {
+      "text": "Nhấp một tx để xem · txid mở explorer"
+    },
+    ".dlg-qr-hint": {
+      "text": "Quét QR bằng app ví của bạn · hoặc chạm nút bên dưới"
+    },
+    ".ee-hint": {
+      "text": "chạm logo eCash để truy cập e.cash · chạm chỗ khác để đóng"
+    },
+    ".wl-history-right-hint": {
+      "text": "Di chuột lên hàng để xem trước · nhấp để ghim · nhấp lần nữa để bỏ ghim"
+    },
+    ".wl-history-empty": {
+      "html": "Chưa có tx nào được theo dõi — chúng sẽ hiện ở đây khi xảy ra. Nhấn <b>Sync</b> để tải toàn bộ lịch sử từ chronik."
+    },
+    ".wl-sub:not(#wl-edit-sub):not(#chat-pick-sub)": {
+      "html": "Nhập một địa chỉ eCash <span class=\"mono\">ecash:q…</span> hoặc token/NFT ID 64-hex."
+    },
+    "#chat-pick-sub": {
+      "html": "Nhập một địa chỉ eCash <span class=\"mono\">ecash:q…</span>."
+    },
+    ".chat-send-dialog .dlg-title": {
+      "text": "Gửi qua ví eCash của bạn"
+    },
+    ".chat-send-dialog .dlg-sub": {
+      "html": "Tin nhắn và người nhận của bạn đã được đóng gói thành một liên kết thanh toán BIP21. Mở nó trong bất kỳ ví eCash nào — Cashtab sẽ tự điền form Send. <strong style=\"color:var(--amber)\">Trang này không bao giờ thấy seed phrase của bạn.</strong>"
+    },
+    "#feed-warning-popover .popover-title": {
+      "text": "⚠ Lưu ý an toàn cho Feed"
+    },
+    "#feed-warning-popover > div:last-of-type": {
+      "html": "Feed hiển thị <strong>mọi tin nhắn on-chain từ toàn bộ mạng eCash</strong> — ai cũng có thể phát bất cứ thứ gì.<ul><li><strong>Hãy coi mọi liên kết là đáng ngờ.</strong> Đừng nhấp URL trong tin nhắn từ người lạ; các bộ kit lừa đảo thường xuyên xuất hiện ở đây.</li><li><strong>Không bao giờ chia sẻ seed phrase, private key hay mật khẩu ví.</strong> Không dự án chính danh nào hỏi chúng trong chat hay tin nhắn.</li><li><strong>Cảnh giác mạo danh.</strong> Ai cũng có thể đặt bất kỳ tên nào trong tin nhắn; hãy xác minh danh tính qua kênh đáng tin cậy.</li><li><strong>Airdrop token có thể là bẫy.</strong> Token không mời mà đến có thể chứa liên kết lừa đảo hoặc thông tin scam — tìm hiểu trước khi tương tác sẽ an toàn hơn.</li></ul>"
+    },
+    "#chat-warning-popover .popover-title": {
+      "text": "⚠ Lưu ý an toàn cho Chat"
+    },
+    "#chat-warning-popover > div:last-of-type": {
+      "html": "Tin nhắn chat là <strong>giao dịch on-chain vĩnh viễn của eCash</strong> — không thể xóa hay sửa sau khi phát, và ai cũng đọc được mãi mãi.<ul><li><strong>Mọi tin nhắn đều công khai 100%.</strong> Sau khi gửi, chúng được lưu trên mọi node eCash toàn cầu, ai cũng tra cứu được. Không có chat riêng tư on-chain.</li><li><strong>Hồ sơ vĩnh viễn.</strong> Hãy nghĩ trước khi gửi — lời bạn viết sẽ sống lâu hơn bạn trên blockchain.</li><li><strong>Cảnh giác lừa đảo.</strong> Kể cả khi ví của peer trông quen thuộc, bất kỳ ai giữ seed phrase của họ đều có thể là người gửi. Hãy xác minh giao dịch lớn qua kênh khác.</li><li><strong>Không bao giờ dán seed phrase, private key hay mật khẩu vào đây</strong> — chúng sẽ bị phơi bày vĩnh viễn cho cả thế giới.</li><li><strong>Trang này không bao giờ thấy khóa của bạn.</strong> Mọi lần gửi đều do ví của bạn ký (Cashtab/Electrum-XEC/v.v.); chúng tôi chỉ tạo liên kết BIP21.</li></ul>"
+    },
+    ".d-token-url-warn": {
+      "warn": "Token có thể khai báo bất kỳ URL nào trong giao dịch genesis — URL KHÔNG được mạng xác minh. Token lừa đảo có thể trỏ tới trang độc hại tìm cách rút sạch ví của bạn. Luôn luôn: (1) xác minh URL khớp tên miền chính thức của dự án, (2) không bao giờ kết nối ví trên trang bạn đến từ URL của token mà chưa xác minh độc lập, (3) không bao giờ nhập seed phrase ở bất cứ đâu."
     }
   },
   "domMap": {
@@ -123,6 +163,71 @@
       "Read more on e.cash": "Đọc thêm trên e.cash",
       "Tool": "Công cụ",
       "Trade now": "Giao dịch ngay"
+    },
+    ".chat-chip-empty": {
+      "no address set — pick yours to see your own chat lines": "chưa đặt địa chỉ — chọn địa chỉ của bạn để thấy các tin nhắn của chính mình",
+      "add at least one peer wallet to load their messages": "thêm ít nhất một ví peer để tải tin nhắn của họ"
+    },
+    ".btl-empty": {
+      "Block has no transactions (?!)": "Block không có giao dịch nào (?!)"
+    },
+    ".watchlist-empty-state": {
+      "No addresses tracked yet — click \"+ add\" to start watching one.": "Chưa theo dõi địa chỉ nào — nhấp \"+ add\" để bắt đầu theo dõi."
     }
+  },
+  "titleMap": {
+    "Click for a full stats explanation. Use the ⇄ button to toggle between the network 24h reading and your session reading.": "Nhấp để xem giải thích đầy đủ về thống kê. Dùng nút ⇄ để chuyển giữa số liệu mạng 24h và số liệu phiên của bạn.",
+    "Network transactions per second, rolling 24h. From the dedicated eCash node. Click for details.": "Giao dịch mỗi giây toàn mạng, cửa sổ cuộn 24h. Từ node eCash chuyên dụng. Nhấp để xem chi tiết.",
+    "Total transactions finalized network-wide in the last 24 hours. From the dedicated eCash node. Click for details.": "Tổng giao dịch hoàn tất toàn mạng trong 24 giờ qua. Từ node eCash chuyên dụng. Nhấp để xem chi tiết.",
+    "Total transactions observed by this browser tab since the page was loaded. Click for details.": "Tổng giao dịch tab trình duyệt này quan sát được kể từ khi tải trang. Nhấp để xem chi tiết.",
+    "Average time from block mined to Avalanche post-consensus finalized. Last 20 samples this session. Click for details.": "Thời gian trung bình từ lúc block được đào đến lúc Avalanche post-consensus hoàn tất. 20 mẫu gần nhất trong phiên. Nhấp để xem chi tiết.",
+    "Average elapsed time between the last consecutive blocks observed this session. eCash targets a 10-minute average via the Heartbeat real-time difficulty algorithm.": "Khoảng cách trung bình giữa các block liên tiếp quan sát được trong phiên. eCash nhắm trung bình 10 phút qua thuật toán độ khó thời gian thực Heartbeat.",
+    "How long this stream has been connected to the eCash network. Click for details.": "Thời gian stream này đã kết nối với mạng eCash. Nhấp để xem chi tiết.",
+    "Toggle 24h ↔ session": "Chuyển 24h ↔ phiên",
+    "Visitors watching this page right now (server-side count of live WebSocket connections to the TTF feed)": "Số người đang xem trang này ngay lúc này (đếm phía máy chủ các kết nối WebSocket trực tiếp tới TTF feed)",
+    "Mempool transactions finalized by Avalanche pre-consensus, awaiting inclusion in a block": "Giao dịch mempool đã được Avalanche pre-consensus hoàn tất, đang chờ vào block",
+    "Mined by a Proof-of-Work miner": "Được đào bởi thợ đào Proof-of-Work",
+    "What is Avalanche post-consensus?": "Avalanche post-consensus là gì?",
+    "What is Heartbeat?": "Heartbeat là gì?",
+    "What do these colours mean?": "Các màu này nghĩa là gì?",
+    "Read 'What is eCash' on e.cash": "Đọc 'What is eCash' trên e.cash",
+    "Visit e.cash": "Truy cập e.cash",
+    "Connection status": "Trạng thái kết nối",
+    "Add address to watchlist": "Thêm địa chỉ vào watchlist",
+    "Add one or more peer addresses (or import from Watchlist)": "Thêm một hoặc nhiều địa chỉ peer (hoặc nhập từ Watchlist)",
+    "Edit (rename, change mode, remove)": "Sửa (đổi tên, đổi chế độ, xóa)",
+    "Highlight on either direction": "Làm nổi bật cả hai chiều",
+    "Highlight when this wallet receives (address in outputs)": "Làm nổi bật khi ví này nhận (địa chỉ ở outputs)",
+    "Highlight when this wallet sends (address in inputs)": "Làm nổi bật khi ví này gửi (địa chỉ ở inputs)",
+    "Fetch this address/token's tx history from chronik": "Tải lịch sử tx của địa chỉ/token này từ chronik",
+    "Watching paused — click to resume": "Đang tạm dừng theo dõi — nhấp để tiếp tục",
+    "Watching active — click to pause": "Đang theo dõi — nhấp để tạm dừng",
+    "Go to block": "Tới block",
+    "Open block in explorer": "Mở block trong explorer",
+    "Open in explorer": "Mở trong explorer",
+    "View on explorer": "Xem trên explorer",
+    "open in explorer": "mở trong explorer",
+    "Click to copy": "Nhấp để sao chép",
+    "Click to unpin": "Nhấp để bỏ ghim",
+    "Close": "Đóng",
+    "Clear": "Xóa",
+    "Dismiss": "Bỏ qua",
+    "Expand full message": "Mở rộng toàn bộ tin nhắn",
+    "Chat with sender": "Trò chuyện với người gửi",
+    "Chat with this address": "Trò chuyện với địa chỉ này",
+    "Max rows shown per column": "Số hàng tối đa mỗi cột",
+    "Type a custom amount": "Nhập số tiền tùy chọn",
+    "Use slider instead": "Dùng thanh trượt",
+    "Token transactions seen since this session started": "Giao dịch token đã thấy kể từ đầu phiên",
+    "Waiting for chronik to see this tx broadcast": "Đang chờ chronik thấy tx này được phát",
+    "No connection to node-precise feed": "Không có kết nối tới feed chính xác từ node",
+    "Relay stats are temporarily unavailable. Reconnect attempt is in progress.": "Thống kê relay tạm thời không khả dụng. Đang thử kết nối lại.",
+    "Remove this entry from the watchlist": "Xóa mục này khỏi watchlist",
+    "Safety notice": "Lưu ý an toàn",
+    "Set your wallet address (so we can show your outgoing chat messages)": "Đặt địa chỉ ví của bạn (để chúng tôi hiển thị tin nhắn chat gửi đi của bạn)",
+    "Showing perceived value — node-precise feed unavailable": "Đang hiển thị giá trị cảm nhận — feed chính xác từ node không khả dụng",
+    "Token/NFT icons: ON — click to hide and skip loading them": "Biểu tượng Token/NFT: BẬT — nhấp để ẩn và bỏ qua việc tải chúng",
+    "Token/NFT icons: OFF — click to show them again": "Biểu tượng Token/NFT: TẮT — nhấp để hiện lại",
+    "raw atomic units — decimals loading…": "đơn vị nguyên tử thô — đang tải số thập phân…"
   }
 }

@@ -1,0 +1,233 @@
+{
+  "meta": {
+    "code": "fil",
+    "name": "Filipino",
+    "source": "en",
+    "packVersion": 5
+  },
+  "ui": {
+    "qa.stats": "Mga Istatistika",
+    "qa.stats.title": "Buksan ang panel ng istatistika ng network",
+    "qa.block": "Pinakabagong block",
+    "qa.block.title": "Buksan ang popover ng pinakabagong block",
+    "qa.tip": "Suportahan ang proyekto",
+    "qa.tip.title": "Buksan ang tip box",
+    "qa.guide": "Gabay",
+    "qa.guide.title": "Hayaang ilibot ka ni eChan sa dashboard",
+    "settings.title": "mga setting",
+    "settings.chattiness": "Antas ng daldal",
+    "settings.sound": "Tunog",
+    "settings.help.aria": "Ano ang ibig sabihin ng mga mode?",
+    "mode.quiet": "Tahimik",
+    "mode.quiet.desc": "Katahimikan — mga anunsyo lang ng operator ang papasok.",
+    "mode.casual": "Kaswal",
+    "mode.casual.desc": "Nagkokomento bawat ~45 seg; tumutugon sa malalaking pangyayari (whale, watchlist, trend).",
+    "mode.chatty": "Madaldal",
+    "mode.chatty.desc": "Default — madalas na komento bawat ~15 seg + reaksyon sa bawat pangyayari.",
+    "chips.tour": "▶ Ilibot mo ako",
+    "chips.later": "Mamaya na",
+    "chips.lang": "🌐 Wika",
+    "tour.back": "⟵ Bumalik",
+    "tour.exit": "✕ Lumabas sa tour",
+    "tour.done": "Tapos na ang tour! 👋 Nandito lang ako, nagkukuwento ng blockchain nang live.",
+    "lang.title": "Wika / Language"
+  },
+  "tooltips": {
+    "ava-tx": {
+      "title": "Avalanche · Transaction Finality",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p>Sa <strong>pre-consensus</strong>, nagkakasundo ang network sa isang transaksyon <em>bago</em> pa ito makapasok sa anumang block.</p>\n          <p>Sa sandaling dumating ang isang transaksyon sa mempool, nagsisimulang magtanungan ang mga eCash node na kalahok sa Avalanche — “tinatanggap mo ba ang transaksyong ito?” Ang bawat query ay maliit na palitan ng UDP sa random na subset ng mga peer, na tinitimbang ayon sa dami ng eCash na naka-stake nila.</p>\n          <p>Sinusubaybayan ng nagtatanong na node ang boto ng bawat peer at ina-update ang isang <strong>confidence score</strong>. Kapag lumampas ang score sa finalization threshold, ang transaksyon ay <strong>nakakandado na habang-buhay</strong> — mula sa sandaling iyon, walang double-spend o karibal na transaksyong mananalo.</p>\n          <p>Ang buong proseso ay tumatagal ng <strong>~3 segundo</strong> sa karaniwan — sapat na bilis para agad i-credit ng mga payment terminal at exchange ang mga balanse. Napupuno ang singsing habang dumarating ang mga boto; ang check ng kandado ang nagmamarka ng paglipat mula “nagbobotohan pa” patungong “permanenteng consensus”.</p>\n          <p class=\"meta-note\">In-activate sa mainnet noong Nobyembre 15, 2025.</p>\n        </div>\n        <div class=\"diagram-col\">${PRE_CONSENSUS_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "ava-block": {
+      "title": "Avalanche · Block Finality",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p>Inilalapat ng <strong>post-consensus</strong> ang parehong mekanismo ng botohan ng Avalanche sa <em>mga block</em>, na gumagana sa ibabaw ng klasikong Nakamoto proof-of-work chain.</p>\n          <p>Dumadaan ang bawat bagong block sa tatlong yugto:</p>\n          <p>⛏ <strong>Mined</strong> — nakahanap ang isang miner ng valid na proof-of-work at ibinrodkast ang block.</p>\n          <p>↻ <strong>Polling</strong> — tinatanong ng lahat ng Avalanche node ang kanilang mga peer, tinitimbang ayon sa eCash stake, kung tatanggapin ang block na ito bilang bagong canonical tip ng chain.</p>\n          <p>◆ <strong>Final</strong> — lumampas na sa threshold ang naipong kumpiyansa. Hindi na mapapalitan o ma-reorg ang block — kahit ng isang kalabang mayorya ng hashpower. Kapag nakakandado na, ang anumang tangkang reorg ay itinatakwil bilang invalid ng lahat ng tapat na node.</p>\n          <p>Ang buong polling ay tumatagal ng <strong>3–5 segundo</strong> sa karaniwan matapos ianunsyo ang block, kaya ligtas nang i-credit ang mga deposito sa <strong>1 kumpirmasyon</strong> — katumbas sa seguridad ng dose-dosenang kumpirmasyon ng Bitcoin.</p>\n          <p class=\"meta-note\">Sinisiguro ang mga eCash block mula pa noong Setyembre 14, 2022.</p>\n        </div>\n        <div class=\"diagram-col\">${POST_CONSENSUS_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "tx-flow": {
+      "title": "Transaction Flow · How to read the colours",
+      "body": "\n      <div class=\"text-col\">\n        <p>Ipinapakita ng bawat hilera sa mga column na <strong>Inputs</strong> / <strong>Outputs</strong> ang isang address at ang halagang ginastos o natanggap nito sa transaksyong ito.</p>\n        <p><span class=\"legend-dot\" style=\"background:#01a0e0;box-shadow:0 0 8px #01a0e0\"></span> <strong>Cyan</strong> — karaniwang address. I-click para buksan ito sa block explorer.</p>\n        <p><span class=\"legend-dot\" style=\"background:#ffcb47;box-shadow:0 0 8px #ffcb47\"></span> <strong>Ginto</strong> — lumilitaw ang address sa <em>magkabilang</em> panig, input at output. Kadalasan ito ang nagpadalang tumatanggap ng kanyang <strong>sukli</strong>, pero sa self-send na transaksyon, tanda rin ito ng konsolidasyon ng mga UTXO.</p>\n        <p><span class=\"legend-dot\" style=\"background:#a7ff37;box-shadow:0 0 8px #a7ff37\"></span> <strong>Lime</strong> — address mula sa iyong <em>watchlist</em>. Naka-highlight sa bawat transaksyon para mapansin mo ang aktibidad sa mga wallet na mahalaga sa iyo.</p>\n        <p><span class=\"legend-dot\" style=\"background:rgba(255,255,255,0.3)\"></span> <em>OP_RETURN</em> — output na may dalang data (mga chat message, token command). Walang address; walang dalang halagang magagastos.</p>\n        <p>Ang halaga sa bawat hilera ay ang <strong>hilaw na on-chain na halaga</strong>. Para sa mga token transaction, ang dami ng token ang unang ipinapakita (hal. <em>1,000 USDR · 5.46 XEC</em>) — ang 5.46 XEC ay dust lang na nagdadala ng token.</p>\n      </div>\n    "
+    },
+    "heartbeat": {
+      "title": "Heartbeat · Real-Time Targeting",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p>Ang <strong>Heartbeat</strong> ay ang real-time na difficulty adjustment algorithm ng eCash, na in-activate sa network upgrade noong <strong>Nobyembre 15, 2024</strong>.</p>\n          <p>Ang mga network na estilong Bitcoin ay nagtatarget ng <strong>average na 10 minuto</strong> sa pagitan ng mga block, pero ang mga pagsirit ng hashpower ay maaaring magluwal ng ilang block sa loob ng ilang minuto na sinusundan ng mahabang katahimikan. Ang “pagbubuu-buo ng block” na ito ay nakakainis sa mga user at nakakaabala sa mga exchange.</p>\n          <p>Inaayos ito ng Heartbeat gamit ang <strong>pangalawang difficulty layer</strong> sa ibabaw ng karaniwang adjustment:</p>\n          <ul>\n            <li>Kapag dumarating ang mga block nang <strong>mas mabilis sa 10-minutong ritmo</strong>, agad na <em>tumataas</em> ang difficulty para pigilan ang sunud-sunod na produksyon.</li>\n            <li>Pagkatapos, <strong>bumababa nang monotoniko</strong> ang difficulty hanggang bumalik sa normal na antas.</li>\n            <li>Ang mga block na lumalabag sa real-time target ay <strong>itinatakwil ng Avalanche consensus</strong> — kahit valid sila ayon sa klasikong mga panuntunan ng Bitcoin.</li>\n          </ul>\n          <p>Resulta: mas pantay na block time, mas kaunting panlalamang ng mga mining pool (“switch mining”), at mas predictable na karanasan para sa lahat sa network.</p>\n          <p class=\"meta-note\">Ang Heartbeat ay gumagana kasabay ng Avalanche post-consensus (block finality) at ng Infrastructure Funding Policy — ang tatlong haligi ng pinahusay na Nakamoto consensus ng eCash.</p>\n        </div>\n        <div class=\"diagram-col\">${HEARTBEAT_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "stats-overview": {
+      "title": "Network Statistics",
+      "body": "\n      <div class=\"so-wrap\">\n        <p class=\"so-lead\">Ang bar sa ibaba ng pahina ay ang live na dashboard ng mga numero ng eCash network. Nagmumula ang mga numero sa dalawang pinagkunan — isang dedikadong eCash node na pinapatakbo namin, at ang kasalukuyang session ng browser mo — at ang pag-alam kung alin ang alin ay tumutulong basahin nang tama ang bar.</p>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Headline cell · 24h ↔ session</h3>\n          <div class=\"so-card\">\n            <p>Maaaring ipakita ng pangunahing Time-to-Finality (TTF) cell ang 24h network metric o ang metric ng session mo. Pumili rito, o gamitin ang button na <code>⇄</code> sa itaas ng cell. Kung hindi available ang node feed, laging babalik ang cell sa session metric, anuman ang piniling ito.</p>\n            <div class=\"stats-view-toggle\" id=\"stats-view-toggle\">\n              <button type=\"button\" data-view=\"p50\" id=\"stats-view-p50\">Ipakita ang network · 24h</button>\n              <button type=\"button\" data-view=\"session\" id=\"stats-view-session\">Ipakita ang session</button>\n            </div>\n            <span class=\"so-live-label\">Mga live na halaga</span>\n            <div id=\"stats-live-grid\"><span style=\"color:var(--text-3);font-family:'Fira Code',monospace;font-size:11px\">— hinihintay ang susunod na stats frame —</span></div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Dalawang pinagkunan ng data</h3>\n          <div class=\"so-sources\">\n            <div class=\"so-source\">\n              <span class=\"so-src-name\"><span class=\"so-badge net\">Network</span> 24h</span>\n              <p>Mga rolling na 24-oras na pinagsama-samang datos na sinusukat sa node at itinutulak sa tab mo bawat 5 segundo. Sinasalamin ng mga cell na ito ang ginagawa ng buong network ngayon, anuman ang naobserbahan ng tab mo.</p>\n            </div>\n            <div class=\"so-source\">\n              <span class=\"so-src-name\"><span class=\"so-badge ses\">Session</span></span>\n              <p>Binibilang ng browser tab na ito mula nang ma-load ang pahina. Nagsisimula sa zero ang bagong tab; nire-reset ng pag-reload. Kapaki-pakinabang bilang personal na “ano ang nakita ko” na pananaw at bilang fallback kapag wala ang node feed.</p>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Ano ang ibig sabihin ng bawat cell</h3>\n          <div class=\"so-defs\">\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Time-to-finality · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Ang median na oras sa nakalipas na 24 oras — tingnan ang <em>Paano sinusukat ang finality</em> sa ibaba.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">TPS · 24h avg <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Mga na-finalize na transaksyon bawat segundo, na-average sa 24-oras na window. Kapag napakatahimik ng network, maaaring bumaba ang halaga sa ilalim ng 0.01 tps; ipinapakita ng cell ang <code>&lt; 0.01 tps</code> sa halip na i-round sa zero (ang naka-round na zero ay magpapahiwatig na walang anumang transaksyon, na hindi naman sinasabi ng 24h window).</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Peak TPS · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Ang pinakamataas na tuloy-tuloy na transactions-per-second na naobserbahan sa anumang 1-minutong window sa nakalipas na 24 oras. Sinadya ang per-minutong pag-average: ang 1-segundong pagsirit (lalo na ang nag-iisang transaksyon sa tahimik na sandali) ay hindi dapat dumomina sa pangunahing numero. Tumataas ito sa tunay na pagdagsa ng aktibidad at nananatiling mababa kapag tulog ang network.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">% finalized &lt; 3s <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Bahagi ng mga na-finalize na transaksyon sa 24h na ang time-to-finality ay wala pang tatlong segundo — ang “fast lane” rate. Ang tatlong segundo ay halos ang hangganan ng oras kung saan ang bayad ay nagsisimulang maramdamang paghihintay sa halip na instant, kaya sinusubaybayan ng porsyentong ito kung gaano karami sa kamakailang trapiko ang kumportableng natapos sa ilalim ng hangganang iyon. Nagpapakita ng <code>100%</code> (walang decimal) kapag lahat ay na-finalize sa ilalim ng 3 seg.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Tx · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Ilang transaksyon ang na-finalize sa buong network sa nakalipas na 24 oras.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Avg block-lock <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Average na oras mula sa pag-mine ng block hanggang ma-finalize ito ng Avalanche. Iba sa time-to-finality: sinusukat noon ang <em>pre</em>-consensus na landas (mga transaksyon sa mempool), habang ang block-lock ang sumusukat sa <em>post</em>-consensus na landas (buong block na nasa chain na). Parehong saklaw ng session.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Avg block time <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Average na pagitan ng magkakasunod na block na naobserbahan ng tab na ito. Nagtatarget ang eCash ng 10 minuto sa pamamagitan ng real-time na difficulty algorithm na Heartbeat. Binubuksan ng sariling <strong>?</strong> na button sa tabi ng cell na ito ang paliwanag ng Heartbeat.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Tx · session <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Mga transaksyong naobserbahan ng tab na ito mula nang ma-load. Nagiging zero sa pag-reload. Nakatago sa bar sa mobile, nakikita pa rin sa mga live na halaga sa itaas.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Stream uptime <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Gaano na katagal nakakonekta ang tab na ito sa eCash network. Hiwalay sa relay feed; nire-reset ng pag-reload.</div>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Paano sinusukat ang finality</h3>\n          <p>Ang time-to-finality ay ang agwat sa pagitan ng dalawang sandali sa buhay ng isang transaksyon. <strong>Ang simula</strong>: kapag unang lumitaw ang transaksyon sa mempool ng node. <strong>Ang dulo</strong>: kapag kinandado ito ng Avalanche pre-consensus — ang sandaling hindi na ito maaaring i-reorg ng mga karibal na peer.</p>\n          <p>Parehong nagmumula sa mga log ng node mismo ang mga timestamp: kaya consistent ang mga ito at hindi apektado ng latency ng network mo. Ang mga 24h na numero ay mga percentile at average sa lahat ng transaksyong na-finalize sa loob ng rolling window.</p>\n          <p style=\"margin-bottom:2px\">Iba-ibang kuwento ang dala ng bawat percentile:</p>\n          <div class=\"so-pct\">\n            <div class=\"so-pct-item\"><div class=\"pk\">p50 · median</div><div class=\"pd\">Ang pangunahing numero: ang nararanasan ng tipikal na transaksyon, hindi gaanong apektado ng mga outlier.</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">p90</div><div class=\"pd\">Sinasalo ang mabagal na buntot — natatapos ang napakalaking mayorya bago pa ang markang ito.</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">p10</div><div class=\"pd\">Ipinapakita kung gaano kabilis ang pinakamabilis na 10%, kapaki-pakinabang para makita ang sahig ng protocol.</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">Mean</div><div class=\"pd\">Aritmetikong average, sensitibo sa mga sukdulan at karaniwang bahagyang mas mataas sa p50.</div></div>\n          </div>\n          <p>Kung hindi available ang node feed, babalik ang mga footer cell sa mga session metric na sinusukat nang buo sa browser mo. Maaaring lumampas ang halagang ito sa tunay na time-to-finality dahil kasama rito ang WebSocket at propagation latency sa pagitan ng node at ng tab mo.</p>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Pagbasa sa mga icon</h3>\n          <div class=\"so-legend\">\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"ttf-eye-wrap\" style=\"display:inline-flex;margin:0\">${TTF_EYE_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>Ang mata</strong> — pansamantalang wala ang node feed, kaya ang halaga sa tabi ng icon na ito ay isang <em>pakiramdam</em> na sukat, na kinuwenta nang buo sa browser mo gamit ang metodolohiyang nasa itaas. Kapag muling kumonekta ang feed, nawawala ang mata at bumabalik ang halaga sa katumpakan ng node.</div>\n            </div>\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"radar-slash-wrap\" style=\"display:inline-flex;margin:0\">${RADAR_SLASH_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>May-guhit na radar</strong> — walang maipakitang halaga ang cell dahil walang koneksyon sa node feed. Lumilitaw lang sa mga Network · 24h card, dahil laging makukuwenta sa browser ang mga session metric. Nawawala sa sandaling muling kumonekta ang feed at dumating ang susunod na stats frame.</div>\n            </div>\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"ttf-spinner-wrap\" style=\"display:inline-flex;margin:0\">${TTF_SPINNER_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>Ang spinner</strong> — lumilitaw sa detail panel ng transaksyon nang ~3 segundo pagkatapos ng finalization. Ang ipinapakitang halaga ay kinuwenta nang lokal at maaaring pinuhin sa node-precise na halaga sa sandaling dumating ito. Lampas sa upgrade window, humihinto ang spinner at itinuturing nang pinal ang halaga.</div>\n            </div>\n          </div>\n        </div>\n      </div>\n    "
+    }
+  },
+  "dom": {
+    "#watchlist-empty-hint": {
+      "text": "magdagdag ng address para ma-highlight ang mga tx nito"
+    },
+    "#btn-live": {
+      "title": "View mode — i-click para magpalit: LIVE → CHAIN → FEED. Binabawasan ang DOM load sa abalang mempool habang sinusubaybayan pa rin ang estado."
+    },
+    "#btn-pause": {
+      "title": "I-pause ang mga papasok na transaksyon"
+    },
+    "#tip-btn": {
+      "title": "Ilibre mo ako ng kape — mahahighlight ang tx mo sa stream"
+    },
+    "#bc-goto-search": {
+      "placeholder": "pumunta sa block #…"
+    },
+    "#btl-chain-search": {
+      "placeholder": "pumunta sa block #…"
+    },
+    "#btl-search": {
+      "placeholder": "salain ayon sa unahan o piraso ng txid…"
+    },
+    "#wl-input-addr": {
+      "placeholder": "ecash:q… o 64-hex na token ID"
+    },
+    "#wl-input-name": {
+      "placeholder": "hal. cold-wallet o ang NFT collection ko"
+    },
+    "#wl-edit-name": {
+      "placeholder": "hal. cold-wallet"
+    },
+    "#chat-pick-input": {
+      "placeholder": "ecash:q…"
+    },
+    "#chat-textarea": {
+      "placeholder": "mag-type ng mensahe · pwede ang emoji · Enter para ipadala · Shift+Enter bagong linya"
+    },
+    ".info-tile[data-tile=\"avalanche\"] .info-tile-title": {
+      "text": "Ano ang Avalanche sa eCash?"
+    },
+    ".info-tile[data-tile=\"avalanche\"] .info-tile-body": {
+      "html": "<p>Isang consensus protocol na tumatakbo <strong>kasabay</strong> ng Nakamoto Proof-of-Work ng eCash, na nagpapahintulot sa mga node na magtanungan at magkasundo sa mga block at (sa Pre-Consensus) sa mga indibidwal na transaksyon sa loob ng ilang segundo.</p><p>Ang <strong>Post-Consensus</strong> (live mula Set 2022) ay nagdadala ng 1-block finality at proteksyon sa 51% attack. Ang <strong>Pre-Consensus</strong> (mainnet mula 11/15/2025) ay nagpa-finalize ng mga transaksyon sa &lt;3 seg bago pa ma-mine — kaya parang cash ang pakiramdam ng eCash para sa mga user at exchange.</p><p>Isipin ang PoW bilang <em>pagsusulat</em> (mabagal, permanente) at ang Avalanche bilang <em>pagsasalita</em> (mabilis, panandalian) — ginagamit ng eCash ang pareho.</p>"
+    },
+    ".info-tile[data-tile=\"agora\"] .info-tile-title": {
+      "text": "Ano ang Agora sa eCash?"
+    },
+    ".info-tile[data-tile=\"agora\"] .info-tile-body": {
+      "html": "<p>Isang non-custodial na <strong>atomic swap protocol</strong> na itinayo sa ibabaw ng eCash Script. Inilunsad noong Oktubre 2024, kahit sino ay maaaring maglista ng mga eToken o NFT para ibenta nang direkta on-chain — walang exchange, walang tagapag-ingat, walang pahintulot na kailangan.</p><p>Ang mga trade ay sinasara sa pamamagitan ng mga transaksyong pinipirmahan ng bumibili para sa sarili niya, na pinapagana ng opcode na <code>OP_CHECKDATASIG</code>. Nabubuhay on-chain ang mga covenant: kahit sino ay maaaring mag-browse, tumawad, at magsara nang walang sentralisadong order book.</p><p>Pinapagana nito ang eToken DEX sa Cashtab at ipinapakita ang katutubong kakayahan ng eCash sa DeFi sa bayaring wala pang isang sentimo.</p>"
+    },
+    ".info-tile[data-tile=\"heartbeat\"] .info-tile-title": {
+      "text": "Ano ang Heartbeat?"
+    },
+    ".info-tile[data-tile=\"heartbeat\"] .info-tile-body": {
+      "html": "<p>Ang <strong>real-time na difficulty adjustment algorithm</strong> ng eCash, na in-activate noong Nobyembre 15, 2024. Tumatakbo ito sa ibabaw ng klasikong Bitcoin adjustment para <strong>pantayin ang mga block time</strong> at wakasan ang “pagbubuu-buo” kung saan ang pagsirit ng hashpower ay nagluluwal ng 5 block sa 2 minuto na sinusundan ng 30 minutong katahimikan.</p><p>Kapag dumarating ang mga block nang mas mabilis sa 10-minutong target, agad na tumataas ang difficulty at pagkatapos ay bumababa nang monotoniko hanggang mag-normal. Ang mga block na lumalabag sa real-time target ay <strong>itinatakwil ng Avalanche consensus</strong> — kahit teknikal na valid ayon sa klasikong mga panuntunan ng Bitcoin.</p><p>Resulta: mas pantay na oras ng kumpirmasyon, mas kaunting pang-eexploit ng mga mining pool, at mas predictable na karanasan para sa buong network.</p>"
+    },
+    ".info-tile[data-tile=\"chronik\"] .info-tile-title": {
+      "html": "Ano ang <strong>Chronik</strong>?"
+    },
+    ".info-tile[data-tile=\"chronik\"] .info-tile-body": {
+      "html": "<p>Ang <strong>Chronik</strong> ay ang high-performance na indexer ng eCash na nakatanim mismo sa Bitcoin ABC. Ito ang data layer na kinakausap ng bawat wallet, explorer, at dApp sa eCash — kasama ang live stream na ito.</p><p>Rust-native at mahigpit na nakaugnay sa node, inihahain ng <strong>Chronik</strong> ang chain data kasama ang buong estado ng SLP / ALP token sa pamamagitan ng pinag-isang HTTP + WebSocket API. Nakakakuha ang mga wallet ng mabilis na address history, token-aware na mga UTXO set, at live na daloy ng transaksyon nang hindi muling pina-parse ang chain.</p><p>Kung nagamit mo na ang Cashtab, agora.cash, ang dashboard na ito, o ang explorer sa explorer.e.cash — bawat byte ng chain data ay dumaan sa isang instance ng <strong>Chronik</strong> para makarating doon.</p>"
+    },
+    ".btl-right-hint": {
+      "text": "I-click ang isang tx para tingnan · binubuksan ng txid ang explorer"
+    },
+    ".dlg-qr-hint": {
+      "text": "I-scan ang QR gamit ang wallet app mo · o tapikin ang button sa ibaba"
+    },
+    ".ee-hint": {
+      "text": "tapikin ang eCash logo para bisitahin ang e.cash · tapikin ang iba pang bahagi para isara"
+    },
+    ".wl-history-right-hint": {
+      "text": "I-hover ang hilera para sa preview · i-click para i-pin · i-click ulit para alisin"
+    },
+    ".wl-history-empty": {
+      "html": "Wala pang na-track na tx — lilitaw sila rito habang nangyayari. Pindutin ang <b>Sync</b> para kunin ang buong history mula sa chronik."
+    },
+    ".wl-sub:not(#wl-edit-sub):not(#chat-pick-sub)": {
+      "html": "Maglagay ng eCash address na <span class=\"mono\">ecash:q…</span> o 64-hex na token/NFT ID."
+    },
+    "#chat-pick-sub": {
+      "html": "Maglagay ng eCash address na <span class=\"mono\">ecash:q…</span>."
+    },
+    ".chat-send-dialog .dlg-title": {
+      "text": "Ipadala gamit ang eCash wallet mo"
+    },
+    ".chat-send-dialog .dlg-sub": {
+      "html": "Ang mensahe at mga tatanggap mo ay naipakete na sa isang BIP21 payment link. Buksan ito sa kahit anong eCash wallet — awtomatikong pupunan ng Cashtab ang Send form. <strong style=\"color:var(--amber)\">Hindi kailanman nakikita ng site na ito ang seed phrase mo.</strong>"
+    },
+    "#feed-warning-popover .popover-title": {
+      "text": "⚠ Paalala sa kaligtasan ng Feed"
+    },
+    "#feed-warning-popover > div:last-of-type": {
+      "html": "Ipinapakita ng Feed ang <strong>lahat ng on-chain na mensahe mula sa buong eCash network</strong> — kahit sino ay maaaring mag-broadcast ng kahit ano.<ul><li><strong>Ituring na kahina-hinala ang bawat link.</strong> Huwag mag-click ng mga URL sa mensahe ng mga estranghero; regular na lumilitaw rito ang mga phishing kit.</li><li><strong>Huwag kailanman ibahagi ang seed phrase, private key, o password ng wallet mo.</strong> Walang lehitimong proyekto ang hihingi ng mga ito sa chat o sa mensahe.</li><li><strong>Mag-ingat sa panggagaya.</strong> Kahit sino ay maaaring maglagay ng kahit anong pangalan sa mensahe; i-verify ang mga pagkakakilanlan sa mga pinagkakatiwalaang channel.</li><li><strong>Maaaring patibong ang mga token airdrop.</strong> Ang mga hindi hinihinging token ay maaaring may phishing link o scam — mas ligtas magsaliksik muna bago makipag-ugnayan.</li></ul>"
+    },
+    "#chat-warning-popover .popover-title": {
+      "text": "⚠ Paalala sa kaligtasan ng Chat"
+    },
+    "#chat-warning-popover > div:last-of-type": {
+      "html": "Ang mga chat message ay <strong>permanenteng on-chain na transaksyon ng eCash</strong> — hindi na mabubura o mae-edit matapos i-broadcast, at mababasa ng kahit sino magpakailanman.<ul><li><strong>100% pampubliko ang lahat ng mensahe.</strong> Kapag naipadala na, nakatago ang mga ito sa bawat eCash node sa mundo, maiindex ng kahit sino. Walang pribadong chat on-chain.</li><li><strong>Permanenteng rekord.</strong> Mag-isip bago magpadala — mabubuhay nang mas matagal sa iyo ang mga salita mo sa blockchain.</li><li><strong>Mag-ingat sa mga scam.</strong> Kahit pamilyar ang wallet ng isang peer, sinumang may hawak ng seed phrase niya ang maaaring nagpadala. I-verify ang malalaking transaksyon sa ibang paraan.</li><li><strong>Huwag kailanman mag-paste dito ng seed phrase, private key, o password</strong> — permanente silang malalantad sa mundo.</li><li><strong>Hindi kailanman nakikita ng site na ito ang mga susi mo.</strong> Lahat ng padala ay pinipirmahan ng wallet mo (Cashtab/Electrum-XEC/atbp); ginagawa lang namin ang BIP21 link.</li></ul>"
+    },
+    ".d-token-url-warn": {
+      "warn": "Maaaring magdeklara ang mga token ng kahit anong URL sa kanilang genesis transaction — HINDI vine-verify ng network ang URL. Ang mga phishing token ay maaaring tumuro sa mga masasamang site na tatangkang ubusin ang wallet mo. Palaging: (1) i-verify na tugma ang URL sa opisyal na domain ng proyekto, (2) huwag kailanman magkonekta ng wallet sa site na narating mo mula sa URL ng token nang walang independiyenteng beripikasyon, (3) huwag kailanman maglagay ng seed phrase kahit saan."
+    }
+  },
+  "domMap": {
+    ".info-tile-links-label": {
+      "Read more on e.cash": "Magbasa pa sa e.cash",
+      "Tool": "Kasangkapan",
+      "Trade now": "Mag-trade na"
+    },
+    ".chat-chip-empty": {
+      "no address set — pick yours to see your own chat lines": "walang nakatakdang address — piliin ang iyo para makita ang sarili mong mga mensahe",
+      "add at least one peer wallet to load their messages": "magdagdag ng kahit isang peer wallet para ma-load ang mga mensahe nila"
+    },
+    ".btl-empty": {
+      "Block has no transactions (?!)": "Walang transaksyon ang block (?!)"
+    },
+    ".watchlist-empty-state": {
+      "No addresses tracked yet — click \"+ add\" to start watching one.": "Wala pang binabantayang address — i-click ang \"+ add\" para magsimulang magbantay."
+    }
+  },
+  "titleMap": {
+    "Click for a full stats explanation. Use the ⇄ button to toggle between the network 24h reading and your session reading.": "I-click para sa buong paliwanag ng stats. Gamitin ang button na ⇄ para magpalit sa pagitan ng network 24h at ng session mo.",
+    "Network transactions per second, rolling 24h. From the dedicated eCash node. Click for details.": "Mga transaksyon bawat segundo ng network, rolling 24h. Mula sa dedikadong eCash node. I-click para sa detalye.",
+    "Total transactions finalized network-wide in the last 24 hours. From the dedicated eCash node. Click for details.": "Kabuuang transaksyong na-finalize sa buong network sa nakalipas na 24 oras. Mula sa dedikadong eCash node. I-click para sa detalye.",
+    "Total transactions observed by this browser tab since the page was loaded. Click for details.": "Kabuuang transaksyong naobserbahan ng browser tab na ito mula nang ma-load ang pahina. I-click para sa detalye.",
+    "Average time from block mined to Avalanche post-consensus finalized. Last 20 samples this session. Click for details.": "Average na oras mula sa pag-mine ng block hanggang ma-finalize ng Avalanche post-consensus. Huling 20 sample ng session na ito. I-click para sa detalye.",
+    "Average elapsed time between the last consecutive blocks observed this session. eCash targets a 10-minute average via the Heartbeat real-time difficulty algorithm.": "Average na pagitan ng mga huling magkakasunod na block na naobserbahan sa session na ito. Nagtatarget ang eCash ng average na 10 minuto sa pamamagitan ng real-time na difficulty algorithm na Heartbeat.",
+    "How long this stream has been connected to the eCash network. Click for details.": "Gaano na katagal nakakonekta ang stream na ito sa eCash network. I-click para sa detalye.",
+    "Toggle 24h ↔ session": "Magpalit 24h ↔ session",
+    "Visitors watching this page right now (server-side count of live WebSocket connections to the TTF feed)": "Mga bisitang nanonood sa pahinang ito ngayon mismo (server-side na bilang ng mga live na WebSocket na koneksyon sa TTF feed)",
+    "Mempool transactions finalized by Avalanche pre-consensus, awaiting inclusion in a block": "Mga transaksyon sa mempool na na-finalize ng Avalanche pre-consensus, naghihintay maisama sa block",
+    "Mined by a Proof-of-Work miner": "Na-mine ng isang Proof-of-Work miner",
+    "What is Avalanche post-consensus?": "Ano ang Avalanche post-consensus?",
+    "What is Heartbeat?": "Ano ang Heartbeat?",
+    "What do these colours mean?": "Ano ang ibig sabihin ng mga kulay na ito?",
+    "Read 'What is eCash' on e.cash": "Basahin ang 'What is eCash' sa e.cash",
+    "Visit e.cash": "Bisitahin ang e.cash",
+    "Connection status": "Katayuan ng koneksyon",
+    "Add address to watchlist": "Idagdag ang address sa watchlist",
+    "Add one or more peer addresses (or import from Watchlist)": "Magdagdag ng isa o higit pang peer address (o mag-import mula sa Watchlist)",
+    "Edit (rename, change mode, remove)": "I-edit (palitan ang pangalan, ibahin ang mode, alisin)",
+    "Highlight on either direction": "I-highlight sa alinmang direksyon",
+    "Highlight when this wallet receives (address in outputs)": "I-highlight kapag tumatanggap ang wallet na ito (address sa outputs)",
+    "Highlight when this wallet sends (address in inputs)": "I-highlight kapag nagpapadala ang wallet na ito (address sa inputs)",
+    "Fetch this address/token's tx history from chronik": "Kunin ang tx history ng address/token na ito mula sa chronik",
+    "Watching paused — click to resume": "Naka-pause ang pagbabantay — i-click para ipagpatuloy",
+    "Watching active — click to pause": "Aktibo ang pagbabantay — i-click para i-pause",
+    "Go to block": "Pumunta sa block",
+    "Open block in explorer": "Buksan ang block sa explorer",
+    "Open in explorer": "Buksan sa explorer",
+    "View on explorer": "Tingnan sa explorer",
+    "open in explorer": "buksan sa explorer",
+    "Click to copy": "I-click para kopyahin",
+    "Click to unpin": "I-click para alisin sa pagkaka-pin",
+    "Close": "Isara",
+    "Clear": "Linisin",
+    "Dismiss": "I-dismiss",
+    "Expand full message": "Palawakin ang buong mensahe",
+    "Chat with sender": "Makipag-chat sa nagpadala",
+    "Chat with this address": "Makipag-chat sa address na ito",
+    "Max rows shown per column": "Max na hilera bawat column",
+    "Type a custom amount": "Mag-type ng sariling halaga",
+    "Use slider instead": "Gamitin na lang ang slider",
+    "Token transactions seen since this session started": "Mga token transaction na nakita mula nang magsimula ang session na ito",
+    "Waiting for chronik to see this tx broadcast": "Hinihintay na makita ng chronik ang broadcast ng tx na ito",
+    "No connection to node-precise feed": "Walang koneksyon sa node-precise feed",
+    "Relay stats are temporarily unavailable. Reconnect attempt is in progress.": "Pansamantalang hindi available ang relay stats. Sinusubukang kumonekta muli.",
+    "Remove this entry from the watchlist": "Alisin ang entry na ito sa watchlist",
+    "Safety notice": "Paalala sa kaligtasan",
+    "Set your wallet address (so we can show your outgoing chat messages)": "Itakda ang wallet address mo (para maipakita namin ang mga palabas mong chat message)",
+    "Showing perceived value — node-precise feed unavailable": "Ipinapakita ang pakiramdam na halaga — hindi available ang node-precise feed",
+    "Token/NFT icons: ON — click to hide and skip loading them": "Mga icon ng Token/NFT: ON — i-click para itago at huwag i-load",
+    "Token/NFT icons: OFF — click to show them again": "Mga icon ng Token/NFT: OFF — i-click para ipakita muli",
+    "raw atomic units — decimals loading…": "hilaw na atomic unit — nilo-load ang mga decimal…"
+  }
+}

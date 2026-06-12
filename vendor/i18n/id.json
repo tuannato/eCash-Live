@@ -1,0 +1,233 @@
+{
+  "meta": {
+    "code": "id",
+    "name": "Bahasa Indonesia",
+    "source": "en",
+    "packVersion": 5
+  },
+  "ui": {
+    "qa.stats": "Statistik",
+    "qa.stats.title": "Buka panel statistik jaringan",
+    "qa.block": "Block terbaru",
+    "qa.block.title": "Buka popover block paling baru",
+    "qa.tip": "Dukung proyek",
+    "qa.tip.title": "Buka kotak tip",
+    "qa.guide": "Panduan",
+    "qa.guide.title": "Biarkan eChan mengajakmu keliling dashboard",
+    "settings.title": "pengaturan",
+    "settings.chattiness": "Tingkat bicara",
+    "settings.sound": "Suara",
+    "settings.help.aria": "Apa arti mode-mode ini?",
+    "mode.quiet": "Senyap",
+    "mode.quiet.desc": "Hening — hanya pengumuman operator yang lewat.",
+    "mode.casual": "Santai",
+    "mode.casual.desc": "Berkomentar tiap ~45 dtk; bereaksi pada peristiwa besar (whale, watchlist, tren).",
+    "mode.chatty": "Cerewet",
+    "mode.chatty.desc": "Bawaan — komentar sering tiap ~15 dtk + reaksi pada setiap peristiwa.",
+    "chips.tour": "▶ Ajak aku keliling",
+    "chips.later": "Nanti saja",
+    "chips.lang": "🌐 Bahasa",
+    "tour.back": "⟵ Kembali",
+    "tour.exit": "✕ Keluar tur",
+    "tour.done": "Tur selesai! 👋 Aku tetap di sini, mengomentari blockchain secara live.",
+    "lang.title": "Bahasa / Language"
+  },
+  "tooltips": {
+    "ava-tx": {
+      "title": "Avalanche · Transaction Finality",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Pre-consensus</strong> membuat jaringan menyepakati sebuah transaksi <em>sebelum</em> ia masuk ke block mana pun.</p>\n          <p>Begitu sebuah transaksi tiba di mempool, node-node eCash yang ikut Avalanche mulai saling bertanya — “apakah kamu menerima transaksi ini?” Setiap kueri adalah pertukaran UDP kecil dengan subset peer yang ditarik acak, dibobot menurut jumlah eCash yang mereka stake.</p>\n          <p>Node penanya melacak suara tiap peer dan memperbarui <strong>skor keyakinan</strong>. Saat skor itu melewati ambang finalisasi, transaksi <strong>terkunci selamanya</strong> — sejak saat itu tidak ada double-spend atau transaksi saingan yang bisa menang.</p>\n          <p>Seluruh proses rata-rata memakan <strong>~3 detik</strong> — cukup cepat bagi terminal pembayaran dan exchange untuk langsung mengkredit saldo. Cincin terisi seiring suara masuk; tanda centang gembok menandai peralihan dari “sedang voting” ke “konsensus permanen”.</p>\n          <p class=\"meta-note\">Aktif di mainnet 15 November 2025.</p>\n        </div>\n        <div class=\"diagram-col\">${PRE_CONSENSUS_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "ava-block": {
+      "title": "Avalanche · Block Finality",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Post-consensus</strong> menerapkan mekanisme voting Avalanche yang sama pada <em>block</em>, bekerja di atas rantai proof-of-work Nakamoto klasik.</p>\n          <p>Setiap block baru melewati tiga tahap:</p>\n          <p>⛏ <strong>Mined</strong> — seorang miner menemukan proof-of-work yang valid dan menyiarkan block-nya.</p>\n          <p>↻ <strong>Polling</strong> — semua node Avalanche menanyai peer mereka, dibobot menurut stake eCash, apakah block ini diterima sebagai ujung kanonik baru rantai.</p>\n          <p>◆ <strong>Final</strong> — keyakinan yang terkumpul telah melewati ambang. Block tak bisa lagi diganti atau di-reorg — bahkan oleh mayoritas hashpower yang memusuhi. Sekali terkunci, semua upaya reorg ditolak sebagai tidak valid oleh seluruh node yang jujur.</p>\n          <p>Polling penuh rata-rata memakan <strong>3–5 detik</strong> setelah block diumumkan, jadi deposit bisa dikredit dengan aman pada <strong>1 konfirmasi</strong> — setara keamanan puluhan konfirmasi Bitcoin.</p>\n          <p class=\"meta-note\">Mengamankan block eCash sejak 14 September 2022.</p>\n        </div>\n        <div class=\"diagram-col\">${POST_CONSENSUS_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "tx-flow": {
+      "title": "Transaction Flow · How to read the colours",
+      "body": "\n      <div class=\"text-col\">\n        <p>Setiap baris di kolom <strong>Inputs</strong> / <strong>Outputs</strong> menunjukkan satu alamat dan jumlah yang ia belanjakan atau terima dalam transaksi ini.</p>\n        <p><span class=\"legend-dot\" style=\"background:#01a0e0;box-shadow:0 0 8px #01a0e0\"></span> <strong>Sian</strong> — alamat biasa. Klik untuk membukanya di block explorer.</p>\n        <p><span class=\"legend-dot\" style=\"background:#ffcb47;box-shadow:0 0 8px #ffcb47\"></span> <strong>Emas</strong> — alamat muncul di <em>kedua</em> sisi, input dan output. Biasanya si pengirim menerima <strong>kembalian</strong>-nya, tapi pada transaksi ke diri sendiri ini juga menandai konsolidasi UTXO.</p>\n        <p><span class=\"legend-dot\" style=\"background:#a7ff37;box-shadow:0 0 8px #a7ff37\"></span> <strong>Hijau limau</strong> — alamat dari <em>watchlist</em>-mu. Disorot di setiap transaksi agar kamu melihat aktivitas wallet yang penting bagimu.</p>\n        <p><span class=\"legend-dot\" style=\"background:rgba(255,255,255,0.3)\"></span> <em>OP_RETURN</em> — output pembawa data (pesan chat, perintah token). Tanpa alamat; tak membawa nilai yang bisa dibelanjakan.</p>\n        <p>Jumlah tiap baris adalah nilai <strong>on-chain mentah</strong>. Untuk transaksi token, jumlah token tampil lebih dulu (mis. <em>1,000 USDR · 5.46 XEC</em>) — 5.46 XEC itu hanya dust yang mengangkut token.</p>\n      </div>\n    "
+    },
+    "heartbeat": {
+      "title": "Heartbeat · Real-Time Targeting",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Heartbeat</strong> adalah algoritme penyesuaian kesulitan waktu-nyata milik eCash, diaktifkan pada upgrade jaringan <strong>15 November 2024</strong>.</p>\n          <p>Jaringan bergaya Bitcoin menargetkan <strong>rata-rata 10 menit</strong> antar block, tapi lonjakan hashpower bisa menghasilkan beberapa block dalam hitungan menit lalu sunyi panjang. “Penggumpalan block” ini membuat pengguna frustrasi dan menyulitkan exchange.</p>\n          <p>Heartbeat memperbaikinya dengan <strong>lapisan kesulitan kedua</strong> di atas penyesuaian standar:</p>\n          <ul>\n            <li>Saat block datang <strong>lebih cepat dari irama 10 menit</strong>, kesulitan langsung <em>naik</em> untuk meredam produksi beruntun.</li>\n            <li>Kesulitan lalu <strong>turun secara monoton</strong> hingga kembali ke dataran normal.</li>\n            <li>Block yang melanggar target waktu-nyata <strong>ditolak oleh konsensus Avalanche</strong> — meski valid menurut aturan Bitcoin klasik.</li>\n          </ul>\n          <p>Hasilnya: waktu block lebih teratur, lebih sedikit akal-akalan mining pool (“switch mining”), dan pengalaman yang lebih bisa diprediksi bagi semua.</p>\n          <p class=\"meta-note\">Heartbeat bekerja berdampingan dengan Avalanche post-consensus (finalitas block) dan Infrastructure Funding Policy — tiga pilar konsensus Nakamoto yang diperkuat milik eCash.</p>\n        </div>\n        <div class=\"diagram-col\">${HEARTBEAT_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "stats-overview": {
+      "title": "Network Statistics",
+      "body": "\n      <div class=\"so-wrap\">\n        <p class=\"so-lead\">Bilah di dasar halaman adalah dasbor angka live jaringan eCash. Angkanya berasal dari dua sumber — node eCash khusus yang kami operasikan, dan sesi browser-mu saat ini — dan tahu mana yang mana membantu membaca bilah dengan benar.</p>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Headline cell · 24h ↔ session</h3>\n          <div class=\"so-card\">\n            <p>Sel utama Time-to-Finality (TTF) bisa menampilkan metrik jaringan 24 jam atau metrik sesimu. Pilih di sini, atau pakai tombol <code>⇄</code> di atas sel. Jika feed node tak tersedia, sel selalu jatuh kembali ke metrik sesi, apa pun pilihan ini.</p>\n            <div class=\"stats-view-toggle\" id=\"stats-view-toggle\">\n              <button type=\"button\" data-view=\"p50\" id=\"stats-view-p50\">Tampilkan jaringan · 24h</button>\n              <button type=\"button\" data-view=\"session\" id=\"stats-view-session\">Tampilkan sesi</button>\n            </div>\n            <span class=\"so-live-label\">Nilai live</span>\n            <div id=\"stats-live-grid\"><span style=\"color:var(--text-3);font-family:'Fira Code',monospace;font-size:11px\">— menunggu stats frame berikutnya —</span></div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Dua sumber data</h3>\n          <div class=\"so-sources\">\n            <div class=\"so-source\">\n              <span class=\"so-src-name\"><span class=\"so-badge net\">Network</span> 24h</span>\n              <p>Agregat bergulir 24 jam yang diukur di node dan didorong ke tab-mu tiap 5 detik. Sel-sel ini mencerminkan apa yang sedang dilakukan seluruh jaringan, terlepas dari apa yang diamati tab-mu.</p>\n            </div>\n            <div class=\"so-source\">\n              <span class=\"so-src-name\"><span class=\"so-badge ses\">Session</span></span>\n              <p>Dihitung oleh tab browser ini sejak halaman dimuat. Tab baru mulai dari nol; memuat ulang me-reset. Berguna sebagai pandangan pribadi “apa yang sudah kulihat” dan sebagai cadangan saat feed node tak tersedia.</p>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Arti tiap sel</h3>\n          <div class=\"so-defs\">\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Time-to-finality · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Waktu median selama 24 jam terakhir — lihat <em>Cara finalitas diukur</em> di bawah.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">TPS · 24h avg <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Transaksi terfinalisasi per detik, dirata-rata pada jendela 24 jam. Saat jaringan sangat sepi nilainya bisa turun di bawah 0.01 tps; sel lalu menampilkan <code>&lt; 0.01 tps</code> alih-alih membulatkan ke nol (nol bulat akan mengesankan tak ada transaksi sama sekali, padahal jendela 24 jam tidak menyatakan itu).</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Peak TPS · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Laju transaksi-per-detik berkelanjutan tertinggi yang teramati pada jendela 1 menit mana pun selama 24 jam terakhir. Perataan per menit memang disengaja: lonjakan 1 detik (apalagi satu transaksi tunggal saat jaringan sepi) tak boleh mendominasi angka utama. Angka ini naik saat lonjakan aktivitas asli dan tetap rendah saat jaringan menganggur.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">% finalized &lt; 3s <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Porsi transaksi terfinalisasi 24 jam yang time-to-finality-nya di bawah tiga detik — tingkat “jalur cepat”. Tiga detik kira-kira ambang waktu ketika pembayaran mulai terasa seperti menunggu alih-alih instan, jadi persentase ini melacak seberapa banyak lalu lintas terbaru selesai dengan nyaman di bawah batas itu. Menampilkan <code>100%</code> (tanpa desimal) saat semuanya final di bawah 3 dtk.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Tx · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Berapa banyak transaksi yang terfinalisasi di seluruh jaringan dalam 24 jam terakhir.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Avg block-lock <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Waktu rata-rata dari block ditambang hingga difinalisasi Avalanche. Berbeda dari time-to-finality: itu mengukur jalur <em>pre</em>-consensus (transaksi di mempool), sedangkan block-lock mengukur jalur <em>post</em>-consensus (block utuh yang sudah di rantai). Keduanya skala sesi.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Avg block time <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Jeda rata-rata antar block berurutan yang diamati tab ini. eCash menargetkan 10 menit lewat algoritme kesulitan waktu-nyata Heartbeat. Tombol <strong>?</strong> di samping sel ini membuka penjelasan Heartbeat.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Tx · session <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Transaksi yang diamati tab ini sejak dimuat. Kembali nol saat dimuat ulang. Disembunyikan dari bilah di ponsel, tetap terlihat di nilai live di atas.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Stream uptime <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Berapa lama tab ini terhubung ke jaringan eCash. Independen dari relay feed; ter-reset saat dimuat ulang.</div>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Cara finalitas diukur</h3>\n          <p>Time-to-finality adalah jarak antara dua momen dalam hidup sebuah transaksi. <strong>Awalnya</strong>: saat transaksi pertama kali muncul di mempool node. <strong>Akhirnya</strong>: saat Avalanche pre-consensus menguncinya — momen ketika ia tak lagi bisa di-reorg oleh peer pesaing.</p>\n          <p>Kedua stempel waktu berasal dari log node itu sendiri: jadi konsisten dan tak terpengaruh latensi jaringanmu. Angka 24 jam adalah persentil dan rata-rata atas semua transaksi yang terfinalisasi dalam jendela bergulir.</p>\n          <p style=\"margin-bottom:2px\">Tiap persentil menceritakan kisah berbeda:</p>\n          <div class=\"so-pct\">\n            <div class=\"so-pct-item\"><div class=\"pk\">p50 · median</div><div class=\"pd\">Angka utama: yang dialami transaksi tipikal, tak peka terhadap pencilan.</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">p90</div><div class=\"pd\">Menangkap ekor lambat — mayoritas besar selesai jauh sebelum tanda ini.</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">p10</div><div class=\"pd\">Menunjukkan seberapa cepat 10% tercepat, berguna untuk melihat lantai protokol.</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">Mean</div><div class=\"pd\">Rata-rata aritmetika, peka terhadap nilai ekstrem dan biasanya sedikit di atas p50.</div></div>\n          </div>\n          <p>Jika feed node tak tersedia, sel-sel footer jatuh kembali ke metrik sesi yang diukur sepenuhnya di browser-mu. Nilai ini bisa melebihi time-to-finality sebenarnya karena menyertakan latensi WebSocket dan propagasi antara node dan tab-mu.</p>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Membaca ikon</h3>\n          <div class=\"so-legend\">\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"ttf-eye-wrap\" style=\"display:inline-flex;margin:0\">${TTF_EYE_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>Mata</strong> — feed node sementara tak tersedia, jadi nilai di samping ikon ini adalah pengukuran <em>terasa</em>, dihitung sepenuhnya di browser-mu dengan metodologi di atas. Saat feed tersambung lagi, mata menghilang dan nilai kembali ke presisi node.</div>\n            </div>\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"radar-slash-wrap\" style=\"display:inline-flex;margin:0\">${RADAR_SLASH_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>Radar tercoret</strong> — sel tak punya nilai untuk ditampilkan karena tak ada koneksi ke feed node. Hanya muncul di kartu Network · 24h, sebab metrik sesi selalu bisa dihitung di browser. Hilang begitu feed tersambung lagi dan stats frame berikutnya tiba.</div>\n            </div>\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"ttf-spinner-wrap\" style=\"display:inline-flex;margin:0\">${TTF_SPINNER_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>Spinner</strong> — tampil di panel detail transaksi selama ~3 detik setelah finalisasi. Nilai yang tampil dihitung lokal dan bisa dipertajam ke nilai presisi node begitu nilai itu tiba. Lewat jendela upgrade, spinner berhenti dan nilai dianggap final.</div>\n            </div>\n          </div>\n        </div>\n      </div>\n    "
+    }
+  },
+  "dom": {
+    "#watchlist-empty-hint": {
+      "text": "tambahkan alamat untuk menyorot tx-nya"
+    },
+    "#btn-live": {
+      "title": "Mode tampilan — klik untuk berganti: LIVE → CHAIN → FEED. Mengurangi beban DOM saat mempool ramai sambil tetap melacak status."
+    },
+    "#btn-pause": {
+      "title": "Jeda transaksi masuk"
+    },
+    "#tip-btn": {
+      "title": "Traktir aku kopi — tx-mu akan disorot di stream"
+    },
+    "#bc-goto-search": {
+      "placeholder": "ke block #…"
+    },
+    "#btl-chain-search": {
+      "placeholder": "ke block #…"
+    },
+    "#btl-search": {
+      "placeholder": "saring berdasarkan awalan atau potongan txid…"
+    },
+    "#wl-input-addr": {
+      "placeholder": "ecash:q… atau token ID 64-hex"
+    },
+    "#wl-input-name": {
+      "placeholder": "mis. dompet-dingin atau koleksi NFT-ku"
+    },
+    "#wl-edit-name": {
+      "placeholder": "mis. dompet-dingin"
+    },
+    "#chat-pick-input": {
+      "placeholder": "ecash:q…"
+    },
+    "#chat-textarea": {
+      "placeholder": "tulis pesan · emoji boleh · Enter mengirim · Shift+Enter baris baru"
+    },
+    ".info-tile[data-tile=\"avalanche\"] .info-tile-title": {
+      "text": "Apa itu Avalanche di eCash?"
+    },
+    ".info-tile[data-tile=\"avalanche\"] .info-tile-body": {
+      "html": "<p>Protokol konsensus yang berjalan <strong>berdampingan</strong> dengan Proof-of-Work Nakamoto milik eCash, memungkinkan node saling bertanya dan menyepakati block serta (dengan Pre-Consensus) transaksi individual dalam hitungan detik.</p><p><strong>Post-Consensus</strong> (aktif sejak Sep 2022) membawa finalitas 1-block dan pencegahan serangan 51%. <strong>Pre-Consensus</strong> (mainnet sejak 15/11/2025) memfinalisasi transaksi dalam &lt;3 dtk sebelum ditambang — membuat eCash terasa seperti uang tunai bagi pengguna maupun exchange.</p><p>Bayangkan PoW sebagai <em>tulisan</em> (lambat, permanen) dan Avalanche sebagai <em>ucapan</em> (cepat, sekejap) — eCash memakai keduanya.</p>"
+    },
+    ".info-tile[data-tile=\"agora\"] .info-tile-title": {
+      "text": "Apa itu Agora di eCash?"
+    },
+    ".info-tile[data-tile=\"agora\"] .info-tile-body": {
+      "html": "<p>Protokol <strong>atomic swap</strong> non-kustodial yang dibangun di atas eCash Script. Diluncurkan Oktober 2024, siapa pun bisa memajang eToken atau NFT untuk dijual langsung on-chain — tanpa exchange, tanpa kustodian, tanpa izin.</p><p>Perdagangan diselesaikan lewat transaksi yang ditandatangani pembeli untuk dirinya sendiri, dimungkinkan oleh opcode <code>OP_CHECKDATASIG</code>. Covenant-nya hidup on-chain: siapa pun bisa menelusuri, menawar, dan menyelesaikan tanpa buku order terpusat.</p><p>Menggerakkan DEX eToken di Cashtab dan membuktikan kemampuan DeFi bawaan eCash dengan biaya di bawah satu sen.</p>"
+    },
+    ".info-tile[data-tile=\"heartbeat\"] .info-tile-title": {
+      "text": "Apa itu Heartbeat?"
+    },
+    ".info-tile[data-tile=\"heartbeat\"] .info-tile-body": {
+      "html": "<p>Algoritme <strong>penyesuaian kesulitan waktu-nyata</strong> milik eCash, diaktifkan 15 November 2024. Berjalan di atas penyesuaian Bitcoin klasik untuk <strong>meratakan waktu block</strong> dan mengakhiri “penggumpalan” ketika lonjakan hashpower mencetak 5 block dalam 2 menit lalu sunyi 30 menit.</p><p>Saat block datang lebih cepat dari target 10 menit, kesulitan langsung naik lalu turun secara monoton hingga normal. Block yang melanggar target waktu-nyata <strong>ditolak konsensus Avalanche</strong> — meski secara teknis valid menurut aturan Bitcoin klasik.</p><p>Hasilnya: waktu konfirmasi lebih teratur, lebih sedikit eksploitasi mining pool, dan pengalaman yang lebih bisa diprediksi bagi seluruh jaringan.</p>"
+    },
+    ".info-tile[data-tile=\"chronik\"] .info-tile-title": {
+      "html": "Apa itu <strong>Chronik</strong>?"
+    },
+    ".info-tile[data-tile=\"chronik\"] .info-tile-body": {
+      "html": "<p><strong>Chronik</strong> adalah indexer eCash berkinerja tinggi yang tertanam dalam Bitcoin ABC. Ia lapisan data tempat semua wallet, explorer, dan dApp eCash berbicara — termasuk live stream ini.</p><p>Berbasis Rust dan terintegrasi erat dengan node, <strong>Chronik</strong> menyajikan data rantai plus status penuh token SLP / ALP lewat API terpadu HTTP + WebSocket. Wallet mendapat riwayat alamat cepat, kumpulan UTXO yang sadar-token, dan aliran transaksi live tanpa mem-parse ulang rantai.</p><p>Kalau kamu pernah memakai Cashtab, agora.cash, dashboard ini, atau explorer di explorer.e.cash — setiap byte data rantai melewati sebuah instans <strong>Chronik</strong> untuk sampai ke sana.</p>"
+    },
+    ".btl-right-hint": {
+      "text": "Klik sebuah tx untuk melihat · txid membuka explorer"
+    },
+    ".dlg-qr-hint": {
+      "text": "Pindai QR dengan aplikasi wallet-mu · atau ketuk tombol di bawah"
+    },
+    ".ee-hint": {
+      "text": "ketuk logo eCash untuk mengunjungi e.cash · ketuk di tempat lain untuk menutup"
+    },
+    ".wl-history-right-hint": {
+      "text": "Arahkan kursor ke baris untuk pratinjau · klik untuk pin · klik lagi untuk lepas pin"
+    },
+    ".wl-history-empty": {
+      "html": "Belum ada tx terlacak — akan muncul di sini saat terjadi. Tekan <b>Sync</b> untuk menarik riwayat penuh dari chronik."
+    },
+    ".wl-sub:not(#wl-edit-sub):not(#chat-pick-sub)": {
+      "html": "Masukkan alamat eCash <span class=\"mono\">ecash:q…</span> atau ID token/NFT 64-hex."
+    },
+    "#chat-pick-sub": {
+      "html": "Masukkan alamat eCash <span class=\"mono\">ecash:q…</span>."
+    },
+    ".chat-send-dialog .dlg-title": {
+      "text": "Kirim lewat wallet eCash-mu"
+    },
+    ".chat-send-dialog .dlg-sub": {
+      "html": "Pesan dan para penerima sudah dikemas menjadi tautan pembayaran BIP21. Buka di wallet eCash mana pun — Cashtab akan mengisi form Send otomatis. <strong style=\"color:var(--amber)\">Situs ini tidak pernah melihat seed phrase-mu.</strong>"
+    },
+    "#feed-warning-popover .popover-title": {
+      "text": "⚠ Peringatan keamanan Feed"
+    },
+    "#feed-warning-popover > div:last-of-type": {
+      "html": "Feed menampilkan <strong>semua pesan on-chain dari seluruh jaringan eCash</strong> — siapa pun bisa menyiarkan apa pun.<ul><li><strong>Anggap setiap tautan mencurigakan.</strong> Jangan klik URL dalam pesan dari orang asing; kit phishing rutin muncul di sini.</li><li><strong>Jangan pernah bagikan seed phrase, private key, atau kata sandi wallet.</strong> Tidak ada proyek sah yang memintanya lewat chat atau pesan.</li><li><strong>Waspadai peniruan identitas.</strong> Siapa pun bisa menaruh nama apa pun dalam pesan; verifikasi identitas lewat kanal tepercaya.</li><li><strong>Airdrop token bisa jadi jebakan.</strong> Token tak diminta bisa berisi tautan phishing atau info penipuan — meneliti dulu sebelum berinteraksi lebih aman.</li></ul>"
+    },
+    "#chat-warning-popover .popover-title": {
+      "text": "⚠ Peringatan keamanan Chat"
+    },
+    "#chat-warning-popover > div:last-of-type": {
+      "html": "Pesan chat adalah <strong>transaksi on-chain eCash yang permanen</strong> — tak bisa dihapus atau diedit setelah disiarkan, dan siapa pun bisa membacanya selamanya.<ul><li><strong>Semua pesan 100% publik.</strong> Begitu terkirim, mereka tersimpan di setiap node eCash di dunia, bisa diindeks siapa saja. Tidak ada chat privat on-chain.</li><li><strong>Rekam jejak permanen.</strong> Pikirkan sebelum mengirim — kata-katamu akan hidup lebih lama darimu di blockchain.</li><li><strong>Waspadai penipuan.</strong> Walau wallet seorang peer tampak familier, siapa pun yang memegang seed phrase-nya bisa jadi pengirim. Verifikasi transaksi besar lewat jalur lain.</li><li><strong>Jangan pernah tempel seed phrase, private key, atau kata sandi di sini</strong> — mereka akan terekspos ke dunia selamanya.</li><li><strong>Situs ini tidak pernah melihat kuncimu.</strong> Semua pengiriman ditandatangani wallet-mu (Cashtab/Electrum-XEC/dll); kami hanya membangun tautan BIP21.</li></ul>"
+    },
+    ".d-token-url-warn": {
+      "warn": "Token bisa mendeklarasikan URL apa pun dalam transaksi genesis-nya — URL itu TIDAK diverifikasi jaringan. Token phishing bisa mengarah ke situs jahat yang mencoba menguras wallet-mu. Selalu: (1) pastikan URL cocok dengan domain resmi proyek, (2) jangan pernah hubungkan wallet di situs yang kamu capai dari URL token tanpa verifikasi independen, (3) jangan pernah masukkan seed phrase di mana pun."
+    }
+  },
+  "domMap": {
+    ".info-tile-links-label": {
+      "Read more on e.cash": "Baca selengkapnya di e.cash",
+      "Tool": "Alat",
+      "Trade now": "Trading sekarang"
+    },
+    ".chat-chip-empty": {
+      "no address set — pick yours to see your own chat lines": "alamat belum diatur — pilih milikmu untuk melihat pesanmu sendiri",
+      "add at least one peer wallet to load their messages": "tambahkan minimal satu wallet peer untuk memuat pesan mereka"
+    },
+    ".btl-empty": {
+      "Block has no transactions (?!)": "Block tak punya transaksi (?!)"
+    },
+    ".watchlist-empty-state": {
+      "No addresses tracked yet — click \"+ add\" to start watching one.": "Belum ada alamat yang dipantau — klik \"+ add\" untuk mulai memantau."
+    }
+  },
+  "titleMap": {
+    "Click for a full stats explanation. Use the ⇄ button to toggle between the network 24h reading and your session reading.": "Klik untuk penjelasan statistik lengkap. Pakai tombol ⇄ untuk berganti antara bacaan jaringan 24h dan bacaan sesimu.",
+    "Network transactions per second, rolling 24h. From the dedicated eCash node. Click for details.": "Transaksi per detik jaringan, bergulir 24h. Dari node eCash khusus. Klik untuk detail.",
+    "Total transactions finalized network-wide in the last 24 hours. From the dedicated eCash node. Click for details.": "Total transaksi terfinalisasi di seluruh jaringan dalam 24 jam terakhir. Dari node eCash khusus. Klik untuk detail.",
+    "Total transactions observed by this browser tab since the page was loaded. Click for details.": "Total transaksi yang diamati tab browser ini sejak halaman dimuat. Klik untuk detail.",
+    "Average time from block mined to Avalanche post-consensus finalized. Last 20 samples this session. Click for details.": "Waktu rata-rata dari block ditambang hingga difinalisasi Avalanche post-consensus. 20 sampel terakhir sesi ini. Klik untuk detail.",
+    "Average elapsed time between the last consecutive blocks observed this session. eCash targets a 10-minute average via the Heartbeat real-time difficulty algorithm.": "Jeda rata-rata antara block-block berurutan terakhir yang diamati sesi ini. eCash menargetkan rata-rata 10 menit lewat algoritme kesulitan waktu-nyata Heartbeat.",
+    "How long this stream has been connected to the eCash network. Click for details.": "Berapa lama stream ini terhubung ke jaringan eCash. Klik untuk detail.",
+    "Toggle 24h ↔ session": "Ganti 24h ↔ sesi",
+    "Visitors watching this page right now (server-side count of live WebSocket connections to the TTF feed)": "Pengunjung yang menonton halaman ini sekarang (hitungan sisi-server koneksi WebSocket live ke feed TTF)",
+    "Mempool transactions finalized by Avalanche pre-consensus, awaiting inclusion in a block": "Transaksi mempool yang difinalisasi Avalanche pre-consensus, menunggu dimasukkan ke block",
+    "Mined by a Proof-of-Work miner": "Ditambang oleh miner Proof-of-Work",
+    "What is Avalanche post-consensus?": "Apa itu Avalanche post-consensus?",
+    "What is Heartbeat?": "Apa itu Heartbeat?",
+    "What do these colours mean?": "Apa arti warna-warna ini?",
+    "Read 'What is eCash' on e.cash": "Baca 'What is eCash' di e.cash",
+    "Visit e.cash": "Kunjungi e.cash",
+    "Connection status": "Status koneksi",
+    "Add address to watchlist": "Tambahkan alamat ke watchlist",
+    "Add one or more peer addresses (or import from Watchlist)": "Tambahkan satu atau lebih alamat peer (atau impor dari Watchlist)",
+    "Edit (rename, change mode, remove)": "Sunting (ganti nama, ubah mode, hapus)",
+    "Highlight on either direction": "Sorot di kedua arah",
+    "Highlight when this wallet receives (address in outputs)": "Sorot saat wallet ini menerima (alamat di outputs)",
+    "Highlight when this wallet sends (address in inputs)": "Sorot saat wallet ini mengirim (alamat di inputs)",
+    "Fetch this address/token's tx history from chronik": "Ambil riwayat tx alamat/token ini dari chronik",
+    "Watching paused — click to resume": "Pemantauan dijeda — klik untuk melanjutkan",
+    "Watching active — click to pause": "Pemantauan aktif — klik untuk menjeda",
+    "Go to block": "Ke block",
+    "Open block in explorer": "Buka block di explorer",
+    "Open in explorer": "Buka di explorer",
+    "View on explorer": "Lihat di explorer",
+    "open in explorer": "buka di explorer",
+    "Click to copy": "Klik untuk menyalin",
+    "Click to unpin": "Klik untuk lepas pin",
+    "Close": "Tutup",
+    "Clear": "Bersihkan",
+    "Dismiss": "Abaikan",
+    "Expand full message": "Bentangkan pesan penuh",
+    "Chat with sender": "Chat dengan pengirim",
+    "Chat with this address": "Chat dengan alamat ini",
+    "Max rows shown per column": "Baris maksimum per kolom",
+    "Type a custom amount": "Ketik jumlah kustom",
+    "Use slider instead": "Pakai slider saja",
+    "Token transactions seen since this session started": "Transaksi token yang terlihat sejak sesi ini dimulai",
+    "Waiting for chronik to see this tx broadcast": "Menunggu chronik melihat siaran tx ini",
+    "No connection to node-precise feed": "Tidak ada koneksi ke feed presisi node",
+    "Relay stats are temporarily unavailable. Reconnect attempt is in progress.": "Statistik relay sementara tak tersedia. Sedang mencoba menyambung lagi.",
+    "Remove this entry from the watchlist": "Hapus entri ini dari watchlist",
+    "Safety notice": "Peringatan keamanan",
+    "Set your wallet address (so we can show your outgoing chat messages)": "Atur alamat wallet-mu (agar kami bisa menampilkan pesan chat keluarmu)",
+    "Showing perceived value — node-precise feed unavailable": "Menampilkan nilai terasa — feed presisi node tak tersedia",
+    "Token/NFT icons: ON — click to hide and skip loading them": "Ikon Token/NFT: ON — klik untuk menyembunyikan dan melewati pemuatannya",
+    "Token/NFT icons: OFF — click to show them again": "Ikon Token/NFT: OFF — klik untuk menampilkan lagi",
+    "raw atomic units — decimals loading…": "satuan atom mentah — memuat desimal…"
+  }
+}

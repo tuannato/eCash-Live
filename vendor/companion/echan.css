@@ -1151,21 +1151,22 @@ body.echan-debug .echan-rail   { outline: 1px dashed magenta; }
  * Never expires on its own; removed only when the user makes the guide
  * decision. Strong glow + gentle scale breathe on the text pane, plus a
  * soft ring radiating from the whole companion cluster. */
+/* v1.3.3: pure border glow — the scale breathe made the dialog feel
+ * wobbly; a bright pulsing frame draws the eye without moving content. */
 @keyframes echan-attract-pulse {
   0%, 100% {
-    box-shadow: 0 0 0 2px rgba(1, 160, 224, 0.85), 0 0 26px rgba(1, 160, 224, 0.65),
-                0 0 60px rgba(1, 160, 224, 0.25);
-    transform: scale(1.0);
+    border-color: #01e0ff;
+    box-shadow: 0 0 0 2px rgba(1, 224, 255, 0.9), 0 0 22px rgba(1, 224, 255, 0.7),
+                0 0 52px rgba(1, 160, 224, 0.35);
   }
   50% {
-    box-shadow: 0 0 0 1px rgba(1, 160, 224, 0.45), 0 0 12px rgba(1, 160, 224, 0.30),
-                0 0 28px rgba(1, 160, 224, 0.12);
-    transform: scale(1.015);
+    border-color: rgba(1, 224, 255, 0.45);
+    box-shadow: 0 0 0 1px rgba(1, 224, 255, 0.4), 0 0 10px rgba(1, 224, 255, 0.25),
+                0 0 24px rgba(1, 160, 224, 0.12);
   }
 }
 .echan-root.echan-attract .echan-text {
   animation: echan-attract-pulse 1.6s ease-in-out infinite;
-  border-color: rgba(1, 160, 224, 0.9);
 }
 @keyframes echan-attract-avatar {
   0%, 100% { filter: drop-shadow(0 0 6px rgba(1, 160, 224, 0.75)); }
@@ -1177,7 +1178,8 @@ body.echan-debug .echan-rail   { outline: 1px dashed magenta; }
 @media (prefers-reduced-motion: reduce) {
   .echan-root.echan-attract .echan-text {
     animation: none;
-    box-shadow: 0 0 0 2px rgba(1, 160, 224, 0.85), 0 0 26px rgba(1, 160, 224, 0.55);
+    border-color: #01e0ff;
+    box-shadow: 0 0 0 2px rgba(1, 224, 255, 0.9), 0 0 22px rgba(1, 224, 255, 0.55);
   }
   .echan-root.echan-attract .echan-avatar { animation: none; }
 }
@@ -1217,4 +1219,56 @@ body.echan-debug .echan-rail   { outline: 1px dashed magenta; }
 .echan-chips {
   max-height: 132px;
   overflow-y: auto;
+}
+
+/* =============================================================================
+ * LANGUAGE PICKER OVERLAY (v1.3.3 fix)
+ * Covers the text frame only — the avatar stays visible. Solid --ec-bg so
+ * the welcome copy never bleeds through; the original welcome chips sit
+ * untouched underneath and reappear when the panel closes.
+ * ===========================================================================*/
+.echan-lang-panel {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  background: var(--ec-bg);
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px 10px;
+  overflow: hidden;
+}
+.echan-lang-panel.busy {
+  pointer-events: none;
+  opacity: 0.65;
+}
+.echan-lang-panel-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--ec-line);
+  border-radius: 5px;
+  color: var(--ec-text-dim);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+.echan-lang-panel-close:hover {
+  color: var(--ec-glow);
+  border-color: var(--ec-glow);
+}
+.echan-lang-panel-grid {
+  margin-top: 26px;
+  overflow-y: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-content: flex-start;
+  padding-right: 4px;
 }
