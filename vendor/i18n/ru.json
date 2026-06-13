@@ -1,0 +1,233 @@
+{
+  "meta": {
+    "code": "ru",
+    "name": "Русский",
+    "source": "en",
+    "packVersion": 5
+  },
+  "ui": {
+    "qa.stats": "Статистика",
+    "qa.stats.title": "Открыть панель статистики сети",
+    "qa.block": "Последний block",
+    "qa.block.title": "Открыть поповер последнего block",
+    "qa.tip": "Поддержать проект",
+    "qa.tip.title": "Открыть окно чаевых",
+    "qa.guide": "Экскурсия",
+    "qa.guide.title": "Позволь eChan показать тебе дашборд",
+    "settings.title": "настройки",
+    "settings.chattiness": "Болтливость",
+    "settings.sound": "Звук",
+    "settings.help.aria": "Что означают режимы?",
+    "mode.quiet": "Тихий",
+    "mode.quiet.desc": "Тишина — проходят только объявления оператора.",
+    "mode.casual": "Умеренный",
+    "mode.casual.desc": "Комментирует каждые ~45 с; реагирует на важные события (киты, watchlist, тренды).",
+    "mode.chatty": "Болтливый",
+    "mode.chatty.desc": "По умолчанию — частые комментарии каждые ~15 с + реакция на каждое событие.",
+    "chips.tour": "▶ Покажи мне всё",
+    "chips.later": "Позже",
+    "chips.lang": "🌐 Язык",
+    "tour.back": "⟵ Назад",
+    "tour.exit": "✕ Выйти из тура",
+    "tour.done": "Тур окончен! 👋 Я остаюсь здесь и комментирую блокчейн в прямом эфире.",
+    "lang.title": "Язык / Language"
+  },
+  "tooltips": {
+    "ava-tx": {
+      "title": "Avalanche · Transaction Finality",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Pre-consensus</strong> позволяет сети договориться о транзакции <em>до</em> того, как она попадёт хоть в какой-нибудь block.</p>\n          <p>Как только транзакция появляется в mempool, узлы eCash, участвующие в Avalanche, начинают опрашивать друг друга — «принимаешь ли ты эту транзакцию?» Каждый опрос — это маленький UDP-обмен со случайно выбранным подмножеством peer'ов, взвешенным по количеству eCash в их стейке.</p>\n          <p>Опрашивающий узел отслеживает голос каждого peer'а и обновляет <strong>оценку уверенности</strong>. Когда она пересекает порог финализации, транзакция <strong>блокируется навсегда</strong> — с этого момента ни double-spend, ни конкурирующая транзакция победить не могут.</p>\n          <p>Весь процесс в среднем занимает <strong>~3 секунды</strong> — достаточно быстро, чтобы платёжные терминалы и биржи зачисляли балансы мгновенно. Кольцо заполняется по мере поступления голосов; галочка с замком отмечает переход от «идёт голосование» к «постоянному консенсусу».</p>\n          <p class=\"meta-note\">Активировано в mainnet 15 ноября 2025 года.</p>\n        </div>\n        <div class=\"diagram-col\">${PRE_CONSENSUS_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "ava-block": {
+      "title": "Avalanche · Block Finality",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Post-consensus</strong> применяет тот же механизм голосования Avalanche к <em>block'ам</em>, работая поверх классической цепи Nakamoto proof-of-work.</p>\n          <p>Каждый новый block проходит три стадии:</p>\n          <p>⛏ <strong>Mined</strong> — майнер находит валидный proof-of-work и рассылает block.</p>\n          <p>↻ <strong>Polling</strong> — все узлы Avalanche опрашивают своих peer'ов, взвешенных по стейку eCash, принять ли этот block как новую каноническую вершину цепи.</p>\n          <p>◆ <strong>Final</strong> — накопленная уверенность пересекла порог. Block больше нельзя заменить или реорганизовать — даже враждебным большинством hashpower. После блокировки любая попытка reorg отвергается всеми честными узлами как невалидная.</p>\n          <p>Полный polling занимает в среднем <strong>3–5 секунд</strong> после объявления block'а, поэтому депозиты можно безопасно зачислять при <strong>1 подтверждении</strong> — по безопасности это эквивалент десятков подтверждений Bitcoin.</p>\n          <p class=\"meta-note\">Защищает block'и eCash с 14 сентября 2022 года.</p>\n        </div>\n        <div class=\"diagram-col\">${POST_CONSENSUS_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "tx-flow": {
+      "title": "Transaction Flow · How to read the colours",
+      "body": "\n      <div class=\"text-col\">\n        <p>Каждая строка в колонках <strong>Inputs</strong> / <strong>Outputs</strong> показывает адрес и сумму, которую он потратил или получил в этой транзакции.</p>\n        <p><span class=\"legend-dot\" style=\"background:#01a0e0;box-shadow:0 0 8px #01a0e0\"></span> <strong>Бирюзовый</strong> — обычный адрес. Клик откроет его в block explorer.</p>\n        <p><span class=\"legend-dot\" style=\"background:#ffcb47;box-shadow:0 0 8px #ffcb47\"></span> <strong>Золотой</strong> — адрес присутствует с <em>обеих</em> сторон, input и output. Обычно это отправитель получает свою <strong>сдачу</strong>, но в транзакции самому себе это также признак консолидации UTXO.</p>\n        <p><span class=\"legend-dot\" style=\"background:#a7ff37;box-shadow:0 0 8px #a7ff37\"></span> <strong>Лаймовый</strong> — адрес из твоего <em>watchlist</em>. Подсвечивается в каждой транзакции, чтобы ты замечал активность важных для тебя кошельков.</p>\n        <p><span class=\"legend-dot\" style=\"background:rgba(255,255,255,0.3)\"></span> <em>OP_RETURN</em> — output с данными (сообщения чата, команды токенов). Без адреса; не несёт расходуемой стоимости.</p>\n        <p>Сумма в каждой строке — это <strong>сырая on-chain стоимость</strong>. У токен-транзакций количество токена показано первым (напр. <em>1,000 USDR · 5.46 XEC</em>) — эти 5.46 XEC лишь dust, перевозящий токен.</p>\n      </div>\n    "
+    },
+    "heartbeat": {
+      "title": "Heartbeat · Real-Time Targeting",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Heartbeat</strong> — это алгоритм корректировки сложности eCash в реальном времени, активированный сетевым обновлением <strong>15 ноября 2024 года</strong>.</p>\n          <p>Сети в духе Bitcoin целятся в <strong>среднее 10 минут</strong> между block'ами, но всплески hashpower могут выдать несколько block'ов за пару минут, а затем — долгая тишина. Такое «слипание block'ов» раздражает пользователей и мешает биржам.</p>\n          <p>Heartbeat исправляет это <strong>вторым слоем сложности</strong> поверх стандартной корректировки:</p>\n          <ul>\n            <li>Когда block'и приходят <strong>быстрее ритма в 10 минут</strong>, сложность немедленно <em>растёт</em>, сдерживая серийное производство.</li>\n            <li>Затем сложность <strong>монотонно снижается</strong> до возвращения к нормальному плато.</li>\n            <li>Block'и, нарушающие цель реального времени, <strong>отвергаются консенсусом Avalanche</strong> — даже если они валидны по классическим правилам Bitcoin.</li>\n          </ul>\n          <p>Итог: более ровные интервалы между block'ами, меньше трюков майнинг-пулов («switch mining») и более предсказуемый опыт для всех в сети.</p>\n          <p class=\"meta-note\">Heartbeat работает рука об руку с Avalanche post-consensus (финальность block'ов) и Infrastructure Funding Policy — три столпа усиленного консенсуса Nakamoto в eCash.</p>\n        </div>\n        <div class=\"diagram-col\">${HEARTBEAT_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "stats-overview": {
+      "title": "Network Statistics",
+      "body": "\n      <div class=\"so-wrap\">\n        <p class=\"so-lead\">Полоса внизу страницы — живая числовая панель сети eCash. Числа приходят из двух источников — выделенного узла eCash, который мы держим, и твоей текущей сессии браузера — и понимание, где что, помогает читать полосу правильно.</p>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Headline cell · 24h ↔ session</h3>\n          <div class=\"so-card\">\n            <p>Главная ячейка Time-to-Finality (TTF) может показывать сетевую метрику за 24 часа или метрику твоей сессии. Выбери здесь или используй кнопку <code>⇄</code> над ячейкой. Если фид узла недоступен, ячейка всегда откатывается к метрике сессии независимо от этого выбора.</p>\n            <div class=\"stats-view-toggle\" id=\"stats-view-toggle\">\n              <button type=\"button\" data-view=\"p50\" id=\"stats-view-p50\">Показать сеть · 24h</button>\n              <button type=\"button\" data-view=\"session\" id=\"stats-view-session\">Показать сессию</button>\n            </div>\n            <span class=\"so-live-label\">Живые значения</span>\n            <div id=\"stats-live-grid\"><span style=\"color:var(--text-3);font-family:'Fira Code',monospace;font-size:11px\">— ждём следующий stats frame —</span></div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Два источника данных</h3>\n          <div class=\"so-sources\">\n            <div class=\"so-source\">\n              <span class=\"so-src-name\"><span class=\"so-badge net\">Network</span> 24h</span>\n              <p>Скользящие 24-часовые агрегаты, измеренные на узле и проталкиваемые в твою вкладку каждые 5 секунд. Эти ячейки отражают, что делает вся сеть прямо сейчас, независимо от того, что наблюдала твоя вкладка.</p>\n            </div>\n            <div class=\"so-source\">\n              <span class=\"so-src-name\"><span class=\"so-badge ses\">Session</span></span>\n              <p>Считается этой вкладкой браузера с момента загрузки страницы. Новая вкладка начинает с нуля; перезагрузка сбрасывает. Полезно как личный взгляд «что видел я» и как запасной вариант, когда фид узла недоступен.</p>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Что означает каждая ячейка</h3>\n          <div class=\"so-defs\">\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Time-to-finality · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Медианное время за последние 24 часа — см. <em>Как измеряется финальность</em> ниже.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">TPS · 24h avg <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Финализированные транзакции в секунду, усреднённые по 24-часовому окну. Когда сеть совсем тихая, значение может упасть ниже 0.01 tps; тогда ячейка показывает <code>&lt; 0.01 tps</code> вместо округления до нуля (округлённый ноль намекал бы, что транзакций не было вовсе — а окно 24h этого не утверждает).</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Peak TPS · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Наивысшая устойчивая скорость транзакций в секунду, замеченная в любом 1-минутном окне за последние 24 часа. Поминутное усреднение — осознанный выбор: 1-секундный всплеск (особенно одиночная транзакция в тихой сети) не должен доминировать в заголовочной цифре. Она растёт при настоящих волнах активности и остаётся низкой, когда сеть отдыхает.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">% finalized &lt; 3s <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Доля финализированных за 24 часа транзакций с time-to-finality меньше трёх секунд — показатель «скоростной полосы». Три секунды — примерно тот порог, после которого платёж начинает ощущаться как ожидание, а не мгновение; этот процент отслеживает, какая часть недавнего трафика уверенно финализируется ниже него. Показывает <code>100%</code> (без десятичных), когда всё финализировалось быстрее 3 с.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Tx · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Сколько транзакций финализировалось во всей сети за последние 24 часа.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Avg block-lock <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Среднее время от добычи block'а до его финализации Avalanche. Отличается от time-to-finality: тот меряет путь <em>pre</em>-consensus (транзакции в mempool), а block-lock — путь <em>post</em>-consensus (целые block'и уже в цепи). Оба — в масштабе сессии.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Avg block time <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Средний интервал между последовательными block'ами, которые видела эта вкладка. eCash целится в 10 минут с помощью алгоритма сложности реального времени Heartbeat. Кнопка <strong>?</strong> рядом с этой ячейкой открывает объяснение Heartbeat.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Tx · session <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Транзакции, которые видела эта вкладка с момента загрузки. Обнуляется при перезагрузке. На мобильном скрыта из полосы, но всегда видна в живых значениях выше.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Stream uptime <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Сколько эта вкладка подключена к сети eCash. Не зависит от relay feed; сбрасывается при перезагрузке.</div>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Как измеряется финальность</h3>\n          <p>Time-to-finality — это расстояние между двумя моментами в жизни транзакции. <strong>Старт</strong>: когда транзакция впервые появляется в mempool узла. <strong>Финиш</strong>: когда Avalanche pre-consensus её блокирует — момент, после которого конкурирующие peer'ы уже не могут её реорганизовать.</p>\n          <p>Обе метки времени берутся из логов самого узла: поэтому они согласованы и не зависят от твоей сетевой задержки. Числа за 24 часа — это перцентили и средние по всем финализированным транзакциям в скользящем окне.</p>\n          <p style=\"margin-bottom:2px\">Каждый перцентиль рассказывает свою историю:</p>\n          <div class=\"so-pct\">\n            <div class=\"so-pct-item\"><div class=\"pk\">p50 · median</div><div class=\"pd\">Заголовочная цифра: то, что испытывает типичная транзакция; малочувствительна к выбросам.</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">p90</div><div class=\"pd\">Ловит медленный хвост — подавляющее большинство заканчивает задолго до этой отметки.</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">p10</div><div class=\"pd\">Показывает скорость самых быстрых 10% — полезно, чтобы увидеть нижнюю границу протокола.</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">Mean</div><div class=\"pd\">Арифметическое среднее, чувствительно к крайностям и обычно чуть выше p50.</div></div>\n          </div>\n          <p>Если фид узла недоступен, ячейки футера откатываются к метрикам сессии, измеренным целиком в твоём браузере. Это значение может превышать настоящий time-to-finality, поскольку включает задержку WebSocket и распространения между узлом и вкладкой.</p>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Читаем значки</h3>\n          <div class=\"so-legend\">\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"ttf-eye-wrap\" style=\"display:inline-flex;margin:0\">${TTF_EYE_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>Глаз</strong> — фид узла временно недоступен, поэтому значение рядом с этим значком — <em>ощущаемое</em> измерение, посчитанное целиком в твоём браузере по описанной выше методике. Когда фид переподключится, глаз исчезнет, и значение вернётся к точности узла.</div>\n            </div>\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"radar-slash-wrap\" style=\"display:inline-flex;margin:0\">${RADAR_SLASH_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>Перечёркнутый радар</strong> — ячейке нечего показать из-за отсутствия соединения с фидом узла. Появляется только на карточках Network · 24h, потому что метрики сессии всегда считаются в браузере. Исчезает, как только фид переподключается и приходит следующий stats frame.</div>\n            </div>\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"ttf-spinner-wrap\" style=\"display:inline-flex;margin:0\">${TTF_SPINNER_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>Спиннер</strong> — показывается в панели деталей транзакции ~3 секунды после финализации. Отображаемое значение посчитано локально и может уточниться до значения с точностью узла, как только оно придёт. После окна обновления спиннер останавливается, и значение считается окончательным.</div>\n            </div>\n          </div>\n        </div>\n      </div>\n    "
+    }
+  },
+  "dom": {
+    "#watchlist-empty-hint": {
+      "text": "добавь адрес, чтобы подсвечивать его tx"
+    },
+    "#btn-live": {
+      "title": "Режим отображения — клик переключает: LIVE → CHAIN → FEED. Снижает нагрузку на DOM при загруженном mempool, сохраняя состояние."
+    },
+    "#btn-pause": {
+      "title": "Поставить входящие транзакции на паузу"
+    },
+    "#tip-btn": {
+      "title": "Угости меня кофе — твоя tx будет подсвечена в стриме"
+    },
+    "#bc-goto-search": {
+      "placeholder": "к block #…"
+    },
+    "#btl-chain-search": {
+      "placeholder": "к block #…"
+    },
+    "#btl-search": {
+      "placeholder": "фильтр по префиксу или фрагменту txid…"
+    },
+    "#wl-input-addr": {
+      "placeholder": "ecash:q… или 64-hex token ID"
+    },
+    "#wl-input-name": {
+      "placeholder": "напр. холодный-кошелёк или моя коллекция NFT"
+    },
+    "#wl-edit-name": {
+      "placeholder": "напр. холодный-кошелёк"
+    },
+    "#chat-pick-input": {
+      "placeholder": "ecash:q…"
+    },
+    "#chat-textarea": {
+      "placeholder": "напиши сообщение · эмодзи можно · Enter отправляет · Shift+Enter новая строка"
+    },
+    ".info-tile[data-tile=\"avalanche\"] .info-tile-title": {
+      "text": "Что такое Avalanche в eCash?"
+    },
+    ".info-tile[data-tile=\"avalanche\"] .info-tile-body": {
+      "html": "<p>Протокол консенсуса, работающий <strong>рядом</strong> с Nakamoto Proof-of-Work в eCash и позволяющий узлам опрашивать друг друга и договариваться о block'ах и (с Pre-Consensus) об отдельных транзакциях за секунды.</p><p><strong>Post-Consensus</strong> (в работе с сент. 2022) даёт финальность за 1 block и защиту от атак 51%. <strong>Pre-Consensus</strong> (mainnet с 15.11.2025) финализирует транзакции за &lt;3 с до их добычи — eCash ощущается как наличные и для пользователей, и для бирж.</p><p>Думай о PoW как о <em>письме</em> (медленно, навсегда), а об Avalanche — как о <em>речи</em> (быстро, мимолётно) — eCash использует и то и другое.</p>"
+    },
+    ".info-tile[data-tile=\"agora\"] .info-tile-title": {
+      "text": "Что такое Agora в eCash?"
+    },
+    ".info-tile[data-tile=\"agora\"] .info-tile-body": {
+      "html": "<p>Некастодиальный <strong>протокол атомарных свопов</strong>, построенный на eCash Script. Запущен в октябре 2024 — любой может выставить eToken'ы или NFT на продажу прямо on-chain: без биржи, без хранителя, без разрешений.</p><p>Сделки исполняются транзакциями, которые покупатель подписывает сам себе, — это возможно благодаря опкоду <code>OP_CHECKDATASIG</code>. Ковенанты живут on-chain: любой может просматривать, торговаться и закрывать сделки без централизованной книги ордеров.</p><p>Питает DEX eToken'ов в Cashtab и демонстрирует встроенные DeFi-возможности eCash при комиссиях меньше цента.</p>"
+    },
+    ".info-tile[data-tile=\"heartbeat\"] .info-tile-title": {
+      "text": "Что такое Heartbeat?"
+    },
+    ".info-tile[data-tile=\"heartbeat\"] .info-tile-body": {
+      "html": "<p><strong>Алгоритм корректировки сложности в реальном времени</strong> в eCash, активирован 15 ноября 2024. Работает поверх классической корректировки Bitcoin, чтобы <strong>выровнять времена block'ов</strong> и покончить со «слипанием», когда всплеск hashpower выдаёт 5 block'ов за 2 минуты, а потом 30 минут тишины.</p><p>Когда block'и приходят быстрее цели в 10 минут, сложность немедленно растёт, а затем монотонно снижается до нормы. Block'и, нарушающие цель реального времени, <strong>отвергаются консенсусом Avalanche</strong> — даже если технически валидны по классическим правилам Bitcoin.</p><p>Итог: более ровные времена подтверждения, меньше эксплойтов майнинг-пулов и более предсказуемый опыт для всей сети.</p>"
+    },
+    ".info-tile[data-tile=\"chronik\"] .info-tile-title": {
+      "html": "Что такое <strong>Chronik</strong>?"
+    },
+    ".info-tile[data-tile=\"chronik\"] .info-tile-body": {
+      "html": "<p><strong>Chronik</strong> — высокопроизводительный индексатор eCash, встроенный прямо в Bitcoin ABC. Это слой данных, с которым говорит каждый кошелёк, обозреватель и dApp в eCash — включая этот живой стрим.</p><p>Написанный на Rust и тесно интегрированный с узлом, <strong>Chronik</strong> отдаёт данные цепи плюс полное состояние токенов SLP / ALP через единый API HTTP + WebSocket. Кошельки получают быстрые истории адресов, токен-осведомлённые наборы UTXO и живые потоки транзакций без повторного разбора цепи.</p><p>Если ты пользовался Cashtab, agora.cash, этим дашбордом или обозревателем explorer.e.cash — каждый байт данных цепи прошёл через экземпляр <strong>Chronik</strong>, чтобы туда попасть.</p>"
+    },
+    ".btl-right-hint": {
+      "text": "Кликни tx, чтобы посмотреть · txid открывает explorer"
+    },
+    ".dlg-qr-hint": {
+      "text": "Сканируй QR приложением кошелька · или нажми кнопку ниже"
+    },
+    ".ee-hint": {
+      "text": "нажми логотип eCash, чтобы посетить e.cash · нажми в другом месте, чтобы закрыть"
+    },
+    ".wl-history-right-hint": {
+      "text": "Наведи на строку для предпросмотра · клик закрепляет · повторный клик открепляет"
+    },
+    ".wl-history-empty": {
+      "html": "Отслеживаемых tx пока нет — они появятся здесь по мере событий. Нажми <b>Sync</b>, чтобы подтянуть полную историю из chronik."
+    },
+    ".wl-sub:not(#wl-edit-sub):not(#chat-pick-sub)": {
+      "html": "Введи адрес eCash <span class=\"mono\">ecash:q…</span> или 64-hex ID токена/NFT."
+    },
+    "#chat-pick-sub": {
+      "html": "Введи адрес eCash <span class=\"mono\">ecash:q…</span>."
+    },
+    ".chat-send-dialog .dlg-title": {
+      "text": "Отправь через свой кошелёк eCash"
+    },
+    ".chat-send-dialog .dlg-sub": {
+      "html": "Твоё сообщение и получатели упакованы в платёжную ссылку BIP21. Открой её в любом кошельке eCash — Cashtab сам заполнит форму Send. <strong style=\"color:var(--amber)\">Этот сайт никогда не видит твою seed phrase.</strong>"
+    },
+    "#feed-warning-popover .popover-title": {
+      "text": "⚠ Предупреждение о безопасности Feed"
+    },
+    "#feed-warning-popover > div:last-of-type": {
+      "html": "Feed показывает <strong>все on-chain сообщения со всей сети eCash</strong> — кто угодно может транслировать что угодно.<ul><li><strong>Считай каждую ссылку подозрительной.</strong> Не кликай URL в сообщениях незнакомцев; фишинговые наборы появляются здесь регулярно.</li><li><strong>Никогда не делись seed phrase, приватным ключом или паролем кошелька.</strong> Ни один настоящий проект не попросит их в чате или сообщении.</li><li><strong>Остерегайся самозванцев.</strong> Любой может вписать любое имя в сообщение; проверяй личности через надёжные каналы.</li><li><strong>Airdrop'ы токенов могут быть приманкой.</strong> Непрошеные токены могут содержать фишинговые ссылки или мошеннические данные — безопаснее изучить вопрос перед взаимодействием.</li></ul>"
+    },
+    "#chat-warning-popover .popover-title": {
+      "text": "⚠ Предупреждение о безопасности Chat"
+    },
+    "#chat-warning-popover > div:last-of-type": {
+      "html": "Сообщения чата — это <strong>постоянные on-chain транзакции eCash</strong>: их нельзя удалить или отредактировать после трансляции, и кто угодно сможет читать их вечно.<ul><li><strong>Все сообщения публичны на 100%.</strong> После отправки они хранятся на каждом узле eCash в мире и индексируются кем угодно. Приватного чата on-chain не существует.</li><li><strong>Запись навсегда.</strong> Подумай перед отправкой — твои слова переживут тебя в блокчейне.</li><li><strong>Остерегайся мошенников.</strong> Даже если кошелёк собеседника выглядит знакомым, отправителем может быть любой, у кого есть его seed phrase. Сверяй крупные сделки по другому каналу.</li><li><strong>Никогда не вставляй сюда seed phrase, приватные ключи или пароли</strong> — они навсегда окажутся на виду у всего мира.</li><li><strong>Этот сайт никогда не видит твои ключи.</strong> Все отправки подписывает твой кошелёк (Cashtab/Electrum-XEC/и т.д.); мы лишь собираем ссылку BIP21.</li></ul>"
+    },
+    ".d-token-url-warn": {
+      "warn": "Токены могут указать любой URL в своей genesis-транзакции — сеть этот URL НЕ проверяет. Фишинговые токены могут вести на вредоносные сайты, пытающиеся опустошить твой кошелёк. Всегда: (1) проверяй, что URL совпадает с официальным доменом проекта, (2) никогда не подключай кошелёк на сайте, куда ты попал по URL токена, без независимой проверки, (3) никогда и нигде не вводи свою seed phrase."
+    }
+  },
+  "domMap": {
+    ".info-tile-links-label": {
+      "Read more on e.cash": "Подробнее на e.cash",
+      "Tool": "Инструмент",
+      "Trade now": "Торговать сейчас"
+    },
+    ".chat-chip-empty": {
+      "no address set — pick yours to see your own chat lines": "адрес не задан — выбери свой, чтобы видеть собственные сообщения",
+      "add at least one peer wallet to load their messages": "добавь хотя бы один кошелёк собеседника, чтобы загрузить его сообщения"
+    },
+    ".btl-empty": {
+      "Block has no transactions (?!)": "В block'е нет транзакций (?!)"
+    },
+    ".watchlist-empty-state": {
+      "No addresses tracked yet — click \"+ add\" to start watching one.": "Адресов в наблюдении пока нет — нажми «+ add», чтобы начать следить."
+    }
+  },
+  "titleMap": {
+    "Click for a full stats explanation. Use the ⇄ button to toggle between the network 24h reading and your session reading.": "Клик — полное объяснение статистики. Кнопкой ⇄ переключай между сетевым показанием за 24h и показанием твоей сессии.",
+    "Network transactions per second, rolling 24h. From the dedicated eCash node. Click for details.": "Транзакции сети в секунду, скользящие 24h. С выделенного узла eCash. Клик — подробности.",
+    "Total transactions finalized network-wide in the last 24 hours. From the dedicated eCash node. Click for details.": "Всего транзакций, финализированных по всей сети за последние 24 часа. С выделенного узла eCash. Клик — подробности.",
+    "Total transactions observed by this browser tab since the page was loaded. Click for details.": "Всего транзакций, которые видела эта вкладка с момента загрузки страницы. Клик — подробности.",
+    "Average time from block mined to Avalanche post-consensus finalized. Last 20 samples this session. Click for details.": "Среднее время от добычи block'а до финализации Avalanche post-consensus. Последние 20 образцов этой сессии. Клик — подробности.",
+    "Average elapsed time between the last consecutive blocks observed this session. eCash targets a 10-minute average via the Heartbeat real-time difficulty algorithm.": "Средний интервал между последними последовательными block'ами этой сессии. eCash целится в среднее 10 минут через алгоритм сложности реального времени Heartbeat.",
+    "How long this stream has been connected to the eCash network. Click for details.": "Сколько этот стрим подключён к сети eCash. Клик — подробности.",
+    "Toggle 24h ↔ session": "Переключить 24h ↔ сессия",
+    "Visitors watching this page right now (server-side count of live WebSocket connections to the TTF feed)": "Посетители, смотрящие эту страницу прямо сейчас (серверный подсчёт живых WebSocket-подключений к TTF feed)",
+    "Mempool transactions finalized by Avalanche pre-consensus, awaiting inclusion in a block": "Транзакции mempool, финализированные Avalanche pre-consensus и ждущие включения в block",
+    "Mined by a Proof-of-Work miner": "Добыт майнером Proof-of-Work",
+    "What is Avalanche post-consensus?": "Что такое Avalanche post-consensus?",
+    "What is Heartbeat?": "Что такое Heartbeat?",
+    "What do these colours mean?": "Что означают эти цвета?",
+    "Read 'What is eCash' on e.cash": "Прочитай 'What is eCash' на e.cash",
+    "Visit e.cash": "Посетить e.cash",
+    "Connection status": "Состояние подключения",
+    "Add address to watchlist": "Добавить адрес в watchlist",
+    "Add one or more peer addresses (or import from Watchlist)": "Добавь один или несколько адресов собеседников (или импортируй из Watchlist)",
+    "Edit (rename, change mode, remove)": "Изменить (переименовать, сменить режим, удалить)",
+    "Highlight on either direction": "Подсвечивать в обоих направлениях",
+    "Highlight when this wallet receives (address in outputs)": "Подсвечивать, когда этот кошелёк получает (адрес в outputs)",
+    "Highlight when this wallet sends (address in inputs)": "Подсвечивать, когда этот кошелёк отправляет (адрес в inputs)",
+    "Fetch this address/token's tx history from chronik": "Загрузить историю tx этого адреса/токена из chronik",
+    "Watching paused — click to resume": "Наблюдение на паузе — клик возобновит",
+    "Watching active — click to pause": "Наблюдение активно — клик поставит на паузу",
+    "Go to block": "К block'у",
+    "Open block in explorer": "Открыть block в explorer",
+    "Open in explorer": "Открыть в explorer",
+    "View on explorer": "Посмотреть в explorer",
+    "open in explorer": "открыть в explorer",
+    "Click to copy": "Клик — скопировать",
+    "Click to unpin": "Клик — открепить",
+    "Close": "Закрыть",
+    "Clear": "Очистить",
+    "Dismiss": "Скрыть",
+    "Expand full message": "Развернуть сообщение целиком",
+    "Chat with sender": "Чат с отправителем",
+    "Chat with this address": "Чат с этим адресом",
+    "Max rows shown per column": "Максимум строк на колонку",
+    "Type a custom amount": "Введи свою сумму",
+    "Use slider instead": "Использовать ползунок",
+    "Token transactions seen since this session started": "Токен-транзакции, увиденные с начала этой сессии",
+    "Waiting for chronik to see this tx broadcast": "Ждём, когда chronik увидит трансляцию этой tx",
+    "No connection to node-precise feed": "Нет подключения к точному фиду узла",
+    "Relay stats are temporarily unavailable. Reconnect attempt is in progress.": "Статистика relay временно недоступна. Идёт попытка переподключения.",
+    "Remove this entry from the watchlist": "Убрать эту запись из watchlist",
+    "Safety notice": "Предупреждение о безопасности",
+    "Set your wallet address (so we can show your outgoing chat messages)": "Укажи адрес своего кошелька (чтобы мы показывали твои исходящие сообщения чата)",
+    "Showing perceived value — node-precise feed unavailable": "Показано ощущаемое значение — точный фид узла недоступен",
+    "Token/NFT icons: ON — click to hide and skip loading them": "Значки Token/NFT: ВКЛ — клик скроет их и пропустит загрузку",
+    "Token/NFT icons: OFF — click to show them again": "Значки Token/NFT: ВЫКЛ — клик снова покажет",
+    "raw atomic units — decimals loading…": "сырые атомарные единицы — десятичные загружаются…"
+  }
+}

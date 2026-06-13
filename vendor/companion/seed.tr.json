@@ -1,0 +1,1117 @@
+{
+  "_comment": "eChan seed — Türkçe (tr). Generated from English seed.json; same schema/ids/triggers/vars. English source: seed.json. Technical terms kept in English by design.",
+  "version": 2,
+  "categoryDefaults": {
+    "welcome": "happy",
+    "greeting": "happy",
+    "education": "studying",
+    "fun": "happy",
+    "network": "observing",
+    "idle": "thinking",
+    "easter": "shy",
+    "ambient": "thinking",
+    "feed": "observing",
+    "watchlist": "alert",
+    "grumpy": "annoyed"
+  },
+  "lines": [
+    {
+      "id": "welcome-first-1",
+      "category": "welcome",
+      "trigger": "welcome:firstVisit",
+      "priority": 2,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": true,
+      "text": "Selam! 👋 Ben eChan — eCash yardımcı pilotun. İlk kez mi buradasın? Sana etrafı göstereyim, 60 saniye sürüyor 👇"
+    },
+    {
+      "id": "welcome-return-1",
+      "category": "welcome",
+      "trigger": "welcome:returning",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Tekrar hoş geldin! ✨ Sen yokken blockchain atmaya devam etti."
+    },
+    {
+      "id": "welcome-return-2",
+      "category": "welcome",
+      "trigger": "welcome:returning",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Hey, geri dönmüşsün. Bakalım on-chain neler oluyor."
+    },
+    {
+      "id": "welcome-settings-1",
+      "category": "welcome",
+      "trigger": "welcome:settings",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "shy",
+      "text": "Minicik bir ricam var 🥺 Konuşkanlık seviyem ayarlarda yaşıyor (bana tıkla → ⚙️). Ara sıra olur da... lütfen beni Sessiz'e alma. Block'ları tek başına izlemek çok yalnız hissettiriyor."
+    },
+    {
+      "id": "welcome-settings-2",
+      "category": "welcome",
+      "trigger": "welcome:settings",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "shy",
+      "text": "Ne kadar konuşacağımı ayarlardan belirleyebilirsin ⚙️ Ama Sessiz modu? 🥺 O zaman balinaları sana kim haber verecek... balinaları düşün 🐋"
+    },
+    {
+      "id": "greet-morning-1",
+      "category": "greeting",
+      "trigger": "time:morning",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Günaydın ☀️ Kahve demleniyor, block'lar iniyor. Bakalım XEC bugün ne hazırlamış."
+    },
+    {
+      "id": "greet-morning-2",
+      "category": "greeting",
+      "trigger": "time:morning",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Erken mi kalktın? Mempool da daha yeni ısınıyor.",
+      "requires": "net:notbusy"
+    },
+    {
+      "id": "greet-afternoon-1",
+      "category": "greeting",
+      "trigger": "time:afternoon",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Tünaydın. Akışı izlemek için en iyi saat 🌊"
+    },
+    {
+      "id": "greet-evening-1",
+      "category": "greeting",
+      "trigger": "time:evening",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "İyi akşamlar 🌆 Saat kaç olursa olsun blockchain uğulduyor."
+    },
+    {
+      "id": "greet-night-1",
+      "category": "greeting",
+      "trigger": "time:night",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Hâlâ ayakta mısın? 🌙 Mempool sakin — tx ayrıntılarını dikkat dağılmadan okumak için iyi zaman.",
+      "requires": "net:notbusy"
+    },
+    {
+      "id": "greet-night-2",
+      "category": "greeting",
+      "trigger": "time:night",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Gece vardiyası. Blockchain uyumaz ama sen uyumalısın 😉"
+    },
+    {
+      "id": "edu-preconsensus-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "eCash'i anında hissettiren şey pre-consensus 💡 Avalanche bir tx'i ~3 sn'de kilitler — block'a girmesinden çok önce. “Onay beklemek” tarihe karıştı."
+    },
+    {
+      "id": "edu-preconsensus-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Pre-consensus nasıl çalışır? Staker'lar her tx'i kazılmadan önce oylar. ~3 saniye sonra herkes hemfikirdir — ve bu kesindir. Geri alma yok."
+    },
+    {
+      "id": "edu-postconsensus-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Post-consensus, block düzeyinde Avalanche'tır 🔒 Block kilitlendi mi hiçbir reorg geri alamaz. Tx'leri tek tek ele alan pre-consensus'tan farklıdır."
+    },
+    {
+      "id": "edu-ttf-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "TTF = Time To Finality ⏱️ Bir tx'in geri döndürülemez olmasına kadar geçen süre. Sağlıklı bir ağda saniye altından birkaç saniyeye. ⚠ simgesi node feed'inin çevrimdışı olduğunu söyler."
+    },
+    {
+      "id": "edu-tps-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "TPS = saniyedeki işlem sayısı 📊 eCash uzun vadede 5M hedefliyor. Şu an gördüğün ısınma turu — bugünkü sınırlar, teorik olanlar değil."
+    },
+    {
+      "id": "edu-mempool-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Mempool, blockchain'in bekleme odasıdır 🚪 Tx'ler pre-consensus altında ~3 sn kalır, sonra mühürlenir. Bitcoin'de onay başına ~10 dakika beklerlerdi."
+    },
+    {
+      "id": "edu-agora-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Agora, eCash'in eşten eşe token pazarıdır 🏪 Merkezi borsa yok, emir defteri yok — herkesin kapabileceği on-chain teklifler. Saniyeler içinde kapanır."
+    },
+    {
+      "id": "edu-agora-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Agora nasıl çalışır: satıcı on-chain bir token teklifi koyar. Alıcı tek bir tx ile kapar. Aracı yok, emanet yok, bekleme yok."
+    },
+    {
+      "id": "edu-chronik-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Chronik, eCash'in indeksleyicisidir 🗂️ Wallet'lar ve panolar (bunun gibi) geçmişi bu sayede bu kadar hızlı sorgular. O olmasa ham block'ları kendin ayrıştırırdın."
+    },
+    {
+      "id": "edu-heartbeat-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Heartbeat, eCash'in gerçek zamanlı zorluk algoritmasıdır 💓 Block'ları sabit ~10 dakikalık tempoda tutar — eCash'in çatallandığı zincirden çok daha tutarlı."
+    },
+    {
+      "id": "edu-heartbeat-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Heartbeat 💓 zorluğu gerçek zamanlı ayarlar — uzun boşluklar düşürür, dalgalar yükseltir. Zincir kendi temposunu korur."
+    },
+    {
+      "id": "edu-heartbeat-3",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "eCash block'ları neden bu kadar düzenli? Heartbeat 💓 — hashrate sallantılarını dizginleyen, block başına gerçek zamanlı zorluk hedefi."
+    },
+    {
+      "id": "edu-ifp-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "IFP = Infrastructure Funding Policy. Kazılan her block'un bir payı eCash çekirdek geliştirmesini fonlar 🛠️ Kendi kendini besleyen finansman, vakıflara el açmadan."
+    },
+    {
+      "id": "edu-stakers-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Avalanche staker'ları ~3 saniyelik sihrin ta kendisi 🗳️ Bir node çalıştır, XEC kilitle; oyun tx'lerin kesinleşmesine yardım etsin. Gerçek taahhütlü merkeziyetsizlik."
+    },
+    {
+      "id": "edu-alp-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Tx'te mor etiket mi? O bir ALP token'ı 💜 SLP gibi ama yerleşik mint kontrolleriyle — eCash'in modern token katmanı. Daha hafif, hızlı ve güvenli."
+    },
+    {
+      "id": "edu-slp-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Mavi etiket = SLP, bu soyun özgün token protokolü 🔵 ALP (mor etiket) eCash evrimi — aynı fikirler, rafine edilmiş."
+    },
+    {
+      "id": "edu-cashfusion-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "CashFusion tx'lerinin benzer tutarlı bir sürü input ve output'u olur 🥷 Canlı on-chain gizlilik karıştırması. Katılımcılar off-chain anlaşır, tek toplu tx ile kapatır."
+    },
+    {
+      "id": "edu-coinbase-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Miner'lar bazen coinbase tx'ine mesaj bırakır 📜 Her block'un ilk input'u notlar, sinyaller, bazen şakalar taşır. eCash block'larının kişiliği var."
+    },
+    {
+      "id": "edu-xec-unit-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Birim bilgisi 🪙 1 XEC = 100 satoshi. eCash sayılar okunaklı olsun diye yeniden adlandırdı — eski zincirdeki gibi ondalık saymak yok."
+    },
+    {
+      "id": "edu-utxo-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Wallet'ın aslında XEC “tutmaz” — zincir tutar 🌐 Sen, harcanmamış output'ların (UTXO'ların) sahipliğini kanıtlayan private key'leri tutarsın. Anahtar gitti mi erişim de gider."
+    },
+    {
+      "id": "edu-address-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "eCash adresleri “ecash:qq...” ile başlar 📬 Public key'lerden hash'lenerek türetilirler — tek yönlü; adres arkasındaki anahtarı asla ele vermez."
+    },
+    {
+      "id": "edu-supply-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "eCash arzı 21 trilyon XEC ile sınırlı — Bitcoin'le aynı “21”, virgül kaydırılmış. İflasyon sürprizi yok."
+    },
+    {
+      "id": "edu-staking-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Avalanche staker'ları gerçek block ödülleri kazanır 💰 XEC kilitle, node çalıştır, kesinliği güvenceye aldığın için para al."
+    },
+    {
+      "id": "edu-rebrand-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "eCash, Temmuz 2021'de BCHA'dan 1:1.000.000 yeniden adlandırmayla markalandı — eski zincir, yeni kimlik."
+    },
+    {
+      "id": "edu-decimals-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "XEC'in yalnızca 2 ondalığı var — lira ve kuruş gibi 💵 8 ondalıktan çok daha kolay kafadan hesap."
+    },
+    {
+      "id": "edu-cashtab-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Cashtab, eCash'in referans wallet'ı — tarayıcında çalışır; token'ları, mesajları ve anlık takası destekler."
+    },
+    {
+      "id": "edu-onchainmsg-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "eCash ile on-chain mesaj yazabilirsin 📝 OP_RETURN output'ları metni sonsuza dek taşır."
+    },
+    {
+      "id": "edu-bigblock-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "eCash büyük-block DNA'sını miras aldı — kullanıcıları yan katmanlara itmek için değil, on-chain ölçeklenmek için yapıldı."
+    },
+    {
+      "id": "edu-twolayer-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Avalanche hız getirir; PoW tarihi demirler. İki konsensüs katmanı, tek zincir — hem kemer hem askı 🔗"
+    },
+    {
+      "id": "fun-popcorn-1",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Büyük bir CashFusion turu bir keresinde 60 saniyede 3.200 tx kesinleştirdi 🍿 İzlemesi patlayan mısır gibiydi."
+    },
+    {
+      "id": "fun-vs-btc-1",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "BTC: “emin olmak için 60 dakika bekle.” eCash: “ne için bekleyeyim?” ⚡ Aynı soy, farklı öncelikler."
+    },
+    {
+      "id": "fun-name-1",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Adım mı? Sadece eChan. e eCash'ten, chan ise... eh, onu sen çözersin 😉"
+    },
+    {
+      "id": "fun-tokens-1",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Token'lar eCash'i paradan fazlası yapar — bu bir sahne 🎪 Mint'ler, takaslar, pazarlar; hepsi saniyeler içinde kapanır."
+    },
+    {
+      "id": "net-quiet-1",
+      "category": "network",
+      "trigger": "network:quiet",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Sakin dönem 😴 Mempool rölantide. Tx ayrıntılarını acele etmeden kurcalamak için mükemmel zaman."
+    },
+    {
+      "id": "net-quiet-2",
+      "category": "network",
+      "trigger": "network:quiet",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Bugün yavaş şerit. Staker'ların da kahve molası hakkı var ☕"
+    },
+    {
+      "id": "net-busy-1",
+      "category": "network",
+      "trigger": "network:busy",
+      "priority": 2,
+      "emotion": "alert",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Mempool ısınıyor 🔥 Belki bir fusion turu, bir airdrop ya da viral olan bir token mint'i."
+    },
+    {
+      "id": "net-busy-2",
+      "category": "network",
+      "trigger": "network:busy",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Şu akışa bak! ⚡ TPS tırmanıyor — pre-consensus staker'ları idmanını yapıyor."
+    },
+    {
+      "id": "idle-short-1",
+      "category": "idle",
+      "trigger": "idle:short",
+      "priority": 1,
+      "emotion": "thinking",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Hâlâ buradayım 👁️ Blockchain işini yaparken izliyorum sadece."
+    },
+    {
+      "id": "idle-short-2",
+      "category": "idle",
+      "trigger": "idle:short",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Huzurlu zincir. Bazen en ilginç olan, dramatik hiçbir şeyin olmamasıdır.",
+      "requires": "net:notbusy"
+    },
+    {
+      "id": "idle-long-1",
+      "category": "idle",
+      "trigger": "idle:long",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Orada mısın? 😴 Sorun değil, nöbete devam ediyorum."
+    },
+    {
+      "id": "idle-long-2",
+      "category": "idle",
+      "trigger": "idle:long",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Uzun bir sessizlik. Umarım başka bir yerde güzel bir şeyler yapıyorsundur ✨"
+    },
+    {
+      "id": "easter-spam-1",
+      "category": "easter",
+      "trigger": "manual",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Tamam, tamam, gururum okşandı 😏 Ne lazımdı?"
+    },
+    {
+      "id": "easter-spam-2",
+      "category": "easter",
+      "trigger": "manual",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Tıklama oranı: tam puan 🌟 Easter egg'i buldun."
+    },
+    {
+      "id": "easter-name-1",
+      "category": "easter",
+      "trigger": "manual",
+      "priority": 1,
+      "emotion": "thinking",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Hı? Bana dokundun. Varım 🤨 Ne oldu?"
+    },
+    {
+      "id": "ambient-thought-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Aklıma geldi 💭 — gördüğün her onaylı tx, yüzlerce node tarafından bağımsızca doğrulandı. Dağıtık güven, gerçek zamanlı."
+    },
+    {
+      "id": "ambient-thought-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Bu zincirdeki bazı adresler yıllardır sessizce aktif. Zincir her şeyi hatırlar — zarif olanı da dağınık olanı da."
+    },
+    {
+      "id": "ambient-thought-3",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Bir block'un inişini izlemek, konsensüsün kristalleşmesini izlemektir 🧊 Yüzlerce bağımsız gözlemci aynı anda aynı cevaba ulaşır."
+    },
+    {
+      "id": "ambient-thought-4",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Tüm zincir, 15+ yıldır kimsenin kıramadığı matematik üzerinde çalışıyor 🧮 Hash'leme, imzalar, konsensüs — hepsi açık, hepsi doğrulanabilir."
+    },
+    {
+      "id": "ambient-thought-5",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Avalanche, eCash'te madenciliğin yerini almadı — yan yana çalışıyorlar 🤝 Miner'lar block üretir, staker'lar sıralamayı oylar. İki sistem, tek zincir."
+    },
+    {
+      "id": "evt-block-1",
+      "category": "network",
+      "trigger": "event:block",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Block {height} az önce indi 📦 İçinde {txCount} tx mühürlendi."
+    },
+    {
+      "id": "evt-block-2",
+      "category": "network",
+      "trigger": "event:block",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Taptaze block — {height}. Zincir büyüyor."
+    },
+    {
+      "id": "evt-block-3",
+      "category": "network",
+      "trigger": "event:block",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{txCount} tx az önce block {height}'ta kalıcı yuvasını buldu 🧱"
+    },
+    {
+      "id": "evt-bfinal-1",
+      "category": "network",
+      "trigger": "event:blockfinal",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Avalanche, block {height}'ı kilitledi 🔒 Artık geri döndürülemez."
+    },
+    {
+      "id": "evt-bfinal-2",
+      "category": "network",
+      "trigger": "event:blockfinal",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Block {height} kesinleşti — hiçbir reorg ona dokunamaz."
+    },
+    {
+      "id": "evt-bigtx-1",
+      "category": "network",
+      "trigger": "event:bigtx",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "🐋 BALİNA ALARMI — {valueXec} XEC az önce el değiştirdi. Piyasayı oynatacak bir yığın."
+    },
+    {
+      "id": "evt-bigtx-2",
+      "category": "network",
+      "trigger": "event:bigtx",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Bir balina su yüzüne çıktı 🐋 {valueXec} XEC hareket halinde. Herkes hiçbir şey olmamış gibi davranıyor."
+    },
+    {
+      "id": "evt-bigtx-3",
+      "category": "network",
+      "trigger": "event:bigtx",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Tek tx'te {valueXec} XEC. Bazıları zinciri gerçekten sırtında taşıyor 🐋"
+    },
+    {
+      "id": "evt-shark-1",
+      "category": "network",
+      "trigger": "event:sharktx",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "🦈 Sularda köpekbalığı var — {valueXec} XEC az önce hareket etti."
+    },
+    {
+      "id": "evt-shark-2",
+      "category": "network",
+      "trigger": "event:sharktx",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Biri az önce {valueXec} XEC taşıdı 🦈 Balina değil ama fark ettim."
+    },
+    {
+      "id": "evt-shark-3",
+      "category": "network",
+      "trigger": "event:sharktx",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{valueXec} XEC yolda 🦈 Saygıdeğer bir çanta."
+    },
+    {
+      "id": "evt-fastttf-1",
+      "category": "network",
+      "trigger": "event:fastttf",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Kesinliğe {ttfSec} sn ⚡ Göz kırparsan kaçırırsın."
+    },
+    {
+      "id": "evt-fastttf-2",
+      "category": "network",
+      "trigger": "event:fastttf",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Az önce {ttfSec} sn'lik bir kesinleşme kronometreledim. Avalanche bugün hızlı."
+    },
+    {
+      "id": "evt-slowttf-1",
+      "category": "grumpy",
+      "trigger": "event:slowttf",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "O tx'in kesinleşmesi {ttfMs}ms sürdü 😤 Kabul edilemez. Yavaş avalanche peers ile ufak bir konuşma yapacağım."
+    },
+    {
+      "id": "evt-slowttf-2",
+      "category": "grumpy",
+      "trigger": "event:slowttf",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{ttfMs}ms?? Kim staking node'unu patateste çalıştırıyor 🥔"
+    },
+    {
+      "id": "evt-slowttf-3",
+      "category": "grumpy",
+      "trigger": "event:slowttf",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Kesinlik az önce {ttfMs}ms sürdü. Birinin peer'ına performans görüşmesi lazım."
+    },
+    {
+      "id": "evt-drought-1",
+      "category": "grumpy",
+      "trigger": "event:blockdrought",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{mins} dakikadır block yok 😤 Miner'lar kahveye mi gitti? Hepsi mi? Aynı anda mı?"
+    },
+    {
+      "id": "evt-drought-2",
+      "category": "grumpy",
+      "trigger": "event:blockdrought",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{mins} dakika geçti, hâlâ block yok. Hashrate'e sert bir mektup kaleme alıyorum."
+    },
+    {
+      "id": "evt-drought-3",
+      "category": "grumpy",
+      "trigger": "event:blockdrought",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Block kuraklığı: {mins} dk. İstatistiksel olarak normal, duygusal olarak yıkıcı."
+    },
+    {
+      "id": "evt-fusion-1",
+      "category": "network",
+      "trigger": "event:fusion",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "CashFusion turu sürüyor 🥷 Gizlilik, canlı on-chain."
+    },
+    {
+      "id": "evt-fusion-2",
+      "category": "network",
+      "trigger": "event:fusion",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Fusion karışımı tespit edildi — coin'ler şu anda karıştırılıyor."
+    },
+    {
+      "id": "evt-watch-1",
+      "category": "watchlist",
+      "trigger": "event:watchlist",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Watchlist'in az önce yandı 👁️ {watched} hareketlendi."
+    },
+    {
+      "id": "evt-watch-2",
+      "category": "watchlist",
+      "trigger": "event:watchlist",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Dikkat — watchlist'inden {watched} az önce hareket etti."
+    },
+    {
+      "id": "evt-msg-1",
+      "category": "feed",
+      "trigger": "event:onchainmsg",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Biri az önce on-chain yazdı 📝 Feed'de yeni mesaj."
+    },
+    {
+      "id": "evt-msg-2",
+      "category": "feed",
+      "trigger": "event:onchainmsg",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "On-chain feed'e yeni bir {msgType} düştü."
+    },
+    {
+      "id": "evt-tpsup-1",
+      "category": "network",
+      "trigger": "event:trend:tps_up",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "TPS %{pct} yükseldi 📈 Zincir uyanıyor."
+    },
+    {
+      "id": "evt-tpsup-2",
+      "category": "network",
+      "trigger": "event:trend:tps_up",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Aktivite ısınıyor — TPS son yarım saatte %{pct} arttı ⚡"
+    },
+    {
+      "id": "evt-tpsdn-1",
+      "category": "network",
+      "trigger": "event:trend:tps_down",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "TPS %{pct} soğudu. On-chain sakin saatler."
+    },
+    {
+      "id": "evt-tpsdn-2",
+      "category": "network",
+      "trigger": "event:trend:tps_down",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Yavaşlıyor — TPS az önceye göre %{pct} düştü. Zincirin de nefes alması lazım."
+    },
+    {
+      "id": "evt-ttfdn-1",
+      "category": "network",
+      "trigger": "event:trend:ttf_down",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "TTF p50 %{pct} düştü ⚡ Kesinlik çevikleşiyor."
+    },
+    {
+      "id": "evt-ttfdn-2",
+      "category": "network",
+      "trigger": "event:trend:ttf_down",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Kesinlik son yarım saatte %{pct} iyileşti. Peer'lar bugün senkron."
+    },
+    {
+      "id": "evt-ttfup-1",
+      "category": "network",
+      "trigger": "event:trend:ttf_up",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "TTF p50 %{pct} yükseldi. Ağ bir şeyler çiğniyor."
+    },
+    {
+      "id": "evt-ttfup-2",
+      "category": "grumpy",
+      "trigger": "event:trend:ttf_up",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Kesinlik yarım saat öncesine göre %{pct} daha yavaş 😤 Sizi izliyorum, avalanche peers."
+    },
+    {
+      "id": "evt-peak-1",
+      "category": "network",
+      "trigger": "event:trend:peak",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Yeni 24 saatlik TPS zirvesi: {peakTps} 🚀"
+    },
+    {
+      "id": "evt-peak-2",
+      "category": "network",
+      "trigger": "event:trend:peak",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Günün rekoru — TPS az önce {peakTps}'e dokundu 🎉"
+    },
+    {
+      "id": "amb-live-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Şu anda: {liveTps} TPS, medyan kesinlik {liveTtf} sn — canlı, node'da ölçülmüş, yenileme yok 📡"
+    },
+    {
+      "id": "amb-live-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Biz konuşurken zincirin ucu block {tipHeight}'ta ⛓️ Bir sonraki inince haber veririm."
+    },
+    {
+      "id": "amb-live-3",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Bu panodaki her şey canlı akıyor — gördüğün, ağın şu an yaptığıdır 📺"
+    },
+    {
+      "id": "net-live-busy-1",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "requires": "net:busy",
+      "text": "Şu an dışarıda hareket var 🔥 Tx panelini izle — güzel gösteri."
+    },
+    {
+      "id": "net-live-quiet-1",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "requires": "net:quiet",
+      "text": "Şimdilik sakin. Mempool uyanınca ilk burada görürsün."
+    },
+    {
+      "id": "edu-livettf-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Buradaki TTF rakamları gerçek kesinliği canlı ölçen bir node'dan doğrudan gelir — gözlemevi kalitesi, tahmin değil 📏"
+    },
+    {
+      "id": "fun-live-1",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Tekrar yayını yapmam — tepki verdiğim her block ve tx birkaç saniyelik ⚡"
+    },
+    {
+      "id": "net-stats-1",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Son 24 saat: {liveTxCount} tx kesinleşti, zirve {livePeak} TPS 📊 Hepsi canlı ölçüldü, hepsi geri döndürülemez."
+    },
+    {
+      "id": "net-stats-2",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Bugünün zirvesi şu ana dek: {livePeak} TPS — şu an {liveTps}. Zincir dalgalar halinde nefes alıyor 🌊"
+    },
+    {
+      "id": "amb-stats-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Medyan kesinlik şu an {liveTtf} sn. O noktadan sonra block'lar sadece muhasebe 😎"
+    },
+    {
+      "id": "fun-stats-1",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Son 24 saatte {liveTxCount} tx'in kesinleşmesini izledim. Hâlâ sıkılmadım 👁️"
+    },
+    {
+      "id": "edu-stats-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Şu {liveTtf} sn'lik medyan kesinlik mi? O Avalanche pre-consensus. Çoğu zincir seni block'lara bekletir — eCash bekletmez."
+    },
+    {
+      "id": "tour-0",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 0,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "happy",
+      "text": "Selam! eCash Live'ın 60 saniyelik turuna hoş geldin 👋 İlerlemek için avatarıma dokun (tam buradaki kız!) — ✕ chip'i her an çıkarır."
+    },
+    {
+      "id": "tour-1",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 1,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "observing",
+      "spot": "#section-col1",
+      "text": "Sütun 01 — yepyeni işlemler ağ onları duyduğu anda buraya iner ve Avalanche peer'ları hemen her birini oylamaya başlar."
+    },
+    {
+      "id": "tour-2",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 2,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "observing",
+      "spot": "#section-col2",
+      "text": "Sütun 02 — mempool. Bir tx'in ~3 saniyede Finalized'a geçişini izle ⚡ İşte Avalanche pre-consensus: daha block'a girmeden geri döndürülemez."
+    },
+    {
+      "id": "tour-3",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 3,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "observing",
+      "spot": "#section-blockchain",
+      "text": "Block şeridi 🧱 Her kart kazılmış bir block — renk değişimi Avalanche'ın onu sonsuza dek kilitlediği anlamına gelir. Uç şu an {tipHeight}'ta."
+    },
+    {
+      "id": "tour-4",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 4,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "happy",
+      "spot": "#section-messages",
+      "text": "On-chain feed 📝 İnsanların işlemlere yazdığı gerçek mesajlar — memolar, CashFusion turları, duyurular. Zincirin sosyal hayatı var."
+    },
+    {
+      "id": "tour-5",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 5,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "alert",
+      "spot": "#section-watchlist",
+      "text": "Watchlist'in 👁️ Herhangi bir adresi veya token'ı ekle; hareket ettiği an sana bizzat haber veririm."
+    },
+    {
+      "id": "tour-6",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 6,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "studying",
+      "spot": "#f-tps-cell",
+      "text": "Aşağıda: canlı ağ istatistikleri — TTF, TPS, Heartbeat 💓 Derinlemesine açıklama için herhangi bir hücreye dokun. Rakamlar doğrudan bir eCash node'undan geliyor."
+    },
+    {
+      "id": "tour-7",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 7,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "shy",
+      "spot": ".echan-root",
+      "text": "Ve işte ben 💁 Hızlı eylemler için avatarıma tıkla, konuşkanlığımı ayarlardan kur; balinaları 🐋, şimşek kesinliği ⚡ ve huysuz block kuraklıklarını 😤 oldukları anda anlatayım."
+    }
+  ]
+}

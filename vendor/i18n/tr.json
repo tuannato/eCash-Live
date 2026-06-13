@@ -1,0 +1,233 @@
+{
+  "meta": {
+    "code": "tr",
+    "name": "Türkçe",
+    "source": "en",
+    "packVersion": 5
+  },
+  "ui": {
+    "qa.stats": "İstatistikler",
+    "qa.stats.title": "Ağ istatistik panelini aç",
+    "qa.block": "Son block",
+    "qa.block.title": "En yeni block popover'ını aç",
+    "qa.tip": "Projeyi destekle",
+    "qa.tip.title": "Bahşiş kutusunu aç",
+    "qa.guide": "Rehber",
+    "qa.guide.title": "eChan sana paneli gezdirsin",
+    "settings.title": "ayarlar",
+    "settings.chattiness": "Konuşkanlık",
+    "settings.sound": "Ses",
+    "settings.help.aria": "Bu modlar ne anlama geliyor?",
+    "mode.quiet": "Sessiz",
+    "mode.quiet.desc": "Sessizlik — yalnızca operatör duyuruları geçer.",
+    "mode.casual": "Ara sıra",
+    "mode.casual.desc": "~45 sn'de bir yorum yapar; önemli olaylara tepki verir (balinalar, watchlist, trendler).",
+    "mode.chatty": "Geveze",
+    "mode.chatty.desc": "Varsayılan — ~15 sn'de bir sık yorum + her olaya tepki.",
+    "chips.tour": "▶ Bana etrafı gezdir",
+    "chips.later": "Sonra",
+    "chips.lang": "🌐 Dil",
+    "tour.back": "⟵ Geri",
+    "tour.exit": "✕ Turdan çık",
+    "tour.done": "Tur bitti! 👋 Buradayım, blockchain'i canlı anlatmaya devam ediyorum.",
+    "lang.title": "Dil / Language"
+  },
+  "tooltips": {
+    "ava-tx": {
+      "title": "Avalanche · Transaction Finality",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Pre-consensus</strong>, bir işlemin herhangi bir block'a girmeden <em>önce</em> ağ tarafından üzerinde uzlaşılmasını sağlar.</p>\n          <p>Bir işlem mempool'a ulaştığı anda, Avalanche'a katılan eCash node'ları birbirlerini sorgulamaya başlar — “bu işlemi kabul ediyor musun?” Her sorgu, stake ettikleri eCash miktarına göre ağırlıklandırılmış, rastgele seçilen bir peer alt kümesiyle yapılan küçük bir UDP alışverişidir.</p>\n          <p>Sorgulayan node her peer'ın oyunu izler ve bir <strong>güven puanı</strong> günceller. Bu puan kesinleşme eşiğini aştığında işlem <strong>sonsuza dek kilitlenir</strong> — o andan itibaren hiçbir double-spend veya rakip işlem kazanamaz.</p>\n          <p>Tüm süreç ortalama <strong>~3 saniye</strong> sürer — ödeme terminallerinin ve borsaların bakiyeleri anında alacaklandırması için yeterince hızlı. Oylar geldikçe halka dolar; kilit işareti “oylama sürüyor”dan “kalıcı konsensüs”e geçişi işaretler.</p>\n          <p class=\"meta-note\">15 Kasım 2025'te mainnet'te etkinleştirildi.</p>\n        </div>\n        <div class=\"diagram-col\">${PRE_CONSENSUS_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "ava-block": {
+      "title": "Avalanche · Block Finality",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Post-consensus</strong>, aynı Avalanche oylama mekanizmasını <em>block'lara</em> uygular ve klasik Nakamoto proof-of-work zincirinin üzerinde çalışır.</p>\n          <p>Her yeni block üç aşamadan geçer:</p>\n          <p>⛏ <strong>Mined</strong> — bir miner geçerli bir proof-of-work bulur ve block'u yayınlar.</p>\n          <p>↻ <strong>Polling</strong> — tüm Avalanche node'ları, eCash stake'lerine göre ağırlıklandırılmış şekilde peer'larına bu block'un zincirin yeni kanonik ucu olarak kabul edilip edilmeyeceğini sorar.</p>\n          <p>◆ <strong>Final</strong> — biriken güven eşiği aştı. Block artık değiştirilemez veya reorg edilemez — düşman bir hashpower çoğunluğu tarafından bile. Bir kez kilitlendi mi, her reorg girişimi tüm dürüst node'larca geçersiz sayılıp reddedilir.</p>\n          <p>Tam polling, block duyurulduktan sonra ortalama <strong>3–5 saniye</strong> sürer; bu yüzden yatırmalar <strong>1 onayla</strong> güvenle alacaklandırılabilir — güvenlik açısından düzinelerce Bitcoin onayına eşdeğer.</p>\n          <p class=\"meta-note\">14 Eylül 2022'den beri eCash block'larını koruyor.</p>\n        </div>\n        <div class=\"diagram-col\">${POST_CONSENSUS_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "tx-flow": {
+      "title": "Transaction Flow · How to read the colours",
+      "body": "\n      <div class=\"text-col\">\n        <p><strong>Inputs</strong> / <strong>Outputs</strong> sütunlarındaki her satır, bir adresi ve bu işlemde harcadığı veya aldığı miktarı gösterir.</p>\n        <p><span class=\"legend-dot\" style=\"background:#01a0e0;box-shadow:0 0 8px #01a0e0\"></span> <strong>Camgöbeği</strong> — sıradan adres. Block explorer'da açmak için tıkla.</p>\n        <p><span class=\"legend-dot\" style=\"background:#ffcb47;box-shadow:0 0 8px #ffcb47\"></span> <strong>Altın</strong> — adres <em>her iki</em> tarafta da, input ve output'ta görünüyor. Genellikle harcayanın <strong>para üstünü</strong> geri almasıdır; ama kendine gönderimde UTXO konsolidasyonunu da işaretler.</p>\n        <p><span class=\"legend-dot\" style=\"background:#a7ff37;box-shadow:0 0 8px #a7ff37\"></span> <strong>Limon yeşili</strong> — <em>watchlist</em>'indeki bir adres. Önemsediğin wallet'lardaki hareketi fark edesin diye her işlemde vurgulanır.</p>\n        <p><span class=\"legend-dot\" style=\"background:rgba(255,255,255,0.3)\"></span> <em>OP_RETURN</em> — veri taşıyan output (chat mesajları, token komutları). Adresi yok; harcanabilir değer taşımaz.</p>\n        <p>Her satırdaki miktar <strong>ham on-chain değeridir</strong>. Token işlemlerinde önce token miktarı gösterilir (örn. <em>1,000 USDR · 5.46 XEC</em>) — 5.46 XEC, token'ı taşıyan dust'tan ibarettir.</p>\n      </div>\n    "
+    },
+    "heartbeat": {
+      "title": "Heartbeat · Real-Time Targeting",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Heartbeat</strong>, eCash'in gerçek zamanlı zorluk ayarlama algoritmasıdır; <strong>15 Kasım 2024</strong> ağ yükseltmesinde etkinleştirildi.</p>\n          <p>Bitcoin tarzı ağlar block'lar arasında <strong>ortalama 10 dakika</strong> hedefler, ama hashpower dalgaları birkaç dakikada birden çok block üretip ardından uzun sessizlikler bırakabilir. Bu “block yığılması” kullanıcıları bezdirir ve borsaları zorlar.</p>\n          <p>Heartbeat bunu standart ayarlamanın üzerine <strong>ikinci bir zorluk katmanıyla</strong> düzeltir:</p>\n          <ul>\n            <li>Block'lar <strong>10 dakikalık tempodan hızlı</strong> gelirse, zorluk seri üretimi frenlemek için anında <em>yükselir</em>.</li>\n            <li>Zorluk daha sonra normal platoya dönene kadar <strong>monoton biçimde düşer</strong>.</li>\n            <li>Gerçek zamanlı hedefi ihlal eden block'lar <strong>Avalanche konsensüsü tarafından reddedilir</strong> — klasik Bitcoin kurallarına göre geçerli olsalar bile.</li>\n          </ul>\n          <p>Sonuç: daha düzenli block süreleri, daha az mining pool oyunu (“switch mining”) ve ağdaki herkes için daha öngörülebilir bir deneyim.</p>\n          <p class=\"meta-note\">Heartbeat, Avalanche post-consensus (block kesinliği) ve Infrastructure Funding Policy ile yan yana çalışır — eCash'in güçlendirilmiş Nakamoto konsensüsünün üç direği.</p>\n        </div>\n        <div class=\"diagram-col\">${HEARTBEAT_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "stats-overview": {
+      "title": "Network Statistics",
+      "body": "\n      <div class=\"so-wrap\">\n        <p class=\"so-lead\">Sayfanın altındaki şerit, eCash ağının canlı rakam panosudur. Rakamlar iki kaynaktan gelir — işlettiğimiz özel bir eCash node'u ve senin mevcut tarayıcı oturumun — hangisinin hangisi olduğunu bilmek şeridi doğru okumana yardım eder.</p>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Headline cell · 24h ↔ session</h3>\n          <div class=\"so-card\">\n            <p>Ana Time-to-Finality (TTF) hücresi 24 saatlik ağ metriğini veya oturum metriğini gösterebilir. Buradan seç ya da hücrenin üstündeki <code>⇄</code> düğmesini kullan. Node feed'i kullanılamıyorsa, bu seçimden bağımsız olarak hücre her zaman oturum metriğine döner.</p>\n            <div class=\"stats-view-toggle\" id=\"stats-view-toggle\">\n              <button type=\"button\" data-view=\"p50\" id=\"stats-view-p50\">Ağı göster · 24h</button>\n              <button type=\"button\" data-view=\"session\" id=\"stats-view-session\">Oturumu göster</button>\n            </div>\n            <span class=\"so-live-label\">Canlı değerler</span>\n            <div id=\"stats-live-grid\"><span style=\"color:var(--text-3);font-family:'Fira Code',monospace;font-size:11px\">— sonraki stats frame bekleniyor —</span></div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">İki veri kaynağı</h3>\n          <div class=\"so-sources\">\n            <div class=\"so-source\">\n              <span class=\"so-src-name\"><span class=\"so-badge net\">Network</span> 24h</span>\n              <p>Node'da ölçülen ve her 5 saniyede sekmene itilen 24 saatlik kayan toplamlar. Bu hücreler, sekmenin ne gözlemlediğinden bağımsız olarak tüm ağın şu an ne yaptığını yansıtır.</p>\n            </div>\n            <div class=\"so-source\">\n              <span class=\"so-src-name\"><span class=\"so-badge ses\">Session</span></span>\n              <p>Sayfa yüklendiğinden beri bu tarayıcı sekmesi tarafından sayılır. Yeni sekme sıfırdan başlar; yenileme sıfırlar. Kişisel “ben ne gördüm” görünümü olarak ve node feed'i kullanılamadığında yedek olarak işe yarar.</p>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Her hücre ne anlama geliyor</h3>\n          <div class=\"so-defs\">\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Time-to-finality · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Son 24 saatin medyan süresi — aşağıdaki <em>Kesinlik nasıl ölçülür</em> bölümüne bak.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">TPS · 24h avg <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">24 saatlik pencerede ortalaması alınmış, saniyede kesinleşen işlem sayısı. Ağ çok sakinken değer 0.01 tps'in altına düşebilir; hücre o zaman sıfıra yuvarlamak yerine <code>&lt; 0.01 tps</code> gösterir (yuvarlanmış sıfır hiç işlem olmadığını ima ederdi — 24h penceresi bunu söylemiyor).</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Peak TPS · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Son 24 saat içinde herhangi bir 1 dakikalık pencerede gözlemlenen en yüksek sürekli saniye başına işlem hızı. Dakika bazlı ortalama bilinçli bir tercihtir: 1 saniyelik bir sıçrama (özellikle sakin ağda tek bir işlem) manşet rakamına hükmetmemeli. Gerçek aktivite dalgalarında yükselir, ağ boştayken düşük kalır.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">% finalized &lt; 3s <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">24 saatte kesinleşen işlemlerden time-to-finality değeri üç saniyenin altında olanların payı — “hızlı şerit” oranı. Üç saniye, bir ödemenin anlık yerine bekleme gibi hissedilmeye başladığı eşiğe denk gelir; bu yüzde, yakın trafiğin ne kadarının bu eşiğin rahatça altında kesinleştiğini izler. Her şey 3 sn altında kesinleştiğinde <code>100%</code> (ondalıksız) gösterir.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Tx · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">Son 24 saatte tüm ağda kaç işlemin kesinleştiği.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Avg block-lock <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Block'un kazılmasından Avalanche'ın kesinleştirmesine kadar geçen ortalama süre. Time-to-finality'den farklı: o, <em>pre</em>-consensus yolunu ölçer (mempool'daki işlemler); block-lock ise <em>post</em>-consensus yolunu ölçer (zincire girmiş bütün block'lar). İkisi de oturum ölçeğinde.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Avg block time <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Bu sekmenin gözlemlediği ardışık block'lar arasındaki ortalama aralık. eCash, gerçek zamanlı zorluk algoritması Heartbeat ile 10 dakika hedefler. Bu hücrenin yanındaki <strong>?</strong> düğmesi Heartbeat açıklamasını açar.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Tx · session <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Yüklendiğinden beri bu sekmenin gözlemlediği işlemler. Yenilemede sıfırlanır. Mobilde şeritten gizlenir, yukarıdaki canlı değerlerde görünür kalır.</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Stream uptime <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">Bu sekmenin eCash ağına ne kadar süredir bağlı olduğu. Relay feed'den bağımsız; yenilemede sıfırlanır.</div>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Kesinlik nasıl ölçülür</h3>\n          <p>Time-to-finality, bir işlemin yaşamındaki iki an arasındaki mesafedir. <strong>Başlangıç</strong>: işlem node'un mempool'unda ilk göründüğünde. <strong>Bitiş</strong>: Avalanche pre-consensus onu kilitlediğinde — rakip peer'ların artık reorg edemeyeceği an.</p>\n          <p>Her iki zaman damgası da node'un kendi loglarından gelir: bu yüzden tutarlıdır ve senin ağ gecikmen onları etkilemez. 24h rakamları, kayan penceredeki tüm kesinleşmiş işlemler üzerinden yüzdelikler ve ortalamalardır.</p>\n          <p style=\"margin-bottom:2px\">Her yüzdelik farklı bir hikâye anlatır:</p>\n          <div class=\"so-pct\">\n            <div class=\"so-pct-item\"><div class=\"pk\">p50 · median</div><div class=\"pd\">Manşet rakam: tipik bir işlemin yaşadığı, uç değerlere pek duyarlı değil.</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">p90</div><div class=\"pd\">Yavaş kuyruğu yakalar — büyük çoğunluk bu işaretten çok önce biter.</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">p10</div><div class=\"pd\">En hızlı %10'un ne kadar hızlı olduğunu gösterir; protokolün tabanını görmek için yararlı.</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">Mean</div><div class=\"pd\">Aritmetik ortalama, uç değerlere duyarlı ve genellikle p50'nin biraz üzerinde.</div></div>\n          </div>\n          <p>Node feed'i kullanılamıyorsa, alt şerit hücreleri tamamen tarayıcında ölçülen oturum metriklerine döner. Bu değer, node ile sekmen arasındaki WebSocket ve yayılım gecikmesini içerdiğinden gerçek time-to-finality'yi aşabilir.</p>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Simgeleri okumak</h3>\n          <div class=\"so-legend\">\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"ttf-eye-wrap\" style=\"display:inline-flex;margin:0\">${TTF_EYE_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>Göz</strong> — node feed'i geçici olarak kullanılamıyor; bu simgenin yanındaki değer, yukarıdaki yöntemle tamamen tarayıcında hesaplanan <em>hissedilen</em> bir ölçümdür. Feed yeniden bağlanınca göz kaybolur ve değer node hassasiyetine döner.</div>\n            </div>\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"radar-slash-wrap\" style=\"display:inline-flex;margin:0\">${RADAR_SLASH_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>Çizili radar</strong> — node feed'ine bağlantı olmadığından hücrenin gösterecek değeri yok. Yalnızca Network · 24h kartlarında görünür, çünkü oturum metrikleri her zaman tarayıcıda hesaplanabilir. Feed yeniden bağlanıp sonraki stats frame gelince kaybolur.</div>\n            </div>\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"ttf-spinner-wrap\" style=\"display:inline-flex;margin:0\">${TTF_SPINNER_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>Spinner</strong> — kesinleşmeden sonra ~3 saniye boyunca işlem detay panelinde görünür. Gösterilen değer yerel olarak hesaplandı ve node hassasiyetindeki değer gelir gelmez ona doğru incelebilir. Yükseltme penceresi geçince spinner durur ve değer nihai sayılır.</div>\n            </div>\n          </div>\n        </div>\n      </div>\n    "
+    }
+  },
+  "dom": {
+    "#watchlist-empty-hint": {
+      "text": "tx'lerini vurgulamak için bir adres ekle"
+    },
+    "#btn-live": {
+      "title": "Görünüm modu — geçiş için tıkla: LIVE → CHAIN → FEED. Mempool yoğunken DOM yükünü azaltır, durumu izlemeye devam eder."
+    },
+    "#btn-pause": {
+      "title": "Gelen işlemleri duraklat"
+    },
+    "#tip-btn": {
+      "title": "Bana bir kahve ısmarla — tx'in stream'de vurgulanır"
+    },
+    "#bc-goto-search": {
+      "placeholder": "block #'a git…"
+    },
+    "#btl-chain-search": {
+      "placeholder": "block #'a git…"
+    },
+    "#btl-search": {
+      "placeholder": "txid öneki veya parçasıyla süz…"
+    },
+    "#wl-input-addr": {
+      "placeholder": "ecash:q… veya 64-hex token ID"
+    },
+    "#wl-input-name": {
+      "placeholder": "örn. soğuk-cüzdan veya NFT koleksiyonum"
+    },
+    "#wl-edit-name": {
+      "placeholder": "örn. soğuk-cüzdan"
+    },
+    "#chat-pick-input": {
+      "placeholder": "ecash:q…"
+    },
+    "#chat-textarea": {
+      "placeholder": "mesaj yaz · emoji olur · Enter gönderir · Shift+Enter yeni satır"
+    },
+    ".info-tile[data-tile=\"avalanche\"] .info-tile-title": {
+      "text": "eCash'te Avalanche nedir?"
+    },
+    ".info-tile[data-tile=\"avalanche\"] .info-tile-body": {
+      "html": "<p>eCash'in Nakamoto Proof-of-Work'ünün <strong>yanında</strong> çalışan, node'ların birbirini sorgulayıp block'lar ve (Pre-Consensus ile) tekil işlemler üzerinde saniyeler içinde uzlaşmasını sağlayan bir konsensüs protokolü.</p><p><strong>Post-Consensus</strong> (Eyl 2022'den beri canlı) 1-block kesinliği ve %51 saldırısı korumasını getirir. <strong>Pre-Consensus</strong> (15.11.2025'ten beri mainnet'te) işlemleri kazılmadan önce &lt;3 sn'de kesinleştirir — eCash'i hem kullanıcılar hem borsalar için nakit gibi hissettirir.</p><p>PoW'u <em>yazı</em> (yavaş, kalıcı), Avalanche'ı <em>konuşma</em> (hızlı, geçici) gibi düşün — eCash ikisini de kullanır.</p>"
+    },
+    ".info-tile[data-tile=\"agora\"] .info-tile-title": {
+      "text": "eCash'te Agora nedir?"
+    },
+    ".info-tile[data-tile=\"agora\"] .info-tile-body": {
+      "html": "<p>eCash Script üzerine inşa edilmiş, emanetsiz bir <strong>atomic swap protokolü</strong>. Ekim 2024'te başlatıldı; herkes eToken'larını veya NFT'lerini doğrudan on-chain satışa koyabilir — borsa yok, emanetçi yok, izin yok.</p><p>Takaslar, alıcının kendisi için imzaladığı işlemlerle kapanır; bunu <code>OP_CHECKDATASIG</code> opcode'u mümkün kılar. Covenant'lar on-chain yaşar: merkezi emir defteri olmadan herkes gezebilir, teklif verebilir, takası kapatabilir.</p><p>Cashtab'daki eToken DEX'ini çalıştırır ve eCash'in yerleşik DeFi yeteneklerini bir kuruşun altındaki ücretlerle kanıtlar.</p>"
+    },
+    ".info-tile[data-tile=\"heartbeat\"] .info-tile-title": {
+      "text": "Heartbeat nedir?"
+    },
+    ".info-tile[data-tile=\"heartbeat\"] .info-tile-body": {
+      "html": "<p>eCash'in <strong>gerçek zamanlı zorluk ayarlama algoritması</strong>; 15 Kasım 2024'te etkinleştirildi. Klasik Bitcoin ayarlamasının üzerinde çalışarak <strong>block sürelerini düzleştirir</strong> ve hashpower dalgalarının 2 dakikada 5 block üretip 30 dakika sustuğu “yığılmayı” bitirir.</p><p>Block'lar 10 dakikalık hedeften hızlı gelirse zorluk anında yükselir, sonra normale dönene kadar monoton düşer. Gerçek zamanlı hedefi ihlal eden block'lar <strong>Avalanche konsensüsü tarafından reddedilir</strong> — klasik Bitcoin kurallarına göre teknik olarak geçerli olsalar bile.</p><p>Sonuç: daha düzenli onay süreleri, daha az mining pool istismarı ve tüm ağ için daha öngörülebilir bir deneyim.</p>"
+    },
+    ".info-tile[data-tile=\"chronik\"] .info-tile-title": {
+      "html": "<strong>Chronik</strong> nedir?"
+    },
+    ".info-tile[data-tile=\"chronik\"] .info-tile-body": {
+      "html": "<p><strong>Chronik</strong>, Bitcoin ABC'nin içine gömülü, yüksek performanslı eCash indeksleyicisidir. eCash'teki her wallet'ın, explorer'ın ve dApp'in konuştuğu veri katmanıdır — bu canlı stream dahil.</p><p>Rust yerlisi ve node ile sıkıca bütünleşik olan <strong>Chronik</strong>, zincir verisini ve tam SLP / ALP token durumunu birleşik bir HTTP + WebSocket API'siyle sunar. Wallet'lar zinciri yeniden ayrıştırmadan hızlı adres geçmişleri, token bilinçli UTXO kümeleri ve canlı işlem akışları alır.</p><p>Cashtab'ı, agora.cash'i, bu panoyu veya explorer.e.cash'teki explorer'ı kullandıysan — her bayt zincir verisi oraya bir <strong>Chronik</strong> örneğinden geçerek ulaştı.</p>"
+    },
+    ".btl-right-hint": {
+      "text": "Görmek için bir tx'e tıkla · txid explorer'ı açar"
+    },
+    ".dlg-qr-hint": {
+      "text": "QR'ı wallet uygulamanla tara · veya aşağıdaki bir düğmeye dokun"
+    },
+    ".ee-hint": {
+      "text": "e.cash'i ziyaret için eCash logosuna dokun · kapatmak için başka yere dokun"
+    },
+    ".wl-history-right-hint": {
+      "text": "Önizleme için satırın üstüne gel · sabitlemek için tıkla · kaldırmak için tekrar tıkla"
+    },
+    ".wl-history-empty": {
+      "html": "Henüz izlenen tx yok — oldukça burada görünecekler. Tam geçmişi chronik'ten çekmek için <b>Sync</b>'e bas."
+    },
+    ".wl-sub:not(#wl-edit-sub):not(#chat-pick-sub)": {
+      "html": "Bir eCash <span class=\"mono\">ecash:q…</span> adresi veya 64-hex token/NFT ID'si gir."
+    },
+    "#chat-pick-sub": {
+      "html": "Bir eCash <span class=\"mono\">ecash:q…</span> adresi gir."
+    },
+    ".chat-send-dialog .dlg-title": {
+      "text": "eCash wallet'ınla gönder"
+    },
+    ".chat-send-dialog .dlg-sub": {
+      "html": "Mesajın ve alıcılar bir BIP21 ödeme bağlantısına paketlendi. Herhangi bir eCash wallet'ında aç — Cashtab, Send formunu otomatik doldurur. <strong style=\"color:var(--amber)\">Bu site seed phrase'ini asla görmez.</strong>"
+    },
+    "#feed-warning-popover .popover-title": {
+      "text": "⚠ Feed güvenlik uyarısı"
+    },
+    "#feed-warning-popover > div:last-of-type": {
+      "html": "Feed, <strong>tüm eCash ağından gelen bütün on-chain mesajları</strong> gösterir — herkes her şeyi yayınlayabilir.<ul><li><strong>Her bağlantıya şüpheyle yaklaş.</strong> Yabancılardan gelen mesajlardaki URL'lere tıklama; oltalama kitleri burada düzenli olarak boy gösterir.</li><li><strong>Seed phrase'ini, private key'ini veya wallet parolanı asla paylaşma.</strong> Meşru hiçbir proje bunları chat'te ya da mesajla istemez.</li><li><strong>Taklitçiliğe dikkat.</strong> Herkes mesaja herhangi bir isim yazabilir; kimlikleri güvenilir kanallardan doğrula.</li><li><strong>Token airdrop'ları tuzak olabilir.</strong> İstenmeden gelen token'lar oltalama bağlantıları veya dolandırıcılık bilgisi içerebilir — etkileşmeden önce araştırmak daha güvenli.</li></ul>"
+    },
+    "#chat-warning-popover .popover-title": {
+      "text": "⚠ Chat güvenlik uyarısı"
+    },
+    "#chat-warning-popover > div:last-of-type": {
+      "html": "Chat mesajları <strong>kalıcı eCash on-chain işlemleridir</strong> — yayınlandıktan sonra silinemez veya düzenlenemez ve herkes sonsuza dek okuyabilir.<ul><li><strong>Tüm mesajlar %100 herkese açık.</strong> Gönderildiklerinde dünyadaki her eCash node'unda saklanır, herkesçe dizinlenebilir. On-chain özel sohbet yoktur.</li><li><strong>Kalıcı kayıt.</strong> Göndermeden önce düşün — sözlerin blockchain'de senden uzun yaşayacak.</li><li><strong>Dolandırıcılığa dikkat.</strong> Bir peer'ın wallet'ı tanıdık görünse bile, seed phrase'ini elinde tutan herkes gönderen olabilir. Büyük işlemleri başka kanaldan doğrula.</li><li><strong>Buraya asla seed phrase, private key veya parola yapıştırma</strong> — sonsuza dek dünyaya ifşa olurlar.</li><li><strong>Bu site anahtarlarını asla görmez.</strong> Tüm gönderimler wallet'ın tarafından imzalanır (Cashtab/Electrum-XEC/vb.); biz yalnızca BIP21 bağlantısını kurarız.</li></ul>"
+    },
+    ".d-token-url-warn": {
+      "warn": "Token'lar genesis işlemlerinde herhangi bir URL bildirebilir — URL ağ tarafından DOĞRULANMAZ. Oltalama token'ları wallet'ını boşaltmaya çalışan kötü amaçlı sitelere işaret edebilir. Her zaman: (1) URL'nin projenin resmî alan adıyla eşleştiğini doğrula, (2) bir token URL'sinden ulaştığın sitede bağımsız doğrulama olmadan asla wallet bağlama, (3) seed phrase'ini asla hiçbir yere girme."
+    }
+  },
+  "domMap": {
+    ".info-tile-links-label": {
+      "Read more on e.cash": "Devamını e.cash'te oku",
+      "Tool": "Araç",
+      "Trade now": "Şimdi takas et"
+    },
+    ".chat-chip-empty": {
+      "no address set — pick yours to see your own chat lines": "adres ayarlanmadı — kendi mesajlarını görmek için kendininkini seç",
+      "add at least one peer wallet to load their messages": "mesajlarını yüklemek için en az bir peer wallet ekle"
+    },
+    ".btl-empty": {
+      "Block has no transactions (?!)": "Block'ta hiç işlem yok (?!)"
+    },
+    ".watchlist-empty-state": {
+      "No addresses tracked yet — click \"+ add\" to start watching one.": "Henüz izlenen adres yok — birini izlemeye başlamak için “+ add”e tıkla."
+    }
+  },
+  "titleMap": {
+    "Click for a full stats explanation. Use the ⇄ button to toggle between the network 24h reading and your session reading.": "Tam istatistik açıklaması için tıkla. Ağ 24h okuması ile oturum okuması arasında geçiş için ⇄ düğmesini kullan.",
+    "Network transactions per second, rolling 24h. From the dedicated eCash node. Click for details.": "Ağın saniye başına işlemi, kayan 24h. Özel eCash node'undan. Ayrıntı için tıkla.",
+    "Total transactions finalized network-wide in the last 24 hours. From the dedicated eCash node. Click for details.": "Son 24 saatte tüm ağda kesinleşen toplam işlem. Özel eCash node'undan. Ayrıntı için tıkla.",
+    "Total transactions observed by this browser tab since the page was loaded. Click for details.": "Sayfa yüklendiğinden beri bu tarayıcı sekmesinin gözlemlediği toplam işlem. Ayrıntı için tıkla.",
+    "Average time from block mined to Avalanche post-consensus finalized. Last 20 samples this session. Click for details.": "Block'un kazılmasından Avalanche post-consensus kesinleşmesine ortalama süre. Bu oturumun son 20 örneği. Ayrıntı için tıkla.",
+    "Average elapsed time between the last consecutive blocks observed this session. eCash targets a 10-minute average via the Heartbeat real-time difficulty algorithm.": "Bu oturumda gözlemlenen son ardışık block'lar arasındaki ortalama süre. eCash, gerçek zamanlı zorluk algoritması Heartbeat ile 10 dakikalık ortalamayı hedefler.",
+    "How long this stream has been connected to the eCash network. Click for details.": "Bu stream'in eCash ağına ne kadar süredir bağlı olduğu. Ayrıntı için tıkla.",
+    "Toggle 24h ↔ session": "24h ↔ oturum geçişi",
+    "Visitors watching this page right now (server-side count of live WebSocket connections to the TTF feed)": "Şu anda bu sayfayı izleyen ziyaretçiler (TTF feed'ine canlı WebSocket bağlantılarının sunucu tarafı sayımı)",
+    "Mempool transactions finalized by Avalanche pre-consensus, awaiting inclusion in a block": "Avalanche pre-consensus ile kesinleşmiş, bir block'a girmeyi bekleyen mempool işlemleri",
+    "Mined by a Proof-of-Work miner": "Bir Proof-of-Work miner'ı tarafından kazıldı",
+    "What is Avalanche post-consensus?": "Avalanche post-consensus nedir?",
+    "What is Heartbeat?": "Heartbeat nedir?",
+    "What do these colours mean?": "Bu renkler ne anlama geliyor?",
+    "Read 'What is eCash' on e.cash": "e.cash'te 'What is eCash' yazısını oku",
+    "Visit e.cash": "e.cash'i ziyaret et",
+    "Connection status": "Bağlantı durumu",
+    "Add address to watchlist": "Adresi watchlist'e ekle",
+    "Add one or more peer addresses (or import from Watchlist)": "Bir veya daha çok peer adresi ekle (veya Watchlist'ten içe aktar)",
+    "Edit (rename, change mode, remove)": "Düzenle (yeniden adlandır, mod değiştir, kaldır)",
+    "Highlight on either direction": "Her iki yönde de vurgula",
+    "Highlight when this wallet receives (address in outputs)": "Bu wallet alınca vurgula (adres outputs'ta)",
+    "Highlight when this wallet sends (address in inputs)": "Bu wallet gönderince vurgula (adres inputs'ta)",
+    "Fetch this address/token's tx history from chronik": "Bu adresin/token'ın tx geçmişini chronik'ten getir",
+    "Watching paused — click to resume": "İzleme duraklatıldı — sürdürmek için tıkla",
+    "Watching active — click to pause": "İzleme etkin — duraklatmak için tıkla",
+    "Go to block": "Block'a git",
+    "Open block in explorer": "Block'u explorer'da aç",
+    "Open in explorer": "Explorer'da aç",
+    "View on explorer": "Explorer'da görüntüle",
+    "open in explorer": "explorer'da aç",
+    "Click to copy": "Kopyalamak için tıkla",
+    "Click to unpin": "Sabitlemeyi kaldırmak için tıkla",
+    "Close": "Kapat",
+    "Clear": "Temizle",
+    "Dismiss": "Yoksay",
+    "Expand full message": "Tüm mesajı genişlet",
+    "Chat with sender": "Gönderenle sohbet et",
+    "Chat with this address": "Bu adresle sohbet et",
+    "Max rows shown per column": "Sütun başına en çok satır",
+    "Type a custom amount": "Özel bir tutar yaz",
+    "Use slider instead": "Bunun yerine kaydırıcıyı kullan",
+    "Token transactions seen since this session started": "Bu oturum başladığından beri görülen token işlemleri",
+    "Waiting for chronik to see this tx broadcast": "Chronik'in bu tx yayınını görmesi bekleniyor",
+    "No connection to node-precise feed": "Node hassasiyetli feed'e bağlantı yok",
+    "Relay stats are temporarily unavailable. Reconnect attempt is in progress.": "Relay istatistikleri geçici olarak kullanılamıyor. Yeniden bağlanma denemesi sürüyor.",
+    "Remove this entry from the watchlist": "Bu kaydı watchlist'ten kaldır",
+    "Safety notice": "Güvenlik uyarısı",
+    "Set your wallet address (so we can show your outgoing chat messages)": "Wallet adresini ayarla (giden chat mesajlarını gösterebilelim diye)",
+    "Showing perceived value — node-precise feed unavailable": "Hissedilen değer gösteriliyor — node hassasiyetli feed kullanılamıyor",
+    "Token/NFT icons: ON — click to hide and skip loading them": "Token/NFT simgeleri: AÇIK — gizlemek ve yüklemeyi atlamak için tıkla",
+    "Token/NFT icons: OFF — click to show them again": "Token/NFT simgeleri: KAPALI — yeniden göstermek için tıkla",
+    "raw atomic units — decimals loading…": "ham atomik birimler — ondalıklar yükleniyor…"
+  }
+}

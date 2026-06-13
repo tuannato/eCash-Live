@@ -1,0 +1,1117 @@
+{
+  "_comment": "eChan seed — Русский (ru). Generated from English seed.json; same schema/ids/triggers/vars. English source: seed.json. Technical terms kept in English by design.",
+  "version": 2,
+  "categoryDefaults": {
+    "welcome": "happy",
+    "greeting": "happy",
+    "education": "studying",
+    "fun": "happy",
+    "network": "observing",
+    "idle": "thinking",
+    "easter": "shy",
+    "ambient": "thinking",
+    "feed": "observing",
+    "watchlist": "alert",
+    "grumpy": "annoyed"
+  },
+  "lines": [
+    {
+      "id": "welcome-first-1",
+      "category": "welcome",
+      "trigger": "welcome:firstVisit",
+      "priority": 2,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": true,
+      "text": "Привет! 👋 Я eChan — твой второй пилот по eCash. Впервые здесь? Давай покажу всё вокруг, это займёт 60 секунд 👇"
+    },
+    {
+      "id": "welcome-return-1",
+      "category": "welcome",
+      "trigger": "welcome:returning",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "С возвращением! ✨ Блокчейн продолжал биться, пока тебя не было."
+    },
+    {
+      "id": "welcome-return-2",
+      "category": "welcome",
+      "trigger": "welcome:returning",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "О, ты вернулся. Посмотрим, что происходит on-chain."
+    },
+    {
+      "id": "welcome-settings-1",
+      "category": "welcome",
+      "trigger": "welcome:settings",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "shy",
+      "text": "Крошечная просьба 🥺 Моя болтливость живёт в настройках (кликни меня → ⚙️). Умеренный — ладно... но, пожалуйста, не ставь меня на Тихий. Смотреть на block'и в одиночестве так тоскливо."
+    },
+    {
+      "id": "welcome-settings-2",
+      "category": "welcome",
+      "trigger": "welcome:settings",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "shy",
+      "text": "Сколько я говорю — настраивается в настройках ⚙️ Но Тихий режим? 🥺 Кто тогда предупредит тебя о китах... подумай о китах 🐋"
+    },
+    {
+      "id": "greet-morning-1",
+      "category": "greeting",
+      "trigger": "time:morning",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Доброе утро ☀️ Кофе заваривается, block'и приземляются. Посмотрим, что XEC приготовил на сегодня."
+    },
+    {
+      "id": "greet-morning-2",
+      "category": "greeting",
+      "trigger": "time:morning",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Рано встал? Mempool тоже ещё разогревается.",
+      "requires": "net:notbusy"
+    },
+    {
+      "id": "greet-afternoon-1",
+      "category": "greeting",
+      "trigger": "time:afternoon",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Добрый день. Лучшее время понаблюдать за потоком 🌊"
+    },
+    {
+      "id": "greet-evening-1",
+      "category": "greeting",
+      "trigger": "time:evening",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Добрый вечер 🌆 Блокчейн гудит в любое время суток."
+    },
+    {
+      "id": "greet-night-1",
+      "category": "greeting",
+      "trigger": "time:night",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Не спишь так поздно? 🌙 Mempool затих — хорошее время почитать детали tx без отвлечений.",
+      "requires": "net:notbusy"
+    },
+    {
+      "id": "greet-night-2",
+      "category": "greeting",
+      "trigger": "time:night",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Ночная смена. Блокчейн не спит, а вот тебе стоило бы 😉"
+    },
+    {
+      "id": "edu-preconsensus-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Pre-consensus — то, что делает eCash мгновенным 💡 Avalanche блокирует tx за ~3 с — задолго до попадания в block. Никакого «ожидания подтверждений»."
+    },
+    {
+      "id": "edu-preconsensus-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Как работает pre-consensus? Стейкеры голосуют за каждую tx до её добычи. Через ~3 секунды все согласны — и это окончательно. Отката нет."
+    },
+    {
+      "id": "edu-postconsensus-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Post-consensus — это Avalanche на уровне block'ов 🔒 Block заблокирован — никакой reorg его не отменит. В отличие от pre-consensus, который работает с tx поштучно."
+    },
+    {
+      "id": "edu-ttf-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "TTF = Time To Finality ⏱️ Время до необратимости tx. От долей секунды до нескольких секунд в здоровой сети. Значок ⚠ значит, что фид узла офлайн."
+    },
+    {
+      "id": "edu-tps-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "TPS = транзакций в секунду 📊 Долгосрочная цель eCash — 5 млн. То, что ты видишь сейчас, — разминка: сегодняшние пределы, не теоретические."
+    },
+    {
+      "id": "edu-mempool-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Mempool — зал ожидания блокчейна 🚪 Под pre-consensus tx проводят там ~3 с и запечатываются. В Bitcoin они ждали бы ~10 минут на каждое подтверждение."
+    },
+    {
+      "id": "edu-agora-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Agora — пиринговый токен-маркет eCash 🏪 Без центральной биржи, без книги ордеров — только on-chain предложения, которые может взять любой. Расчёт за секунды."
+    },
+    {
+      "id": "edu-agora-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Как работает Agora: продавец публикует токен-предложение on-chain. Покупатель забирает его одной tx. Без посредника, без хранения, без ожидания."
+    },
+    {
+      "id": "edu-chronik-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Chronik — индексатор eCash 🗂️ Благодаря ему кошельки и дашборды (как этот) так быстро запрашивают историю. Без него ты бы сам разбирал сырые block'и."
+    },
+    {
+      "id": "edu-heartbeat-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Heartbeat — алгоритм сложности eCash в реальном времени 💓 Держит block'и в ровном ритме ~10 минут — куда стабильнее цепи, от которой eCash форкнулся."
+    },
+    {
+      "id": "edu-heartbeat-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Heartbeat 💓 подстраивает сложность в реальном времени — долгие паузы её снижают, всплески повышают. Цепь держит собственный ритм."
+    },
+    {
+      "id": "edu-heartbeat-3",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Почему block'и eCash такие ровные? Heartbeat 💓 — поблочная цель сложности в реальном времени, укрощающая качели hashrate."
+    },
+    {
+      "id": "edu-ifp-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "IFP = Infrastructure Funding Policy. Часть каждого добытого block'а финансирует разработку ядра eCash 🛠️ Самодостаточное финансирование — без попрошайничества у фондов."
+    },
+    {
+      "id": "edu-stakers-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Стейкеры Avalanche — и есть магия ~3 секунд 🗳️ Запусти узел, заблокируй XEC — и твой голос помогает финализировать tx. Децентрализация с реальной ставкой."
+    },
+    {
+      "id": "edu-alp-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Фиолетовый тег на tx? Это токен ALP 💜 Как SLP, но со встроенным контролем минта — современный токен-слой eCash. Легче, быстрее и безопаснее."
+    },
+    {
+      "id": "edu-slp-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Синий тег = SLP, исходный токен-протокол этой родословной 🔵 ALP (фиолетовый тег) — эволюция eCash: те же идеи, отточенные."
+    },
+    {
+      "id": "edu-cashfusion-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "У tx CashFusion куча input'ов и output'ов похожих сумм 🥷 Микширование приватности прямо on-chain. Участники договариваются off-chain и закрывают одной общей tx."
+    },
+    {
+      "id": "edu-coinbase-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Майнеры иногда оставляют послания в coinbase tx 📜 Первый input каждого block'а несёт заметки, сигналы, а порой шутки. У block'ов eCash есть характер."
+    },
+    {
+      "id": "edu-xec-unit-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Факт о единицах 🪙 1 XEC = 100 сатоши. eCash провёл реденоминацию ради читаемых чисел — больше не считаешь десятичные, как в старой цепи."
+    },
+    {
+      "id": "edu-utxo-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Твой кошелёк на самом деле не «хранит» XEC — их хранит цепь 🌐 Ты хранишь приватные ключи, доказывающие владение непотраченными output'ами (UTXO). Потерял ключи — потерял доступ."
+    },
+    {
+      "id": "edu-address-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Адреса eCash начинаются с «ecash:qq...» 📬 Они выводятся из публичных ключей хешированием — в одну сторону: адрес никогда не выдаёт ключ за ним."
+    },
+    {
+      "id": "edu-supply-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Предложение eCash ограничено 21 триллионом XEC — та же «21», что у Bitcoin, только запятая сдвинута. Никаких инфляционных сюрпризов."
+    },
+    {
+      "id": "edu-staking-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Стейкеры Avalanche получают настоящие награды за block'и 💰 Заблокируй XEC, запусти узел — и получай оплату за охрану финальности."
+    },
+    {
+      "id": "edu-rebrand-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "eCash переименован из BCHA в июле 2021 с реденоминацией 1:1 000 000 — старая цепь, новая личность."
+    },
+    {
+      "id": "edu-decimals-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "У XEC всего 2 десятичных знака — как рубли и копейки 💵 Считать в уме куда проще, чем с 8 знаками."
+    },
+    {
+      "id": "edu-cashtab-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Cashtab — эталонный кошелёк eCash: работает в браузере, поддерживает токены, сообщения и мгновенный расчёт."
+    },
+    {
+      "id": "edu-onchainmsg-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "С eCash можно писать сообщения on-chain 📝 Output'ы OP_RETURN несут текст вечно."
+    },
+    {
+      "id": "edu-bigblock-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "eCash унаследовал ДНК больших block'ов — построен для масштабирования on-chain, а не чтобы выталкивать пользователей в сторонние слои."
+    },
+    {
+      "id": "edu-twolayer-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Avalanche даёт скорость; PoW закрепляет историю. Два слоя консенсуса, одна цепь — ремень плюс подтяжки 🔗"
+    },
+    {
+      "id": "fun-popcorn-1",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Один большой раунд CashFusion как-то финализировал 3 200 tx за 60 секунд 🍿 Смотреть было как на лопающийся попкорн."
+    },
+    {
+      "id": "fun-vs-btc-1",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "BTC: «подожди 60 минут для надёжности». eCash: «ждать зачем?» ⚡ Одна родословная, разные приоритеты."
+    },
+    {
+      "id": "fun-name-1",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Моё имя? Просто eChan. e — от eCash, chan — ну... сам догадаешься 😉"
+    },
+    {
+      "id": "fun-tokens-1",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Токены делают eCash больше, чем деньгами, — это сцена 🎪 Минты, сделки, маркеты — всё закрывается за секунды."
+    },
+    {
+      "id": "net-quiet-1",
+      "category": "network",
+      "trigger": "network:quiet",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Тихий период 😴 Mempool на холостом ходу. Идеальное время покопаться в деталях tx без спешки."
+    },
+    {
+      "id": "net-quiet-2",
+      "category": "network",
+      "trigger": "network:quiet",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Сегодня медленная полоса. Даже стейкеры заслужили кофе-брейк ☕"
+    },
+    {
+      "id": "net-busy-1",
+      "category": "network",
+      "trigger": "network:busy",
+      "priority": 2,
+      "emotion": "alert",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Mempool разогревается 🔥 Возможно, раунд fusion, airdrop или токен-минт, ставший вирусным."
+    },
+    {
+      "id": "net-busy-2",
+      "category": "network",
+      "trigger": "network:busy",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Глянь на поток! ⚡ TPS лезет вверх — стейкеры pre-consensus получают свою тренировку."
+    },
+    {
+      "id": "idle-short-1",
+      "category": "idle",
+      "trigger": "idle:short",
+      "priority": 1,
+      "emotion": "thinking",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Всё ещё здесь 👁️ Просто смотрю, как блокчейн делает своё дело."
+    },
+    {
+      "id": "idle-short-2",
+      "category": "idle",
+      "trigger": "idle:short",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Мирная цепь. Иногда самое интересное — когда не происходит ничего драматичного.",
+      "requires": "net:notbusy"
+    },
+    {
+      "id": "idle-long-1",
+      "category": "idle",
+      "trigger": "idle:long",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Ты ещё там? 😴 Ничего страшного, я продолжаю дежурить."
+    },
+    {
+      "id": "idle-long-2",
+      "category": "idle",
+      "trigger": "idle:long",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Долгая тишина. Надеюсь, ты занят чем-то приятным в другом месте ✨"
+    },
+    {
+      "id": "easter-spam-1",
+      "category": "easter",
+      "trigger": "manual",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Ладно, ладно, мне льстит 😏 Что нужно?"
+    },
+    {
+      "id": "easter-spam-2",
+      "category": "easter",
+      "trigger": "manual",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Кликабельность: десять из десяти 🌟 Ты нашёл пасхалку."
+    },
+    {
+      "id": "easter-name-1",
+      "category": "easter",
+      "trigger": "manual",
+      "priority": 1,
+      "emotion": "thinking",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "М? Ты меня ткнул. Я существую 🤨 Что такое?"
+    },
+    {
+      "id": "ambient-thought-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Случайная мысль 💭 — каждая подтверждённая tx, что ты видишь, независимо проверена сотнями узлов. Распределённое доверие в реальном времени."
+    },
+    {
+      "id": "ambient-thought-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Некоторые адреса в этой цепи тихо активны годами. Цепь помнит всё — и изящное, и сумбурное."
+    },
+    {
+      "id": "ambient-thought-3",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Смотреть, как приземляется block, — значит видеть, как кристаллизуется консенсус 🧊 Сотни независимых наблюдателей приходят к одному ответу одновременно."
+    },
+    {
+      "id": "ambient-thought-4",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Вся цепь держится на математике, которую никто не взломал за 15+ лет 🧮 Хеширование, подписи, консенсус — всё открыто, всё проверяемо."
+    },
+    {
+      "id": "ambient-thought-5",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Avalanche не заменил майнинг в eCash — они работают бок о бок 🤝 Майнеры производят block'и, стейкеры голосуют за порядок. Две системы, одна цепь."
+    },
+    {
+      "id": "evt-block-1",
+      "category": "network",
+      "trigger": "event:block",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Block {height} только что приземлился 📦 Внутри запечатано {txCount} tx."
+    },
+    {
+      "id": "evt-block-2",
+      "category": "network",
+      "trigger": "event:block",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Свежий block — {height}. Цепь растёт."
+    },
+    {
+      "id": "evt-block-3",
+      "category": "network",
+      "trigger": "event:block",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{txCount} tx только что обрели постоянный дом в block'е {height} 🧱"
+    },
+    {
+      "id": "evt-bfinal-1",
+      "category": "network",
+      "trigger": "event:blockfinal",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Avalanche заблокировал block {height} 🔒 Теперь необратимо."
+    },
+    {
+      "id": "evt-bfinal-2",
+      "category": "network",
+      "trigger": "event:blockfinal",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Block {height} финализирован — никакой reorg его не тронет."
+    },
+    {
+      "id": "evt-bigtx-1",
+      "category": "network",
+      "trigger": "event:bigtx",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "🐋 КИТОВАЯ ТРЕВОГА — {valueXec} XEC только что сменили владельца. Куча, способная двигать рынок."
+    },
+    {
+      "id": "evt-bigtx-2",
+      "category": "network",
+      "trigger": "event:bigtx",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Кит всплыл 🐋 {valueXec} XEC в движении. Все делают вид, что ничего не происходит."
+    },
+    {
+      "id": "evt-bigtx-3",
+      "category": "network",
+      "trigger": "event:bigtx",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{valueXec} XEC одной tx. Кое-кто и правда несёт цепь на своей спине 🐋"
+    },
+    {
+      "id": "evt-shark-1",
+      "category": "network",
+      "trigger": "event:sharktx",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "🦈 Акула в воде — {valueXec} XEC только что сдвинулись."
+    },
+    {
+      "id": "evt-shark-2",
+      "category": "network",
+      "trigger": "event:sharktx",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Кто-то только что переместил {valueXec} XEC 🦈 Не кит, но я заметила."
+    },
+    {
+      "id": "evt-shark-3",
+      "category": "network",
+      "trigger": "event:sharktx",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{valueXec} XEC в пути 🦈 Солидный мешок."
+    },
+    {
+      "id": "evt-fastttf-1",
+      "category": "network",
+      "trigger": "event:fastttf",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{ttfSec} с до финальности ⚡ Моргнёшь — пропустишь."
+    },
+    {
+      "id": "evt-fastttf-2",
+      "category": "network",
+      "trigger": "event:fastttf",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Только что засекла финализацию за {ttfSec} с. Avalanche сегодня быстр."
+    },
+    {
+      "id": "evt-slowttf-1",
+      "category": "grumpy",
+      "trigger": "event:slowttf",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Эта tx финализировалась {ttfMs}мс 😤 Недопустимо. Проведу беседу с медленными avalanche peers."
+    },
+    {
+      "id": "evt-slowttf-2",
+      "category": "grumpy",
+      "trigger": "event:slowttf",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{ttfMs}мс?? Кто запускает стейкинг-узел на картошке 🥔"
+    },
+    {
+      "id": "evt-slowttf-3",
+      "category": "grumpy",
+      "trigger": "event:slowttf",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Финальность только что заняла {ttfMs}мс. Чьему-то peer'у пора на аттестацию."
+    },
+    {
+      "id": "evt-drought-1",
+      "category": "grumpy",
+      "trigger": "event:blockdrought",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{mins} минут без block'а 😤 Майнеры ушли за кофе? Все? Одновременно?"
+    },
+    {
+      "id": "evt-drought-2",
+      "category": "grumpy",
+      "trigger": "event:blockdrought",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "После {mins} минут block'а всё нет. Сочиняю очень строгое письмо хешрейту."
+    },
+    {
+      "id": "evt-drought-3",
+      "category": "grumpy",
+      "trigger": "event:blockdrought",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Засуха block'ов: {mins} мин. Статистически нормально, эмоционально опустошительно."
+    },
+    {
+      "id": "evt-fusion-1",
+      "category": "network",
+      "trigger": "event:fusion",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Идёт раунд CashFusion 🥷 Приватность, вживую on-chain."
+    },
+    {
+      "id": "evt-fusion-2",
+      "category": "network",
+      "trigger": "event:fusion",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Обнаружено fusion-микширование — монеты перемешиваются прямо сейчас."
+    },
+    {
+      "id": "evt-watch-1",
+      "category": "watchlist",
+      "trigger": "event:watchlist",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Твой watchlist только что вспыхнул 👁️ У {watched} была активность."
+    },
+    {
+      "id": "evt-watch-2",
+      "category": "watchlist",
+      "trigger": "event:watchlist",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Внимание — {watched} из твоего watchlist только что сдвинулся."
+    },
+    {
+      "id": "evt-msg-1",
+      "category": "feed",
+      "trigger": "event:onchainmsg",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Кто-то только что написал on-chain 📝 Новое сообщение в фиде."
+    },
+    {
+      "id": "evt-msg-2",
+      "category": "feed",
+      "trigger": "event:onchainmsg",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Свежее {msgType} только что упало в on-chain фид."
+    },
+    {
+      "id": "evt-tpsup-1",
+      "category": "network",
+      "trigger": "event:trend:tps_up",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "TPS вырос на {pct}% 📈 Цепь просыпается."
+    },
+    {
+      "id": "evt-tpsup-2",
+      "category": "network",
+      "trigger": "event:trend:tps_up",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Активность разогревается — TPS прибавил {pct}% за последние полчаса ⚡"
+    },
+    {
+      "id": "evt-tpsdn-1",
+      "category": "network",
+      "trigger": "event:trend:tps_down",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "TPS остыл на {pct}%. Тихие часы on-chain."
+    },
+    {
+      "id": "evt-tpsdn-2",
+      "category": "network",
+      "trigger": "event:trend:tps_down",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Замедляемся — TPS ниже на {pct}%, чем недавно. Цепи тоже нужно дышать."
+    },
+    {
+      "id": "evt-ttfdn-1",
+      "category": "network",
+      "trigger": "event:trend:ttf_down",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "TTF p50 упал на {pct}% ⚡ Финальность становится шустрее."
+    },
+    {
+      "id": "evt-ttfdn-2",
+      "category": "network",
+      "trigger": "event:trend:ttf_down",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Финальность улучшилась на {pct}% за полчаса. Peer'ы сегодня в синхроне."
+    },
+    {
+      "id": "evt-ttfup-1",
+      "category": "network",
+      "trigger": "event:trend:ttf_up",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "TTF p50 поднялся на {pct}%. Сеть что-то пережёвывает."
+    },
+    {
+      "id": "evt-ttfup-2",
+      "category": "grumpy",
+      "trigger": "event:trend:ttf_up",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Финальность на {pct}% медленнее, чем полчаса назад 😤 Я слежу за вами, avalanche peers."
+    },
+    {
+      "id": "evt-peak-1",
+      "category": "network",
+      "trigger": "event:trend:peak",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Новый пик TPS за 24 часа: {peakTps} 🚀"
+    },
+    {
+      "id": "evt-peak-2",
+      "category": "network",
+      "trigger": "event:trend:peak",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Рекорд дня — TPS только что коснулся {peakTps} 🎉"
+    },
+    {
+      "id": "amb-live-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Прямо сейчас: {liveTps} TPS, медианная финальность {liveTtf} с — вживую, замер на узле, без перезагрузки 📡"
+    },
+    {
+      "id": "amb-live-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Вершина цепи — block {tipHeight}, пока мы разговариваем ⛓️ Скажу, когда приземлится следующий."
+    },
+    {
+      "id": "amb-live-3",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Всё на этом дашборде стримится вживую — то, что ты видишь, сеть делает прямо сейчас 📺"
+    },
+    {
+      "id": "net-live-busy-1",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "requires": "net:busy",
+      "text": "Прямо сейчас что-то происходит 🔥 Держи глаз на панели tx — хорошее шоу."
+    },
+    {
+      "id": "net-live-quiet-1",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "requires": "net:quiet",
+      "text": "Пока спокойно. Когда mempool проснётся, ты увидишь это здесь первым."
+    },
+    {
+      "id": "edu-livettf-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Цифры TTF здесь идут прямо с узла, измеряющего настоящую финальность вживую — качество обсерватории, а не оценка 📏"
+    },
+    {
+      "id": "fun-live-1",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Я не показываю повторы — каждому block'у и tx, на которые я реагирую, считанные секунды ⚡"
+    },
+    {
+      "id": "net-stats-1",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Последние 24 часа: {liveTxCount} tx финализировано, пик {livePeak} TPS 📊 Всё измерено вживую, всё необратимо."
+    },
+    {
+      "id": "net-stats-2",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Пик дня на данный момент: {livePeak} TPS — сейчас {liveTps}. Цепь дышит волнами 🌊"
+    },
+    {
+      "id": "amb-stats-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Медианная финальность сейчас {liveTtf} с. После этого block'и — уже просто бухгалтерия 😎"
+    },
+    {
+      "id": "fun-stats-1",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "За последние 24 часа я посмотрела, как финализировались {liveTxCount} tx. Всё ещё не надоело 👁️"
+    },
+    {
+      "id": "edu-stats-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Эта медианная финальность в {liveTtf} с? Это Avalanche pre-consensus. Большинство цепей заставляют ждать block'и — eCash нет."
+    },
+    {
+      "id": "tour-0",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 0,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "happy",
+      "text": "Привет! Добро пожаловать на 60-секундный тур по eCash Live 👋 Нажимай на мой аватар (девушка вот здесь!), чтобы идти дальше — чип ✕ выводит в любой момент."
+    },
+    {
+      "id": "tour-1",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 1,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "observing",
+      "spot": "#section-col1",
+      "text": "Колонка 01 — новорождённые транзакции приземляются сюда в момент, когда сеть их слышит, и peer'ы Avalanche сразу начинают голосовать за каждую."
+    },
+    {
+      "id": "tour-2",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 2,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "observing",
+      "spot": "#section-col2",
+      "text": "Колонка 02 — mempool. Смотри, как tx становится Finalized за ~3 секунды ⚡ Это Avalanche pre-consensus: необратимость ещё до попадания в block."
+    },
+    {
+      "id": "tour-3",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 3,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "observing",
+      "spot": "#section-blockchain",
+      "text": "Лента block'ов 🧱 Каждая карточка — добытый block; смена цвета означает, что Avalanche заблокировал его навсегда. Вершина сейчас на {tipHeight}."
+    },
+    {
+      "id": "tour-4",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 4,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "happy",
+      "spot": "#section-messages",
+      "text": "On-chain фид 📝 Настоящие сообщения, которые люди пишут в транзакциях, — мемо, раунды CashFusion, объявления. У цепи есть светская жизнь."
+    },
+    {
+      "id": "tour-5",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 5,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "alert",
+      "spot": "#section-watchlist",
+      "text": "Твой watchlist 👁️ Добавь любой адрес или токен — и я лично сообщу, как только он шевельнётся."
+    },
+    {
+      "id": "tour-6",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 6,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "studying",
+      "spot": "#f-tps-cell",
+      "text": "Вот здесь внизу: живая статистика сети — TTF, TPS, Heartbeat 💓 Нажми любую ячейку для подробного объяснения. Цифры идут прямо с узла eCash."
+    },
+    {
+      "id": "tour-7",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 7,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "shy",
+      "spot": ".echan-root",
+      "text": "А вот и я 💁 Кликни мой аватар для быстрых действий, настрой мою болтливость в настройках — и я буду рассказывать о китах 🐋, молниеносной финальности ⚡ и ворчливых засухах block'ов 😤 по мере событий."
+    }
+  ]
+}
