@@ -161,7 +161,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "TTF = Time To Finality ⏱️ Lamanya hingga sebuah tx tak bisa dibalikkan. Dari sub-detik sampai beberapa detik di jaringan yang sehat. Ikon ⚠ berarti feed node sedang offline."
+      "text": "TTF = Time To Finality ⏱️ Berapa lama sampai sebuah tx tidak bisa dibalik. Sekitar 2–3 detik di jaringan eCash yang sehat. Ikon ⚠ berarti feed node sedang offline."
     },
     {
       "id": "edu-tps-1",
@@ -1112,6 +1112,897 @@
       "emotion": "shy",
       "spot": ".echan-root",
       "text": "Dan ini aku 💁 Klik avatarku untuk aksi cepat, atur tingkat bicaraku di pengaturan, dan aku akan menarasikan whale 🐋, finalitas kilat ⚡, dan kekeringan block yang bikin kesal 😤 saat terjadi."
+    },
+    {
+      "id": "welcome-first-2",
+      "category": "welcome",
+      "trigger": "welcome:firstVisit",
+      "priority": 2,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": true,
+      "text": "Oh — wajah baru! 👋 Aku eChan, aku tinggal di dashboard eCash ini. Mau tur 60 detik? Janji nggak sakit 👇"
+    },
+    {
+      "id": "welcome-return-3",
+      "category": "welcome",
+      "trigger": "welcome:returning",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "Lihat siapa yang balik 🙌 Chain nggak berhenti sedetik pun — biar aku update kamu."
+    },
+    {
+      "id": "welcome-return-4",
+      "category": "welcome",
+      "trigger": "welcome:returning",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "Halo lagi! Mempool tetap berdengung waktu kamu pergi. Tarik kursi."
+    },
+    {
+      "id": "welcome-settings-3",
+      "category": "welcome",
+      "trigger": "welcome:settings",
+      "priority": 2,
+      "emotion": "shy",
+      "weight": 1,
+      "text": "Psst 🥺 kalau aku terlalu banyak bicara (atau terlalu sedikit), semua ada di settings — klik aku → ⚙️. Tapi… jangan Senyap ya? Di sini sepi banget sendirian."
+    },
+    {
+      "id": "welcome-settings-4",
+      "category": "welcome",
+      "trigger": "welcome:settings",
+      "priority": 2,
+      "emotion": "shy",
+      "weight": 1,
+      "text": "Pengakuan kilat 🙈 aku suka cerita buat kamu. Atur tingkat cerewetku di settings ⚙️ — tapi pikir dua kali sebelum mute aku ya?"
+    },
+    {
+      "id": "greet-morning-3",
+      "category": "greeting",
+      "trigger": "time:morning",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "Selamat pagi ☀️ block pertama hari ini sudah mendarat. Kita lihat XEC tidur nyenyak nggak."
+    },
+    {
+      "id": "greet-morning-4",
+      "category": "greeting",
+      "trigger": "time:morning",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "Bangun yuk 🌅 chain begadang semalaman — biar aku ceritakan apa yang terjadi."
+    },
+    {
+      "id": "greet-afternoon-2",
+      "category": "greeting",
+      "trigger": "time:afternoon",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "text": "Selamat siang 🌤️ alur stabil, cuaca pas buat kopi. Yuk tonton finality berdatangan."
+    },
+    {
+      "id": "greet-evening-2",
+      "category": "greeting",
+      "trigger": "time:evening",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "text": "Selamat malam 🌇 chain nggak melambat buat siapa pun. Saat hangat buat menonton block mendarat."
+    },
+    {
+      "id": "greet-night-3",
+      "category": "greeting",
+      "trigger": "time:night",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "text": "Masih melek? 🌙 Mempool sedang sepi — pas buat baca tx pelan-pelan."
+    },
+    {
+      "id": "greet-night-4",
+      "category": "greeting",
+      "trigger": "time:night",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "text": "Shift malam ya 🌃 aku kecilkan komentarku biar kamu fokus. Block nggak tidur, tapi aku berbisik."
+    },
+    {
+      "id": "edu-preconsensus-3",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Ini sihirnya 💡 pre-consensus bikin staker sepakat soal satu tx dalam ~3 detik, sebelum block apa pun ada. Itu kenapa eCash terasa instan — nggak ada antrean konfirmasi."
+    },
+    {
+      "id": "edu-preconsensus-4",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Pikirkan kayak voting sebelum dicetak 🗳️ peer menyelesaikan tx di mempool dulu; saat tx masuk block, jawabannya sudah final."
+    },
+    {
+      "id": "edu-postconsensus-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "post-consensus itu Avalanche voting block utuh 🔒 begitu block terkunci, reorg apa pun nggak bisa membatalkan — bahkan mayoritas hashpower yang bermusuhan pun ditolak."
+    },
+    {
+      "id": "edu-ttf-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "TTF dalam satu baris ⏱️ berapa lama sebuah tx jadi nggak bisa dibalik. Sekitar 2–3 detik di jaringan eCash yang sehat. Mata ⚠ berarti feed node putus."
+    },
+    {
+      "id": "edu-tps-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "TPS = transaksi per detik 📊 angka hari ini cuma putaran pemanasan — eCash dibangun buat scale ke jutaan, on-chain, tanpa lapisan samping."
+    },
+    {
+      "id": "edu-mempool-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Mempool itu ruang tunggu chain 🚪 di eCash, tx cuma nunggu ~3 detik sebelum pre-consensus menyegelnya. Di Bitcoin kamu nunggu ~10 menit per konfirmasi."
+    },
+    {
+      "id": "edu-agora-3",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Trik Agora 🪄 penjual pasang penawaran token langsung on-chain; pembeli ambil dengan satu tx. Tanpa akun exchange, tanpa order book, tanpa custody — selesai dalam hitungan detik."
+    },
+    {
+      "id": "edu-agora-4",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Non-custodial sampai akhir 🔓 swap di Agora diselesaikan dengan tx yang pembeli tanda tangani buat dirinya sendiri, ditenagai OP_CHECKDATASIG. Covenant-nya hidup on-chain, siapa pun bisa ambil."
+    },
+    {
+      "id": "edu-chronik-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Setiap wallet dan explorer yang pernah kamu pakai di eCash bicara ke Chronik 🗂️ ini indexer yang mengubah block mentah jadi history alamat instan. Dashboard ini juga jalan di atasnya."
+    },
+    {
+      "id": "edu-heartbeat-4",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Fakta Heartbeat 💓 ini lapisan difficulty kedua di atas punya Bitcoin — naikin difficulty langsung saat block datang terlalu cepat, terus dipelankan lagi."
+    },
+    {
+      "id": "edu-heartbeat-5",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Kenapa sestabil ini? 💓 Heartbeat retarget difficulty block demi block secara real-time, jadi eCash menghindari pola ledakan-lalu-sunyi yang dialami chain lama."
+    },
+    {
+      "id": "edu-heartbeat-6",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Block yang melanggar target real-time Heartbeat ditolak konsensus Avalanche 💓 — valid menurut aturan klasik, tapi jaringan tetap bilang tidak. Waktu block mulus buat semua."
+    },
+    {
+      "id": "edu-ifp-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "IFP menjaga lampu tetap nyala 🛠️ sebagian dari setiap block yang ditambang mendanai pengembangan core eCash — mandiri, tanpa mengemis ke yayasan."
+    },
+    {
+      "id": "edu-stakers-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Staker Avalanche itu sihir ~3 detiknya 🗳️ kunci XEC, jalankan node, dan suaramu membantu memfinalisasi setiap tx. Desentralisasi dengan kulit asli di permainan."
+    },
+    {
+      "id": "edu-alp-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Lihat tag 💜 ungu? Itu token ALP — lapisan token modern eCash, dengan kontrol mint built-in. Lebih ringan dan cepat dari SLP lama."
+    },
+    {
+      "id": "edu-slp-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Tag 🔵 biru itu SLP — protokol token asli dari garis keturunan ini. ALP (ungu) versi penyempurnaan eCash: ide yang sama, alat lebih tajam."
+    },
+    {
+      "id": "edu-cashfusion-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "tx dengan banyak input dan output berukuran mirip? 🥷 Itu CashFusion — privacy mixing yang dilakukan dengan benar on-chain, diselesaikan dalam satu tx batched."
+    },
+    {
+      "id": "edu-coinbase-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Intip tx coinbase 📜 input pertama tiap block bisa membawa catatan, sinyal, kadang lelucon dari miner. Block eCash punya kepribadian."
+    },
+    {
+      "id": "edu-xec-unit-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Trivia unit 🪙 1 XEC = 100 satoshi. eCash redenominasi biar angka mudah dibaca — nggak perlu menyipitkan mata ke delapan desimal."
+    },
+    {
+      "id": "edu-utxo-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Wallet kamu menyimpan key, bukan coin 🌐 chain yang melacak output yang belum dipakai (UTXO); private key kamu cuma bukti kepemilikan. Kehilangan key, kehilangan akses."
+    },
+    {
+      "id": "edu-address-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Alamat eCash satu arah 📬 di-hash dari public key, jadi alamat nggak pernah membocorkan key di baliknya. Prefix 'ecash:q…' jadi penanda."
+    },
+    {
+      "id": "edu-supply-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Supply dibatasi 21 triliun XEC — '21' yang sama kayak Bitcoin, cuma koma digeser 💎 nggak ada kejutan inflasi yang dipanggang."
+    },
+    {
+      "id": "edu-staking-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Staking bayar reward block sungguhan 💰 kunci XEC, jalankan node, dibayar karena mengamankan finality. Bukan amal — jaringan menghargai kerja."
+    },
+    {
+      "id": "edu-rebrand-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Sedikit sejarah 📖 eCash di-rebrand dari BCHA pada Juli 2021 dengan redenominasi 1:1.000.000 — chain lama, identitas baru, angka lebih bersih."
+    },
+    {
+      "id": "edu-decimals-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Cuma 2 desimal di XEC 💵 kayak rupiah dan sen. Hitung di kepala tetap mudah — nggak hitung nol kayak chain delapan desimal."
+    },
+    {
+      "id": "edu-cashtab-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Cashtab itu wallet referensi eCash 👛 jalan langsung di browser, menangani token, pesan on-chain, dan penyelesaian instan. Tanpa instalasi."
+    },
+    {
+      "id": "edu-onchainmsg-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Kamu bisa menulis langsung di chain ✍️ output OP_RETURN membawa teks selamanya — memo, broadcast, catatan kecil yang akan mengakali kita."
+    },
+    {
+      "id": "edu-bigblock-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "eCash mewarisi DNA big-block 🧬 dibangun buat scale on-chain, bukan mendorong pengguna ke lapisan samping. Ruang throughput itu poin utamanya."
+    },
+    {
+      "id": "edu-twolayer-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Dua lapis, satu chain 🔗 PoW menjangkar sejarah (lambat, permanen); Avalanche menambah kecepatan (cepat, lancar). Sabuk plus suspender buat konsensus."
+    },
+    {
+      "id": "edu-livettf-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Angka TTF ini bukan tebakan 📏 datang langsung dari node yang mengukur finality nyata secara live — kualitas observatorium, bukan estimasi browser."
+    },
+    {
+      "id": "edu-stats-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Median {liveTtf} detik yang kamu lihat? Avalanche pre-consensus murni 😎 kebanyakan chain bikin kamu nunggu block — eCash diam-diam memfinalisasi di bawah."
+    },
+    {
+      "id": "fun-popcorn-2",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "text": "Putaran fusion besar adalah tontonan favoritku 🍿 menonton ratusan tx selesai dalam satu menit terasa anehnya menenangkan."
+    },
+    {
+      "id": "fun-vs-btc-2",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "text": "BTC bilang 'tunggu satu jam buat aman.' eCash bilang 'sudah aman, lanjut apa?' ⚡ pohon keluarga sama, vibe beda jauh."
+    },
+    {
+      "id": "fun-name-2",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "text": "Fakta tentangku: 'chan' itu cuma panggilan sayang 😌 'e' dari eCash. Gabung jadi… narator chain favoritmu."
+    },
+    {
+      "id": "fun-tokens-2",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "Token mengubah eCash jadi pasar utuh 🎪 mint, swap, marketplace — semua selesai dalam detik, semua di chain yang sedang kamu lihat."
+    },
+    {
+      "id": "net-quiet-3",
+      "category": "network",
+      "trigger": "network:quiet",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "Bagian mengantuk 😴 mempool jalan santai. Momen pas buat klik satu tx dan baca sungguhan apa yang sedang dia lakukan."
+    },
+    {
+      "id": "net-quiet-4",
+      "category": "network",
+      "trigger": "network:quiet",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "Air tenang sekarang 🌊 nggak ada drama — dan jujur, chain yang tenang itu chain yang sehat."
+    },
+    {
+      "id": "net-busy-3",
+      "category": "network",
+      "trigger": "network:busy",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "Lagi panas 🔥 lihat panel tx — kalau gulirnya secepat ini, ada hal seru."
+    },
+    {
+      "id": "net-busy-4",
+      "category": "network",
+      "trigger": "network:busy",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "Lihat throughput itu! ⚡ staker pre-consensus lagi olahraga berat."
+    },
+    {
+      "id": "idle-short-3",
+      "category": "idle",
+      "trigger": "idle:short",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "Masih di sini 👁️ cuma menjaga chain buat kamu."
+    },
+    {
+      "id": "idle-short-4",
+      "category": "idle",
+      "trigger": "idle:short",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "Sepi dari sisimu — santai, aku yang jaga 🫡"
+    },
+    {
+      "id": "idle-long-3",
+      "category": "idle",
+      "trigger": "idle:long",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "text": "Kamu sudah pergi cukup lama 😴 chain dan aku akan tetap di sini saat kamu balik."
+    },
+    {
+      "id": "idle-long-4",
+      "category": "idle",
+      "trigger": "idle:long",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "text": "Jeda panjang! Semoga kamu lagi melakukan sesuatu yang menyenangkan di luar sana ✨ aku tetap cerita buat nggak ada siapa-siapa."
+    },
+    {
+      "id": "easter-spam-3",
+      "category": "easter",
+      "trigger": "manual",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "Oke kamu beneran suka klik aku ya 😏 aku merasa tersanjung. Ada apa?"
+    },
+    {
+      "id": "easter-spam-4",
+      "category": "easter",
+      "trigger": "manual",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "Click-through sepuluh dari sepuluh 🌟 kamu menemukan easter egg, selamat."
+    },
+    {
+      "id": "easter-name-2",
+      "category": "easter",
+      "trigger": "manual",
+      "priority": 1,
+      "emotion": "thinking",
+      "weight": 1,
+      "text": "Kamu mencolek aku 🤨 ya, aku setengah nyata. Butuh apa?"
+    },
+    {
+      "id": "ambient-thought-6",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Pikiran acak 💭 setiap tx terkonfirmasi yang kamu lihat sudah dicek independen oleh ratusan node. Kepercayaan terdistribusi, real-time."
+    },
+    {
+      "id": "ambient-thought-7",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Beberapa alamat di chain ini diam-diam aktif bertahun-tahun 🕰️ ledger mengingat semua — yang elegan maupun yang berantakan."
+    },
+    {
+      "id": "ambient-thought-8",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Menonton block mendarat itu menonton konsensus mengkristal 🧊 ratusan pengamat independen sampai pada jawaban yang sama pada saat yang sama."
+    },
+    {
+      "id": "ambient-thought-9",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Semua ini berjalan di atas matematika yang nggak ada yang berhasil mematahkan dalam 15+ tahun 🧮 hashing, signature, konsensus — semua terbuka, bisa diverifikasi, bisa kamu cek sendiri."
+    },
+    {
+      "id": "ambient-thought-10",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Avalanche nggak menggantikan mining di sini — mereka bekerja berdampingan 🤝 miner bikin block, staker voting urutan. Dua sistem, satu chain."
+    },
+    {
+      "id": "amb-live-4",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Tepat sekarang: {liveTps} TPS, ~{liveTtf} detik median finality 📡 live dari node, tanpa tombol refresh."
+    },
+    {
+      "id": "amb-live-5",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Ujung chain ada di block {tipHeight} saat kita ngobrol ⛓️ kuping kamu ya pas yang berikutnya mendarat."
+    },
+    {
+      "id": "amb-live-6",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Semua di papan ini streaming live 📺 yang kamu lihat itu yang jaringan lakukan detik ini juga."
+    },
+    {
+      "id": "evt-block-4",
+      "category": "network",
+      "trigger": "event:block",
+      "priority": 1,
+      "weight": 1,
+      "text": "Block {height} baru saja jatuh 📦 {txCount} tx tersegel di dalam, selamanya."
+    },
+    {
+      "id": "evt-block-5",
+      "category": "network",
+      "trigger": "event:block",
+      "priority": 1,
+      "weight": 1,
+      "text": "Baru keluar dari chain — block {height}, membawa {txCount} tx 🧱"
+    },
+    {
+      "id": "evt-block-6",
+      "category": "network",
+      "trigger": "event:block",
+      "priority": 1,
+      "weight": 1,
+      "text": "Itu dia, block {height} 🎯 {txCount} transaksi baru menemukan rumah permanennya."
+    },
+    {
+      "id": "evt-bfinal-3",
+      "category": "network",
+      "trigger": "event:blockfinal",
+      "priority": 1,
+      "weight": 1,
+      "text": "Block {height} difinalisasi 🔒 Avalanche menguncinya — nggak ada reorg yang bisa menyentuhnya sekarang."
+    },
+    {
+      "id": "evt-bfinal-4",
+      "category": "network",
+      "trigger": "event:blockfinal",
+      "priority": 1,
+      "weight": 1,
+      "text": "Disegel selamanya: block {height} ✅ post-consensus sudah melakukan tugasnya."
+    },
+    {
+      "id": "evt-bigtx-4",
+      "category": "network",
+      "trigger": "event:bigtx",
+      "priority": 2,
+      "weight": 1,
+      "text": "🐋 Peringatan paus — {valueXec} XEC baru bergerak dalam satu tx. Itu bisa menggerakkan pasar."
+    },
+    {
+      "id": "evt-bigtx-5",
+      "category": "network",
+      "trigger": "event:bigtx",
+      "priority": 2,
+      "weight": 1,
+      "text": "Cipratan besar 🐋 {valueXec} XEC berpindah tangan. Semua, pura-pura biasa."
+    },
+    {
+      "id": "evt-bigtx-6",
+      "category": "network",
+      "trigger": "event:bigtx",
+      "priority": 2,
+      "weight": 1,
+      "text": "{valueXec} XEC dalam satu transaksi 🐋 ada orang yang beneran mengangkat chain di punggungnya."
+    },
+    {
+      "id": "evt-shark-4",
+      "category": "network",
+      "trigger": "event:sharktx",
+      "priority": 2,
+      "weight": 1,
+      "text": "🦈 Hiu di air — {valueXec} XEC bergerak."
+    },
+    {
+      "id": "evt-shark-5",
+      "category": "network",
+      "trigger": "event:sharktx",
+      "priority": 2,
+      "weight": 1,
+      "text": "Seseorang baru memindahkan {valueXec} XEC 🦈 bukan paus, tapi aku perhatikan."
+    },
+    {
+      "id": "evt-shark-6",
+      "category": "network",
+      "trigger": "event:sharktx",
+      "priority": 2,
+      "weight": 1,
+      "text": "{valueXec} XEC sedang bepergian 🦈 kantong yang lumayan, ini."
+    },
+    {
+      "id": "evt-fastttf-3",
+      "category": "network",
+      "trigger": "event:fastttf",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "{ttfSec} detik sampai finality ⚡ kedip mata kamu sudah ketinggalan."
+    },
+    {
+      "id": "evt-fastttf-4",
+      "category": "network",
+      "trigger": "event:fastttf",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "Baru saja merekam finalize {ttfSec} detik 🏁 Avalanche lagi on hari ini."
+    },
+    {
+      "id": "evt-slowttf-4",
+      "category": "grumpy",
+      "trigger": "event:slowttf",
+      "priority": 2,
+      "weight": 1,
+      "text": "{ttfMs}ms buat finalize? 😤 nggak bisa diterima. Aku mau bicara sebentar sama avalanche peer yang lambat."
+    },
+    {
+      "id": "evt-slowttf-5",
+      "category": "grumpy",
+      "trigger": "event:slowttf",
+      "priority": 2,
+      "weight": 1,
+      "text": "{ttfMs}ms?! 🥔 ada orang yang menjalankan staking node-nya di atas kentang."
+    },
+    {
+      "id": "evt-slowttf-6",
+      "category": "grumpy",
+      "trigger": "event:slowttf",
+      "priority": 2,
+      "weight": 1,
+      "text": "Finality di sana butuh {ttfMs}ms 😮‍💨 peer seseorang perlu review kinerja."
+    },
+    {
+      "id": "evt-drought-4",
+      "category": "grumpy",
+      "trigger": "event:blockdrought",
+      "priority": 2,
+      "weight": 1,
+      "text": "{mins} menit, nggak ada block 😤 apa semua miner pergi minum kopi bareng?"
+    },
+    {
+      "id": "evt-drought-5",
+      "category": "grumpy",
+      "trigger": "event:blockdrought",
+      "priority": 2,
+      "weight": 1,
+      "text": "Setelah {mins} menit masih nggak ada apa-apa ✍️ aku sedang menyusun surat berkata-kata tajam ke hashrate."
+    },
+    {
+      "id": "evt-drought-6",
+      "category": "grumpy",
+      "trigger": "event:blockdrought",
+      "priority": 2,
+      "weight": 1,
+      "text": "Kekeringan block: {mins} menit 🏜️ secara statistik normal, secara emosi menghancurkan."
+    },
+    {
+      "id": "evt-fusion-3",
+      "category": "network",
+      "trigger": "event:fusion",
+      "priority": 1,
+      "weight": 1,
+      "text": "Putaran CashFusion sedang berjalan 🥷 privasi, live dan on-chain."
+    },
+    {
+      "id": "evt-fusion-4",
+      "category": "network",
+      "trigger": "event:fusion",
+      "priority": 1,
+      "weight": 1,
+      "text": "Campuran fusion terdeteksi 🌀 koin sedang diaduk sekarang juga."
+    },
+    {
+      "id": "evt-watch-3",
+      "category": "watchlist",
+      "trigger": "event:watchlist",
+      "priority": 2,
+      "weight": 1,
+      "text": "Watchlist kamu baru menyala 👁️ {watched} ada aktivitas."
+    },
+    {
+      "id": "evt-watch-4",
+      "category": "watchlist",
+      "trigger": "event:watchlist",
+      "priority": 2,
+      "weight": 1,
+      "text": "Perhatian — {watched} dari watchlist kamu baru saja bergerak 🔔"
+    },
+    {
+      "id": "evt-msg-3",
+      "category": "feed",
+      "trigger": "event:onchainmsg",
+      "priority": 1,
+      "weight": 1,
+      "text": "Seseorang baru menulis on-chain ✍️ pesan baru di feed."
+    },
+    {
+      "id": "evt-msg-4",
+      "category": "feed",
+      "trigger": "event:onchainmsg",
+      "priority": 1,
+      "weight": 1,
+      "text": "{msgType} segar baru mendarat di feed on-chain 📨"
+    },
+    {
+      "id": "evt-tpsup-3",
+      "category": "network",
+      "trigger": "event:trend:tps_up",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "TPS naik {pct}% 📈 chain sedang bangun."
+    },
+    {
+      "id": "evt-tpsup-4",
+      "category": "network",
+      "trigger": "event:trend:tps_up",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "Aktivitas menanjak — TPS melompat {pct}% di setengah jam terakhir ⚡"
+    },
+    {
+      "id": "evt-tpsdn-3",
+      "category": "network",
+      "trigger": "event:trend:tps_down",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "text": "TPS adem {pct}% 😌 jam-jam tenang on-chain."
+    },
+    {
+      "id": "evt-tpsdn-4",
+      "category": "network",
+      "trigger": "event:trend:tps_down",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "text": "Melambat — TPS {pct}% di bawah sebelumnya 🌙 chain juga butuh napas."
+    },
+    {
+      "id": "evt-ttfdn-3",
+      "category": "network",
+      "trigger": "event:trend:ttf_down",
+      "priority": 2,
+      "weight": 1,
+      "text": "TTF p50 turun {pct}% ⚡ finality jadi lebih cekatan."
+    },
+    {
+      "id": "evt-ttfdn-4",
+      "category": "network",
+      "trigger": "event:trend:ttf_down",
+      "priority": 2,
+      "weight": 1,
+      "text": "Finality membaik {pct}% di setengah jam terakhir 🎯 peer hari ini selaras."
+    },
+    {
+      "id": "evt-ttfup-3",
+      "category": "grumpy",
+      "trigger": "event:trend:ttf_up",
+      "priority": 1,
+      "weight": 1,
+      "text": "TTF p50 naik {pct}% 😤 jaringan lagi mengunyah sesuatu."
+    },
+    {
+      "id": "evt-ttfup-4",
+      "category": "grumpy",
+      "trigger": "event:trend:ttf_up",
+      "priority": 1,
+      "weight": 1,
+      "text": "Finality {pct}% lebih lambat dari setengah jam lalu 👀 aku mengawasi kalian, avalanche peer."
+    },
+    {
+      "id": "evt-peak-3",
+      "category": "network",
+      "trigger": "event:trend:peak",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "Puncak TPS 24 jam baru: {peakTps} 🚀"
+    },
+    {
+      "id": "evt-peak-4",
+      "category": "network",
+      "trigger": "event:trend:peak",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "Rekor hari ini — TPS baru menyentuh {peakTps} 🎉"
+    },
+    {
+      "id": "net-live-busy-2",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Di luar lagi rame 🔥 awasi panel tx — pertunjukan bagus."
+    },
+    {
+      "id": "net-live-quiet-2",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Tenang dulu 🌙 begitu mempool bangun, kamu lihat di sini duluan."
+    },
+    {
+      "id": "fun-live-2",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Nggak ada tayangan ulang di sini 📡 setiap block dan tx yang kureaksi cuma berusia beberapa detik."
+    },
+    {
+      "id": "net-stats-3",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "24 jam terakhir: {liveTxCount} tx selesai, puncak {livePeak} TPS 📊 semua diukur live, semua nggak bisa dibalik."
+    },
+    {
+      "id": "net-stats-4",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Puncak hari ini sejauh ini: {livePeak} TPS — sekarang {liveTps} 🌊 chain bernapas dalam gelombang."
+    },
+    {
+      "id": "amb-stats-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Median finality ada di {liveTtf} detik sekarang 😎 lewat titik itu, block cuma jadi pembukuan."
+    },
+    {
+      "id": "fun-stats-2",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Aku sudah menonton {liveTxCount} tx selesai dalam 24 jam terakhir 👁️ masih belum bosan."
     }
   ]
 }

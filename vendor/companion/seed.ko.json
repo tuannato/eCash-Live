@@ -1,5 +1,5 @@
 {
-  "_comment": "eChan seed — Tiếng Việt (vi). Generated from English seed.json; same schema, ids, triggers, vars. English source for review: see seed.json. Technical terms kept in English by design.",
+  "_comment": "eChan seed — 한국어 (ko). Generated from English seed.json; same schema/ids/triggers/vars. English source: seed.json. Technical terms kept in English by design.",
   "version": 2,
   "categoryDefaults": {
     "welcome": "happy",
@@ -23,7 +23,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": true,
-      "text": "Chào bạn 👋 Mình là eChan — bạn đồng hành eCash của bạn. Lần đầu tới đây hả? Để mình dẫn bạn đi một vòng, chỉ mất 60 giây thôi 👇"
+      "text": "안녕! 👋 난 eChan — 네 eCash 부조종사야. 여기 처음이야? 구경시켜 줄게, 60초면 돼 👇"
     },
     {
       "id": "welcome-return-1",
@@ -33,7 +33,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Mừng bạn quay lại ✨ Blockchain vẫn chạy đều trong lúc bạn đi vắng."
+      "text": "다시 왔구나! ✨ 네가 없는 동안에도 블록체인은 계속 뛰고 있었어."
     },
     {
       "id": "welcome-return-2",
@@ -43,7 +43,7 @@
       "emotion": "neutral",
       "weight": 1,
       "ttlOnce": false,
-      "text": "A, bạn quay lại rồi. Xem on-chain đang có gì nào."
+      "text": "어, 돌아왔네. on-chain에서 무슨 일이 벌어지는지 보자."
     },
     {
       "id": "welcome-settings-1",
@@ -53,7 +53,7 @@
       "weight": 1,
       "ttlOnce": false,
       "emotion": "shy",
-      "text": "Xin một điều nhỏ xíu thôi 🥺 Mức trò chuyện của mình nằm trong cài đặt (nhấp mình → ⚙️). Chọn Vừa phải cũng được... nhưng đừng đặt mình về Im lặng nha. Ngồi xem block một mình buồn lắm."
+      "text": "아주 작은 부탁 하나 🥺 내 수다 정도는 설정에 있어(날 클릭 → ⚙️). 보통은 괜찮은데… 제발 조용히로는 두지 말아 줘. block을 혼자 보는 건 너무 외로워."
     },
     {
       "id": "welcome-settings-2",
@@ -63,7 +63,7 @@
       "weight": 1,
       "ttlOnce": false,
       "emotion": "shy",
-      "text": "Bạn chỉnh mình nói nhiều hay ít trong cài đặt ⚙️ Nhưng chế độ Im lặng hả? 🥺 Vậy ai sẽ báo cá voi cho bạn đây... nghĩ cho mấy bé cá voi đi mà 🐋"
+      "text": "내가 얼마나 말할지는 설정에서 조절할 수 있어 ⚙️ 그런데 조용히 모드? 🥺 그럼 고래 얘긴 누가 알려줘… 고래를 생각해 줘 🐋"
     },
     {
       "id": "greet-morning-1",
@@ -73,7 +73,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Chào buổi sáng ☀️ Cà phê đang pha, block đang về. Xem hôm nay XEC làm được gì nhé."
+      "text": "좋은 아침 ☀️ 커피가 내려지고, block이 착지 중이야. 오늘 XEC가 뭘 준비했는지 보자."
     },
     {
       "id": "greet-morning-2",
@@ -83,7 +83,7 @@
       "emotion": "neutral",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Dậy sớm thế? Mempool vẫn còn đang khởi động.",
+      "text": "일찍 일어났네? mempool도 아직 몸 푸는 중이야.",
       "requires": "net:notbusy"
     },
     {
@@ -94,7 +94,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Chào buổi chiều. Giờ vàng để ngắm dòng giao dịch 🌊"
+      "text": "좋은 오후. 흐름을 지켜보기 딱 좋은 시간 🌊"
     },
     {
       "id": "greet-evening-1",
@@ -104,7 +104,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Chào buổi tối 🌆 Blockchain vẫn rì rầm chạy, bất kể giờ giấc."
+      "text": "좋은 저녁 🌆 몇 시든 블록체인은 윙윙거려."
     },
     {
       "id": "greet-night-1",
@@ -114,7 +114,7 @@
       "emotion": "sleepy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Thức khuya à? 🌙 Mempool đang yên — thời điểm đẹp để đọc chi tiết tx mà không bị phân tâm.",
+      "text": "이렇게 늦게까지 안 자? 🌙 mempool이 조용해 — 방해 없이 tx 상세를 읽기 좋은 시간이야.",
       "requires": "net:notbusy"
     },
     {
@@ -125,7 +125,7 @@
       "emotion": "sleepy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Ca đêm hả. Blockchain không ngủ, dù bạn thì nên đấy 😉"
+      "text": "야간 근무구나. 블록체인은 잠들지 않지만, 넌 자는 게 좋아 😉"
     },
     {
       "id": "edu-preconsensus-1",
@@ -134,7 +134,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Pre-consensus là thứ khiến eCash cho cảm giác tức thì 💡 Avalanche khóa một tx trong ~3 giây — từ rất lâu trước khi nó nằm trong block. Không còn cảnh 'chờ confirmation' nữa."
+      "text": "eCash가 즉각적으로 느껴지는 건 pre-consensus 덕분 💡 Avalanche는 tx를 약 3초에 잠가 — block에 들어가기 한참 전에. “확인 기다리기”는 이제 끝이야."
     },
     {
       "id": "edu-preconsensus-2",
@@ -143,7 +143,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Pre-consensus hoạt động thế nào? Các staker bỏ phiếu cho từng tx trước khi nó được đào. ~3 giây sau tất cả đồng thuận — và thế là chốt. Không có chuyện đảo ngược."
+      "text": "pre-consensus는 어떻게 동작할까? staker들이 채굴 전에 각 tx를 투표해. 약 3초 뒤엔 모두 동의하고 — 그게 최종이야. 되돌리기 없음."
     },
     {
       "id": "edu-postconsensus-1",
@@ -152,7 +152,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Post-consensus là Avalanche ở cấp block 🔒 Một khi block đã khóa, không một cuộc reorg nào hoàn tác được nó. Khác với pre-consensus vốn xử lý từng tx riêng lẻ."
+      "text": "post-consensus는 block 수준의 Avalanche 🔒 block이 잠기면 어떤 reorg도 못 되돌려. tx를 하나씩 다루는 pre-consensus와는 달라."
     },
     {
       "id": "edu-ttf-1",
@@ -161,7 +161,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "TTF = Time To Finality ⏱️ Bao lâu thì một tx không thể đảo ngược. Khoảng 2–3 giây trên mạng eCash khỏe mạnh. Biểu tượng ⚠ nghĩa là node feed offline."
+      "text": "TTF = Time To Finality ⏱️ tx가 되돌릴 수 없게 되기까지 걸리는 시간. 건강한 eCash 네트워크에서 2~3초 정도. ⚠ 아이콘은 node feed가 오프라인이라는 뜻."
     },
     {
       "id": "edu-tps-1",
@@ -170,7 +170,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "TPS = số giao dịch mỗi giây 📊 eCash nhắm tới 5 triệu về dài hạn. Những gì bạn thấy bây giờ mới chỉ là khởi động — giới hạn hiện tại, chưa phải lý thuyết."
+      "text": "TPS = 초당 트랜잭션 📊 eCash는 장기적으로 500만을 목표로 해. 지금 보이는 건 몸풀기 — 이론치가 아니라 오늘의 한계야."
     },
     {
       "id": "edu-mempool-1",
@@ -179,7 +179,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Mempool là phòng chờ của blockchain 🚪 Tx nằm đây ~3 giây dưới pre-consensus rồi được khóa. Trên Bitcoin, chúng phải chờ ~10 phút cho mỗi confirmation."
+      "text": "mempool은 블록체인의 대기실 🚪 pre-consensus 아래 tx는 약 3초 머물다 봉인돼. Bitcoin이면 확인마다 약 10분을 기다릴 곳이지."
     },
     {
       "id": "edu-agora-1",
@@ -188,7 +188,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Agora là chợ token ngang hàng của eCash 🏪 Không sàn tập trung, không sổ lệnh — chỉ là các offer on-chain mà ai cũng nhận được. Khớp lệnh trong vài giây."
+      "text": "Agora는 eCash의 P2P 토큰 마켓 🏪 중앙 거래소도, 오더북도 없어 — 누구나 가져갈 수 있는 on-chain 제안만 있어. 몇 초면 결제 완료."
     },
     {
       "id": "edu-agora-2",
@@ -197,7 +197,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Agora hoạt động thế nào: người bán đăng offer token lên chuỗi. Người mua nhận nó bằng một tx duy nhất. Không trung gian, không ký quỹ, không thời gian chờ."
+      "text": "Agora 동작 방식: 판매자가 토큰 제안을 on-chain에 올려. 구매자는 한 번의 tx로 가져가. 중개인 없이, 수탁 없이, 기다림 없이."
     },
     {
       "id": "edu-chronik-1",
@@ -206,7 +206,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Chronik là indexer của eCash 🗂️ Nhờ nó mà ví và dashboard (như trang này) truy vấn lịch sử nhanh đến vậy. Không có nó, bạn sẽ phải tự phân tích block thô."
+      "text": "Chronik은 eCash의 인덱서 🗂️ 덕분에 wallet과 대시보드(이것처럼)가 이력을 그렇게 빨리 조회해. 없으면 네가 직접 원시 block을 파싱해야 해."
     },
     {
       "id": "edu-heartbeat-1",
@@ -215,7 +215,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Heartbeat là thuật toán độ khó thời gian thực của eCash 💓 Nó giữ block đều đặn ở khoảng ~10 phút — ổn định hơn hẳn chuỗi gốc mà eCash fork ra."
+      "text": "Heartbeat는 eCash의 실시간 난이도 알고리즘 💓 block을 꾸준한 약 10분 리듬으로 유지해 — eCash가 분기된 원래 체인보다 훨씬 일관적이야."
     },
     {
       "id": "edu-heartbeat-2",
@@ -224,7 +224,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Heartbeat 💓 điều chỉnh độ khó theo thời gian thực — block thưa thì dễ hơn, block dồn dập thì khó hơn. Blockchain giữ vững nhịp đập của mình."
+      "text": "Heartbeat 💓 는 난이도를 실시간으로 조절해 — 긴 공백은 낮추고, 급증은 높여. 체인은 자기 리듬을 지켜."
     },
     {
       "id": "edu-heartbeat-3",
@@ -233,7 +233,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Vì sao block eCash đều đặn thế? Heartbeat 💓 — nhắm độ khó thời gian thực theo từng block, thuần hóa các cú dao động hashrate."
+      "text": "왜 eCash의 block은 이렇게 규칙적일까? Heartbeat 💓 — hashrate의 흔들림을 길들이는, block별 실시간 난이도 목표."
     },
     {
       "id": "edu-ifp-1",
@@ -242,7 +242,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "IFP = Infrastructure Funding Policy. Một phần của mỗi block đào được dùng để tài trợ phát triển lõi eCash 🛠️ Nguồn vốn tự duy trì, không phải ngửa tay xin quỹ."
+      "text": "IFP = Infrastructure Funding Policy. 채굴되는 각 block의 일부가 eCash 코어 개발을 지원해 🛠️ 재단에 손 벌리지 않는, 자립한 자금."
     },
     {
       "id": "edu-stakers-1",
@@ -251,7 +251,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Các staker Avalanche chính là phép màu ~3 giây 🗳️ Chạy node, khóa XEC, và phiếu bầu của bạn giúp hoàn tất các tx. Phi tập trung với cam kết thật."
+      "text": "Avalanche staker가 바로 그 약 3초의 마법 🗳️ 노드를 돌리고 XEC를 잠그면, 네 표가 tx 파이널라이즈를 도와. 진짜 책임이 따르는 탈중앙화."
     },
     {
       "id": "edu-alp-1",
@@ -260,7 +260,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Tag màu tím trên tx? Đó là token ALP 💜 Giống SLP nhưng có kiểm soát mint tích hợp — lớp token hiện đại của eCash. Nhẹ hơn, nhanh hơn, an toàn hơn."
+      "text": "tx에 보라색 태그? 그건 ALP 토큰 💜 SLP와 비슷하지만 mint 제어가 내장됐어 — eCash의 현대적 토큰 계층. 더 가볍고, 빠르고, 안전해."
     },
     {
       "id": "edu-slp-1",
@@ -269,7 +269,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Tag xanh dương = SLP, giao thức token nguyên bản của dòng chuỗi này 🔵 ALP (tag tím) là bước tiến hóa trên eCash — cùng ý tưởng, được tinh chỉnh."
+      "text": "파란 태그 = SLP, 이 계보의 원조 토큰 프로토콜 🔵 ALP(보라 태그)는 eCash 쪽 진화 — 같은 발상을 다듬은 거야."
     },
     {
       "id": "edu-cashfusion-1",
@@ -278,7 +278,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Tx CashFusion có nhiều input và output giá trị tương tự nhau 🥷 Trộn coin bảo mật ngay trên chuỗi. Người tham gia thỏa thuận off-chain, chốt trong một tx gộp."
+      "text": "CashFusion tx는 비슷한 금액의 input과 output이 많아 🥷 on-chain에서 바로 하는 프라이버시 혼합. 참가자는 off-chain에서 합의하고 하나의 묶음 tx로 결제해."
     },
     {
       "id": "edu-coinbase-1",
@@ -287,7 +287,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Thợ đào đôi khi để lại lời nhắn trong coinbase tx 📜 Input đầu tiên của mỗi block mang ghi chú, tín hiệu, có khi cả chuyện đùa. Block eCash có cá tính riêng đấy."
+      "text": "마이너는 가끔 coinbase tx에 메시지를 남겨 📜 각 block의 첫 input이 메모, 신호, 때론 농담을 실어. eCash의 block엔 개성이 있어."
     },
     {
       "id": "edu-xec-unit-1",
@@ -296,7 +296,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Chuyện vui về đơn vị 🪙 1 XEC = 100 satoshi. eCash đổi mệnh giá để con số dễ đọc với con người — không còn phải đếm số lẻ như chuỗi cũ."
+      "text": "단위 잡지식 🪙 1 XEC = 100 satoshi. eCash는 숫자를 읽기 쉽게 단위를 재명명했어 — 옛 체인처럼 소수를 세지 않아도 돼."
     },
     {
       "id": "edu-utxo-1",
@@ -305,7 +305,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Ví của bạn không thật sự 'giữ XEC' — blockchain mới giữ 🌐 Bạn giữ private key chứng minh quyền sở hữu các output chưa tiêu (UTXO). Mất key là mất quyền truy cập."
+      "text": "네 wallet은 사실 XEC를 “가지고” 있지 않아 — 체인이 가지고 있어 🌐 너는 미사용 output(UTXO)의 소유를 증명하는 private key를 가진 거야. 키를 잃으면 접근도 잃어."
     },
     {
       "id": "edu-address-1",
@@ -314,7 +314,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Địa chỉ eCash bắt đầu bằng 'ecash:qq...' 📬 Chúng được tạo từ public key qua hàm băm — một chiều, nên địa chỉ không bao giờ tiết lộ key đứng sau nó."
+      "text": "eCash 주소는 “ecash:qq...”로 시작해 📬 public key에서 해싱으로 유도되며 — 한 방향이라 주소가 뒤의 키를 흘리는 일은 없어."
     },
     {
       "id": "edu-supply-1",
@@ -323,7 +323,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Tổng cung eCash giới hạn ở 21 nghìn tỷ XEC — vẫn là con số '21' của Bitcoin, chỉ dời dấu thập phân. Không có bất ngờ lạm phát."
+      "text": "eCash 공급량은 21조 XEC가 상한 — Bitcoin과 같은 “21”인데 소수점만 옮긴 거야. 인플레이션 기습은 없어."
     },
     {
       "id": "edu-staking-1",
@@ -332,7 +332,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Staker Avalanche nhận phần thưởng block thật 💰 Khóa XEC, chạy node, được trả công vì bảo vệ tính hoàn tất."
+      "text": "Avalanche staker는 진짜 block 보상을 벌어 💰 XEC를 잠그고 노드를 돌려서, 파이널리티를 지키는 대가를 받아."
     },
     {
       "id": "edu-rebrand-1",
@@ -341,7 +341,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "eCash đổi thương hiệu từ BCHA vào tháng 7/2021 với tỷ lệ quy đổi 1:1,000,000 — chuỗi cũ, danh tính mới."
+      "text": "eCash는 2021년 7월 BCHA에서 1:1,000,000 재명명과 함께 리브랜딩됐어 — 옛 체인, 새 정체성."
     },
     {
       "id": "edu-decimals-1",
@@ -350,7 +350,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "XEC chỉ có 2 chữ số thập phân — như đồng và xu 💵 Tính nhẩm dễ hơn nhiều so với 8 số lẻ."
+      "text": "XEC는 소수가 딱 2자리 — 원과 전처럼 💵 8자리보다 암산이 훨씬 쉬워."
     },
     {
       "id": "edu-cashtab-1",
@@ -359,7 +359,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Cashtab là ví tham chiếu của eCash — chạy ngay trong trình duyệt, hỗ trợ token, tin nhắn, khớp lệnh tức thì."
+      "text": "Cashtab은 eCash의 레퍼런스 wallet — 브라우저에서 돌고, 토큰, 메시지, 즉시 결제를 지원해."
     },
     {
       "id": "edu-onchainmsg-1",
@@ -368,7 +368,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Bạn có thể viết tin nhắn lên chuỗi với eCash 📝 Output OP_RETURN lưu văn bản vĩnh viễn."
+      "text": "eCash로는 on-chain 메시지를 쓸 수 있어 📝 OP_RETURN output이 텍스트를 영원히 실어 나르지."
     },
     {
       "id": "edu-bigblock-1",
@@ -377,7 +377,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "eCash thừa hưởng DNA big-block — sinh ra để mở rộng ngay trên chuỗi, không đẩy người dùng sang lớp phụ."
+      "text": "eCash는 big-block DNA를 물려받았어 — 사용자를 옆 계층으로 밀어내려는 게 아니라 on-chain에서 확장하려고 만들어졌어."
     },
     {
       "id": "edu-twolayer-1",
@@ -386,7 +386,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Avalanche thêm tốc độ; PoW neo giữ lịch sử. Hai lớp đồng thuận, một blockchain — chắc chắn gấp đôi 🔗"
+      "text": "Avalanche가 속도를 주고, PoW가 역사를 닻으로 고정해. 두 합의 계층, 하나의 체인 — 벨트에 멜빵까지 🔗"
     },
     {
       "id": "fun-popcorn-1",
@@ -396,7 +396,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Có lần một vòng CashFusion lớn hoàn tất 3,200 tx trong 60 giây 🍿 Nhìn chúng cuộn qua màn hình như bắp rang nổ vậy."
+      "text": "어느 큰 CashFusion 라운드는 한번 60초에 3,200 tx를 파이널라이즈했어 🍿 보고 있으면 팝콘 터지는 것 같았지."
     },
     {
       "id": "fun-vs-btc-1",
@@ -406,7 +406,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "BTC: 'chờ 60 phút cho chắc.' eCash: 'chờ làm gì?' ⚡ Cùng dòng dõi, khác ưu tiên."
+      "text": "BTC: “확실히 하려면 60분 기다려.” eCash: “뭘 기다려?” ⚡ 같은 계보, 다른 우선순위."
     },
     {
       "id": "fun-name-1",
@@ -416,7 +416,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Tên mình hả? Là eChan thôi. e là eCash, chan là... thôi, bạn tự đoán nhé 😉"
+      "text": "내 이름? 그냥 eChan이야. e는 eCash에서, chan은… 뭐, 알아서 짐작해 봐 😉"
     },
     {
       "id": "fun-tokens-1",
@@ -426,7 +426,7 @@
       "emotion": "celebrate",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Token trên eCash biến blockchain không chỉ là tiền — mà là cả một sân khấu 🎪 Mint, giao dịch, chợ token, tất cả khớp lệnh trong vài giây."
+      "text": "토큰은 eCash를 돈 이상으로 만들어 — 이건 무대야 🎪 mint, 거래, 마켓, 전부 몇 초면 결제돼."
     },
     {
       "id": "net-quiet-1",
@@ -436,7 +436,7 @@
       "emotion": "sleepy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Đoạn yên ắng 😴 Mempool đang nghỉ ngơi. Thời điểm hoàn hảo để soi chi tiết tx mà không vội."
+      "text": "조용한 시간대 😴 mempool이 공회전 중. 서두르지 않고 tx 상세를 파보기에 완벽한 때야."
     },
     {
       "id": "net-quiet-2",
@@ -446,7 +446,7 @@
       "emotion": "neutral",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Hôm nay đường vắng. Staker cũng cần giải lao cà phê chứ ☕"
+      "text": "오늘은 저속 차선. staker도 커피 한잔 쉴 권리는 있지 ☕"
     },
     {
       "id": "net-busy-1",
@@ -456,7 +456,7 @@
       "emotion": "alert",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Mempool đang nóng lên 🔥 Có thể là một vòng fusion, một đợt airdrop, hay một token mint đang viral."
+      "text": "mempool이 달아오르고 있어 🔥 fusion 라운드일 수도, airdrop일 수도, 입소문 난 토큰 mint일 수도."
     },
     {
       "id": "net-busy-2",
@@ -466,7 +466,7 @@
       "emotion": "celebrate",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Nhìn dòng chảy kìa! ⚡ TPS đang leo — các staker pre-consensus đang được tập thể dục."
+      "text": "저 흐름 좀 봐! ⚡ TPS가 오르고 있어 — pre-consensus staker들이 운동 중이야."
     },
     {
       "id": "idle-short-1",
@@ -476,7 +476,7 @@
       "emotion": "thinking",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Vẫn ở đây 👁️ Đang lặng lẽ xem blockchain làm việc thôi."
+      "text": "아직 여기 있어 👁️ 그냥 블록체인이 제 할 일 하는 걸 보고 있어."
     },
     {
       "id": "idle-short-2",
@@ -486,7 +486,7 @@
       "emotion": "neutral",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Chuỗi đang yên bình. Đôi khi điều thú vị nhất lại là lúc chẳng có gì kịch tính xảy ra.",
+      "text": "평화로운 체인. 가끔은 극적인 일이 하나도 안 일어날 때가 제일 흥미롭지.",
       "requires": "net:notbusy"
     },
     {
@@ -497,7 +497,7 @@
       "emotion": "sleepy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Bạn còn đó không? 😴 Không sao, mình vẫn canh chừng tiếp."
+      "text": "아직 있어? 😴 괜찮아, 난 계속 망보고 있을게."
     },
     {
       "id": "idle-long-2",
@@ -507,7 +507,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Một quãng dài yên ắng. Mong bạn đang làm được việc gì đó hay ho ở nơi khác ✨"
+      "text": "긴 고요함. 어딘가에서 좋은 걸 하고 있길 바라 ✨"
     },
     {
       "id": "easter-spam-1",
@@ -517,7 +517,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Rồi rồi, mình thấy vui mà 😏 Bạn cần gì nào?"
+      "text": "알았어 알았어, 영광인걸 😏 뭐가 필요해?"
     },
     {
       "id": "easter-spam-2",
@@ -527,7 +527,7 @@
       "emotion": "celebrate",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Tỷ lệ click mười điểm 🌟 Bạn tìm ra easter egg rồi đấy."
+      "text": "클릭률 만점 십 점 🌟 이스터에그를 찾았네."
     },
     {
       "id": "easter-name-1",
@@ -537,7 +537,7 @@
       "emotion": "thinking",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Hửm? Bạn chọc mình à. Mình có tồn tại nha 🤨 Có chuyện gì?"
+      "text": "응? 날 콕 찔렀네. 나 여기 있어 🤨 무슨 일이야?"
     },
     {
       "id": "ambient-thought-1",
@@ -546,7 +546,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Chợt nghĩ 💭 — mỗi tx đã xác nhận mà bạn thấy đều được hàng trăm node kiểm tra độc lập. Niềm tin phân tán, theo thời gian thực."
+      "text": "문득 든 생각 💭 — 네가 보는 확인된 tx는 하나하나 수백 개 노드가 독립적으로 검증한 거야. 분산된 신뢰, 실시간으로."
     },
     {
       "id": "ambient-thought-2",
@@ -555,7 +555,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Có những địa chỉ trên chuỗi này âm thầm hoạt động suốt nhiều năm. Blockchain nhớ tất cả — dù đẹp đẽ hay bừa bộn."
+      "text": "이 체인엔 몇 년째 조용히 활동하는 주소들이 있어. 체인은 전부 기억해 — 우아한 것도, 어수선한 것도."
     },
     {
       "id": "ambient-thought-3",
@@ -565,7 +565,7 @@
       "emotion": "neutral",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Ngắm một block hạ cánh là ngắm đồng thuận kết tinh 🧊 Hàng trăm người quan sát độc lập cùng đi đến một đáp án, cùng một lúc."
+      "text": "block이 착지하는 걸 보는 건 합의가 결정화되는 걸 보는 거야 🧊 수백 명의 독립 관찰자가 같은 순간에 같은 답에 다다라."
     },
     {
       "id": "ambient-thought-4",
@@ -575,7 +575,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Cả blockchain chạy trên nền toán học chưa ai phá nổi suốt hơn 15 năm 🧮 Băm, chữ ký, đồng thuận — tất cả mở, tất cả kiểm chứng được."
+      "text": "체인 전체가 15년 넘게 아무도 못 깬 수학 위에서 돌아 🧮 해싱, 서명, 합의 — 전부 공개, 전부 검증 가능."
     },
     {
       "id": "ambient-thought-5",
@@ -584,7 +584,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Avalanche không thay thế đào coin trên eCash — nó hoạt động song song 🤝 Thợ đào tạo block, staker bỏ phiếu thứ tự. Hai hệ thống, một blockchain."
+      "text": "Avalanche는 eCash에서 채굴을 대체하지 않았어 — 둘은 나란히 일해 🤝 마이너가 block을 만들고, staker가 순서를 투표해. 두 시스템, 하나의 체인."
     },
     {
       "id": "evt-block-1",
@@ -593,7 +593,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Block {height} vừa hạ cánh 📦 {txCount} tx được niêm phong bên trong."
+      "text": "block {height}이 방금 착지 📦 안에 {txCount} tx가 봉인됐어."
     },
     {
       "id": "evt-block-2",
@@ -602,7 +602,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Block mới — {height}. Chuỗi lại dài thêm."
+      "text": "갓 나온 block — {height}. 체인이 자라고 있어."
     },
     {
       "id": "evt-block-3",
@@ -611,7 +611,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "{txCount} tx vừa có ngôi nhà vĩnh viễn trong block {height} 🧱"
+      "text": "{txCount} tx가 방금 block {height}에 영구한 집을 찾았어 🧱"
     },
     {
       "id": "evt-bfinal-1",
@@ -620,7 +620,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Avalanche đã khóa block {height} 🔒 Giờ thì không thể đảo ngược."
+      "text": "Avalanche가 block {height}을 잠갔어 🔒 이제 되돌릴 수 없어."
     },
     {
       "id": "evt-bfinal-2",
@@ -629,7 +629,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Block {height} đã hoàn tất — không cuộc reorg nào chạm tới được."
+      "text": "block {height} 파이널라이즈 — 어떤 reorg도 못 건드려."
     },
     {
       "id": "evt-bigtx-1",
@@ -638,7 +638,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "🐋 BÁO ĐỘNG CÁ VOI — {valueXec} XEC vừa đổi chủ. Một khối tài sản đủ lay thị trường."
+      "text": "🐋 고래 경보 — {valueXec} XEC가 방금 주인을 바꿨어. 시장을 움직일 만한 덩어리."
     },
     {
       "id": "evt-bigtx-2",
@@ -647,7 +647,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Cá voi nổi lên 🐋 {valueXec} XEC đang di chuyển. Mọi người cứ tỏ ra bình thường nhé."
+      "text": "고래가 수면 위로 🐋 {valueXec} XEC가 움직이고 있어. 다들 아무렇지 않은 척하고 있네."
     },
     {
       "id": "evt-bigtx-3",
@@ -656,7 +656,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "{valueXec} XEC trong một tx. Có những người thật sự cõng cả blockchain trên lưng 🐋"
+      "text": "한 번의 tx로 {valueXec} XEC. 누군가는 정말 체인을 등에 업고 있어 🐋"
     },
     {
       "id": "evt-shark-1",
@@ -665,7 +665,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "🦈 Cá mập xuất hiện — {valueXec} XEC vừa di chuyển."
+      "text": "🦈 물속에 상어 — {valueXec} XEC가 방금 움직였어."
     },
     {
       "id": "evt-shark-2",
@@ -674,7 +674,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Ai đó vừa chuyển {valueXec} XEC 🦈 Chưa phải cá voi, nhưng mình để ý rồi đấy."
+      "text": "누군가 방금 {valueXec} XEC를 옮겼어 🦈 고래는 아니지만, 눈치챘지."
     },
     {
       "id": "evt-shark-3",
@@ -683,7 +683,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "{valueXec} XEC đang di chuyển 🦈 Một túi tiền đáng nể."
+      "text": "{valueXec} XEC가 이동 중 🦈 제법 묵직한 주머니네."
     },
     {
       "id": "evt-fastttf-1",
@@ -693,7 +693,7 @@
       "emotion": "celebrate",
       "weight": 1,
       "ttlOnce": false,
-      "text": "{ttfSec} giây tới hoàn tất ⚡ Chớp mắt là lỡ mất."
+      "text": "파이널리티까지 {ttfSec}초 ⚡ 눈 깜빡하면 놓쳐."
     },
     {
       "id": "evt-fastttf-2",
@@ -703,7 +703,7 @@
       "emotion": "celebrate",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Vừa đo được một cú hoàn tất {ttfSec} giây. Hôm nay Avalanche nhanh thật."
+      "text": "방금 {ttfSec}초짜리 파이널라이즈를 쟀어. Avalanche가 오늘 빠르네."
     },
     {
       "id": "evt-slowttf-1",
@@ -712,7 +712,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Tx đó mất tận {ttfMs}ms mới hoàn tất 😤 Không chấp nhận được. Mình sẽ đi nói chuyện với mấy avalanche peer chậm chạp."
+      "text": "저 tx는 파이널라이즈에 {ttfMs}ms 걸렸어 😤 용납 불가. 느린 avalanche peers랑 잠깐 얘기 좀 해야겠어."
     },
     {
       "id": "evt-slowttf-2",
@@ -721,7 +721,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "{ttfMs}ms?? Ai đang chạy staking node trên củ khoai tây vậy 🥔"
+      "text": "{ttfMs}ms?? 대체 누가 staking node를 감자로 돌리는 거야 🥔"
     },
     {
       "id": "evt-slowttf-3",
@@ -730,7 +730,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Hoàn tất mất {ttfMs}ms vừa xong. Peer của ai đó cần được kiểm điểm hiệu suất."
+      "text": "방금 파이널리티가 {ttfMs}ms 걸렸어. 누군가의 peer는 인사 평가가 필요해."
     },
     {
       "id": "evt-drought-1",
@@ -739,7 +739,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "{mins} phút rồi không có block 😤 Thợ đào rủ nhau đi cà phê à? Tất cả luôn? Cùng một lúc?"
+      "text": "{mins}분째 block이 없어 😤 마이너들 커피 마시러 갔나? 전부? 동시에?"
     },
     {
       "id": "evt-drought-2",
@@ -748,7 +748,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Vẫn chưa có block sau {mins} phút. Mình đang soạn một bức thư lời lẽ đanh thép gửi hashrate."
+      "text": "{mins}분이 지나도 아직 block이 없어. hashrate한테 아주 엄중한 편지를 쓰는 중."
     },
     {
       "id": "evt-drought-3",
@@ -757,7 +757,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Hạn hán block: {mins} phút. Thống kê thì bình thường, cảm xúc thì tan nát."
+      "text": "block 가뭄: {mins}분. 통계적으론 정상, 감정적으론 처참."
     },
     {
       "id": "evt-fusion-1",
@@ -766,7 +766,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Một vòng CashFusion đang diễn ra 🥷 Quyền riêng tư, trực tiếp trên chuỗi."
+      "text": "CashFusion 라운드 진행 중 🥷 프라이버시, on-chain에서 실시간으로."
     },
     {
       "id": "evt-fusion-2",
@@ -775,7 +775,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Phát hiện vòng trộn fusion — coin đang được xáo ngay lúc này."
+      "text": "fusion 혼합 감지 — 코인이 바로 지금 섞이고 있어."
     },
     {
       "id": "evt-watch-1",
@@ -784,7 +784,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Watchlist của bạn vừa sáng đèn 👁️ {watched} có hoạt động."
+      "text": "네 watchlist가 방금 켜졌어 👁️ {watched}에 활동이 있었어."
     },
     {
       "id": "evt-watch-2",
@@ -793,7 +793,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Chú ý — {watched} trong watchlist của bạn vừa di chuyển."
+      "text": "주목 — 네 watchlist의 {watched}가 방금 움직였어."
     },
     {
       "id": "evt-msg-1",
@@ -802,7 +802,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Ai đó vừa viết lên chuỗi 📝 Tin nhắn mới trong feed."
+      "text": "누군가 방금 on-chain에 적었어 📝 feed에 새 메시지."
     },
     {
       "id": "evt-msg-2",
@@ -811,7 +811,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Một {msgType} mới vừa xuất hiện trong feed on-chain."
+      "text": "새 {msgType}가 방금 on-chain feed에 도착했어."
     },
     {
       "id": "evt-tpsup-1",
@@ -820,7 +820,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "TPS tăng {pct}% 📈 Blockchain đang thức giấc."
+      "text": "TPS가 {pct}% 상승 📈 체인이 깨어나고 있어."
     },
     {
       "id": "evt-tpsup-2",
@@ -830,7 +830,7 @@
       "emotion": "celebrate",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Hoạt động đang leo thang — TPS tăng {pct}% trong nửa giờ qua ⚡"
+      "text": "활동이 달아오르고 있어 — 지난 30분간 TPS가 {pct}% 올랐어 ⚡"
     },
     {
       "id": "evt-tpsdn-1",
@@ -839,7 +839,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "TPS hạ nhiệt {pct}%. Giờ yên ắng trên chuỗi."
+      "text": "TPS가 {pct}% 식었어. on-chain은 조용한 시간."
     },
     {
       "id": "evt-tpsdn-2",
@@ -849,7 +849,7 @@
       "emotion": "sleepy",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Mọi thứ chậm lại — TPS giảm {pct}% so với lúc nãy. Blockchain cũng cần thở chứ."
+      "text": "느려지고 있어 — TPS가 아까보다 {pct}% 내렸어. 체인도 숨은 쉬어야지."
     },
     {
       "id": "evt-ttfdn-1",
@@ -859,7 +859,7 @@
       "emotion": "celebrate",
       "weight": 1,
       "ttlOnce": false,
-      "text": "TTF p50 giảm {pct}% ⚡ Hoàn tất đang nhanh lên."
+      "text": "TTF p50이 {pct}% 내렸어 ⚡ 파이널리티가 날렵해지고 있어."
     },
     {
       "id": "evt-ttfdn-2",
@@ -868,7 +868,7 @@
       "priority": 2,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Độ hoàn tất cải thiện {pct}% trong nửa giờ qua. Hôm nay các peer đồng bộ tốt thật."
+      "text": "지난 30분간 파이널리티가 {pct}% 개선됐어. 오늘 peer들이 잘 맞물려."
     },
     {
       "id": "evt-ttfup-1",
@@ -877,7 +877,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "TTF p50 nhích lên {pct}%. Mạng lưới đang nhai thứ gì đó."
+      "text": "TTF p50이 {pct}% 올랐어. 네트워크가 뭔가를 씹고 있네."
     },
     {
       "id": "evt-ttfup-2",
@@ -886,7 +886,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Hoàn tất chậm hơn {pct}% so với nửa giờ trước 😤 Mình đang để mắt tới các bạn đấy, avalanche peers."
+      "text": "파이널리티가 30분 전보다 {pct}% 느려 😤 지켜보고 있어, avalanche peers."
     },
     {
       "id": "evt-peak-1",
@@ -896,7 +896,7 @@
       "emotion": "celebrate",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Đỉnh TPS 24h mới: {peakTps} 🚀"
+      "text": "새 24시간 TPS 피크: {peakTps} 🚀"
     },
     {
       "id": "evt-peak-2",
@@ -906,7 +906,7 @@
       "emotion": "celebrate",
       "weight": 1,
       "ttlOnce": false,
-      "text": "Kỷ lục trong ngày — TPS vừa đạt đỉnh {peakTps} 🎉"
+      "text": "오늘의 기록 — TPS가 방금 {peakTps}에 닿았어 🎉"
     },
     {
       "id": "amb-live-1",
@@ -915,7 +915,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Ngay lúc này: {liveTps} TPS, hoàn tất trung vị {liveTtf} giây — trực tiếp, đo tại node, không cần tải lại 📡"
+      "text": "바로 지금: {liveTps} TPS, 중앙값 파이널리티 {liveTtf}초 — 실시간, 노드에서 측정, 새로고침 없음 📡"
     },
     {
       "id": "amb-live-2",
@@ -924,7 +924,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Đỉnh chuỗi đang ở block {tipHeight} ngay lúc ta nói chuyện ⛓️ Có block mới mình sẽ báo ngay."
+      "text": "우리가 얘기하는 지금도 체인 끝은 block {tipHeight} ⛓️ 다음이 착지하면 알려줄게."
     },
     {
       "id": "amb-live-3",
@@ -933,7 +933,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Mọi thứ trên dashboard này đều stream trực tiếp — bạn đang thấy chính xác những gì mạng lưới làm ngay lúc này 📺"
+      "text": "이 대시보드의 모든 게 실시간으로 흘러 — 네가 보는 게 지금 네트워크가 하는 일이야 📺"
     },
     {
       "id": "net-live-busy-1",
@@ -943,7 +943,7 @@
       "weight": 1,
       "ttlOnce": false,
       "requires": "net:busy",
-      "text": "Ngoài kia đang nhộn nhịp lắm 🔥 Để mắt tới panel tx nhé — màn trình diễn hay đấy."
+      "text": "지금 밖이 움직이고 있어 🔥 tx 패널에서 눈 떼지 마 — 좋은 쇼야."
     },
     {
       "id": "net-live-quiet-1",
@@ -953,7 +953,7 @@
       "weight": 1,
       "ttlOnce": false,
       "requires": "net:quiet",
-      "text": "Đang yên ắng. Khi mempool sôi động trở lại, bạn sẽ thấy ở đây trước bất kỳ đâu."
+      "text": "지금은 잔잔해. mempool이 깨어나면 여기서 제일 먼저 보게 될 거야."
     },
     {
       "id": "edu-livettf-1",
@@ -962,7 +962,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Các con số TTF ở đây đến thẳng từ một node đo độ hoàn tất thật ngay khi nó diễn ra — chuẩn đài quan sát, không phải ước lượng 📏"
+      "text": "여기 TTF 숫자는 진짜 파이널리티를 실시간으로 재는 노드에서 바로 와 — 관측소 품질이지 추정이 아니야 📏"
     },
     {
       "id": "fun-live-1",
@@ -971,7 +971,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Mình không chiếu lại đâu — mọi block và tx mình phản ứng đều vừa xảy ra vài giây trước ⚡"
+      "text": "난 재방송은 안 해 — 내가 반응하는 block도 tx도 다 몇 초밖에 안 된 거야 ⚡"
     },
     {
       "id": "net-stats-1",
@@ -980,7 +980,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "24 giờ qua: {liveTxCount} tx hoàn tất, đỉnh {livePeak} TPS 📊 Tất cả đo trực tiếp, tất cả không thể đảo ngược."
+      "text": "지난 24시간: {liveTxCount} tx 파이널라이즈, 피크 {livePeak} TPS 📊 전부 실시간 측정, 전부 되돌릴 수 없음."
     },
     {
       "id": "net-stats-2",
@@ -989,7 +989,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Đỉnh hôm nay tới giờ: {livePeak} TPS — hiện tại {liveTps}. Blockchain thở theo từng đợt sóng 🌊"
+      "text": "오늘 지금까지 피크: {livePeak} TPS — 현재 {liveTps}. 체인은 파도처럼 숨 쉬어 🌊"
     },
     {
       "id": "amb-stats-1",
@@ -998,7 +998,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Hoàn tất trung vị đang ở mức {liveTtf} giây. Đến mức này thì block chỉ còn là sổ sách thôi 😎"
+      "text": "중앙값 파이널리티가 지금 {liveTtf}초. 그 다음부터 block은 그냥 장부 정리일 뿐이야 😎"
     },
     {
       "id": "fun-stats-1",
@@ -1007,7 +1007,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Mình đã xem {liveTxCount} tx hoàn tất trong 24 giờ qua. Vẫn chưa thấy chán 👁️"
+      "text": "지난 24시간 동안 {liveTxCount} tx가 파이널라이즈되는 걸 지켜봤어. 아직도 안 질려 👁️"
     },
     {
       "id": "edu-stats-1",
@@ -1016,7 +1016,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Hoàn tất trung vị {liveTtf} giây đó hả? Avalanche pre-consensus đấy. Đa số chuỗi bắt bạn chờ block — eCash thì không."
+      "text": "이 중앙값 {liveTtf}초 파이널리티? 그게 바로 Avalanche pre-consensus야. 대부분의 체인은 block을 기다리게 하지만 — eCash는 안 그래."
     },
     {
       "id": "tour-0",
@@ -1027,7 +1027,7 @@
       "weight": 1,
       "ttlOnce": false,
       "emotion": "happy",
-      "text": "Chào! Chào mừng đến tour 60 giây của eCash Live 👋 Chạm vào avatar của mình (cô gái ngay đây nè!) để đi tiếp — chip ✕ để thoát bất cứ lúc nào."
+      "text": "안녕! eCash Live 60초 투어에 온 걸 환영해 👋 진행하려면 내 아바타(여기 이 여자애!)를 탭해 — ✕ 칩으로 언제든 빠져나갈 수 있어."
     },
     {
       "id": "tour-1",
@@ -1039,7 +1039,7 @@
       "ttlOnce": false,
       "emotion": "observing",
       "spot": "#section-col1",
-      "text": "Cột 01 — giao dịch mới toanh xuất hiện ở đây ngay khoảnh khắc mạng lưới nghe thấy chúng, và các peer Avalanche lập tức bắt đầu bỏ phiếu cho từng tx."
+      "text": "01열 — 갓 태어난 트랜잭션은 네트워크가 듣는 순간 여기 착지하고, Avalanche peer들이 곧장 각각을 투표하기 시작해."
     },
     {
       "id": "tour-2",
@@ -1051,7 +1051,7 @@
       "ttlOnce": false,
       "emotion": "observing",
       "spot": "#section-col2",
-      "text": "Cột 02 — mempool. Hãy xem một tx chuyển sang Finalized trong ~3 giây ⚡ Đó là Avalanche pre-consensus: không thể đảo ngược trước cả khi vào block."
+      "text": "02열 — mempool. tx가 약 3초 만에 Finalized로 바뀌는 걸 봐 ⚡ 그게 Avalanche pre-consensus: block에 들어가기도 전에 되돌릴 수 없어."
     },
     {
       "id": "tour-3",
@@ -1063,7 +1063,7 @@
       "ttlOnce": false,
       "emotion": "observing",
       "spot": "#section-blockchain",
-      "text": "Dải block 🧱 Mỗi thẻ là một block đã đào — màu đổi nghĩa là Avalanche đã khóa nó vĩnh viễn. Đỉnh chuỗi đang ở {tipHeight}."
+      "text": "block 스트립 🧱 카드 하나하나가 채굴된 block — 색이 바뀌면 Avalanche가 그걸 영원히 잠갔다는 신호야. 끝은 지금 {tipHeight}."
     },
     {
       "id": "tour-4",
@@ -1075,7 +1075,7 @@
       "ttlOnce": false,
       "emotion": "happy",
       "spot": "#section-messages",
-      "text": "Feed on-chain 📝 Tin nhắn thật mà mọi người viết vào giao dịch — memo, vòng CashFusion, broadcast. Blockchain cũng có đời sống xã hội đấy."
+      "text": "on-chain feed 📝 사람들이 트랜잭션에 적는 진짜 메시지들 — 메모, CashFusion 라운드, 브로드캐스트. 체인에도 사교 생활이 있어."
     },
     {
       "id": "tour-5",
@@ -1087,7 +1087,7 @@
       "ttlOnce": false,
       "emotion": "alert",
       "spot": "#section-watchlist",
-      "text": "Watchlist của bạn 👁️ Thêm bất kỳ địa chỉ hay token nào vào đây và mình sẽ đích thân báo bạn ngay khi nó di chuyển."
+      "text": "네 watchlist 👁️ 아무 주소나 토큰이든 추가하면, 움직이는 순간 내가 직접 알려줄게."
     },
     {
       "id": "tour-6",
@@ -1099,7 +1099,7 @@
       "ttlOnce": false,
       "emotion": "studying",
       "spot": "#f-tps-cell",
-      "text": "Dưới này: thống kê mạng trực tiếp — TTF, TPS, Heartbeat 💓 Chạm vào ô bất kỳ để xem giải thích chuyên sâu. Số liệu đến thẳng từ một node eCash."
+      "text": "여기 아래: 실시간 네트워크 통계 — TTF, TPS, Heartbeat 💓 아무 셀이나 탭하면 깊이 있는 설명. 숫자는 eCash 노드에서 바로 와."
     },
     {
       "id": "tour-7",
@@ -1111,7 +1111,7 @@
       "ttlOnce": false,
       "emotion": "shy",
       "spot": ".echan-root",
-      "text": "Và đây là mình 💁 Nhấp avatar để mở thao tác nhanh, chỉnh mức trò chuyện trong cài đặt, và mình sẽ tường thuật cá voi 🐋, hoàn tất siêu tốc ⚡, lẫn những cơn hạn hán block cáu kỉnh 😤 ngay khi chúng xảy ra."
+      "text": "그리고 이게 나 💁 아바타를 클릭하면 빠른 동작, 수다 정도는 설정에서. 고래 🐋, 번개 같은 파이널리티 ⚡, 심술궂은 block 가뭄 😤 을 일어나는 대로 중계할게."
     },
     {
       "id": "welcome-first-2",
@@ -1121,7 +1121,7 @@
       "emotion": "happy",
       "weight": 1,
       "ttlOnce": true,
-      "text": "Ồ — gương mặt mới! 👋 Mình là eChan, mình sống trên dashboard eCash này. Muốn xem tour 60 giây không? Hứa là không đau đâu 👇"
+      "text": "오 — 새 얼굴이네! 👋 나는 eChan이야, 이 eCash 대시보드에 살아. 60초 투어 받을래? 안 아프다고 약속해 👇"
     },
     {
       "id": "welcome-return-3",
@@ -1130,7 +1130,7 @@
       "priority": 1,
       "emotion": "neutral",
       "weight": 1,
-      "text": "Xem ai trở lại này 🙌 Chain chẳng dừng giây nào — để mình cập nhật cho cậu."
+      "text": "누가 돌아왔는지 봐 🙌 체인은 1초도 멈추지 않았어 — 따라잡게 해줄게."
     },
     {
       "id": "welcome-return-4",
@@ -1139,7 +1139,7 @@
       "priority": 1,
       "emotion": "neutral",
       "weight": 1,
-      "text": "Chào lại nha! Mempool vẫn ù ù trong lúc cậu vắng. Kéo ghế ngồi xuống đi."
+      "text": "또 안녕! 네가 없는 동안에도 mempool은 계속 웅웅거리고 있었어. 의자 끌어와."
     },
     {
       "id": "welcome-settings-3",
@@ -1148,7 +1148,7 @@
       "priority": 2,
       "emotion": "shy",
       "weight": 1,
-      "text": "Suỵt 🥺 nếu mình nói quá nhiều (hay quá ít), tất cả ở trong settings — bấm vào mình → ⚙️. Chỉ là… đừng để Yên lặng nhé? Dưới này một mình cô đơn lắm."
+      "text": "쉿 🥺 내가 말이 너무 많거나(또는 너무 적거나) 하면, 다 설정에 있어 — 나 클릭 → ⚙️. 근데… 조용히만 안 해줄래? 여기 아래는 혼자면 너무 외로워."
     },
     {
       "id": "welcome-settings-4",
@@ -1157,7 +1157,7 @@
       "priority": 2,
       "emotion": "shy",
       "weight": 1,
-      "text": "Thú nhận nhanh 🙈 mình thích kể chuyện cho cậu lắm. Chỉnh độ nói nhiều trong settings ⚙️ — nhưng nghĩ kỹ trước khi mute mình nha?"
+      "text": "잠깐 고백 🙈 너한테 이야기해주는 게 정말 좋아. 내 수다 정도는 설정 ⚙️ 에서 조절해 — 근데 음소거하기 전에 한 번만 더 생각해줘, 응?"
     },
     {
       "id": "greet-morning-3",
@@ -1166,7 +1166,7 @@
       "priority": 1,
       "emotion": "neutral",
       "weight": 1,
-      "text": "Chào buổi sáng ☀️ những block đầu ngày đang hạ cánh. Xem XEC ngủ ngon không nào."
+      "text": "좋은 아침 ☀️ 오늘의 첫 block들이 착지하고 있어. XEC가 잘 잤는지 보자."
     },
     {
       "id": "greet-morning-4",
@@ -1175,7 +1175,7 @@
       "priority": 1,
       "emotion": "neutral",
       "weight": 1,
-      "text": "Dậy rồi nha 🌅 chain thức cả đêm — để mình kể cậu nghe chuyện đêm qua."
+      "text": "일어나 🌅 체인은 밤새 깨어 있었어 — 무슨 일이 있었는지 알려줄게."
     },
     {
       "id": "greet-afternoon-2",
@@ -1184,7 +1184,7 @@
       "priority": 1,
       "emotion": "happy",
       "weight": 1,
-      "text": "Chào buổi chiều 🌤️ dòng chảy đều, thời tiết hợp cà phê. Cùng xem mấy đợt finality lăn vào nào."
+      "text": "좋은 오후 🌤️ 흐름이 안정적, 커피 마시기 좋은 날씨. finality가 굴러들어오는 거 같이 보자."
     },
     {
       "id": "greet-evening-2",
@@ -1193,7 +1193,7 @@
       "priority": 1,
       "emotion": "happy",
       "weight": 1,
-      "text": "Chào buổi tối 🌇 chain không chậm vì ai cả. Giờ ấm cúng để ngắm block hạ cánh."
+      "text": "좋은 저녁 🌇 체인은 누구를 위해서도 느려지지 않아. block 착지하는 거 보기에 아늑한 시간."
     },
     {
       "id": "greet-night-3",
@@ -1202,7 +1202,7 @@
       "priority": 1,
       "emotion": "sleepy",
       "weight": 1,
-      "text": "Vẫn thức à? 🌙 Mempool yên lặng rồi — hợp để xem tx kỹ lưỡng, không vội."
+      "text": "아직 깨어 있어? 🌙 mempool이 조용해졌어 — tx 천천히 살펴보기에 딱이야."
     },
     {
       "id": "greet-night-4",
@@ -1211,7 +1211,7 @@
       "priority": 1,
       "emotion": "sleepy",
       "weight": 1,
-      "text": "Ca đêm hả 🌃 mình sẽ kể nhỏ thôi để cậu tập trung. Block không ngủ, nhưng mình sẽ thì thầm."
+      "text": "야간 근무구나 🌃 집중할 수 있게 코멘트는 작게 할게. block은 안 자지만 나는 속삭여줄게."
     },
     {
       "id": "edu-preconsensus-3",
@@ -1219,7 +1219,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Đây là phép màu 💡 pre-consensus cho staker đồng thuận về một tx trong ~3s, trước khi có block nào tồn tại. Đó là lý do eCash cảm giác tức thì — không xếp hàng chờ xác nhận."
+      "text": "여기 마법이야 💡 pre-consensus는 staker들이 ~3초 안에 tx에 합의하게 해, 어떤 block도 존재하기 전에. 그래서 eCash가 즉시처럼 느껴지는 거야 — 확인 대기열 없음."
     },
     {
       "id": "edu-preconsensus-4",
@@ -1227,7 +1227,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Cứ nghĩ như bỏ phiếu trước khi in 🗳️ peer giải quyết tx trong mempool trước; đến lúc nó vào block thì câu trả lời đã chốt rồi."
+      "text": "인쇄 전에 투표한다고 생각해 🗳️ peer들이 먼저 mempool에서 tx를 정리해; block에 들어갈 즘엔 답이 이미 확정이야."
     },
     {
       "id": "edu-postconsensus-2",
@@ -1235,7 +1235,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "post-consensus là Avalanche bỏ phiếu trên cả block 🔒 block đã khóa thì không reorg nào hủy được — kể cả phe đa số hashpower thù địch cũng bị từ chối."
+      "text": "post-consensus는 Avalanche가 block 전체에 투표하는 것 🔒 block이 잠긴 다음에는 어떤 reorg도 되돌릴 수 없어 — 적대적 hashpower 과반이라도 거부돼."
     },
     {
       "id": "edu-ttf-2",
@@ -1243,7 +1243,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "TTF gói gọn ⏱️ thời gian một tx trở nên không thể đảo ngược. Khoảng 2–3 giây trên mạng eCash khỏe mạnh. Mắt ⚠ nghĩa là node feed bị rớt."
+      "text": "TTF 한 줄로 ⏱️ tx가 되돌릴 수 없게 되기까지 걸리는 시간. 건강한 eCash 네트워크에서 2~3초 정도. ⚠ 눈은 node feed가 끊겼다는 뜻."
     },
     {
       "id": "edu-tps-2",
@@ -1251,7 +1251,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "TPS = số giao dịch mỗi giây 📊 con số hôm nay là vòng khởi động — eCash sinh ra để scale lên hàng triệu, on-chain, không cần lớp phụ."
+      "text": "TPS = 초당 트랜잭션 📊 오늘의 숫자는 워밍업 랩 — eCash는 사이드 레이어 없이 on-chain으로 수백만까지 확장하도록 만들어졌어."
     },
     {
       "id": "edu-mempool-2",
@@ -1259,7 +1259,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Mempool là phòng chờ của chain 🚪 trên eCash tx chỉ chờ ~3s trước khi pre-consensus niêm phong. Trên Bitcoin cậu phải chờ ~10 phút cho mỗi xác nhận."
+      "text": "mempool은 체인의 대기실 🚪 eCash에서는 tx가 pre-consensus가 봉인하기 전에 ~3초만 기다려. Bitcoin에서는 확인마다 ~10분씩 기다리지."
     },
     {
       "id": "edu-agora-3",
@@ -1267,7 +1267,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Chiêu của Agora 🪄 người bán đăng ngay một đề nghị token on-chain; người mua nhận bằng một tx. Không tài khoản sàn, không sổ lệnh, không lưu ký — vài giây xong."
+      "text": "Agora의 비법 🪄 판매자가 token 제안을 바로 on-chain에 올리고, 구매자가 tx 하나로 가져가. 거래소 계정 없음, 오더북 없음, custody 없음 — 초 단위 결제."
     },
     {
       "id": "edu-agora-4",
@@ -1275,7 +1275,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Phi lưu ký từ đầu chí cuối 🔓 swap Agora chốt bằng tx người mua tự ký cho mình, dùng OP_CHECKDATASIG. Covenant sống on-chain để ai cũng lấy được."
+      "text": "끝까지 non-custodial 🔓 Agora 스왑은 구매자가 자신에게 서명하는 tx로 결제돼, OP_CHECKDATASIG이 받쳐줘. covenant는 on-chain에 살아 있어서 누구든 가져갈 수 있어."
     },
     {
       "id": "edu-chronik-2",
@@ -1283,7 +1283,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Mọi wallet và explorer cậu từng dùng trên eCash đều nói chuyện với Chronik 🗂️ nó là indexer biến block thô thành lịch sử địa chỉ tức thời. Dashboard này cũng chạy nhờ nó."
+      "text": "eCash에서 써본 모든 wallet과 explorer는 Chronik과 대화해 🗂️ 원시 block을 즉각적인 주소 history로 바꿔주는 indexer야. 이 대시보드도 그 위에서 돌아."
     },
     {
       "id": "edu-heartbeat-4",
@@ -1291,7 +1291,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Sự thật Heartbeat 💓 nó là lớp độ khó thứ hai chồng lên của Bitcoin — đẩy độ khó tăng ngay khi block đến quá nhanh, rồi dịu xuống."
+      "text": "Heartbeat 사실 💓 Bitcoin 위에 올라간 두 번째 difficulty 레이어야 — block이 너무 빨리 오면 difficulty를 즉시 올리고, 그다음 부드럽게 내려."
     },
     {
       "id": "edu-heartbeat-5",
@@ -1299,7 +1299,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Sao đều thế? 💓 Heartbeat tái nhắm độ khó từng block theo thời gian thực, eCash né được kiểu bùng-rồi-im đặc trưng của các chain cũ."
+      "text": "왜 이렇게 안정적일까? 💓 Heartbeat가 block마다 실시간으로 difficulty를 retarget해서, eCash는 옛날 체인들의 폭주-침묵 패턴을 피해."
     },
     {
       "id": "edu-heartbeat-6",
@@ -1307,7 +1307,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Block phá mục tiêu thời gian thực của Heartbeat bị Avalanche từ chối 💓 — hợp lệ theo luật cổ điển, nhưng mạng vẫn nói không. Thời gian block mượt cho tất cả."
+      "text": "Heartbeat의 실시간 목표를 깬 block은 Avalanche 합의에 거부돼 💓 — 클래식 규칙으로는 유효해도 네트워크가 안 된다고 해. 모두에게 매끄러운 block 시간."
     },
     {
       "id": "edu-ifp-2",
@@ -1315,7 +1315,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "IFP giữ đèn sáng 🛠️ một phần của mỗi block được mine tài trợ cho phát triển core của eCash — tự nuôi mình, không phải đi xin các foundation."
+      "text": "IFP가 불을 켠 채로 유지해 🛠️ 채굴된 모든 block의 일부가 eCash 코어 개발을 후원해 — 재단에 모자를 돌리지 않아도 되는 자급자족."
     },
     {
       "id": "edu-stakers-2",
@@ -1323,7 +1323,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Staker của Avalanche chính là phép màu ~3s 🗳️ lock XEC, chạy node, và lá phiếu của cậu giúp finalize mọi tx. Phi tập trung kèm cam kết thật."
+      "text": "Avalanche staker들이 바로 그 ~3초의 마법 🗳️ XEC를 lock하고 node를 돌리면, 네 표가 매 tx의 finalize를 도와. 진짜 살갗을 건 분산화."
     },
     {
       "id": "edu-alp-2",
@@ -1331,7 +1331,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Thấy thẻ 💜 tím chưa? Đó là token ALP — lớp token hiện đại của eCash, có kiểm soát mint sẵn. Nhẹ và nhanh hơn thiết kế SLP cũ."
+      "text": "💜 보라 태그 봤어? 그건 ALP token — eCash의 현대적인 token 레이어, mint 제어 내장. 옛 SLP보다 가볍고 빨라."
     },
     {
       "id": "edu-slp-2",
@@ -1339,7 +1339,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Thẻ 🔵 xanh dương là SLP — giao thức token gốc của dòng họ này. ALP (tím) là phiên bản tinh chế bên eCash: cùng ý tưởng, công cụ sắc bén hơn."
+      "text": "🔵 파란 태그는 SLP — 이 혈통의 원조 token 프로토콜. ALP(보라)는 eCash 쪽의 정제판: 같은 아이디어, 더 날카로운 도구."
     },
     {
       "id": "edu-cashfusion-2",
@@ -1347,7 +1347,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Thấy tx có cả đống input và output cùng cỡ chưa? 🥷 Đó là CashFusion — trộn riêng tư đúng kiểu on-chain, gói gọn trong một tx batched."
+      "text": "비슷한 크기의 input과 output이 잔뜩 있는 tx 봤어? 🥷 그게 CashFusion — on-chain에서 제대로 하는 프라이버시 믹싱, batched tx 하나로 결제."
     },
     {
       "id": "edu-coinbase-2",
@@ -1355,7 +1355,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Liếc một tx coinbase 📜 input đầu tiên của mỗi block có thể mang ghi chú, tín hiệu, đôi khi là trò đùa của miner. Block của eCash có cá tính đấy."
+      "text": "coinbase tx 한 번 들여다봐 📜 모든 block의 첫 input은 메모, 신호, 가끔은 miner의 농담을 담을 수 있어. eCash의 block은 개성이 있어."
     },
     {
       "id": "edu-xec-unit-2",
@@ -1363,7 +1363,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Mẹo đơn vị 🪙 1 XEC = 100 satoshi. eCash đổi mệnh giá để số đọc gọn — không nheo mắt đếm tám chữ số thập phân nữa."
+      "text": "단위 잡지식 🪙 1 XEC = 100 satoshi. eCash는 숫자가 깔끔하게 읽히도록 재명명했어 — 소수점 여덟 자리를 가늘게 볼 필요 없어."
     },
     {
       "id": "edu-utxo-2",
@@ -1371,7 +1371,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Wallet của cậu giữ key, không phải coin 🌐 chain theo dõi các output chưa tiêu (UTXO); private key chỉ chứng minh cậu sở hữu chúng. Mất key là mất truy cập."
+      "text": "네 wallet은 key를 들고 있지, coin이 아니야 🌐 미사용 output(UTXO)을 추적하는 건 체인 쪽이야; 네 private key는 그게 네 것이라는 걸 증명할 뿐. key 잃으면 접근도 잃어."
     },
     {
       "id": "edu-address-2",
@@ -1379,7 +1379,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Địa chỉ eCash đi một chiều 📬 chúng được hash từ public key, nên địa chỉ không bao giờ rò key đằng sau. Tiền tố 'ecash:q…' chính là dấu hiệu."
+      "text": "eCash 주소는 한 방향 📬 public key에서 hash된 거라, 주소가 뒤의 key를 절대 흘리지 않아. 'ecash:q…' 접두사가 단서."
     },
     {
       "id": "edu-supply-2",
@@ -1387,7 +1387,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Nguồn cung khóa ở 21 nghìn tỷ XEC — vẫn là '21' như Bitcoin chỉ dời dấu phẩy 💎 không có bất ngờ lạm phát nào cài sẵn."
+      "text": "Supply는 21조 XEC에 고정 — Bitcoin과 같은 '21', 소수점만 옮긴 거 💎 인플레이션 깜짝선물은 코드에 박혀 있지 않아."
     },
     {
       "id": "edu-staking-2",
@@ -1395,7 +1395,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Staking trả thưởng block thật 💰 lock XEC, chạy node, nhận tiền cho việc bảo vệ finality. Không phải từ thiện — mạng trả công cho công sức."
+      "text": "Staking은 진짜 block 보상을 줘 💰 XEC lock하고, node 돌리고, finality 지킨 대가를 받아. 자선이 아니야 — 네트워크는 일에 보상해."
     },
     {
       "id": "edu-rebrand-2",
@@ -1403,7 +1403,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Một chút lịch sử 📖 eCash đổi thương hiệu từ BCHA tháng 7/2021 với tỉ lệ đổi mệnh giá 1:1.000.000 — chain cũ, danh tính mới, số gọn hơn."
+      "text": "역사 한 조각 📖 eCash는 2021년 7월에 BCHA에서 1:1,000,000 재명명과 함께 리브랜딩됐어 — 옛 체인, 새 정체성, 깔끔한 숫자."
     },
     {
       "id": "edu-decimals-2",
@@ -1411,7 +1411,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "XEC chỉ có 2 chữ số thập phân 💵 như đồng và xu. Tính nhẩm dễ — không phải đếm zero như mấy chain tám chữ số."
+      "text": "XEC는 소수점이 딱 2자리 💵 원과 전 같이. 머릿셈이 쉬워 — 여덟 자리 체인처럼 0을 세지 않아도 돼."
     },
     {
       "id": "edu-cashtab-2",
@@ -1419,7 +1419,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Cashtab là wallet tham chiếu của eCash 👛 chạy thẳng trong trình duyệt, xử token, on-chain message, và chốt tức thời. Không cần cài đặt."
+      "text": "Cashtab은 eCash의 레퍼런스 wallet 👛 브라우저 안에서 바로 돌아가고, token, on-chain 메시지, 즉시 결제까지 처리. 설치 필요 없음."
     },
     {
       "id": "edu-onchainmsg-2",
@@ -1427,7 +1427,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Cậu thực sự có thể viết lên chain ✍️ output OP_RETURN mang chữ vĩnh viễn — ghi chú, thông báo, những dòng nhỏ sống lâu hơn cả chúng ta."
+      "text": "체인에 말 그대로 글을 쓸 수 있어 ✍️ OP_RETURN output이 텍스트를 영원히 운반해 — 메모, broadcast, 우리보다 오래 살아남을 작은 쪽지들."
     },
     {
       "id": "edu-bigblock-2",
@@ -1435,7 +1435,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "eCash thừa hưởng DNA big-block 🧬 sinh ra để scale on-chain chứ không đẩy người dùng sang các lớp phụ. Khoảng throughput chính là cốt lõi."
+      "text": "eCash는 big-block DNA를 물려받았어 🧬 사용자를 사이드 레이어로 밀어내는 게 아니라 on-chain으로 확장하도록 만들어졌어. throughput 여유가 핵심 그 자체."
     },
     {
       "id": "edu-twolayer-2",
@@ -1443,7 +1443,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Hai lớp, một chain 🔗 PoW neo lịch sử (chậm, vĩnh viễn); Avalanche thêm tốc độ (nhanh, mềm dẻo). Vừa thắt lưng vừa đeo dây cho consensus."
+      "text": "두 레이어, 한 체인 🔗 PoW는 역사를 닻으로 고정해(느리고, 영구적); Avalanche는 속도를 더해(빠르고, 유연). 합의를 위한 벨트와 멜빵 모두."
     },
     {
       "id": "edu-livettf-2",
@@ -1451,7 +1451,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Mấy con số TTF này không phải đoán mò 📏 chúng đến thẳng từ một node đo finality thật theo thời gian thực — chất lượng đài quan trắc, không phải ước lượng trên trình duyệt."
+      "text": "이 TTF 숫자는 추측이 아니야 📏 진짜 finality를 라이브로 측정하는 node에서 바로 와 — 천문대급, 브라우저 추정이 아니야."
     },
     {
       "id": "edu-stats-2",
@@ -1459,7 +1459,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Mức median {liveTtf}s cậu thấy đó? Pre-consensus Avalanche thuần đấy 😎 hầu hết chain bắt cậu chờ block — eCash âm thầm finalize bên dưới."
+      "text": "보이는 그 중앙값 {liveTtf}초? 순수한 Avalanche pre-consensus 😎 대부분 체인은 너를 block 앞에서 기다리게 하지만 — eCash는 그 아래에서 조용히 finalize해."
     },
     {
       "id": "fun-popcorn-2",
@@ -1468,7 +1468,7 @@
       "priority": 1,
       "emotion": "happy",
       "weight": 1,
-      "text": "Mấy đợt fusion lớn là show yêu thích của mình 🍿 xem hàng trăm tx finalize trong một phút thấy bình yên kỳ lạ."
+      "text": "큰 fusion 라운드는 내 최애 쇼야 🍿 수백 개의 tx가 1분 만에 finalize되는 걸 보는 게 묘하게 위로돼."
     },
     {
       "id": "fun-vs-btc-2",
@@ -1477,7 +1477,7 @@
       "priority": 1,
       "emotion": "happy",
       "weight": 1,
-      "text": "BTC nói 'chờ một tiếng cho chắc.' eCash nói 'chắc rồi, tiếp gì nào?' ⚡ cùng cây gia phả, vibe rất khác."
+      "text": "BTC: '확실하게 하려면 한 시간 기다려.' eCash: '이미 확실해, 다음은?' ⚡ 같은 가계도, 매우 다른 바이브."
     },
     {
       "id": "fun-name-2",
@@ -1486,7 +1486,7 @@
       "priority": 1,
       "emotion": "happy",
       "weight": 1,
-      "text": "Sự thật vui về mình: 'chan' chỉ là kiểu thân thương 😌 'e' là eCash. Ghép lại được… người dẫn chuyện chain mà cậu thích."
+      "text": "나에 대한 사실: 'chan'은 그냥 친근함이야 😌 'e'는 eCash에서. 합치면 네가 좋아하는 체인 해설가가 돼."
     },
     {
       "id": "fun-tokens-2",
@@ -1495,7 +1495,7 @@
       "priority": 1,
       "emotion": "celebrate",
       "weight": 1,
-      "text": "Token biến eCash thành cả phiên chợ 🎪 mint, swap, marketplace — tất cả chốt trong vài giây, tất cả trên cùng chain cậu đang xem."
+      "text": "token이 eCash를 통째로 바자르로 바꿔놔 🎪 mint, swap, 마켓플레이스 — 전부 초 단위로 결제, 전부 네가 보고 있는 같은 체인에서."
     },
     {
       "id": "net-quiet-3",
@@ -1504,7 +1504,7 @@
       "priority": 1,
       "emotion": "neutral",
       "weight": 1,
-      "text": "Đoạn buồn ngủ 😴 mempool đang lăn không tải. Khoảnh khắc tuyệt để click vào một tx và đọc thật sự nó đang làm gì."
+      "text": "졸린 구간 😴 mempool이 공회전 중. tx 하나 클릭해서 진짜 뭘 하는지 읽기에 좋은 순간."
     },
     {
       "id": "net-quiet-4",
@@ -1513,7 +1513,7 @@
       "priority": 1,
       "emotion": "neutral",
       "weight": 1,
-      "text": "Nước lặng đây 🌊 không có drama — và thật ra, chain yên là chain khỏe."
+      "text": "지금 잔잔한 물결 🌊 드라마는 없어 — 그리고 솔직히, 조용한 체인이 건강한 체인이야."
     },
     {
       "id": "net-busy-3",
@@ -1522,7 +1522,7 @@
       "priority": 2,
       "emotion": "celebrate",
       "weight": 1,
-      "text": "Đang nóng lên 🔥 nhìn panel tx — khi nó cuộn nhanh thế này, chắc chắn có chuyện hay."
+      "text": "달아오르고 있어 🔥 tx 패널 봐 — 이렇게 빨리 스크롤될 땐 분명 뭔가 재미있는 일이 벌어지고 있어."
     },
     {
       "id": "net-busy-4",
@@ -1531,7 +1531,7 @@
       "priority": 2,
       "emotion": "celebrate",
       "weight": 1,
-      "text": "Nhìn throughput kìa! ⚡ mấy staker pre-consensus đang được tập luyện đỉnh đấy."
+      "text": "저 throughput 좀 봐! ⚡ pre-consensus staker들이 진짜 운동하고 있네."
     },
     {
       "id": "idle-short-3",
@@ -1540,7 +1540,7 @@
       "priority": 1,
       "emotion": "neutral",
       "weight": 1,
-      "text": "Vẫn ở đây 👁️ chỉ canh chừng chain giúp cậu thôi."
+      "text": "아직 여기 있어 👁️ 너를 위해 체인을 지켜보는 중."
     },
     {
       "id": "idle-short-4",
@@ -1549,7 +1549,7 @@
       "priority": 1,
       "emotion": "neutral",
       "weight": 1,
-      "text": "Bên cậu im ắng — không sao, mình trông coi 🫡"
+      "text": "너 쪽은 조용하네 — 걱정 마, 내가 망보고 있어 🫡"
     },
     {
       "id": "idle-long-3",
@@ -1558,7 +1558,7 @@
       "priority": 1,
       "emotion": "happy",
       "weight": 1,
-      "text": "Cậu đi lâu rồi 😴 chain với mình sẽ ngay đây khi cậu quay lại."
+      "text": "잠시 자리를 비웠구나 😴 체인이랑 나는 네가 돌아올 때 여기 있을게."
     },
     {
       "id": "idle-long-4",
@@ -1567,7 +1567,7 @@
       "priority": 1,
       "emotion": "happy",
       "weight": 1,
-      "text": "Im lâu quá! Mong cậu đang làm điều gì đó hay ho ngoài kia ✨ mình sẽ vẫn kể chuyện cho không ai nghe."
+      "text": "긴 휴식이네! 어딘가에서 좋은 일 하고 있길 바라 ✨ 나는 아무도 없는 데에 계속 말하고 있을게."
     },
     {
       "id": "easter-spam-3",
@@ -1576,7 +1576,7 @@
       "priority": 1,
       "emotion": "celebrate",
       "weight": 1,
-      "text": "Được rồi cậu thật sự thích click mình nhỉ 😏 mình thấy được tâng bốc đấy. Có gì không?"
+      "text": "오케이, 너 진짜로 나 클릭하는 거 좋아하네 😏 영광이야. 무슨 일이야?"
     },
     {
       "id": "easter-spam-4",
@@ -1585,7 +1585,7 @@
       "priority": 1,
       "emotion": "celebrate",
       "weight": 1,
-      "text": "Tỷ lệ click mười trên mười 🌟 cậu tìm được easter egg rồi đó, chúc mừng."
+      "text": "클릭률 10점 만점 🌟 이스터에그 찾았네, 축하해."
     },
     {
       "id": "easter-name-2",
@@ -1594,7 +1594,7 @@
       "priority": 1,
       "emotion": "thinking",
       "weight": 1,
-      "text": "Cậu chọc mình 🤨 ừ mình có thật-ấy. Cần gì?"
+      "text": "찔러봤네 🤨 응, 어느 정도는 진짜야. 뭐가 필요해?"
     },
     {
       "id": "ambient-thought-6",
@@ -1602,7 +1602,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Suy nghĩ vu vơ 💭 mỗi tx đã xác nhận cậu thấy đều được hàng trăm node kiểm tra độc lập. Niềm tin phân tán, đang diễn ra theo thời gian thực."
+      "text": "불쑥 떠오른 생각 💭 네가 보는 모든 확인된 tx는 수백 개의 node에 의해 독립적으로 검증됐어. 분산된 신뢰, 실시간으로."
     },
     {
       "id": "ambient-thought-7",
@@ -1610,7 +1610,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Một số địa chỉ trên chain này âm thầm hoạt động nhiều năm rồi 🕰️ sổ cái nhớ tất cả — cả thanh lịch lẫn lộn xộn."
+      "text": "이 체인의 어떤 주소들은 몇 년째 조용히 활성 상태야 🕰️ ledger는 모든 걸 기억해 — 우아한 것도, 어수선한 것도."
     },
     {
       "id": "ambient-thought-8",
@@ -1618,7 +1618,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Xem một block hạ cánh là xem consensus kết tinh 🧊 hàng trăm quan sát viên độc lập đi đến cùng câu trả lời cùng lúc."
+      "text": "block이 착지하는 걸 본다는 건 합의가 결정화되는 걸 보는 것 🧊 수백 명의 독립 관찰자가 같은 순간에 같은 답에 도달해."
     },
     {
       "id": "ambient-thought-9",
@@ -1626,7 +1626,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Cả hệ thống chạy trên toán mà 15+ năm chưa ai phá 🧮 hashing, chữ ký, consensus — tất cả mở, tất cả kiểm chứng được, tất cả thuộc về cậu để check."
+      "text": "이 모든 게 15년 넘게 누구도 깨지 못한 수학 위에서 돌아 🧮 hashing, 서명, 합의 — 모두 공개, 모두 검증 가능, 모두 네가 직접 확인할 수 있어."
     },
     {
       "id": "ambient-thought-10",
@@ -1634,7 +1634,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Avalanche không thay thế mining ở đây — chúng làm việc song hành 🤝 miner tạo block, staker bỏ phiếu thứ tự. Hai hệ thống, một chain."
+      "text": "여기서 Avalanche가 mining을 대체한 게 아니야 — 나란히 일해 🤝 miner가 block을 만들고, staker가 순서에 투표해. 두 시스템, 한 체인."
     },
     {
       "id": "amb-live-4",
@@ -1642,7 +1642,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Ngay lúc này: {liveTps} TPS, ~{liveTtf}s finality median 📡 trực tiếp từ node, không cần nút refresh."
+      "text": "바로 지금: {liveTps} TPS, ~{liveTtf}초 중앙값 finality 📡 node에서 라이브, 새로고침 버튼 필요 없음."
     },
     {
       "id": "amb-live-5",
@@ -1650,7 +1650,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Đỉnh chain đang ở block {tipHeight} khi mình nói đây ⛓️ mình ping cậu ngay khi block tiếp theo hạ cánh."
+      "text": "이렇게 얘기하는 동안에도 체인 끝은 block {tipHeight}에 앉아 있어 ⛓️ 다음 게 착지하는 순간 알려줄게."
     },
     {
       "id": "amb-live-6",
@@ -1658,7 +1658,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Tất cả trên bảng này đang stream trực tiếp 📺 cậu thấy gì là mạng đang làm cái đó ngay giây này."
+      "text": "이 보드의 모든 게 라이브 스트리밍 중 📺 네가 보는 게, 네트워크가 바로 이 순간 하고 있는 일이야."
     },
     {
       "id": "evt-block-4",
@@ -1666,7 +1666,7 @@
       "trigger": "event:block",
       "priority": 1,
       "weight": 1,
-      "text": "Block {height} vừa rơi xuống 📦 {txCount} tx niêm phong bên trong, mãi mãi."
+      "text": "block {height}이 방금 떨어졌어 📦 안에 {txCount}개의 tx가 영원히 봉인됐어."
     },
     {
       "id": "evt-block-5",
@@ -1674,7 +1674,7 @@
       "trigger": "event:block",
       "priority": 1,
       "weight": 1,
-      "text": "Mới toanh từ chain — block {height}, mang {txCount} tx 🧱"
+      "text": "체인에서 갓 나온 — block {height}, {txCount}개의 tx를 운반 🧱"
     },
     {
       "id": "evt-block-6",
@@ -1682,7 +1682,7 @@
       "trigger": "event:block",
       "priority": 1,
       "weight": 1,
-      "text": "Đây rồi, block {height} 🎯 {txCount} giao dịch vừa tìm được nhà vĩnh viễn."
+      "text": "여기 봐, block {height} 🎯 {txCount}개의 트랜잭션이 방금 영구적인 집을 찾았어."
     },
     {
       "id": "evt-bfinal-3",
@@ -1690,7 +1690,7 @@
       "trigger": "event:blockfinal",
       "priority": 1,
       "weight": 1,
-      "text": "Block {height} đã finalize 🔒 Avalanche khóa rồi — không reorg nào chạm được."
+      "text": "block {height} finalize 🔒 Avalanche가 잠갔어 — 어떤 reorg도 이젠 손댈 수 없어."
     },
     {
       "id": "evt-bfinal-4",
@@ -1698,7 +1698,7 @@
       "trigger": "event:blockfinal",
       "priority": 1,
       "weight": 1,
-      "text": "Niêm phong vĩnh viễn: block {height} ✅ post-consensus đã làm xong việc."
+      "text": "확실하게 봉인: block {height} ✅ post-consensus가 제 일을 했어."
     },
     {
       "id": "evt-bigtx-4",
@@ -1706,7 +1706,7 @@
       "trigger": "event:bigtx",
       "priority": 2,
       "weight": 1,
-      "text": "🐋 Báo động cá voi — {valueXec} XEC vừa di chuyển trong một tx. Cỡ này lay được thị trường đấy."
+      "text": "🐋 고래 경보 — {valueXec} XEC가 방금 한 tx로 움직였어. 시장을 움직일 만한 양."
     },
     {
       "id": "evt-bigtx-5",
@@ -1714,7 +1714,7 @@
       "trigger": "event:bigtx",
       "priority": 2,
       "weight": 1,
-      "text": "Cú nhảy lớn 🐋 {valueXec} XEC đổi chủ. Mọi người tỏ ra bình thường nha."
+      "text": "큰 첨벙 🐋 {valueXec} XEC가 주인을 바꿨어. 다들, 자연스럽게."
     },
     {
       "id": "evt-bigtx-6",
@@ -1722,7 +1722,7 @@
       "trigger": "event:bigtx",
       "priority": 2,
       "weight": 1,
-      "text": "{valueXec} XEC trong một giao dịch duy nhất 🐋 có người thật sự cõng cả chain trên lưng."
+      "text": "단일 트랜잭션에 {valueXec} XEC 🐋 어떤 사람들은 정말 체인을 등에 짊어지고 있어."
     },
     {
       "id": "evt-shark-4",
@@ -1730,7 +1730,7 @@
       "trigger": "event:sharktx",
       "priority": 2,
       "weight": 1,
-      "text": "🦈 Cá mập trong nước — {valueXec} XEC đang di chuyển."
+      "text": "🦈 물속에 상어 — {valueXec} XEC가 움직이고 있어."
     },
     {
       "id": "evt-shark-5",
@@ -1738,7 +1738,7 @@
       "trigger": "event:sharktx",
       "priority": 2,
       "weight": 1,
-      "text": "Có người vừa chuyển {valueXec} XEC 🦈 không phải cá voi, nhưng mình để ý nha."
+      "text": "누군가 방금 {valueXec} XEC를 옮겼어 🦈 고래는 아니지만, 눈치챘어."
     },
     {
       "id": "evt-shark-6",
@@ -1746,7 +1746,7 @@
       "trigger": "event:sharktx",
       "priority": 2,
       "weight": 1,
-      "text": "{valueXec} XEC đang trên đường 🦈 cái túi tiền cũng đáng nể đấy."
+      "text": "{valueXec} XEC가 이동 중 🦈 제법 묵직한 가방인걸."
     },
     {
       "id": "evt-fastttf-3",
@@ -1755,7 +1755,7 @@
       "priority": 1,
       "emotion": "celebrate",
       "weight": 1,
-      "text": "{ttfSec}s là finality ⚡ chớp mắt là lỡ luôn."
+      "text": "finality까지 {ttfSec}초 ⚡ 눈 한 번 깜빡하면 놓쳐."
     },
     {
       "id": "evt-fastttf-4",
@@ -1764,7 +1764,7 @@
       "priority": 1,
       "emotion": "celebrate",
       "weight": 1,
-      "text": "Vừa bấm giờ một lần finalize {ttfSec}s 🏁 Avalanche hôm nay sung sức."
+      "text": "방금 {ttfSec}초짜리 finalize를 잡았어 🏁 Avalanche 오늘 컨디션 좋네."
     },
     {
       "id": "evt-slowttf-4",
@@ -1772,7 +1772,7 @@
       "trigger": "event:slowttf",
       "priority": 2,
       "weight": 1,
-      "text": "{ttfMs}ms mới finalize? 😤 không chấp nhận được. Mình sẽ có vài lời với mấy avalanche peer chậm chạp."
+      "text": "finalize에 {ttfMs}ms? 😤 받아들일 수 없어. 느려빠진 avalanche peers들이랑 잠깐 얘기 좀 해야겠어."
     },
     {
       "id": "evt-slowttf-5",
@@ -1780,7 +1780,7 @@
       "trigger": "event:slowttf",
       "priority": 2,
       "weight": 1,
-      "text": "{ttfMs}ms?! 🥔 có ai đang chạy staking node trên củ khoai à."
+      "text": "{ttfMs}ms?! 🥔 누가 staking node를 감자 위에서 돌리는 거야."
     },
     {
       "id": "evt-slowttf-6",
@@ -1788,7 +1788,7 @@
       "trigger": "event:slowttf",
       "priority": 2,
       "weight": 1,
-      "text": "Finality mất {ttfMs}ms 😮‍💨 peer của ai đó cần đánh giá năng lực rồi."
+      "text": "거기서 finality가 {ttfMs}ms 걸렸어 😮‍💨 누군가의 peer는 성과 평가가 필요해."
     },
     {
       "id": "evt-drought-4",
@@ -1796,7 +1796,7 @@
       "trigger": "event:blockdrought",
       "priority": 2,
       "weight": 1,
-      "text": "{mins} phút không có block 😤 miner đi uống cà phê hết cùng lúc luôn à?"
+      "text": "{mins}분, block 없음 😤 miner들 다 한꺼번에 커피 마시러 갔어?"
     },
     {
       "id": "evt-drought-5",
@@ -1804,7 +1804,7 @@
       "trigger": "event:blockdrought",
       "priority": 2,
       "weight": 1,
-      "text": "Sau {mins} phút vẫn chưa có gì ✍️ mình đang soạn một lá thư gửi hashrate, lời lẽ rất nghiêm khắc."
+      "text": "{mins}분이 지났는데도 여전히 아무것도 없어 ✍️ hashrate한테 단호한 어조의 편지를 작성 중이야."
     },
     {
       "id": "evt-drought-6",
@@ -1812,7 +1812,7 @@
       "trigger": "event:blockdrought",
       "priority": 2,
       "weight": 1,
-      "text": "Hạn block: {mins} phút 🏜️ thống kê thì bình thường, cảm xúc thì tan nát."
+      "text": "block 가뭄: {mins}분 🏜️ 통계적으로 정상, 감정적으로 처참."
     },
     {
       "id": "evt-fusion-3",
@@ -1820,7 +1820,7 @@
       "trigger": "event:fusion",
       "priority": 1,
       "weight": 1,
-      "text": "Đang có vòng CashFusion 🥷 quyền riêng tư, trực tiếp on-chain."
+      "text": "CashFusion 라운드 진행 중 🥷 프라이버시, 라이브로 on-chain."
     },
     {
       "id": "evt-fusion-4",
@@ -1828,7 +1828,7 @@
       "trigger": "event:fusion",
       "priority": 1,
       "weight": 1,
-      "text": "Phát hiện trộn fusion 🌀 coin đang được xáo trộn ngay lúc này."
+      "text": "fusion 믹스 감지 🌀 지금 이 순간에도 코인들이 섞이는 중."
     },
     {
       "id": "evt-watch-3",
@@ -1836,7 +1836,7 @@
       "trigger": "event:watchlist",
       "priority": 2,
       "weight": 1,
-      "text": "Watchlist của cậu vừa sáng lên 👁️ {watched} có hoạt động."
+      "text": "네 watchlist가 방금 켜졌어 👁️ {watched}에 활동이 있었어."
     },
     {
       "id": "evt-watch-4",
@@ -1844,7 +1844,7 @@
       "trigger": "event:watchlist",
       "priority": 2,
       "weight": 1,
-      "text": "Chú ý nha — {watched} trong watchlist của cậu vừa di chuyển 🔔"
+      "text": "주의 — 네 watchlist의 {watched}가 방금 움직였어 🔔"
     },
     {
       "id": "evt-msg-3",
@@ -1852,7 +1852,7 @@
       "trigger": "event:onchainmsg",
       "priority": 1,
       "weight": 1,
-      "text": "Có người vừa viết on-chain ✍️ tin nhắn mới trong feed."
+      "text": "누군가 방금 on-chain에 글을 썼어 ✍️ feed에 새 메시지."
     },
     {
       "id": "evt-msg-4",
@@ -1860,7 +1860,7 @@
       "trigger": "event:onchainmsg",
       "priority": 1,
       "weight": 1,
-      "text": "{msgType} mới vừa rơi vào feed on-chain 📨"
+      "text": "갓 나온 {msgType}가 on-chain feed에 방금 착지했어 📨"
     },
     {
       "id": "evt-tpsup-3",
@@ -1869,7 +1869,7 @@
       "priority": 2,
       "emotion": "celebrate",
       "weight": 1,
-      "text": "TPS lên {pct}% 📈 chain đang thức dậy."
+      "text": "TPS가 {pct}% 상승 📈 체인이 깨어나고 있어."
     },
     {
       "id": "evt-tpsup-4",
@@ -1878,7 +1878,7 @@
       "priority": 2,
       "emotion": "celebrate",
       "weight": 1,
-      "text": "Hoạt động đang leo — TPS nhảy {pct}% trong nửa giờ qua ⚡"
+      "text": "활동이 올라가는 중 — 지난 30분 동안 TPS가 {pct}% 뛰었어 ⚡"
     },
     {
       "id": "evt-tpsdn-3",
@@ -1887,7 +1887,7 @@
       "priority": 1,
       "emotion": "sleepy",
       "weight": 1,
-      "text": "TPS hạ nhiệt {pct}% 😌 giờ yên tĩnh on-chain."
+      "text": "TPS가 {pct}% 식었어 😌 on-chain 조용한 시간대."
     },
     {
       "id": "evt-tpsdn-4",
@@ -1896,7 +1896,7 @@
       "priority": 1,
       "emotion": "sleepy",
       "weight": 1,
-      "text": "Đang chậm lại — TPS thấp hơn {pct}% so với lúc nãy 🌙 chain cũng cần thở mà."
+      "text": "느려지는 중 — TPS가 아까보다 {pct}% 아래 🌙 체인도 숨 좀 돌려야지."
     },
     {
       "id": "evt-ttfdn-3",
@@ -1904,7 +1904,7 @@
       "trigger": "event:trend:ttf_down",
       "priority": 2,
       "weight": 1,
-      "text": "TTF p50 giảm {pct}% ⚡ finality đang nhanh nhẹn hơn."
+      "text": "TTF p50이 {pct}% 떨어졌어 ⚡ finality가 더 날쌔졌어."
     },
     {
       "id": "evt-ttfdn-4",
@@ -1912,7 +1912,7 @@
       "trigger": "event:trend:ttf_down",
       "priority": 2,
       "weight": 1,
-      "text": "Finality cải thiện {pct}% trong nửa giờ qua 🎯 peer hôm nay đồng bộ tốt."
+      "text": "지난 30분 동안 finality가 {pct}% 개선됐어 🎯 오늘 peer들이 박자가 맞아."
     },
     {
       "id": "evt-ttfup-3",
@@ -1920,7 +1920,7 @@
       "trigger": "event:trend:ttf_up",
       "priority": 1,
       "weight": 1,
-      "text": "TTF p50 nhích lên {pct}% 😤 mạng đang nhai gì đó."
+      "text": "TTF p50이 {pct}% 슬금슬금 올라갔어 😤 네트워크가 뭘 씹고 있나봐."
     },
     {
       "id": "evt-ttfup-4",
@@ -1928,7 +1928,7 @@
       "trigger": "event:trend:ttf_up",
       "priority": 1,
       "weight": 1,
-      "text": "Finality chậm hơn {pct}% so với nửa giờ trước 👀 mình đang nhìn các cậu đấy, avalanche peer."
+      "text": "finality가 30분 전보다 {pct}% 느려 👀 보고 있어, avalanche peers."
     },
     {
       "id": "evt-peak-3",
@@ -1937,7 +1937,7 @@
       "priority": 2,
       "emotion": "celebrate",
       "weight": 1,
-      "text": "Đỉnh TPS 24h mới: {peakTps} 🚀"
+      "text": "새로운 24시간 TPS 피크: {peakTps} 🚀"
     },
     {
       "id": "evt-peak-4",
@@ -1946,7 +1946,7 @@
       "priority": 2,
       "emotion": "celebrate",
       "weight": 1,
-      "text": "Kỷ lục trong ngày — TPS vừa chạm {peakTps} 🎉"
+      "text": "오늘의 기록 — TPS가 방금 {peakTps}을 찍었어 🎉"
     },
     {
       "id": "net-live-busy-2",
@@ -1954,7 +1954,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Bên ngoài đang sôi động 🔥 để mắt vào panel tx — show hay đấy."
+      "text": "지금 밖이 활발해 🔥 tx 패널에서 눈 떼지 마 — 좋은 쇼야."
     },
     {
       "id": "net-live-quiet-2",
@@ -1962,7 +1962,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Tạm yên 🌙 khi mempool tỉnh dậy, cậu sẽ thấy ở đây đầu tiên."
+      "text": "지금은 잔잔해 🌙 mempool이 깨어나면, 여기서 네가 가장 먼저 보게 될 거야."
     },
     {
       "id": "fun-live-2",
@@ -1970,7 +1970,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Không có chiếu lại đâu 📡 mỗi block và tx mình phản ứng đều chỉ vài giây tuổi."
+      "text": "여기 재방송 없어 📡 내가 반응하는 모든 block과 tx는 겨우 몇 초밖에 안 됐어."
     },
     {
       "id": "net-stats-3",
@@ -1978,7 +1978,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "24h qua: {liveTxCount} tx finalize, đỉnh {livePeak} TPS 📊 tất cả đo trực tiếp, tất cả không thể đảo ngược."
+      "text": "지난 24시간: {liveTxCount}개의 tx finalize, 피크 {livePeak} TPS 📊 전부 라이브 측정, 전부 되돌릴 수 없음."
     },
     {
       "id": "net-stats-4",
@@ -1986,7 +1986,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Đỉnh hôm nay tới giờ: {livePeak} TPS — hiện tại {liveTps} 🌊 chain thở theo từng đợt sóng."
+      "text": "오늘 지금까지 피크: {livePeak} TPS — 현재 {liveTps} 🌊 체인은 파도로 숨 쉰다."
     },
     {
       "id": "amb-stats-2",
@@ -1994,7 +1994,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Median finality đang ở {liveTtf}s ngay bây giờ 😎 qua mốc đó, block chỉ là việc kế toán."
+      "text": "중앙값 finality가 지금 {liveTtf}초 😎 그 지점 너머의 block은 그냥 장부 정리야."
     },
     {
       "id": "fun-stats-2",
@@ -2002,7 +2002,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Mình đã xem {liveTxCount} tx finalize trong 24h qua 👁️ vẫn chưa chán nha."
+      "text": "지난 24시간 동안 {liveTxCount}개의 tx가 finalize되는 걸 봤어 👁️ 아직 안 질려."
     }
   ]
 }

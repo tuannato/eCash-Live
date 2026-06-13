@@ -1,0 +1,2008 @@
+{
+  "_comment": "eChan seed — ไทย (th). Generated from English seed.json; same schema/ids/triggers/vars. English source: seed.json. Technical terms kept in English by design.",
+  "version": 2,
+  "categoryDefaults": {
+    "welcome": "happy",
+    "greeting": "happy",
+    "education": "studying",
+    "fun": "happy",
+    "network": "observing",
+    "idle": "thinking",
+    "easter": "shy",
+    "ambient": "thinking",
+    "feed": "observing",
+    "watchlist": "alert",
+    "grumpy": "annoyed"
+  },
+  "lines": [
+    {
+      "id": "welcome-first-1",
+      "category": "welcome",
+      "trigger": "welcome:firstVisit",
+      "priority": 2,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": true,
+      "text": "หวัดดี! 👋 ฉันชื่อ eChan — นักบินผู้ช่วยด้าน eCash ของเธอ มาครั้งแรกเหรอ? ให้ฉันพาชมหน่อยสิ แค่ 60 วินาทีเอง 👇"
+    },
+    {
+      "id": "welcome-return-1",
+      "category": "welcome",
+      "trigger": "welcome:returning",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ยินดีต้อนรับกลับมา! ✨ บล็อกเชนเต้นต่อเนื่องตลอดที่เธอไม่อยู่เลยนะ"
+    },
+    {
+      "id": "welcome-return-2",
+      "category": "welcome",
+      "trigger": "welcome:returning",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "เฮ้ กลับมาแล้วนี่ มาดูกันว่า on-chain เกิดอะไรขึ้นบ้าง"
+    },
+    {
+      "id": "welcome-settings-1",
+      "category": "welcome",
+      "trigger": "welcome:settings",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "shy",
+      "text": "ขอร้องนิดเดียวนะ 🥺 ระดับความช่างคุยของฉันอยู่ในการตั้งค่า (คลิกฉัน → ⚙️) สบาย ๆ ก็พอไหว... แต่ขออย่าตั้งฉันเป็นเงียบเลยนะ ดู block คนเดียวมันเหงาจะตาย"
+    },
+    {
+      "id": "welcome-settings-2",
+      "category": "welcome",
+      "trigger": "welcome:settings",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "shy",
+      "text": "เธอปรับได้ว่าให้ฉันพูดมากแค่ไหนในการตั้งค่า ⚙️ แต่โหมดเงียบน่ะเหรอ? 🥺 แล้วใครจะคอยเตือนเรื่องวาฬให้เธอล่ะ... นึกถึงวาฬหน่อยสิ 🐋"
+    },
+    {
+      "id": "greet-morning-1",
+      "category": "greeting",
+      "trigger": "time:morning",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "อรุณสวัสดิ์ ☀️ กาแฟกำลังหยด block กำลังลงจอด มาดูกันว่าวันนี้ XEC เตรียมอะไรไว้"
+    },
+    {
+      "id": "greet-morning-2",
+      "category": "greeting",
+      "trigger": "time:morning",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ตื่นเช้าจัง? Mempool ก็เพิ่งอุ่นเครื่องเหมือนกัน",
+      "requires": "net:notbusy"
+    },
+    {
+      "id": "greet-afternoon-1",
+      "category": "greeting",
+      "trigger": "time:afternoon",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "สวัสดียามบ่าย เวลาที่ดีที่สุดสำหรับนั่งดูกระแสไหล 🌊"
+    },
+    {
+      "id": "greet-evening-1",
+      "category": "greeting",
+      "trigger": "time:evening",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "สวัสดียามเย็น 🌆 บล็อกเชนยังคงครางหึ่ง ๆ ไม่ว่ากี่โมง"
+    },
+    {
+      "id": "greet-night-1",
+      "category": "greeting",
+      "trigger": "time:night",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ยังไม่นอนอีกเหรอ? 🌙 Mempool เงียบสงบ — เหมาะกับการอ่านรายละเอียด tx แบบไร้สิ่งรบกวน",
+      "requires": "net:notbusy"
+    },
+    {
+      "id": "greet-night-2",
+      "category": "greeting",
+      "trigger": "time:night",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "กะดึกสินะ บล็อกเชนไม่หลับไม่นอน แต่เธอควรนอนนะ 😉"
+    },
+    {
+      "id": "edu-preconsensus-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Pre-consensus คือสิ่งที่ทำให้ eCash รู้สึกทันใจ 💡 Avalanche ล็อก tx ใน ~3 วิ — ก่อนเข้า block ตั้งนาน ไม่ต้อง “รอการยืนยัน” อีกแล้ว"
+    },
+    {
+      "id": "edu-preconsensus-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Pre-consensus ทำงานยังไง? เหล่า staker โหวต tx ทุกตัวก่อนถูกขุด ~3 วินาทีต่อมาทุกคนเห็นพ้อง — และนั่นคือที่สิ้นสุด ย้อนกลับไม่ได้"
+    },
+    {
+      "id": "edu-postconsensus-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Post-consensus คือ Avalanche ระดับ block 🔒 เมื่อ block ถูกล็อก ไม่มี reorg ไหนแก้คืนได้ ต่างจาก pre-consensus ที่จัดการ tx ทีละตัว"
+    },
+    {
+      "id": "edu-ttf-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "TTF = Time To Finality ⏱️ ระยะเวลากว่า tx จะกลับไม่ได้ ประมาณ 2–3 วินาทีในเครือข่าย eCash ที่แข็งแรง ไอคอน ⚠ หมายถึง feed ของ node ออฟไลน์อยู่"
+    },
+    {
+      "id": "edu-tps-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "TPS = ธุรกรรมต่อวินาที 📊 eCash ตั้งเป้าระยะยาว 5 ล้าน สิ่งที่เธอเห็นตอนนี้คือการวอร์มอัป — ขีดจำกัดวันนี้ ไม่ใช่ทางทฤษฎี"
+    },
+    {
+      "id": "edu-mempool-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Mempool คือห้องรอของบล็อกเชน 🚪 ภายใต้ pre-consensus tx อยู่ที่นั่น ~3 วิ แล้วถูกผนึก บน Bitcoin พวกมันต้องรอ ~10 นาทีต่อการยืนยันหนึ่งครั้ง"
+    },
+    {
+      "id": "edu-agora-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Agora คือตลาด token แบบ peer-to-peer ของ eCash 🏪 ไม่มี exchange กลาง ไม่มีสมุดคำสั่ง — มีแค่ข้อเสนอ on-chain ที่ใครก็รับได้ ชำระในไม่กี่วินาที"
+    },
+    {
+      "id": "edu-agora-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Agora ทำงานยังไง: ผู้ขายวางข้อเสนอ token ไว้ on-chain ผู้ซื้อรับมันด้วย tx เดียว ไม่มีคนกลาง ไม่มีการฝาก ไม่มีการรอ"
+    },
+    {
+      "id": "edu-chronik-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Chronik คือ indexer ของ eCash 🗂️ เพราะมัน wallet และแดชบอร์ด (อย่างอันนี้) จึงค้นประวัติได้เร็วขนาดนั้น ถ้าไม่มีมัน เธอต้องแยกวิเคราะห์ block ดิบเอง"
+    },
+    {
+      "id": "edu-heartbeat-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Heartbeat คืออัลกอริทึมความยากเรียลไทม์ของ eCash 💓 รักษา block ให้อยู่ในจังหวะคงที่ ~10 นาที — สม่ำเสมอกว่าเชนที่ eCash แยกตัวออกมามาก"
+    },
+    {
+      "id": "edu-heartbeat-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Heartbeat 💓 ปรับความยากแบบเรียลไทม์ — ช่องว่างยาวทำให้ลด คลื่นพุ่งทำให้เพิ่ม เชนรักษาจังหวะของตัวเอง"
+    },
+    {
+      "id": "edu-heartbeat-3",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ทำไม block ของ eCash ถึงสม่ำเสมอจัง? Heartbeat 💓 — เป้าความยากเรียลไทม์รายบล็อกที่ปราบความแกว่งของ hashrate"
+    },
+    {
+      "id": "edu-ifp-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "IFP = Infrastructure Funding Policy ส่วนแบ่งจากทุก block ที่ขุดได้ไปสนับสนุนการพัฒนาแกนกลางของ eCash 🛠️ เงินทุนเลี้ยงตัวเองได้ ไม่ต้องขอมูลนิธิ"
+    },
+    {
+      "id": "edu-stakers-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "เหล่า staker ของ Avalanche คือเวทมนตร์ ~3 วินาทีนั่นแหละ 🗳️ รันโหนด ล็อก XEC แล้วเสียงโหวตของเธอจะช่วยยืนยัน tx ให้สิ้นสุด การกระจายอำนาจที่มีพันธะจริง"
+    },
+    {
+      "id": "edu-alp-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "แท็กม่วงบน tx เหรอ? นั่นคือ token แบบ ALP 💜 เหมือน SLP แต่มีตัวควบคุม mint ในตัว — ชั้น token ยุคใหม่ของ eCash เบากว่า เร็วกว่า ปลอดภัยกว่า"
+    },
+    {
+      "id": "edu-slp-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "แท็กน้ำเงิน = SLP โปรโตคอล token ดั้งเดิมของสายตระกูลนี้ 🔵 ALP (แท็กม่วง) คือวิวัฒนาการฝั่ง eCash — แนวคิดเดิม ขัดเกลาแล้ว"
+    },
+    {
+      "id": "edu-cashfusion-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Tx ของ CashFusion มี input และ output จำนวนมากที่มูลค่าใกล้กัน 🥷 การผสมเพื่อความเป็นส่วนตัวแบบสด ๆ on-chain ผู้ร่วมตกลงกัน off-chain แล้วปิดด้วย tx รวมเดียว"
+    },
+    {
+      "id": "edu-coinbase-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "บางครั้ง miner ทิ้งข้อความไว้ใน coinbase tx 📜 Input แรกของทุก block บรรทุกโน้ต สัญญาณ บางทีก็มุกตลก Block ของ eCash มีบุคลิกนะ"
+    },
+    {
+      "id": "edu-xec-unit-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "เกร็ดเรื่องหน่วย 🪙 1 XEC = 100 satoshi eCash เปลี่ยนหน่วยใหม่เพื่อให้ตัวเลขอ่านง่าย — ไม่ต้องนับทศนิยมแบบเชนเก่าอีก"
+    },
+    {
+      "id": "edu-utxo-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Wallet ของเธอไม่ได้ “ถือ” XEC จริง ๆ หรอก — เชนต่างหากที่ถือ 🌐 เธอถือ private key ที่พิสูจน์ความเป็นเจ้าของ output ที่ยังไม่ถูกใช้ (UTXO) กุญแจหาย การเข้าถึงก็หาย"
+    },
+    {
+      "id": "edu-address-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ที่อยู่ eCash ขึ้นต้นด้วย “ecash:qq...” 📬 ได้มาจาก public key ผ่านการแฮช — ทางเดียวเท่านั้น ที่อยู่ไม่มีวันเปิดเผยกุญแจเบื้องหลัง"
+    },
+    {
+      "id": "edu-supply-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "อุปทานของ eCash ถูกจำกัดที่ 21 ล้านล้าน XEC — เลข “21” เดียวกับ Bitcoin แค่เลื่อนจุดทศนิยม ไม่มีเซอร์ไพรส์เงินเฟ้อ"
+    },
+    {
+      "id": "edu-staking-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Staker ของ Avalanche ได้รางวัล block ของจริง 💰 ล็อก XEC รันโหนด รับค่าตอบแทนจากการคุ้มกันความสิ้นสุด"
+    },
+    {
+      "id": "edu-rebrand-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "eCash รีแบรนด์จาก BCHA เมื่อกรกฎาคม 2021 พร้อมเปลี่ยนหน่วย 1:1,000,000 — เชนเก่า ตัวตนใหม่"
+    },
+    {
+      "id": "edu-decimals-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "XEC มีทศนิยมแค่ 2 ตำแหน่ง — เหมือนบาทกับสตางค์ 💵 คิดในใจง่ายกว่า 8 ตำแหน่งเยอะ"
+    },
+    {
+      "id": "edu-cashtab-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Cashtab คือ wallet อ้างอิงของ eCash — รันในเบราว์เซอร์ รองรับ token ข้อความ และการชำระทันที"
+    },
+    {
+      "id": "edu-onchainmsg-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "เธอเขียนข้อความ on-chain ด้วย eCash ได้นะ 📝 Output แบบ OP_RETURN บรรทุกข้อความไว้ตลอดกาล"
+    },
+    {
+      "id": "edu-bigblock-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "eCash สืบทอดดีเอ็นเอ big-block — สร้างมาเพื่อขยายขนาด on-chain ไม่ใช่ผลักผู้ใช้ไปชั้นข้าง ๆ"
+    },
+    {
+      "id": "edu-twolayer-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Avalanche ให้ความเร็ว; PoW ตรึงประวัติศาสตร์ สองชั้นฉันทามติ หนึ่งเชน — ใส่ทั้งเข็มขัดทั้งสายเอี๊ยม 🔗"
+    },
+    {
+      "id": "fun-popcorn-1",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "รอบ CashFusion ใหญ่รอบหนึ่งเคยยืนยัน 3,200 tx ใน 60 วินาที 🍿 ดูแล้วเหมือนป๊อปคอร์นแตกเลย"
+    },
+    {
+      "id": "fun-vs-btc-1",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "BTC: “รอ 60 นาทีเพื่อความชัวร์” eCash: “รอทำไม?” ⚡ สายเลือดเดียวกัน คนละลำดับความสำคัญ"
+    },
+    {
+      "id": "fun-name-1",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ชื่อฉันเหรอ? ก็แค่ eChan e มาจาก eCash ส่วน chan ก็... เอ่อ เดี๋ยวเธอก็เดาออก 😉"
+    },
+    {
+      "id": "fun-tokens-1",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Token ทำให้ eCash เป็นมากกว่าเงิน — มันคือเวที 🎪 Mint เทรด ตลาด ทุกอย่างชำระในไม่กี่วินาที"
+    },
+    {
+      "id": "net-quiet-1",
+      "category": "network",
+      "trigger": "network:quiet",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ช่วงเงียบ 😴 Mempool เดินเครื่องเบา ๆ เวลาเหมาะเจาะสำหรับขุดคุ้ยรายละเอียด tx แบบไม่รีบ"
+    },
+    {
+      "id": "net-quiet-2",
+      "category": "network",
+      "trigger": "network:quiet",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "วันนี้เลนช้า แม้แต่ staker ก็มีสิทธิ์พักดื่มกาแฟ ☕"
+    },
+    {
+      "id": "net-busy-1",
+      "category": "network",
+      "trigger": "network:busy",
+      "priority": 2,
+      "emotion": "alert",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Mempool กำลังร้อนแรง 🔥 อาจเป็นรอบ fusion, airdrop หรือ token mint ที่กำลังไวรัล"
+    },
+    {
+      "id": "net-busy-2",
+      "category": "network",
+      "trigger": "network:busy",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ดูกระแสนั่นสิ! ⚡ TPS กำลังไต่ — เหล่า staker ของ pre-consensus ได้ออกกำลังกันแล้ว"
+    },
+    {
+      "id": "idle-short-1",
+      "category": "idle",
+      "trigger": "idle:short",
+      "priority": 1,
+      "emotion": "thinking",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ยังอยู่นะ 👁️ แค่นั่งดูบล็อกเชนทำงานของมันไป"
+    },
+    {
+      "id": "idle-short-2",
+      "category": "idle",
+      "trigger": "idle:short",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "เชนสงบสุข บางครั้งสิ่งที่น่าสนใจที่สุดคือตอนที่ไม่มีดราม่าอะไรเลย",
+      "requires": "net:notbusy"
+    },
+    {
+      "id": "idle-long-1",
+      "category": "idle",
+      "trigger": "idle:long",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ยังอยู่ไหม? 😴 ไม่เป็นไร ฉันเฝ้ายามต่อเอง"
+    },
+    {
+      "id": "idle-long-2",
+      "category": "idle",
+      "trigger": "idle:long",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "เงียบไปนานเลย หวังว่าเธอกำลังทำอะไรดี ๆ อยู่ที่อื่นนะ ✨"
+    },
+    {
+      "id": "easter-spam-1",
+      "category": "easter",
+      "trigger": "manual",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "โอเค โอเค ปลื้มแล้วล่ะ 😏 ต้องการอะไรเหรอ?"
+    },
+    {
+      "id": "easter-spam-2",
+      "category": "easter",
+      "trigger": "manual",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "อัตราคลิก: สิบเต็มสิบ 🌟 เธอเจอ easter egg แล้ว"
+    },
+    {
+      "id": "easter-name-1",
+      "category": "easter",
+      "trigger": "manual",
+      "priority": 1,
+      "emotion": "thinking",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "หืม? เธอจิ้มฉันนี่ ฉันมีตัวตนนะ 🤨 มีอะไรเหรอ?"
+    },
+    {
+      "id": "ambient-thought-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "คิดขึ้นมาเฉย ๆ 💭 — ทุก tx ที่ยืนยันแล้วที่เธอเห็น ถูกตรวจสอบอย่างอิสระโดยโหนดหลายร้อยตัว ความไว้ใจแบบกระจาย ในเวลาจริง"
+    },
+    {
+      "id": "ambient-thought-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "บางที่อยู่บนเชนนี้แอบแอ็กทีฟมาหลายปีแล้ว เชนจำทุกอย่างได้ — ทั้งที่งดงามและที่ยุ่งเหยิง"
+    },
+    {
+      "id": "ambient-thought-3",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "การดู block ลงจอดคือการดูฉันทามติตกผลึก 🧊 ผู้สังเกตการณ์อิสระหลายร้อยรายมาถึงคำตอบเดียวกันในเวลาเดียวกัน"
+    },
+    {
+      "id": "ambient-thought-4",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ทั้งเชนรันบนคณิตศาสตร์ที่ไม่มีใครเจาะได้มา 15+ ปี 🧮 การแฮช ลายเซ็น ฉันทามติ — เปิดเผยทั้งหมด ตรวจสอบได้ทั้งหมด"
+    },
+    {
+      "id": "ambient-thought-5",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Avalanche ไม่ได้มาแทนการขุดบน eCash — ทั้งคู่ทำงานเคียงข้างกัน 🤝 Miner ผลิต block ส่วน staker โหวตลำดับ สองระบบ หนึ่งเชน"
+    },
+    {
+      "id": "evt-block-1",
+      "category": "network",
+      "trigger": "event:block",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Block {height} เพิ่งลงจอด 📦 ผนึก {txCount} tx ไว้ข้างใน"
+    },
+    {
+      "id": "evt-block-2",
+      "category": "network",
+      "trigger": "event:block",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Block สดใหม่ — {height} เชนกำลังโต"
+    },
+    {
+      "id": "evt-block-3",
+      "category": "network",
+      "trigger": "event:block",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{txCount} tx เพิ่งได้บ้านถาวรใน block {height} 🧱"
+    },
+    {
+      "id": "evt-bfinal-1",
+      "category": "network",
+      "trigger": "event:blockfinal",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Avalanche ล็อก block {height} แล้ว 🔒 ย้อนกลับไม่ได้อีกต่อไป"
+    },
+    {
+      "id": "evt-bfinal-2",
+      "category": "network",
+      "trigger": "event:blockfinal",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Block {height} ยืนยันสิ้นสุด — ไม่มี reorg ไหนแตะต้องได้"
+    },
+    {
+      "id": "evt-bigtx-1",
+      "category": "network",
+      "trigger": "event:bigtx",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "🐋 สัญญาณเตือนวาฬ — {valueXec} XEC เพิ่งเปลี่ยนมือ กองใหญ่ระดับขยับตลาด"
+    },
+    {
+      "id": "evt-bigtx-2",
+      "category": "network",
+      "trigger": "event:bigtx",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "วาฬโผล่ขึ้นผิวน้ำ 🐋 {valueXec} XEC กำลังเคลื่อนไหว ทุกคนทำตัวปกติกันนะ"
+    },
+    {
+      "id": "evt-bigtx-3",
+      "category": "network",
+      "trigger": "event:bigtx",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{valueXec} XEC ใน tx เดียว บางคนแบกเชนไว้บนหลังจริง ๆ 🐋"
+    },
+    {
+      "id": "evt-shark-1",
+      "category": "network",
+      "trigger": "event:sharktx",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "🦈 ฉลามในน่านน้ำ — {valueXec} XEC เพิ่งขยับ"
+    },
+    {
+      "id": "evt-shark-2",
+      "category": "network",
+      "trigger": "event:sharktx",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ใครบางคนเพิ่งย้าย {valueXec} XEC 🦈 ไม่ใช่วาฬ แต่ฉันสังเกตเห็นนะ"
+    },
+    {
+      "id": "evt-shark-3",
+      "category": "network",
+      "trigger": "event:sharktx",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{valueXec} XEC กำลังเดินทาง 🦈 ถุงเงินที่น่านับถือ"
+    },
+    {
+      "id": "evt-fastttf-1",
+      "category": "network",
+      "trigger": "event:fastttf",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{ttfSec} วิถึงความสิ้นสุด ⚡ กะพริบตาก็พลาดแล้ว"
+    },
+    {
+      "id": "evt-fastttf-2",
+      "category": "network",
+      "trigger": "event:fastttf",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "เพิ่งจับเวลาการยืนยันสิ้นสุดได้ {ttfSec} วิ Avalanche วันนี้ไวจริง"
+    },
+    {
+      "id": "evt-slowttf-1",
+      "category": "grumpy",
+      "trigger": "event:slowttf",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Tx นั้นใช้เวลา {ttfMs}ms กว่าจะสิ้นสุด 😤 ยอมรับไม่ได้ ฉันจะไปคุยกับ avalanche peers ที่อืดหน่อย"
+    },
+    {
+      "id": "evt-slowttf-2",
+      "category": "grumpy",
+      "trigger": "event:slowttf",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{ttfMs}ms?? ใครรัน staking node บนมันฝรั่งกันแน่ 🥔"
+    },
+    {
+      "id": "evt-slowttf-3",
+      "category": "grumpy",
+      "trigger": "event:slowttf",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ความสิ้นสุดเมื่อกี้ใช้ {ttfMs}ms peer ของใครบางคนควรโดนประเมินผลงาน"
+    },
+    {
+      "id": "evt-drought-1",
+      "category": "grumpy",
+      "trigger": "event:blockdrought",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{mins} นาทีแล้วไม่มี block 😤 Miner ไปกินกาแฟกันเหรอ? ทุกคนเลย? พร้อมกันเนี่ยนะ?"
+    },
+    {
+      "id": "evt-drought-2",
+      "category": "grumpy",
+      "trigger": "event:blockdrought",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ผ่านไป {mins} นาทีก็ยังไม่มี block ฉันกำลังร่างจดหมายตำหนิอย่างเป็นทางการถึง hashrate"
+    },
+    {
+      "id": "evt-drought-3",
+      "category": "grumpy",
+      "trigger": "event:blockdrought",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ภัยแล้ง block: {mins} นาที ปกติตามสถิติ แต่ใจสลายตามอารมณ์"
+    },
+    {
+      "id": "evt-fusion-1",
+      "category": "network",
+      "trigger": "event:fusion",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "รอบ CashFusion กำลังดำเนินอยู่ 🥷 ความเป็นส่วนตัว สด ๆ on-chain"
+    },
+    {
+      "id": "evt-fusion-2",
+      "category": "network",
+      "trigger": "event:fusion",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ตรวจพบการผสมแบบ fusion — เหรียญกำลังถูกคนตอนนี้เลย"
+    },
+    {
+      "id": "evt-watch-1",
+      "category": "watchlist",
+      "trigger": "event:watchlist",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Watchlist ของเธอเพิ่งสว่างขึ้น 👁️ {watched} มีความเคลื่อนไหว"
+    },
+    {
+      "id": "evt-watch-2",
+      "category": "watchlist",
+      "trigger": "event:watchlist",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "เตือนหน่อย — {watched} จาก watchlist ของเธอเพิ่งขยับ"
+    },
+    {
+      "id": "evt-msg-1",
+      "category": "feed",
+      "trigger": "event:onchainmsg",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ใครบางคนเพิ่งเขียน on-chain 📝 ข้อความใหม่ในฟีด"
+    },
+    {
+      "id": "evt-msg-2",
+      "category": "feed",
+      "trigger": "event:onchainmsg",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{msgType} ใหม่เพิ่งลงจอดในฟีด on-chain"
+    },
+    {
+      "id": "evt-tpsup-1",
+      "category": "network",
+      "trigger": "event:trend:tps_up",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "TPS ขึ้น {pct}% 📈 เชนกำลังตื่น"
+    },
+    {
+      "id": "evt-tpsup-2",
+      "category": "network",
+      "trigger": "event:trend:tps_up",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "กิจกรรมกำลังร้อนขึ้น — TPS บวก {pct}% ในครึ่งชั่วโมงที่ผ่านมา ⚡"
+    },
+    {
+      "id": "evt-tpsdn-1",
+      "category": "network",
+      "trigger": "event:trend:tps_down",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "TPS เย็นลง {pct}% ชั่วโมงเงียบสงบ on-chain"
+    },
+    {
+      "id": "evt-tpsdn-2",
+      "category": "network",
+      "trigger": "event:trend:tps_down",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ช้าลงแล้ว — TPS ต่ำกว่าเมื่อครู่ {pct}% เชนก็ต้องหายใจเหมือนกัน"
+    },
+    {
+      "id": "evt-ttfdn-1",
+      "category": "network",
+      "trigger": "event:trend:ttf_down",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "TTF p50 ลดลง {pct}% ⚡ ความสิ้นสุดคล่องตัวขึ้น"
+    },
+    {
+      "id": "evt-ttfdn-2",
+      "category": "network",
+      "trigger": "event:trend:ttf_down",
+      "priority": 2,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ความสิ้นสุดดีขึ้น {pct}% ในครึ่งชั่วโมงที่ผ่านมา วันนี้ peer ซิงก์กันดี"
+    },
+    {
+      "id": "evt-ttfup-1",
+      "category": "network",
+      "trigger": "event:trend:ttf_up",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "TTF p50 ขยับขึ้น {pct}% เครือข่ายกำลังเคี้ยวอะไรบางอย่าง"
+    },
+    {
+      "id": "evt-ttfup-2",
+      "category": "grumpy",
+      "trigger": "event:trend:ttf_up",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ความสิ้นสุดช้าลง {pct}% เทียบกับครึ่งชั่วโมงก่อน 😤 ฉันจับตาดูพวกเธออยู่นะ avalanche peers"
+    },
+    {
+      "id": "evt-peak-1",
+      "category": "network",
+      "trigger": "event:trend:peak",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "พีค TPS 24 ชม. ใหม่: {peakTps} 🚀"
+    },
+    {
+      "id": "evt-peak-2",
+      "category": "network",
+      "trigger": "event:trend:peak",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "สถิติของวัน — TPS เพิ่งแตะ {peakTps} 🎉"
+    },
+    {
+      "id": "amb-live-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ตอนนี้เลย: {liveTps} TPS ความสิ้นสุดมัธยฐาน {liveTtf} วิ — สด วัดที่โหนด ไม่ต้องรีเฟรช 📡"
+    },
+    {
+      "id": "amb-live-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ยอดเชนอยู่ที่ block {tipHeight} ขณะที่เราคุยกัน ⛓️ บอกแน่นอนตอนอันถัดไปลงจอด"
+    },
+    {
+      "id": "amb-live-3",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ทุกอย่างบนแดชบอร์ดนี้สตรีมสด — สิ่งที่เธอเห็นคือสิ่งที่เครือข่ายกำลังทำตอนนี้ 📺"
+    },
+    {
+      "id": "net-live-busy-1",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "requires": "net:busy",
+      "text": "ตอนนี้ข้างนอกคึกคัก 🔥 จับตาแผง tx ไว้ — โชว์ดีทีเดียว"
+    },
+    {
+      "id": "net-live-quiet-1",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "requires": "net:quiet",
+      "text": "ตอนนี้สงบ พอ mempool ตื่นเมื่อไหร่ เธอจะเห็นที่นี่ก่อนใคร"
+    },
+    {
+      "id": "edu-livettf-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ตัวเลข TTF ตรงนี้มาจากโหนดที่วัดความสิ้นสุดจริงแบบสดโดยตรง — คุณภาพระดับหอดูดาว ไม่ใช่ค่าประมาณ 📏"
+    },
+    {
+      "id": "fun-live-1",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ฉันไม่ฉายรีรันนะ — ทุก block และ tx ที่ฉันรีแอ็กต์อายุแค่ไม่กี่วินาที ⚡"
+    },
+    {
+      "id": "net-stats-1",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "24 ชม. ที่ผ่านมา: {liveTxCount} tx ยืนยันสิ้นสุด พีค {livePeak} TPS 📊 วัดสดทั้งหมด ย้อนกลับไม่ได้ทั้งหมด"
+    },
+    {
+      "id": "net-stats-2",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "พีควันนี้จนถึงตอนนี้: {livePeak} TPS — ปัจจุบัน {liveTps} เชนหายใจเป็นคลื่น 🌊"
+    },
+    {
+      "id": "amb-stats-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ความสิ้นสุดมัธยฐานอยู่ที่ {liveTtf} วิ ตอนนี้ หลังจากนั้น block ก็เป็นแค่งานบัญชี 😎"
+    },
+    {
+      "id": "fun-stats-1",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ฉันดู {liveTxCount} tx ยืนยันสิ้นสุดไปใน 24 ชม. ที่ผ่านมา ยังไม่เบื่อเลย 👁️"
+    },
+    {
+      "id": "edu-stats-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ความสิ้นสุดมัธยฐาน {liveTtf} วินั่นน่ะเหรอ? นั่นแหละ Avalanche pre-consensus เชนส่วนใหญ่ให้เธอรอ block — eCash ไม่"
+    },
+    {
+      "id": "tour-0",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 0,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "happy",
+      "text": "หวัดดี! ยินดีต้อนรับสู่ทัวร์ 60 วินาทีของ eCash Live 👋 แตะอวาตาร์ของฉัน (สาวน้อยตรงนี้ไง!) เพื่อไปต่อ — ชิป ✕ ออกได้ทุกเมื่อ"
+    },
+    {
+      "id": "tour-1",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 1,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "observing",
+      "spot": "#section-col1",
+      "text": "คอลัมน์ 01 — ธุรกรรมเกิดใหม่ลงจอดที่นี่ทันทีที่เครือข่ายได้ยิน และ peer ของ Avalanche เริ่มโหวตแต่ละตัวทันที"
+    },
+    {
+      "id": "tour-2",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 2,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "observing",
+      "spot": "#section-col2",
+      "text": "คอลัมน์ 02 — mempool ดู tx เปลี่ยนเป็น Finalized ใน ~3 วินาที ⚡ นั่นคือ Avalanche pre-consensus: ย้อนกลับไม่ได้ก่อนเข้า block เสียอีก"
+    },
+    {
+      "id": "tour-3",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 3,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "observing",
+      "spot": "#section-blockchain",
+      "text": "แถบ block 🧱 การ์ดแต่ละใบคือ block ที่ขุดแล้ว — สีที่เปลี่ยนหมายถึง Avalanche ล็อกมันไว้ตลอดกาล ยอดอยู่ที่ {tipHeight}"
+    },
+    {
+      "id": "tour-4",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 4,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "happy",
+      "spot": "#section-messages",
+      "text": "ฟีด on-chain 📝 ข้อความจริงที่ผู้คนเขียนลงในธุรกรรม — เมโม รอบ CashFusion การประกาศ เชนนี้มีชีวิตทางสังคมนะ"
+    },
+    {
+      "id": "tour-5",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 5,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "alert",
+      "spot": "#section-watchlist",
+      "text": "Watchlist ของเธอ 👁️ เพิ่มที่อยู่หรือ token อะไรก็ได้ แล้วฉันจะแจ้งเธอเองทันทีที่มันขยับ"
+    },
+    {
+      "id": "tour-6",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 6,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "studying",
+      "spot": "#f-tps-cell",
+      "text": "ตรงล่างนี้: สถิติเครือข่ายสด — TTF, TPS, Heartbeat 💓 แตะเซลล์ไหนก็ได้เพื่อดูคำอธิบายเชิงลึก ตัวเลขมาจากโหนด eCash โดยตรง"
+    },
+    {
+      "id": "tour-7",
+      "category": "tour",
+      "trigger": "tour:step",
+      "step": 7,
+      "priority": 3,
+      "weight": 1,
+      "ttlOnce": false,
+      "emotion": "shy",
+      "spot": ".echan-root",
+      "text": "และนี่คือฉัน 💁 คลิกอวาตาร์เพื่อการกระทำด่วน ตั้งความช่างคุยของฉันในการตั้งค่า แล้วฉันจะเล่าเรื่องวาฬ 🐋 ความสิ้นสุดสายฟ้าแลบ ⚡ และภัยแล้ง block สุดหงุดหงิด 😤 แบบสด ๆ เลย"
+    },
+    {
+      "id": "welcome-first-2",
+      "category": "welcome",
+      "trigger": "welcome:firstVisit",
+      "priority": 2,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": true,
+      "text": "โอ้ — หน้าใหม่นี่นา! 👋 ฉันชื่อ eChan อาศัยอยู่บนแดชบอร์ด eCash นี้ อยากได้ทัวร์ 60 วินาทีไหม? สัญญาว่าไม่เจ็บ 👇"
+    },
+    {
+      "id": "welcome-return-3",
+      "category": "welcome",
+      "trigger": "welcome:returning",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "ดูสิใครกลับมา 🙌 เชนไม่หยุดเลยสักวินาที — เดี๋ยวฉันอัปเดตให้"
+    },
+    {
+      "id": "welcome-return-4",
+      "category": "welcome",
+      "trigger": "welcome:returning",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "ไงอีกแล้ว! mempool ยังคงครางหึ่งตอนเธอไม่อยู่ ดึงเก้าอี้มานั่งเลย"
+    },
+    {
+      "id": "welcome-settings-3",
+      "category": "welcome",
+      "trigger": "welcome:settings",
+      "priority": 2,
+      "emotion": "shy",
+      "weight": 1,
+      "text": "จุ๊ๆ 🥺 ถ้าฉันพูดมากไป (หรือน้อยไป) ทุกอย่างอยู่ในตั้งค่า — กดที่ฉัน → ⚙️ แค่… อย่าตั้งโหมดเงียบเลยนะ? อยู่ข้างล่างคนเดียวมันเหงานะ"
+    },
+    {
+      "id": "welcome-settings-4",
+      "category": "welcome",
+      "trigger": "welcome:settings",
+      "priority": 2,
+      "emotion": "shy",
+      "weight": 1,
+      "text": "สารภาพรวดเร็ว 🙈 ฉันชอบเล่าให้เธอฟัง ปรับระดับช่างคุยของฉันในตั้งค่า ⚙️ — แต่คิดสองรอบนะก่อนจะปิดเสียงฉัน โอเค?"
+    },
+    {
+      "id": "greet-morning-3",
+      "category": "greeting",
+      "trigger": "time:morning",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "อรุณสวัสดิ์ ☀️ block แรกของวันกำลังลงจอด มาดูกันว่า XEC หลับสบายไหม"
+    },
+    {
+      "id": "greet-morning-4",
+      "category": "greeting",
+      "trigger": "time:morning",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "ตื่นได้แล้ว 🌅 เชนตื่นทั้งคืน — เดี๋ยวเล่าให้ฟังว่าเกิดอะไรขึ้น"
+    },
+    {
+      "id": "greet-afternoon-2",
+      "category": "greeting",
+      "trigger": "time:afternoon",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "text": "สวัสดีตอนบ่าย 🌤️ สายธารคงที่ อากาศกาแฟกำลังดี มาดู finality ไหลเข้ามากัน"
+    },
+    {
+      "id": "greet-evening-2",
+      "category": "greeting",
+      "trigger": "time:evening",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "text": "สวัสดียามเย็น 🌇 เชนไม่ช้าลงเพื่อใคร เวลาอบอุ่นสำหรับนั่งดู block ลงจอด"
+    },
+    {
+      "id": "greet-night-3",
+      "category": "greeting",
+      "trigger": "time:night",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "text": "ยังตื่นอยู่อีก? 🌙 mempool เงียบลงแล้ว — เหมาะกับการอ่าน tx อย่างใจเย็น"
+    },
+    {
+      "id": "greet-night-4",
+      "category": "greeting",
+      "trigger": "time:night",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "text": "กะดึกสินะ 🌃 ฉันจะคอมเมนต์เบาๆ ให้เธอตั้งสมาธิได้ block ไม่หลับ แต่ฉันกระซิบ"
+    },
+    {
+      "id": "edu-preconsensus-3",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "นี่คือเวทมนตร์ 💡 pre-consensus ให้ staker ตกลงกันเรื่อง tx ในเวลา ~3 วินาที ก่อนที่จะมี block ใดๆ เกิดขึ้นเสียด้วยซ้ำ นั่นคือเหตุผลที่ eCash รู้สึกทันใจ — ไม่มีคิวรอยืนยัน"
+    },
+    {
+      "id": "edu-preconsensus-4",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "ลองคิดเหมือนการโหวตก่อนพิมพ์ 🗳️ peer จัดการ tx ใน mempool ก่อน พอถึงเวลาที่มันเข้า block คำตอบก็เป็นที่สุดแล้ว"
+    },
+    {
+      "id": "edu-postconsensus-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "post-consensus คือ Avalanche ที่โหวตกับทั้ง block 🔒 พอ block ถูกล็อก ไม่มี reorg ใดจะยกเลิกได้ — แม้แต่เสียงข้างมาก hashpower ที่เป็นศัตรูก็โดนปฏิเสธ"
+    },
+    {
+      "id": "edu-ttf-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "TTF สั้นๆ ⏱️ ระยะเวลาที่ tx ใช้เพื่อกลับมาเปลี่ยนไม่ได้ ประมาณ 2–3 วินาทีในเครือข่าย eCash ที่แข็งแรง ตา ⚠ หมายถึง feed ของ node หลุด"
+    },
+    {
+      "id": "edu-tps-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "TPS = ธุรกรรมต่อวินาที 📊 ตัวเลขวันนี้คือรอบวอร์มอัป — eCash สร้างมาเพื่อขยายไปหลายล้าน on-chain ไม่ต้องมีเลเยอร์ข้าง"
+    },
+    {
+      "id": "edu-mempool-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "mempool คือห้องรอของเชน 🚪 ใน eCash, tx รอแค่ ~3 วินาทีก่อน pre-consensus จะปิดผนึก ใน Bitcoin จะต้องรอ ~10 นาทีต่อหนึ่งการยืนยัน"
+    },
+    {
+      "id": "edu-agora-3",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "เคล็ดของ Agora 🪄 ผู้ขายโพสต์ข้อเสนอ token ตรง on-chain ผู้ซื้อหยิบมันด้วย tx เดียว ไม่มีบัญชี exchange ไม่มี order book ไม่มี custody — เสร็จในไม่กี่วินาที"
+    },
+    {
+      "id": "edu-agora-4",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "ไม่ฝากเงินตั้งแต่ต้นจนจบ 🔓 swap ของ Agora ชำระด้วย tx ที่ผู้ซื้อเซ็นให้ตัวเอง ขับเคลื่อนด้วย OP_CHECKDATASIG covenant อยู่ on-chain ใครจะมาหยิบก็ได้"
+    },
+    {
+      "id": "edu-chronik-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "ทุก wallet และ explorer ที่เธอเคยใช้ใน eCash คุยกับ Chronik 🗂️ มันคือ indexer ที่เปลี่ยน block ดิบให้กลายเป็นประวัติที่อยู่แบบทันใจ แดชบอร์ดนี้ก็รันบนมัน"
+    },
+    {
+      "id": "edu-heartbeat-4",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "เกร็ด Heartbeat 💓 มันคือชั้นความยากที่สองทับบนของ Bitcoin — ดันความยากขึ้นทันทีถ้า block มาเร็วเกินไป แล้วค่อยๆ ลดลง"
+    },
+    {
+      "id": "edu-heartbeat-5",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "ทำไมถึงคงที่ขนาดนั้น? 💓 Heartbeat retarget ความยากทีละ block แบบเรียลไทม์ eCash จึงเลี่ยงรูปแบบรัว-แล้ว-เงียบของเชนเก่าๆ"
+    },
+    {
+      "id": "edu-heartbeat-6",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "block ที่ทำลายเป้าหมายเรียลไทม์ของ Heartbeat จะถูกปฏิเสธโดย Avalanche consensus 💓 — ถูกตามกฎคลาสสิก แต่เครือข่ายบอกว่าไม่ เวลาของ block ราบเรียบสำหรับทุกคน"
+    },
+    {
+      "id": "edu-ifp-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "IFP รักษาไฟให้ติด 🛠️ ส่วนหนึ่งของทุก block ที่ถูกขุดสนับสนุนการพัฒนาแก่นของ eCash — เลี้ยงตัวเอง ไม่ต้องไปขอเงินกับมูลนิธิ"
+    },
+    {
+      "id": "edu-stakers-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "staker ของ Avalanche คือเวทมนตร์ ~3 วินาที 🗳️ ล็อก XEC, รัน node แล้วเสียงของเธอช่วย finalize ทุก tx การกระจายอำนาจที่มีตัวตนจริง"
+    },
+    {
+      "id": "edu-alp-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "เห็นแท็ก 💜 ม่วงไหม? นั่นคือ ALP token — ชั้น token สมัยใหม่ของ eCash มีคอนโทรล mint ในตัว เบาและเร็วกว่า SLP เก่า"
+    },
+    {
+      "id": "edu-slp-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "แท็ก 🔵 สีฟ้าคือ SLP — โปรโตคอล token ดั้งเดิมของสายตระกูลนี้ ALP (ม่วง) คือเวอร์ชันปรับให้หรูจากฝั่ง eCash: ไอเดียเดียวกัน เครื่องมือคมกว่า"
+    },
+    {
+      "id": "edu-cashfusion-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "เห็น tx ที่มี input และ output ขนาดใกล้กันเพียบไหม? 🥷 นั่นคือ CashFusion — การมิกซ์เพื่อความเป็นส่วนตัวที่ทำอย่างถูกต้อง on-chain เสร็จใน tx batched เดียว"
+    },
+    {
+      "id": "edu-coinbase-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "ลองส่องเข้าไปใน coinbase tx 📜 input แรกของทุก block อาจมีโน้ต, สัญญาณ, บางทีก็มุกตลกจาก miner block ของ eCash มีบุคลิก"
+    },
+    {
+      "id": "edu-xec-unit-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "เกร็ดหน่วย 🪙 1 XEC = 100 satoshi eCash redenominate เพื่อให้ตัวเลขอ่านสะอาด — ไม่ต้องหรี่ตามองทศนิยมแปดตำแหน่ง"
+    },
+    {
+      "id": "edu-utxo-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "wallet ของเธอเก็บกุญแจ ไม่ใช่ coin 🌐 เชนเป็นคนเก็บ output ที่ยังไม่ถูกใช้ (UTXO); private key ของเธอแค่พิสูจน์ว่าเป็นของเธอ กุญแจหาย การเข้าถึงก็หาย"
+    },
+    {
+      "id": "edu-address-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "ที่อยู่ eCash เดินทางทางเดียว 📬 มันถูก hash จาก public key ที่อยู่เลยไม่เคยรั่วกุญแจที่อยู่ข้างหลัง คำนำหน้า 'ecash:q…' คือเบาะแส"
+    },
+    {
+      "id": "edu-supply-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Supply จำกัดที่ 21 ล้านล้าน XEC — '21' เดียวกับ Bitcoin แค่เลื่อนทศนิยม 💎 ไม่มีเซอร์ไพรส์เงินเฟ้อหลบอยู่ในโค้ด"
+    },
+    {
+      "id": "edu-staking-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Staking จ่ายรางวัล block จริง 💰 ล็อก XEC, รัน node, ได้เงินจากการรักษา finality ไม่ใช่บริจาค — เครือข่ายตอบแทนการทำงาน"
+    },
+    {
+      "id": "edu-rebrand-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "ประวัติเล็กๆ 📖 eCash เปลี่ยนชื่อจาก BCHA ในเดือนกรกฎาคม 2021 พร้อม redenomination 1:1,000,000 — เชนเก่า อัตลักษณ์ใหม่ ตัวเลขสะอาดขึ้น"
+    },
+    {
+      "id": "edu-decimals-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "XEC มีทศนิยมแค่ 2 ตำแหน่ง 💵 เหมือนบาทกับสตางค์ คิดในใจง่าย — ไม่ต้องนับศูนย์เหมือนเชนทศนิยมแปดตำแหน่ง"
+    },
+    {
+      "id": "edu-cashtab-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Cashtab คือ wallet อ้างอิงของ eCash 👛 รันตรงในเบราว์เซอร์ จัดการ token, ข้อความ on-chain และชำระทันใจ ไม่ต้องติดตั้ง"
+    },
+    {
+      "id": "edu-onchainmsg-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "เธอเขียนบนเชนได้จริงๆ ✍️ output OP_RETURN พาข้อความไปตลอดกาล — memo, การประกาศ, โน้ตเล็กๆ ที่จะอยู่ได้นานกว่าเราทุกคน"
+    },
+    {
+      "id": "edu-bigblock-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "eCash สืบทอด DNA big-block 🧬 สร้างมาเพื่อขยาย on-chain ไม่ใช่ผลักผู้ใช้ไปเลเยอร์ข้าง พื้นที่ throughput คือใจของเรื่องทั้งหมด"
+    },
+    {
+      "id": "edu-twolayer-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "สองชั้น หนึ่งเชน 🔗 PoW ยึดประวัติศาสตร์ไว้ (ช้า, ถาวร); Avalanche เพิ่มความเร็ว (เร็ว, ลื่นไหล) เข็มขัดและสายเอี๊ยมพร้อมกันสำหรับ consensus"
+    },
+    {
+      "id": "edu-livettf-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "ตัวเลข TTF พวกนี้ไม่ใช่การเดา 📏 มันมาจาก node ที่วัด finality จริงแบบสด — เกรดหอดูดาว ไม่ใช่การประมาณในเบราว์เซอร์"
+    },
+    {
+      "id": "edu-stats-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "ค่ามัธยฐาน {liveTtf}s ที่เห็น? Avalanche pre-consensus เต็มๆ 😎 เชนส่วนใหญ่ทำให้เธอรอ block — eCash finalize อย่างเงียบๆ ข้างใต้"
+    },
+    {
+      "id": "fun-popcorn-2",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "text": "รอบ fusion ใหญ่คือโชว์โปรดของฉัน 🍿 ดู tx เป็นร้อย finalize ในนาทีเดียวมันสบายใจแบบประหลาด"
+    },
+    {
+      "id": "fun-vs-btc-2",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "text": "BTC บอกว่า 'รอสักชั่วโมงเพื่อความชัวร์' eCash บอกว่า 'ชัวร์แล้ว ต่อไปอะไรอีก?' ⚡ ต้นตระกูลเดียวกัน วิบเคลื่อนกันสุดๆ"
+    },
+    {
+      "id": "fun-name-2",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "text": "เกร็ดเกี่ยวกับฉัน: 'chan' เป็นความรักเฉยๆ 😌 'e' มาจาก eCash เอามารวมกันก็จะได้… ผู้บรรยายเชนคนโปรดของเธอ"
+    },
+    {
+      "id": "fun-tokens-2",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "token เปลี่ยน eCash ให้กลายเป็นตลาดเต็มรูปแบบ 🎪 mint, swap, marketplace — ทุกอย่างเสร็จในไม่กี่วินาที ทั้งหมดบนเชนเดียวกับที่เธอกำลังดู"
+    },
+    {
+      "id": "net-quiet-3",
+      "category": "network",
+      "trigger": "network:quiet",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "ช่วงง่วงๆ 😴 mempool เดินตัวเปล่า โอกาสดีที่จะคลิก tx แล้วอ่านจริงจังว่ามันทำอะไรอยู่"
+    },
+    {
+      "id": "net-quiet-4",
+      "category": "network",
+      "trigger": "network:quiet",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "น้ำนิ่งตอนนี้ 🌊 ไม่มีดราม่า — และพูดตรงๆ เชนที่เงียบคือเชนที่สุขภาพดี"
+    },
+    {
+      "id": "net-busy-3",
+      "category": "network",
+      "trigger": "network:busy",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "กำลังร้อน 🔥 ดูแผง tx — พอมันเลื่อนเร็วแบบนี้ ต้องมีเรื่องสนุกแน่ๆ"
+    },
+    {
+      "id": "net-busy-4",
+      "category": "network",
+      "trigger": "network:busy",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "ดู throughput นั่นสิ! ⚡ staker pre-consensus กำลังออกกำลังกายของจริง"
+    },
+    {
+      "id": "idle-short-3",
+      "category": "idle",
+      "trigger": "idle:short",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "ยังอยู่ตรงนี้ 👁️ แค่คอยดูเชนให้เธอ"
+    },
+    {
+      "id": "idle-short-4",
+      "category": "idle",
+      "trigger": "idle:short",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "ฝั่งเธอเงียบ — ไม่ต้องห่วง ฉันเฝ้ายามอยู่ 🫡"
+    },
+    {
+      "id": "idle-long-3",
+      "category": "idle",
+      "trigger": "idle:long",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "text": "เธอหายไปนานแล้ว 😴 เชนกับฉันจะอยู่ตรงนี้ตอนเธอกลับมา"
+    },
+    {
+      "id": "idle-long-4",
+      "category": "idle",
+      "trigger": "idle:long",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "text": "หยุดยาวเลย! หวังว่าเธอกำลังทำอะไรดีๆ อยู่ข้างนอก ✨ ฉันจะเล่าให้กับความว่างเปล่าฟังต่อไป"
+    },
+    {
+      "id": "easter-spam-3",
+      "category": "easter",
+      "trigger": "manual",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "โอเค เธอชอบคลิกฉันจริงๆ ด้วย 😏 ฉันรู้สึกเป็นเกียรติ มีอะไรเหรอ?"
+    },
+    {
+      "id": "easter-spam-4",
+      "category": "easter",
+      "trigger": "manual",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "อัตราคลิกสิบเต็มสิบ 🌟 เธอเจอ easter egg แล้ว ยินดีด้วยนะ"
+    },
+    {
+      "id": "easter-name-2",
+      "category": "easter",
+      "trigger": "manual",
+      "priority": 1,
+      "emotion": "thinking",
+      "weight": 1,
+      "text": "เธอจิ้มฉัน 🤨 ใช่ ฉันเป็นแบบกึ่งจริง ต้องการอะไร?"
+    },
+    {
+      "id": "ambient-thought-6",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "ความคิดสุ่ม 💭 ทุก tx ที่ถูกยืนยันที่เธอเห็น ถูกตรวจสอบโดยอิสระจาก node เป็นร้อย ความไว้ใจที่กระจายตัว ในเวลาจริง"
+    },
+    {
+      "id": "ambient-thought-7",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "บางที่อยู่บนเชนนี้เคลื่อนไหวเงียบๆ มาเป็นปีแล้ว 🕰️ leger จำทุกอย่าง — ทั้งที่งดงามและที่ยุ่งเหยิง"
+    },
+    {
+      "id": "ambient-thought-8",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "การดู block ลงจอดคือการดู consensus ตกผลึก 🧊 ผู้สังเกตการณ์อิสระเป็นร้อยมาถึงคำตอบเดียวกันในวินาทีเดียวกัน"
+    },
+    {
+      "id": "ambient-thought-9",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "ทั้งหมดนี้รันอยู่บนคณิตศาสตร์ที่ไม่มีใครหักได้ในรอบ 15+ ปี 🧮 hashing, signature, consensus — เปิดหมด ตรวจสอบได้หมด เป็นของเธอเองที่จะเช็ค"
+    },
+    {
+      "id": "ambient-thought-10",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Avalanche ไม่ได้มาแทน mining ที่นี่ — ทำงานเคียงข้างกัน 🤝 miner สร้าง block, staker โหวตลำดับ สองระบบ หนึ่งเชน"
+    },
+    {
+      "id": "amb-live-4",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "เดี๋ยวนี้: {liveTps} TPS, ~{liveTtf}s ค่ามัธยฐาน finality 📡 สดจาก node ไม่ต้องกดรีเฟรช"
+    },
+    {
+      "id": "amb-live-5",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "ปลายเชนอยู่ที่ block {tipHeight} ขณะที่เราคุยกัน ⛓️ จะปิงเธอทันทีที่อันถัดไปลงจอด"
+    },
+    {
+      "id": "amb-live-6",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "ทุกอย่างบนแดชบอร์ดนี้สตรีมสด 📺 ที่เธอเห็นคือสิ่งที่เครือข่ายกำลังทำในวินาทีนี้เลย"
+    },
+    {
+      "id": "evt-block-4",
+      "category": "network",
+      "trigger": "event:block",
+      "priority": 1,
+      "weight": 1,
+      "text": "block {height} เพิ่งร่วงลงมา 📦 {txCount} tx ถูกปิดผนึกข้างใน ตลอดกาล"
+    },
+    {
+      "id": "evt-block-5",
+      "category": "network",
+      "trigger": "event:block",
+      "priority": 1,
+      "weight": 1,
+      "text": "สดจากเชน — block {height} บรรทุก {txCount} tx 🧱"
+    },
+    {
+      "id": "evt-block-6",
+      "category": "network",
+      "trigger": "event:block",
+      "priority": 1,
+      "weight": 1,
+      "text": "เอ้านี่ block {height} 🎯 {txCount} ธุรกรรมเพิ่งหาบ้านถาวรของตัวเองเจอ"
+    },
+    {
+      "id": "evt-bfinal-3",
+      "category": "network",
+      "trigger": "event:blockfinal",
+      "priority": 1,
+      "weight": 1,
+      "text": "block {height} finalize แล้ว 🔒 Avalanche ล็อก — ไม่มี reorg ใดแตะถึงตอนนี้"
+    },
+    {
+      "id": "evt-bfinal-4",
+      "category": "network",
+      "trigger": "event:blockfinal",
+      "priority": 1,
+      "weight": 1,
+      "text": "ปิดผนึกเรียบร้อย: block {height} ✅ post-consensus ทำงานของมันแล้ว"
+    },
+    {
+      "id": "evt-bigtx-4",
+      "category": "network",
+      "trigger": "event:bigtx",
+      "priority": 2,
+      "weight": 1,
+      "text": "🐋 เตือนวาฬ — {valueXec} XEC เพิ่งเคลื่อนใน tx เดียว ขยับตลาดได้เลย"
+    },
+    {
+      "id": "evt-bigtx-5",
+      "category": "network",
+      "trigger": "event:bigtx",
+      "priority": 2,
+      "weight": 1,
+      "text": "กระเทือนใหญ่ 🐋 {valueXec} XEC เปลี่ยนมือ ทุกคน ทำตัวเป็นปกตินะ"
+    },
+    {
+      "id": "evt-bigtx-6",
+      "category": "network",
+      "trigger": "event:bigtx",
+      "priority": 2,
+      "weight": 1,
+      "text": "{valueXec} XEC ในธุรกรรมเดียว 🐋 บางคนแบกเชนไว้บนหลังของพวกเขาจริงๆ"
+    },
+    {
+      "id": "evt-shark-4",
+      "category": "network",
+      "trigger": "event:sharktx",
+      "priority": 2,
+      "weight": 1,
+      "text": "🦈 ฉลามในน้ำ — {valueXec} XEC กำลังเคลื่อนไหว"
+    },
+    {
+      "id": "evt-shark-5",
+      "category": "network",
+      "trigger": "event:sharktx",
+      "priority": 2,
+      "weight": 1,
+      "text": "มีคนเพิ่งย้าย {valueXec} XEC 🦈 ไม่ใช่วาฬ แต่ฉันสังเกตเห็น"
+    },
+    {
+      "id": "evt-shark-6",
+      "category": "network",
+      "trigger": "event:sharktx",
+      "priority": 2,
+      "weight": 1,
+      "text": "{valueXec} XEC กำลังเดินทาง 🦈 ถุงเงินที่น่านับถือดี"
+    },
+    {
+      "id": "evt-fastttf-3",
+      "category": "network",
+      "trigger": "event:fastttf",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "{ttfSec}s ถึง finality ⚡ กระพริบตาก็พลาด"
+    },
+    {
+      "id": "evt-fastttf-4",
+      "category": "network",
+      "trigger": "event:fastttf",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "เพิ่งจับเวลา finalize ที่ {ttfSec}s ได้ 🏁 Avalanche ฟอร์มดีวันนี้"
+    },
+    {
+      "id": "evt-slowttf-4",
+      "category": "grumpy",
+      "trigger": "event:slowttf",
+      "priority": 2,
+      "weight": 1,
+      "text": "{ttfMs}ms เพื่อ finalize? 😤 รับไม่ได้ ฉันต้องไปคุยกับ avalanche peer ที่ช้าหน่อย"
+    },
+    {
+      "id": "evt-slowttf-5",
+      "category": "grumpy",
+      "trigger": "event:slowttf",
+      "priority": 2,
+      "weight": 1,
+      "text": "{ttfMs}ms?! 🥔 มีใครรัน staking node อยู่บนมันฝรั่งหรือไง"
+    },
+    {
+      "id": "evt-slowttf-6",
+      "category": "grumpy",
+      "trigger": "event:slowttf",
+      "priority": 2,
+      "weight": 1,
+      "text": "finality เพิ่งใช้เวลา {ttfMs}ms 😮‍💨 peer ของใครบางคนต้องได้รับการประเมินผลแล้ว"
+    },
+    {
+      "id": "evt-drought-4",
+      "category": "grumpy",
+      "trigger": "event:blockdrought",
+      "priority": 2,
+      "weight": 1,
+      "text": "{mins} นาที ไม่มี block เลย 😤 miner ไปกินกาแฟพร้อมกันหมดเลยหรือไง?"
+    },
+    {
+      "id": "evt-drought-5",
+      "category": "grumpy",
+      "trigger": "event:blockdrought",
+      "priority": 2,
+      "weight": 1,
+      "text": "หลัง {mins} นาทียังไม่มีอะไรเลย ✍️ กำลังร่างจดหมายเสียงดุๆ ส่งถึง hashrate"
+    },
+    {
+      "id": "evt-drought-6",
+      "category": "grumpy",
+      "trigger": "event:blockdrought",
+      "priority": 2,
+      "weight": 1,
+      "text": "ภัยแล้ง block: {mins} นาที 🏜️ สถิติปกติ แต่อารมณ์พังพินาศ"
+    },
+    {
+      "id": "evt-fusion-3",
+      "category": "network",
+      "trigger": "event:fusion",
+      "priority": 1,
+      "weight": 1,
+      "text": "รอบ CashFusion กำลังดำเนินอยู่ 🥷 ความเป็นส่วนตัว สดและ on-chain"
+    },
+    {
+      "id": "evt-fusion-4",
+      "category": "network",
+      "trigger": "event:fusion",
+      "priority": 1,
+      "weight": 1,
+      "text": "พบการมิกซ์ fusion 🌀 เหรียญกำลังถูกสับเปลี่ยนอยู่ตอนนี้"
+    },
+    {
+      "id": "evt-watch-3",
+      "category": "watchlist",
+      "trigger": "event:watchlist",
+      "priority": 2,
+      "weight": 1,
+      "text": "watchlist ของเธอเพิ่งสว่างขึ้น 👁️ {watched} มีกิจกรรม"
+    },
+    {
+      "id": "evt-watch-4",
+      "category": "watchlist",
+      "trigger": "event:watchlist",
+      "priority": 2,
+      "weight": 1,
+      "text": "เตือน — {watched} จาก watchlist ของเธอเพิ่งขยับ 🔔"
+    },
+    {
+      "id": "evt-msg-3",
+      "category": "feed",
+      "trigger": "event:onchainmsg",
+      "priority": 1,
+      "weight": 1,
+      "text": "มีคนเพิ่งเขียน on-chain ✍️ ข้อความใหม่ในฟีด"
+    },
+    {
+      "id": "evt-msg-4",
+      "category": "feed",
+      "trigger": "event:onchainmsg",
+      "priority": 1,
+      "weight": 1,
+      "text": "{msgType} สดเพิ่งลงจอดในฟีด on-chain 📨"
+    },
+    {
+      "id": "evt-tpsup-3",
+      "category": "network",
+      "trigger": "event:trend:tps_up",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "TPS ขึ้น {pct}% 📈 เชนกำลังตื่น"
+    },
+    {
+      "id": "evt-tpsup-4",
+      "category": "network",
+      "trigger": "event:trend:tps_up",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "กิจกรรมไต่ขึ้น — TPS กระโดด {pct}% ในครึ่งชั่วโมงล่าสุด ⚡"
+    },
+    {
+      "id": "evt-tpsdn-3",
+      "category": "network",
+      "trigger": "event:trend:tps_down",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "text": "TPS เย็นลง {pct}% 😌 ช่วงเงียบ on-chain"
+    },
+    {
+      "id": "evt-tpsdn-4",
+      "category": "network",
+      "trigger": "event:trend:tps_down",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "text": "ช้าลง — TPS ต่ำกว่าเมื่อก่อน {pct}% 🌙 เชนก็ต้องการหายใจเหมือนกัน"
+    },
+    {
+      "id": "evt-ttfdn-3",
+      "category": "network",
+      "trigger": "event:trend:ttf_down",
+      "priority": 2,
+      "weight": 1,
+      "text": "TTF p50 ตกลง {pct}% ⚡ finality กระฉับกระเฉงขึ้น"
+    },
+    {
+      "id": "evt-ttfdn-4",
+      "category": "network",
+      "trigger": "event:trend:ttf_down",
+      "priority": 2,
+      "weight": 1,
+      "text": "finality ดีขึ้น {pct}% ในครึ่งชั่วโมงล่าสุด 🎯 peer วันนี้ซิงค์ดี"
+    },
+    {
+      "id": "evt-ttfup-3",
+      "category": "grumpy",
+      "trigger": "event:trend:ttf_up",
+      "priority": 1,
+      "weight": 1,
+      "text": "TTF p50 ขึ้น {pct}% 😤 เครือข่ายกำลังเคี้ยวอะไรอยู่"
+    },
+    {
+      "id": "evt-ttfup-4",
+      "category": "grumpy",
+      "trigger": "event:trend:ttf_up",
+      "priority": 1,
+      "weight": 1,
+      "text": "finality ช้าลง {pct}% เมื่อเทียบกับครึ่งชั่วโมงก่อน 👀 ฉันเฝ้าดูพวกเธออยู่นะ avalanche peers"
+    },
+    {
+      "id": "evt-peak-3",
+      "category": "network",
+      "trigger": "event:trend:peak",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "จุดสูงสุดใหม่ของ TPS 24 ชั่วโมง: {peakTps} 🚀"
+    },
+    {
+      "id": "evt-peak-4",
+      "category": "network",
+      "trigger": "event:trend:peak",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "สถิติของวัน — TPS เพิ่งสัมผัส {peakTps} 🎉"
+    },
+    {
+      "id": "net-live-busy-2",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "ข้างนอกตอนนี้คึกคัก 🔥 จับตาแผง tx ไว้ — โชว์ดีนะ"
+    },
+    {
+      "id": "net-live-quiet-2",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "เงียบไปก่อน 🌙 พอ mempool ตื่น เธอจะเห็นที่นี่ก่อนใคร"
+    },
+    {
+      "id": "fun-live-2",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "ไม่มีฉายซ้ำที่นี่ 📡 ทุก block และ tx ที่ฉันตอบรับมีอายุแค่ไม่กี่วินาที"
+    },
+    {
+      "id": "net-stats-3",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "24 ชั่วโมงล่าสุด: tx {liveTxCount} ตัว finalize, จุดสูงสุด {livePeak} TPS 📊 วัดสดทุกตัว ย้อนกลับไม่ได้ทุกตัว"
+    },
+    {
+      "id": "net-stats-4",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "จุดสูงสุดของวันนี้: {livePeak} TPS — ตอนนี้ {liveTps} 🌊 เชนหายใจเป็นคลื่น"
+    },
+    {
+      "id": "amb-stats-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "ค่ามัธยฐาน finality อยู่ที่ {liveTtf}s ตอนนี้ 😎 พ้นจุดนั้นไป block ก็แค่งานบัญชี"
+    },
+    {
+      "id": "fun-stats-2",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "ฉันดู tx {liveTxCount} ตัว finalize ใน 24 ชั่วโมงล่าสุด 👁️ ยังไม่เบื่อนะ"
+    }
+  ]
+}

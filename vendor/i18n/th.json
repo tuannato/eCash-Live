@@ -1,0 +1,233 @@
+{
+  "meta": {
+    "code": "th",
+    "name": "ไทย",
+    "source": "en",
+    "packVersion": 5
+  },
+  "ui": {
+    "qa.stats": "สถิติ",
+    "qa.stats.title": "เปิดแผงสถิติเครือข่าย",
+    "qa.block": "Block ล่าสุด",
+    "qa.block.title": "เปิดป๊อปโอเวอร์ของ block ล่าสุด",
+    "qa.tip": "สนับสนุนโปรเจกต์",
+    "qa.tip.title": "เปิดกล่องทิป",
+    "qa.guide": "ไกด์นำชม",
+    "qa.guide.title": "ให้ eChan พาเธอชมแดชบอร์ด",
+    "settings.title": "การตั้งค่า",
+    "settings.chattiness": "ระดับความช่างคุย",
+    "settings.sound": "เสียง",
+    "settings.help.aria": "โหมดเหล่านี้หมายถึงอะไร?",
+    "mode.quiet": "เงียบ",
+    "mode.quiet.desc": "ความเงียบ — มีเพียงประกาศจากผู้ดูแลเท่านั้นที่ผ่านได้",
+    "mode.casual": "สบาย ๆ",
+    "mode.casual.desc": "คอมเมนต์ทุก ~45 วิ; ตอบสนองต่อเหตุการณ์สำคัญ (วาฬ, watchlist, เทรนด์)",
+    "mode.chatty": "ช่างคุย",
+    "mode.chatty.desc": "ค่าเริ่มต้น — คอมเมนต์บ่อยทุก ~15 วิ + ตอบสนองทุกเหตุการณ์",
+    "chips.tour": "▶ พาฉันชมหน่อย",
+    "chips.later": "ไว้ทีหลัง",
+    "chips.lang": "🌐 ภาษา",
+    "tour.back": "⟵ ย้อนกลับ",
+    "tour.exit": "✕ ออกจากทัวร์",
+    "tour.done": "จบทัวร์แล้ว! 👋 ฉันยังอยู่ตรงนี้ คอยเล่าเรื่องบล็อกเชนแบบสด ๆ",
+    "lang.title": "ภาษา / Language"
+  },
+  "tooltips": {
+    "ava-tx": {
+      "title": "Avalanche · Transaction Finality",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Pre-consensus</strong> ทำให้เครือข่ายตกลงกันเรื่องธุรกรรมได้<em>ก่อน</em>ที่มันจะเข้าไปอยู่ใน block ใด ๆ</p>\n          <p>ทันทีที่ธุรกรรมมาถึง mempool โหนด eCash ที่ร่วมใน Avalanche จะเริ่มสอบถามกันเอง — “เธอยอมรับธุรกรรมนี้ไหม?” แต่ละการสอบถามคือการแลกเปลี่ยน UDP เล็ก ๆ กับกลุ่มย่อยของ peer ที่สุ่มเลือกมา ถ่วงน้ำหนักตามปริมาณ eCash ที่พวกเขา stake ไว้</p>\n          <p>โหนดที่สอบถามจะติดตามเสียงโหวตของแต่ละ peer และอัปเดต<strong>คะแนนความเชื่อมั่น</strong> เมื่อคะแนนนั้นข้ามเกณฑ์การยืนยันขั้นสุดท้าย ธุรกรรมจะ<strong>ถูกล็อกตลอดกาล</strong> — นับจากนั้นไม่มี double-spend หรือธุรกรรมคู่แข่งใดเอาชนะได้</p>\n          <p>กระบวนการทั้งหมดใช้เวลาเฉลี่ย <strong>~3 วินาที</strong> — เร็วพอให้เครื่องรับชำระเงินและ exchange เครดิตยอดเงินได้ทันที วงแหวนจะเติมเต็มขึ้นตามเสียงโหวตที่เข้ามา; เครื่องหมายถูกรูปกุญแจคือจุดเปลี่ยนจาก “กำลังโหวต” ไปเป็น “ฉันทามติถาวร”</p>\n          <p class=\"meta-note\">เปิดใช้งานบน mainnet เมื่อ 15 พฤศจิกายน 2025</p>\n        </div>\n        <div class=\"diagram-col\">${PRE_CONSENSUS_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "ava-block": {
+      "title": "Avalanche · Block Finality",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Post-consensus</strong> นำกลไกการโหวตแบบเดียวกันของ Avalanche มาใช้กับ<em>block</em> โดยทำงานอยู่เหนือเชน Nakamoto proof-of-work แบบดั้งเดิม</p>\n          <p>Block ใหม่ทุกอันต้องผ่านสามขั้นตอน:</p>\n          <p>⛏ <strong>Mined</strong> — miner พบ proof-of-work ที่ถูกต้องและกระจาย block ออกไป</p>\n          <p>↻ <strong>Polling</strong> — โหนด Avalanche ทั้งหมดสอบถาม peer ของตน ถ่วงน้ำหนักตาม stake ของ eCash ว่าจะยอมรับ block นี้เป็นยอดเชนตามแบบแผนใหม่หรือไม่</p>\n          <p>◆ <strong>Final</strong> — ความเชื่อมั่นสะสมข้ามเกณฑ์แล้ว block จะถูกแทนที่หรือ reorg ไม่ได้อีก — แม้แต่โดยเสียงข้างมากของ hashpower ที่เป็นศัตรู เมื่อล็อกแล้ว ความพยายาม reorg ใด ๆ จะถูกโหนดสุจริตทั้งหมดปฏิเสธว่าไม่ถูกต้อง</p>\n          <p>Polling เต็มรูปแบบใช้เวลาเฉลี่ย <strong>3–5 วินาที</strong>หลังประกาศ block ดังนั้นเงินฝากจึงเครดิตได้อย่างปลอดภัยที่ <strong>1 การยืนยัน</strong> — เทียบเท่าความปลอดภัยของการยืนยัน Bitcoin หลายสิบครั้ง</p>\n          <p class=\"meta-note\">ปกป้อง block ของ eCash มาตั้งแต่ 14 กันยายน 2022</p>\n        </div>\n        <div class=\"diagram-col\">${POST_CONSENSUS_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "tx-flow": {
+      "title": "Transaction Flow · How to read the colours",
+      "body": "\n      <div class=\"text-col\">\n        <p>แต่ละแถวในคอลัมน์ <strong>Inputs</strong> / <strong>Outputs</strong> แสดงที่อยู่หนึ่งรายการพร้อมจำนวนที่มันจ่ายหรือรับในธุรกรรมนี้</p>\n        <p><span class=\"legend-dot\" style=\"background:#01a0e0;box-shadow:0 0 8px #01a0e0\"></span> <strong>ฟ้าน้ำทะเล</strong> — ที่อยู่ทั่วไป คลิกเพื่อเปิดใน block explorer</p>\n        <p><span class=\"legend-dot\" style=\"background:#ffcb47;box-shadow:0 0 8px #ffcb47\"></span> <strong>ทอง</strong> — ที่อยู่ปรากฏ<em>ทั้งสอง</em>ฝั่ง ทั้ง input และ output โดยปกติคือผู้จ่ายได้รับ<strong>เงินทอน</strong>คืน แต่ในธุรกรรมส่งหาตัวเองก็เป็นสัญญาณการรวม UTXO ด้วย</p>\n        <p><span class=\"legend-dot\" style=\"background:#a7ff37;box-shadow:0 0 8px #a7ff37\"></span> <strong>เขียวมะนาว</strong> — ที่อยู่จาก <em>watchlist</em> ของเธอ ถูกไฮไลต์ในทุกธุรกรรมเพื่อให้เธอเห็นความเคลื่อนไหวของ wallet ที่เธอสนใจ</p>\n        <p><span class=\"legend-dot\" style=\"background:rgba(255,255,255,0.3)\"></span> <em>OP_RETURN</em> — output ที่บรรทุกข้อมูล (ข้อความแชต, คำสั่ง token) ไม่มีที่อยู่; ไม่มีมูลค่าที่ใช้จ่ายได้</p>\n        <p>จำนวนในแต่ละแถวคือ<strong>มูลค่า on-chain ดิบ</strong> สำหรับธุรกรรม token จำนวน token จะแสดงก่อน (เช่น <em>1,000 USDR · 5.46 XEC</em>) — 5.46 XEC นั้นเป็นแค่ dust ที่ขนส่ง token เท่านั้น</p>\n      </div>\n    "
+    },
+    "heartbeat": {
+      "title": "Heartbeat · Real-Time Targeting",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Heartbeat</strong> คืออัลกอริทึมปรับความยากแบบเรียลไทม์ของ eCash เปิดใช้งานในการอัปเกรดเครือข่ายเมื่อ <strong>15 พฤศจิกายน 2024</strong></p>\n          <p>เครือข่ายสไตล์ Bitcoin ตั้งเป้า<strong>เฉลี่ย 10 นาที</strong>ระหว่าง block แต่คลื่น hashpower อาจผลิตหลาย block ในไม่กี่นาทีตามด้วยความเงียบยาวนาน “การกระจุกตัวของ block” แบบนี้สร้างความหงุดหงิดให้ผู้ใช้และรบกวน exchange</p>\n          <p>Heartbeat แก้ปัญหานี้ด้วย<strong>ชั้นความยากชั้นที่สอง</strong>เหนือการปรับมาตรฐาน:</p>\n          <ul>\n            <li>เมื่อ block มา<strong>เร็วกว่าจังหวะ 10 นาที</strong> ความยากจะ<em>เพิ่มขึ้น</em>ทันทีเพื่อชะลอการผลิตแบบรัว ๆ</li>\n            <li>จากนั้นความยากจะ<strong>ลดลงแบบโมโนโทน</strong>จนกลับสู่ระดับปกติ</li>\n            <li>Block ที่ละเมิดเป้าหมายเรียลไทม์จะ<strong>ถูกฉันทามติ Avalanche ปฏิเสธ</strong> — แม้จะถูกต้องตามกฎ Bitcoin ดั้งเดิมก็ตาม</li>\n          </ul>\n          <p>ผลลัพธ์: เวลาของ block สม่ำเสมอขึ้น กลโกงของ mining pool น้อยลง (“switch mining”) และประสบการณ์ที่คาดเดาได้มากขึ้นสำหรับทุกคนในเครือข่าย</p>\n          <p class=\"meta-note\">Heartbeat ทำงานเคียงข้าง Avalanche post-consensus (ความสิ้นสุดของ block) และ Infrastructure Funding Policy — สามเสาหลักของฉันทามติ Nakamoto ฉบับเสริมแกร่งของ eCash</p>\n        </div>\n        <div class=\"diagram-col\">${HEARTBEAT_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "stats-overview": {
+      "title": "Network Statistics",
+      "body": "\n      <div class=\"so-wrap\">\n        <p class=\"so-lead\">แถบด้านล่างของหน้าคือแดชบอร์ดตัวเลขสดของเครือข่าย eCash ตัวเลขมาจากสองแหล่ง — โหนด eCash เฉพาะที่เราดูแล และเซสชันเบราว์เซอร์ปัจจุบันของเธอ — การรู้ว่าอะไรมาจากไหนช่วยให้อ่านแถบได้ถูกต้อง</p>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Headline cell · 24h ↔ session</h3>\n          <div class=\"so-card\">\n            <p>เซลล์หลัก Time-to-Finality (TTF) แสดงได้ทั้งเมตริกเครือข่าย 24 ชม. หรือเมตริกเซสชันของเธอ เลือกที่นี่ หรือใช้ปุ่ม <code>⇄</code> เหนือเซลล์ หาก feed ของโหนดใช้ไม่ได้ เซลล์จะถอยกลับไปใช้เมตริกเซสชันเสมอไม่ว่าจะเลือกอะไรไว้</p>\n            <div class=\"stats-view-toggle\" id=\"stats-view-toggle\">\n              <button type=\"button\" data-view=\"p50\" id=\"stats-view-p50\">แสดงเครือข่าย · 24h</button>\n              <button type=\"button\" data-view=\"session\" id=\"stats-view-session\">แสดงเซสชัน</button>\n            </div>\n            <span class=\"so-live-label\">ค่าสด</span>\n            <div id=\"stats-live-grid\"><span style=\"color:var(--text-3);font-family:'Fira Code',monospace;font-size:11px\">— กำลังรอ stats frame ถัดไป —</span></div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">สองแหล่งข้อมูล</h3>\n          <div class=\"so-sources\">\n            <div class=\"so-source\">\n              <span class=\"so-src-name\"><span class=\"so-badge net\">Network</span> 24h</span>\n              <p>ค่ารวมแบบเลื่อน 24 ชั่วโมงที่วัดที่โหนดและส่งมายังแท็บของเธอทุก 5 วินาที เซลล์เหล่านี้สะท้อนสิ่งที่ทั้งเครือข่ายกำลังทำอยู่ตอนนี้ ไม่ขึ้นกับสิ่งที่แท็บของเธอสังเกตเห็น</p>\n            </div>\n            <div class=\"so-source\">\n              <span class=\"so-src-name\"><span class=\"so-badge ses\">Session</span></span>\n              <p>นับโดยแท็บเบราว์เซอร์นี้ตั้งแต่โหลดหน้า แท็บใหม่เริ่มจากศูนย์; รีโหลดจะรีเซ็ต มีประโยชน์ในฐานะมุมมองส่วนตัว “ฉันเห็นอะไรบ้าง” และเป็นตัวสำรองเมื่อ feed ของโหนดใช้ไม่ได้</p>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">แต่ละเซลล์หมายถึงอะไร</h3>\n          <div class=\"so-defs\">\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Time-to-finality · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">เวลามัธยฐานตลอด 24 ชั่วโมงที่ผ่านมา — ดู <em>การวัดความสิ้นสุด</em> ด้านล่าง</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">TPS · 24h avg <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">ธุรกรรมที่ยืนยันสิ้นสุดต่อวินาที เฉลี่ยตลอดหน้าต่าง 24 ชั่วโมง เมื่อเครือข่ายเงียบมาก ค่าอาจต่ำกว่า 0.01 tps; เซลล์จะแสดง <code>&lt; 0.01 tps</code> แทนการปัดเป็นศูนย์ (ศูนย์ที่ปัดแล้วจะสื่อว่าไม่มีธุรกรรมเลย ซึ่งหน้าต่าง 24h ไม่ได้บอกเช่นนั้น)</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Peak TPS · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">อัตราธุรกรรมต่อวินาทีต่อเนื่องสูงสุดที่พบในหน้าต่าง 1 นาทีใด ๆ ตลอด 24 ชั่วโมงที่ผ่านมา การเฉลี่ยรายนาทีเป็นความตั้งใจ: ค่าพุ่ง 1 วินาที (โดยเฉพาะธุรกรรมเดี่ยวในเครือข่ายเงียบ) ไม่ควรครอบงำตัวเลขพาดหัว มันจะสูงขึ้นเมื่อมีคลื่นกิจกรรมจริงและต่ำเมื่อเครือข่ายพัก</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">% finalized &lt; 3s <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">สัดส่วนธุรกรรมที่ยืนยันสิ้นสุดใน 24 ชม. ที่มี time-to-finality ต่ำกว่าสามวินาที — อัตรา “เลนด่วน” สามวินาทีคือประมาณเกณฑ์ที่การจ่ายเงินเริ่มรู้สึกเหมือนการรอแทนที่จะเป็นทันที เปอร์เซ็นต์นี้จึงติดตามว่าทราฟฟิกล่าสุดเท่าไรที่จบอย่างสบาย ๆ ใต้เกณฑ์นั้น แสดง <code>100%</code> (ไม่มีทศนิยม) เมื่อทุกอย่างยืนยันสิ้นสุดต่ำกว่า 3 วิ</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Tx · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">ธุรกรรมยืนยันสิ้นสุดทั่วทั้งเครือข่ายกี่รายการใน 24 ชั่วโมงที่ผ่านมา</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Avg block-lock <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">เวลาเฉลี่ยจาก block ถูกขุดจนถึง Avalanche ยืนยันสิ้นสุด ต่างจาก time-to-finality: อันนั้นวัดเส้นทาง <em>pre</em>-consensus (ธุรกรรมใน mempool) ส่วน block-lock วัดเส้นทาง <em>post</em>-consensus (block ทั้งก้อนที่อยู่บนเชนแล้ว) ทั้งคู่อยู่ในขอบเขตเซสชัน</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Avg block time <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">ช่วงเฉลี่ยระหว่าง block ติดกันที่แท็บนี้สังเกตเห็น eCash ตั้งเป้า 10 นาทีผ่านอัลกอริทึมความยากเรียลไทม์ Heartbeat ปุ่ม <strong>?</strong> ข้างเซลล์นี้เปิดคำอธิบาย Heartbeat</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Tx · session <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">ธุรกรรมที่แท็บนี้สังเกตเห็นตั้งแต่โหลด กลับเป็นศูนย์เมื่อรีโหลด ซ่อนจากแถบบนมือถือ แต่ยังเห็นได้ในค่าสดด้านบนเสมอ</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Stream uptime <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">แท็บนี้เชื่อมต่อกับเครือข่าย eCash มานานแค่ไหน ไม่ขึ้นกับ relay feed; รีเซ็ตเมื่อรีโหลด</div>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">การวัดความสิ้นสุด</h3>\n          <p>Time-to-finality คือระยะห่างระหว่างสองช่วงเวลาในชีวิตของธุรกรรม <strong>จุดเริ่ม</strong>: เมื่อธุรกรรมปรากฏครั้งแรกใน mempool ของโหนด <strong>จุดจบ</strong>: เมื่อ Avalanche pre-consensus ล็อกมัน — ช่วงเวลาที่ peer คู่แข่งไม่อาจ reorg มันได้อีก</p>\n          <p>ทั้งสอง timestamp มาจาก log ของโหนดเอง จึงสอดคล้องกันและไม่ถูกกระทบจากความหน่วงเครือข่ายของเธอ ตัวเลข 24h คือเปอร์เซ็นไทล์และค่าเฉลี่ยของธุรกรรมยืนยันสิ้นสุดทั้งหมดในหน้าต่างแบบเลื่อน</p>\n          <p style=\"margin-bottom:2px\">แต่ละเปอร์เซ็นไทล์เล่าเรื่องต่างกัน:</p>\n          <div class=\"so-pct\">\n            <div class=\"so-pct-item\"><div class=\"pk\">p50 · median</div><div class=\"pd\">ตัวเลขพาดหัว: สิ่งที่ธุรกรรมทั่วไปพบเจอ ไม่ค่อยไวต่อค่าผิดปกติ</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">p90</div><div class=\"pd\">จับหางที่ช้า — ส่วนใหญ่มหาศาลจบก่อนหมุดนี้นานมาก</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">p10</div><div class=\"pd\">แสดงว่ากลุ่มเร็วสุด 10% เร็วแค่ไหน มีประโยชน์ในการมองเห็นพื้นของโปรโตคอล</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">Mean</div><div class=\"pd\">ค่าเฉลี่ยเลขคณิต ไวต่อค่าสุดขั้วและมักสูงกว่า p50 เล็กน้อย</div></div>\n          </div>\n          <p>หาก feed ของโหนดใช้ไม่ได้ เซลล์ส่วนท้ายจะถอยไปใช้เมตริกเซสชันที่วัดทั้งหมดในเบราว์เซอร์ของเธอ ค่านี้อาจเกิน time-to-finality จริง เพราะรวมความหน่วง WebSocket และการแพร่กระจายระหว่างโหนดกับแท็บของเธอ</p>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">อ่านไอคอน</h3>\n          <div class=\"so-legend\">\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"ttf-eye-wrap\" style=\"display:inline-flex;margin:0\">${TTF_EYE_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>ดวงตา</strong> — feed ของโหนดใช้ไม่ได้ชั่วคราว ค่าข้างไอคอนนี้จึงเป็นการวัดแบบ<em>รับรู้</em> คำนวณทั้งหมดในเบราว์เซอร์ของเธอตามวิธีการข้างบน เมื่อ feed เชื่อมต่อใหม่ ดวงตาจะหายไปและค่ากลับสู่ความแม่นยำระดับโหนด</div>\n            </div>\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"radar-slash-wrap\" style=\"display:inline-flex;margin:0\">${RADAR_SLASH_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>เรดาร์ขีดฆ่า</strong> — เซลล์ไม่มีค่าให้แสดงเพราะไม่มีการเชื่อมต่อกับ feed ของโหนด ปรากฏเฉพาะบนการ์ด Network · 24h เพราะเมตริกเซสชันคำนวณในเบราว์เซอร์ได้เสมอ จะหายไปทันทีที่ feed เชื่อมต่อใหม่และ stats frame ถัดไปมาถึง</div>\n            </div>\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"ttf-spinner-wrap\" style=\"display:inline-flex;margin:0\">${TTF_SPINNER_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>สปินเนอร์</strong> — แสดงในแผงรายละเอียดธุรกรรม ~3 วินาทีหลังยืนยันสิ้นสุด ค่าที่แสดงคำนวณแบบโลคัลและอาจถูกปรับให้แม่นยำเป็นค่าระดับโหนดทันทีที่มาถึง พ้นหน้าต่างอัปเกรดแล้ว สปินเนอร์จะหยุดและค่าถือเป็นที่สิ้นสุด</div>\n            </div>\n          </div>\n        </div>\n      </div>\n    "
+    }
+  },
+  "dom": {
+    "#watchlist-empty-hint": {
+      "text": "เพิ่มที่อยู่เพื่อไฮไลต์ tx ของมัน"
+    },
+    "#btn-live": {
+      "title": "โหมดมุมมอง — คลิกเพื่อสลับ: LIVE → CHAIN → FEED ลดภาระ DOM เมื่อ mempool คึกคักโดยยังติดตามสถานะอยู่"
+    },
+    "#btn-pause": {
+      "title": "หยุดธุรกรรมขาเข้าชั่วคราว"
+    },
+    "#tip-btn": {
+      "title": "เลี้ยงกาแฟฉันหน่อย — tx ของเธอจะถูกไฮไลต์บนสตรีม"
+    },
+    "#bc-goto-search": {
+      "placeholder": "ไปที่ block #…"
+    },
+    "#btl-chain-search": {
+      "placeholder": "ไปที่ block #…"
+    },
+    "#btl-search": {
+      "placeholder": "กรองด้วยคำนำหน้าหรือบางส่วนของ txid…"
+    },
+    "#wl-input-addr": {
+      "placeholder": "ecash:q… หรือ token ID แบบ 64-hex"
+    },
+    "#wl-input-name": {
+      "placeholder": "เช่น กระเป๋าเย็น หรือคอลเลกชัน NFT ของฉัน"
+    },
+    "#wl-edit-name": {
+      "placeholder": "เช่น กระเป๋าเย็น"
+    },
+    "#chat-pick-input": {
+      "placeholder": "ecash:q…"
+    },
+    "#chat-textarea": {
+      "placeholder": "พิมพ์ข้อความ · ใช้อีโมจิได้ · Enter เพื่อส่ง · Shift+Enter ขึ้นบรรทัดใหม่"
+    },
+    ".info-tile[data-tile=\"avalanche\"] .info-tile-title": {
+      "text": "Avalanche บน eCash คืออะไร?"
+    },
+    ".info-tile[data-tile=\"avalanche\"] .info-tile-body": {
+      "html": "<p>โปรโตคอลฉันทามติที่ทำงาน<strong>เคียงข้าง</strong> Nakamoto Proof-of-Work ของ eCash เปิดให้โหนดสอบถามกันเองและตกลงเรื่อง block และ (ด้วย Pre-Consensus) ธุรกรรมรายตัวได้ในไม่กี่วินาที</p><p><strong>Post-Consensus</strong> (ใช้งานจริงตั้งแต่ ก.ย. 2022) มอบความสิ้นสุดที่ 1 block และการป้องกันการโจมตี 51% <strong>Pre-Consensus</strong> (mainnet ตั้งแต่ 15/11/2025) ยืนยันธุรกรรมสิ้นสุดใน &lt;3 วิ ก่อนถูกขุด — ทำให้ eCash รู้สึกเหมือนเงินสดทั้งสำหรับผู้ใช้และ exchange</p><p>มอง PoW เป็น<em>การเขียน</em> (ช้า ถาวร) และ Avalanche เป็น<em>การพูด</em> (เร็ว ชั่วครู่) — eCash ใช้ทั้งคู่</p>"
+    },
+    ".info-tile[data-tile=\"agora\"] .info-tile-title": {
+      "text": "Agora บน eCash คืออะไร?"
+    },
+    ".info-tile[data-tile=\"agora\"] .info-tile-body": {
+      "html": "<p><strong>โปรโตคอล atomic swap</strong> แบบไม่ฝากทรัพย์ สร้างบน eCash Script เปิดตัวตุลาคม 2024 ใครก็ลงขาย eToken หรือ NFT ได้ตรง ๆ on-chain — ไม่มี exchange ไม่มีผู้รับฝาก ไม่ต้องขออนุญาต</p><p>การซื้อขายชำระด้วยธุรกรรมที่ผู้ซื้อเซ็นให้ตัวเอง เป็นไปได้ด้วย opcode <code>OP_CHECKDATASIG</code> โดย covenant อยู่ on-chain: ใครก็เรียกดู เสนอราคา และปิดดีลได้โดยไม่มีสมุดคำสั่งซื้อขายแบบรวมศูนย์</p><p>ขับเคลื่อน eToken DEX ใน Cashtab และพิสูจน์ความสามารถ DeFi ในตัวของ eCash ด้วยค่าธรรมเนียมต่ำกว่าหนึ่งเซนต์</p>"
+    },
+    ".info-tile[data-tile=\"heartbeat\"] .info-tile-title": {
+      "text": "Heartbeat คืออะไร?"
+    },
+    ".info-tile[data-tile=\"heartbeat\"] .info-tile-body": {
+      "html": "<p><strong>อัลกอริทึมปรับความยากแบบเรียลไทม์</strong>ของ eCash เปิดใช้ 15 พฤศจิกายน 2024 ทำงานเหนือการปรับแบบ Bitcoin ดั้งเดิมเพื่อ<strong>ทำให้เวลา block ราบเรียบ</strong> และยุติ “การกระจุกตัว” ที่คลื่น hashpower ผลิต 5 block ใน 2 นาทีแล้วเงียบไป 30 นาที</p><p>เมื่อ block มาเร็วกว่าเป้า 10 นาที ความยากจะเพิ่มขึ้นทันทีแล้วลดลงแบบโมโนโทนจนเป็นปกติ Block ที่ละเมิดเป้าหมายเรียลไทม์จะ<strong>ถูกฉันทามติ Avalanche ปฏิเสธ</strong> — แม้ในทางเทคนิคจะถูกต้องตามกฎ Bitcoin ดั้งเดิมก็ตาม</p><p>ผลลัพธ์: เวลายืนยันสม่ำเสมอขึ้น การฉวยโอกาสของ mining pool น้อยลง และประสบการณ์ที่คาดเดาได้มากขึ้นทั่วทั้งเครือข่าย</p>"
+    },
+    ".info-tile[data-tile=\"chronik\"] .info-tile-title": {
+      "html": "<strong>Chronik</strong> คืออะไร?"
+    },
+    ".info-tile[data-tile=\"chronik\"] .info-tile-body": {
+      "html": "<p><strong>Chronik</strong> คือ indexer ประสิทธิภาพสูงของ eCash ที่ฝังอยู่ใน Bitcoin ABC โดยตรง เป็นชั้นข้อมูลที่ทุก wallet, explorer และ dApp บน eCash คุยด้วย — รวมถึงสตรีมสดนี้</p><p>เขียนด้วย Rust และบูรณาการแน่นแฟ้นกับโหนด <strong>Chronik</strong> ให้บริการข้อมูลเชนพร้อมสถานะ token SLP / ALP ครบถ้วนผ่าน API เดียวแบบ HTTP + WebSocket Wallet จึงได้ประวัติที่อยู่อย่างรวดเร็ว ชุด UTXO ที่รู้จัก token และสตรีมธุรกรรมสดโดยไม่ต้องแยกวิเคราะห์เชนใหม่</p><p>ถ้าเธอเคยใช้ Cashtab, agora.cash, แดชบอร์ดนี้ หรือ explorer ที่ explorer.e.cash — ข้อมูลเชนทุกไบต์ผ่านอินสแตนซ์ <strong>Chronik</strong> เพื่อไปถึงที่นั่น</p>"
+    },
+    ".btl-right-hint": {
+      "text": "คลิก tx เพื่อดู · txid เปิด explorer"
+    },
+    ".dlg-qr-hint": {
+      "text": "สแกน QR ด้วยแอป wallet ของเธอ · หรือแตะปุ่มด้านล่าง"
+    },
+    ".ee-hint": {
+      "text": "แตะโลโก้ eCash เพื่อไปที่ e.cash · แตะที่อื่นเพื่อปิด"
+    },
+    ".wl-history-right-hint": {
+      "text": "ชี้ที่แถวเพื่อพรีวิว · คลิกเพื่อปักหมุด · คลิกอีกครั้งเพื่อถอน"
+    },
+    ".wl-history-empty": {
+      "html": "ยังไม่มี tx ที่ติดตาม — จะปรากฏที่นี่เมื่อเกิดขึ้น กด <b>Sync</b> เพื่อดึงประวัติทั้งหมดจาก chronik"
+    },
+    ".wl-sub:not(#wl-edit-sub):not(#chat-pick-sub)": {
+      "html": "ใส่ที่อยู่ eCash แบบ <span class=\"mono\">ecash:q…</span> หรือ token/NFT ID แบบ 64-hex"
+    },
+    "#chat-pick-sub": {
+      "html": "ใส่ที่อยู่ eCash แบบ <span class=\"mono\">ecash:q…</span>"
+    },
+    ".chat-send-dialog .dlg-title": {
+      "text": "ส่งผ่าน wallet eCash ของเธอ"
+    },
+    ".chat-send-dialog .dlg-sub": {
+      "html": "ข้อความและผู้รับของเธอถูกแพ็กเป็นลิงก์ชำระเงิน BIP21 แล้ว เปิดมันใน wallet eCash ตัวไหนก็ได้ — Cashtab จะกรอกฟอร์ม Send ให้อัตโนมัติ <strong style=\"color:var(--amber)\">เว็บไซต์นี้ไม่มีวันเห็น seed phrase ของเธอ</strong>"
+    },
+    "#feed-warning-popover .popover-title": {
+      "text": "⚠ คำเตือนความปลอดภัยของ Feed"
+    },
+    "#feed-warning-popover > div:last-of-type": {
+      "html": "Feed แสดง<strong>ข้อความ on-chain ทั้งหมดจากทั่วทั้งเครือข่าย eCash</strong> — ใครก็กระจายอะไรก็ได้<ul><li><strong>มองทุกลิงก์ว่าน่าสงสัย</strong> อย่าคลิก URL ในข้อความจากคนแปลกหน้า; ชุดเครื่องมือฟิชชิงโผล่ที่นี่เป็นประจำ</li><li><strong>อย่าแชร์ seed phrase, private key หรือรหัสผ่าน wallet เด็ดขาด</strong> ไม่มีโปรเจกต์ของจริงรายไหนขอสิ่งเหล่านี้ในแชตหรือข้อความ</li><li><strong>ระวังการแอบอ้าง</strong> ใครก็ใส่ชื่ออะไรก็ได้ในข้อความ; ยืนยันตัวตนผ่านช่องทางที่เชื่อถือได้</li><li><strong>Airdrop ของ token อาจเป็นกับดัก</strong> Token ที่ไม่ได้ขออาจมีลิงก์ฟิชชิงหรือข้อมูลหลอกลวง — ศึกษาก่อนมีปฏิสัมพันธ์จะปลอดภัยกว่า</li></ul>"
+    },
+    "#chat-warning-popover .popover-title": {
+      "text": "⚠ คำเตือนความปลอดภัยของ Chat"
+    },
+    "#chat-warning-popover > div:last-of-type": {
+      "html": "ข้อความแชตคือ<strong>ธุรกรรม on-chain ถาวรของ eCash</strong> — ลบหรือแก้ไขไม่ได้หลังกระจายออกไป และใครก็อ่านได้ตลอดกาล<ul><li><strong>ทุกข้อความเปิดเผย 100%</strong> เมื่อส่งแล้ว มันถูกเก็บบนโหนด eCash ทุกตัวทั่วโลก ใครก็ค้นดัชนีได้ ไม่มีแชตส่วนตัว on-chain</li><li><strong>บันทึกถาวร</strong> คิดก่อนส่ง — ถ้อยคำของเธอจะอยู่บนบล็อกเชนนานกว่าตัวเธอ</li><li><strong>ระวังกลโกง</strong> ต่อให้ wallet ของคู่สนทนาดูคุ้นเคย ใครก็ตามที่ถือ seed phrase ของเขาอาจเป็นผู้ส่งได้ ยืนยันธุรกรรมใหญ่ผ่านช่องทางอื่น</li><li><strong>อย่าวาง seed phrase, private key หรือรหัสผ่านที่นี่เด็ดขาด</strong> — มันจะถูกเปิดเผยต่อโลกอย่างถาวร</li><li><strong>เว็บไซต์นี้ไม่มีวันเห็นกุญแจของเธอ</strong> การส่งทั้งหมดเซ็นโดย wallet ของเธอ (Cashtab/Electrum-XEC/ฯลฯ); เราแค่สร้างลิงก์ BIP21 เท่านั้น</li></ul>"
+    },
+    ".d-token-url-warn": {
+      "warn": "Token ประกาศ URL อะไรก็ได้ในธุรกรรม genesis ของมัน — เครือข่ายไม่ได้ตรวจสอบ URL นั้น Token ฟิชชิงอาจชี้ไปยังเว็บไซต์อันตรายที่พยายามดูดเงินจาก wallet ของเธอ จงทำเสมอ: (1) ตรวจว่า URL ตรงกับโดเมนทางการของโปรเจกต์ (2) อย่าเชื่อมต่อ wallet บนเว็บไซต์ที่เธอไปถึงจาก URL ของ token โดยไม่ได้ตรวจสอบอิสระ (3) อย่าใส่ seed phrase ที่ไหนเด็ดขาด"
+    }
+  },
+  "domMap": {
+    ".info-tile-links-label": {
+      "Read more on e.cash": "อ่านต่อบน e.cash",
+      "Tool": "เครื่องมือ",
+      "Trade now": "เทรดเลย"
+    },
+    ".chat-chip-empty": {
+      "no address set — pick yours to see your own chat lines": "ยังไม่ตั้งที่อยู่ — เลือกของเธอเพื่อดูข้อความของตัวเอง",
+      "add at least one peer wallet to load their messages": "เพิ่ม wallet คู่สนทนาอย่างน้อยหนึ่งรายเพื่อโหลดข้อความของพวกเขา"
+    },
+    ".btl-empty": {
+      "Block has no transactions (?!)": "Block ไม่มีธุรกรรมเลย (?!)"
+    },
+    ".watchlist-empty-state": {
+      "No addresses tracked yet — click \"+ add\" to start watching one.": "ยังไม่มีที่อยู่ที่ติดตาม — คลิก “+ add” เพื่อเริ่มจับตาดู"
+    }
+  },
+  "titleMap": {
+    "Click for a full stats explanation. Use the ⇄ button to toggle between the network 24h reading and your session reading.": "คลิกเพื่อดูคำอธิบายสถิติฉบับเต็ม ใช้ปุ่ม ⇄ สลับระหว่างค่าเครือข่าย 24h กับค่าเซสชันของเธอ",
+    "Network transactions per second, rolling 24h. From the dedicated eCash node. Click for details.": "ธุรกรรมเครือข่ายต่อวินาที แบบเลื่อน 24h จากโหนด eCash เฉพาะ คลิกเพื่อดูรายละเอียด",
+    "Total transactions finalized network-wide in the last 24 hours. From the dedicated eCash node. Click for details.": "ธุรกรรมยืนยันสิ้นสุดทั่วทั้งเครือข่ายใน 24 ชั่วโมงที่ผ่านมา จากโหนด eCash เฉพาะ คลิกเพื่อดูรายละเอียด",
+    "Total transactions observed by this browser tab since the page was loaded. Click for details.": "ธุรกรรมทั้งหมดที่แท็บเบราว์เซอร์นี้เห็นตั้งแต่โหลดหน้า คลิกเพื่อดูรายละเอียด",
+    "Average time from block mined to Avalanche post-consensus finalized. Last 20 samples this session. Click for details.": "เวลาเฉลี่ยจาก block ถูกขุดจนถึง Avalanche post-consensus ยืนยันสิ้นสุด 20 ตัวอย่างล่าสุดของเซสชันนี้ คลิกเพื่อดูรายละเอียด",
+    "Average elapsed time between the last consecutive blocks observed this session. eCash targets a 10-minute average via the Heartbeat real-time difficulty algorithm.": "ช่วงเฉลี่ยระหว่าง block ติดกันล่าสุดที่เห็นในเซสชันนี้ eCash ตั้งเป้าเฉลี่ย 10 นาทีผ่านอัลกอริทึมความยากเรียลไทม์ Heartbeat",
+    "How long this stream has been connected to the eCash network. Click for details.": "สตรีมนี้เชื่อมต่อกับเครือข่าย eCash มานานแค่ไหน คลิกเพื่อดูรายละเอียด",
+    "Toggle 24h ↔ session": "สลับ 24h ↔ เซสชัน",
+    "Visitors watching this page right now (server-side count of live WebSocket connections to the TTF feed)": "ผู้ชมที่กำลังดูหน้านี้ตอนนี้ (นับฝั่งเซิร์ฟเวอร์จากการเชื่อมต่อ WebSocket สดไปยัง TTF feed)",
+    "Mempool transactions finalized by Avalanche pre-consensus, awaiting inclusion in a block": "ธุรกรรมใน mempool ที่ Avalanche pre-consensus ยืนยันสิ้นสุดแล้ว รอบรรจุลง block",
+    "Mined by a Proof-of-Work miner": "ขุดโดย miner แบบ Proof-of-Work",
+    "What is Avalanche post-consensus?": "Avalanche post-consensus คืออะไร?",
+    "What is Heartbeat?": "Heartbeat คืออะไร?",
+    "What do these colours mean?": "สีเหล่านี้หมายถึงอะไร?",
+    "Read 'What is eCash' on e.cash": "อ่าน 'What is eCash' บน e.cash",
+    "Visit e.cash": "ไปที่ e.cash",
+    "Connection status": "สถานะการเชื่อมต่อ",
+    "Add address to watchlist": "เพิ่มที่อยู่ลง watchlist",
+    "Add one or more peer addresses (or import from Watchlist)": "เพิ่มที่อยู่คู่สนทนาหนึ่งรายขึ้นไป (หรือนำเข้าจาก Watchlist)",
+    "Edit (rename, change mode, remove)": "แก้ไข (เปลี่ยนชื่อ เปลี่ยนโหมด ลบ)",
+    "Highlight on either direction": "ไฮไลต์ทั้งสองทิศทาง",
+    "Highlight when this wallet receives (address in outputs)": "ไฮไลต์เมื่อ wallet นี้รับ (ที่อยู่ใน outputs)",
+    "Highlight when this wallet sends (address in inputs)": "ไฮไลต์เมื่อ wallet นี้ส่ง (ที่อยู่ใน inputs)",
+    "Fetch this address/token's tx history from chronik": "ดึงประวัติ tx ของที่อยู่/token นี้จาก chronik",
+    "Watching paused — click to resume": "หยุดจับตาชั่วคราว — คลิกเพื่อทำต่อ",
+    "Watching active — click to pause": "กำลังจับตาอยู่ — คลิกเพื่อหยุดชั่วคราว",
+    "Go to block": "ไปที่ block",
+    "Open block in explorer": "เปิด block ใน explorer",
+    "Open in explorer": "เปิดใน explorer",
+    "View on explorer": "ดูบน explorer",
+    "open in explorer": "เปิดใน explorer",
+    "Click to copy": "คลิกเพื่อคัดลอก",
+    "Click to unpin": "คลิกเพื่อถอนหมุด",
+    "Close": "ปิด",
+    "Clear": "ล้าง",
+    "Dismiss": "ซ่อน",
+    "Expand full message": "ขยายข้อความเต็ม",
+    "Chat with sender": "แชตกับผู้ส่ง",
+    "Chat with this address": "แชตกับที่อยู่นี้",
+    "Max rows shown per column": "จำนวนแถวสูงสุดต่อคอลัมน์",
+    "Type a custom amount": "พิมพ์จำนวนเอง",
+    "Use slider instead": "ใช้แถบเลื่อนแทน",
+    "Token transactions seen since this session started": "ธุรกรรม token ที่เห็นตั้งแต่เริ่มเซสชันนี้",
+    "Waiting for chronik to see this tx broadcast": "กำลังรอให้ chronik เห็นการกระจาย tx นี้",
+    "No connection to node-precise feed": "ไม่มีการเชื่อมต่อกับ feed ความแม่นยำระดับโหนด",
+    "Relay stats are temporarily unavailable. Reconnect attempt is in progress.": "สถิติ relay ใช้ไม่ได้ชั่วคราว กำลังพยายามเชื่อมต่อใหม่",
+    "Remove this entry from the watchlist": "ลบรายการนี้ออกจาก watchlist",
+    "Safety notice": "คำเตือนความปลอดภัย",
+    "Set your wallet address (so we can show your outgoing chat messages)": "ตั้งที่อยู่ wallet ของเธอ (เพื่อให้เราแสดงข้อความแชตขาออกของเธอ)",
+    "Showing perceived value — node-precise feed unavailable": "กำลังแสดงค่าแบบรับรู้ — feed ความแม่นยำระดับโหนดใช้ไม่ได้",
+    "Token/NFT icons: ON — click to hide and skip loading them": "ไอคอน Token/NFT: เปิด — คลิกเพื่อซ่อนและข้ามการโหลด",
+    "Token/NFT icons: OFF — click to show them again": "ไอคอน Token/NFT: ปิด — คลิกเพื่อแสดงอีกครั้ง",
+    "raw atomic units — decimals loading…": "หน่วยอะตอมดิบ — กำลังโหลดทศนิยม…"
+  }
+}

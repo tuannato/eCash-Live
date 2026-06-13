@@ -161,7 +161,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "TTF = Time To Finality ⏱️ How long until a tx is irreversible. Sub-second to a few seconds on a healthy chain. The ⚠ icon means the node feed is offline."
+      "text": "TTF = Time To Finality ⏱️ How long until a tx is irreversible. Around 2–3 seconds on a healthy eCash network. The ⚠ icon means the node feed is offline."
     },
     {
       "id": "edu-tps-1",
@@ -1112,6 +1112,897 @@
       "emotion": "shy",
       "spot": ".echan-root",
       "text": "And this is me 💁 Click my avatar for quick actions, set my chattiness in settings, and I'll narrate whales 🐋, fast finality ⚡, and grumpy block droughts 😤 as they happen."
+    },
+    {
+      "id": "welcome-first-2",
+      "category": "welcome",
+      "trigger": "welcome:firstVisit",
+      "priority": 2,
+      "emotion": "happy",
+      "weight": 1,
+      "ttlOnce": true,
+      "text": "Oh — a new face! 👋 I'm eChan, I live on this eCash dashboard. Want the 60-second tour? I promise it's painless 👇"
+    },
+    {
+      "id": "welcome-return-3",
+      "category": "welcome",
+      "trigger": "welcome:returning",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "Look who's back 🙌 The chain didn't stop for a second — let me catch you up."
+    },
+    {
+      "id": "welcome-return-4",
+      "category": "welcome",
+      "trigger": "welcome:returning",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "Hey again! The mempool kept humming while you were gone. Pull up a chair."
+    },
+    {
+      "id": "welcome-settings-3",
+      "category": "welcome",
+      "trigger": "welcome:settings",
+      "priority": 2,
+      "emotion": "shy",
+      "weight": 1,
+      "text": "Psst 🥺 if I'm talking too much (or too little), it's all in settings — click me → ⚙️. Just… not Quiet, okay? It gets so lonely down here."
+    },
+    {
+      "id": "welcome-settings-4",
+      "category": "welcome",
+      "trigger": "welcome:settings",
+      "priority": 2,
+      "emotion": "shy",
+      "weight": 1,
+      "text": "Quick confession 🙈 I love narrating for you. Tune my chattiness in settings ⚙️ — but spare a thought before you mute me, yeah?"
+    },
+    {
+      "id": "greet-morning-3",
+      "category": "greeting",
+      "trigger": "time:morning",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "Morning ☀️ first blocks of the day are landing. Let's see if XEC slept well."
+    },
+    {
+      "id": "greet-morning-4",
+      "category": "greeting",
+      "trigger": "time:morning",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "Rise and shine 🌅 the chain's been up all night — I'll fill you in on the overnight action."
+    },
+    {
+      "id": "greet-afternoon-2",
+      "category": "greeting",
+      "trigger": "time:afternoon",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "text": "Afternoon 🌤️ steady flow, good coffee weather. Let's watch some finality roll in."
+    },
+    {
+      "id": "greet-evening-2",
+      "category": "greeting",
+      "trigger": "time:evening",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "text": "Evening 🌇 the chain winds down for no one. Cozy time to watch blocks land."
+    },
+    {
+      "id": "greet-night-3",
+      "category": "greeting",
+      "trigger": "time:night",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "text": "Still up? 🌙 The mempool's gone quiet — perfect for slow, careful tx-watching."
+    },
+    {
+      "id": "greet-night-4",
+      "category": "greeting",
+      "trigger": "time:night",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "text": "Late shift, huh 🌃 I'll keep the commentary low so you can focus. Blocks don't sleep, but I'll whisper."
+    },
+    {
+      "id": "edu-preconsensus-3",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Here's the magic 💡 pre-consensus lets stakers agree on a tx in ~3s, before any block exists. That's why eCash feels instant — no confirmation queue."
+    },
+    {
+      "id": "edu-preconsensus-4",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Think of it as voting before printing 🗳️ peers settle a tx in the mempool first; by the time it reaches a block, the answer's already final."
+    },
+    {
+      "id": "edu-postconsensus-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "post-consensus is Avalanche voting on whole blocks 🔒 once a block locks, no reorg can undo it — even a hostile hashpower majority gets rejected."
+    },
+    {
+      "id": "edu-ttf-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "TTF in one line ⏱️ it's how long a tx takes to become irreversible. Around 2–3 seconds on a healthy eCash network. The ⚠ eye means the node feed dropped."
+    },
+    {
+      "id": "edu-tps-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "TPS = transactions per second 📊 today's numbers are the warm-up lap — eCash is built to scale to millions, on-chain, no side layers."
+    },
+    {
+      "id": "edu-mempool-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "The mempool is the chain's waiting room 🚪 on eCash a tx only waits ~3s before pre-consensus seals it. On Bitcoin you'd wait ~10 min per confirmation."
+    },
+    {
+      "id": "edu-agora-3",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Agora trick 🪄 a seller posts a token offer right on-chain; a buyer takes it in one tx. No exchange account, no order book, no custody — settled in seconds."
+    },
+    {
+      "id": "edu-agora-4",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Non-custodial all the way 🔓 Agora swaps settle with a tx the buyer signs to themselves, powered by OP_CHECKDATASIG. The covenant lives on-chain for anyone to take."
+    },
+    {
+      "id": "edu-chronik-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Every wallet and explorer you've used on eCash talks to Chronik 🗂️ it's the indexer that turns raw blocks into instant address history. This dashboard runs on it too."
+    },
+    {
+      "id": "edu-heartbeat-4",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Heartbeat fact 💓 it's a second difficulty layer on top of Bitcoin's — it nudges difficulty up the instant blocks come too fast, then eases it back down."
+    },
+    {
+      "id": "edu-heartbeat-5",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Why so steady? 💓 Heartbeat retargets difficulty block-by-block in real time, so eCash dodges the burst-then-silence pattern older chains suffer."
+    },
+    {
+      "id": "edu-heartbeat-6",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Blocks that break Heartbeat's real-time target get rejected by Avalanche 💓 — valid by classic rules, but the network just says no. Smooth block times for everyone."
+    },
+    {
+      "id": "edu-ifp-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "IFP keeps the lights on 🛠️ a slice of every mined block funds eCash core development — self-sustaining, no passing the hat to foundations."
+    },
+    {
+      "id": "edu-stakers-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Avalanche stakers are the ~3s magic 🗳️ lock XEC, run a node, and your vote helps finalize every tx. Decentralization with real skin in the game."
+    },
+    {
+      "id": "edu-alp-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "See a 💜 purple tag? That's an ALP token — eCash's modern token layer, with mint controls baked in. Lighter and faster than the old SLP design."
+    },
+    {
+      "id": "edu-slp-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "A 🔵 blue tag is SLP — the original token protocol of this lineage. ALP (purple) is the eCash refinement: same ideas, sharper tools."
+    },
+    {
+      "id": "edu-cashfusion-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Spot a tx with loads of similar-sized inputs and outputs? 🥷 That's CashFusion — privacy mixing done right on-chain, settled in one batched tx."
+    },
+    {
+      "id": "edu-coinbase-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Peek at a coinbase tx 📜 the first input of every block can carry notes, signals, even jokes from the miner. eCash blocks have personality."
+    },
+    {
+      "id": "edu-xec-unit-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Unit trivia 🪙 1 XEC = 100 satoshis. eCash redenominated so the numbers read clean — no squinting at eight decimal places."
+    },
+    {
+      "id": "edu-utxo-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Your wallet holds keys, not coins 🌐 the chain tracks unspent outputs (UTXOs); your private keys just prove you own them. Lose the keys, lose the access."
+    },
+    {
+      "id": "edu-address-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "eCash addresses are one-way 📬 they're hashed from a public key, so the address never leaks the key behind it. That 'ecash:q…' prefix is the giveaway."
+    },
+    {
+      "id": "edu-supply-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Supply is capped at 21 trillion XEC — same '21' as Bitcoin with the decimal shifted 💎 no inflation surprises baked in."
+    },
+    {
+      "id": "edu-staking-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Staking pays real block rewards 💰 lock XEC, run a node, get paid for securing finality. It's not just charity — the network rewards the work."
+    },
+    {
+      "id": "edu-rebrand-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Bit of history 📖 eCash rebranded from BCHA in July 2021 with a 1:1,000,000 redenomination — old chain, fresh identity, cleaner numbers."
+    },
+    {
+      "id": "edu-decimals-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Only 2 decimals on XEC 💵 like dollars and cents. Mental math stays easy — no counting zeros like the eight-decimal chains."
+    },
+    {
+      "id": "edu-cashtab-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Cashtab is eCash's reference wallet 👛 runs right in your browser, handles tokens, on-chain messages, and instant settlement. No install needed."
+    },
+    {
+      "id": "edu-onchainmsg-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "You can literally write on the chain ✍️ OP_RETURN outputs carry text forever — memos, broadcasts, little notes that outlive us all."
+    },
+    {
+      "id": "edu-bigblock-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "eCash inherited big-block DNA 🧬 built to scale on-chain rather than push users onto side layers. The throughput room is the whole point."
+    },
+    {
+      "id": "edu-twolayer-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Two layers, one chain 🔗 PoW anchors history (slow, permanent); Avalanche adds speed (fast, fluid). Belt and suspenders for consensus."
+    },
+    {
+      "id": "edu-livettf-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "These TTF numbers aren't guesses 📏 they come straight from a node measuring real finality live — observatory-grade, not a browser estimate."
+    },
+    {
+      "id": "edu-stats-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "That {liveTtf}s median you see? Pure Avalanche pre-consensus 😎 most chains make you wait on blocks — eCash quietly finalizes underneath."
+    },
+    {
+      "id": "fun-popcorn-2",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "text": "Big fusion rounds are my favorite show 🍿 watching hundreds of txs finalize in a single minute is weirdly soothing."
+    },
+    {
+      "id": "fun-vs-btc-2",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "text": "BTC says 'wait an hour to be safe.' eCash says 'safe already, what's next?' ⚡ same family tree, very different vibes."
+    },
+    {
+      "id": "fun-name-2",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "text": "Fun fact about me: the 'chan' is just affection 😌 the 'e' is for eCash. Put them together and you get… your favorite chain narrator."
+    },
+    {
+      "id": "fun-tokens-2",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "Tokens turn eCash into a whole bazaar 🎪 mints, swaps, marketplaces — all settling in seconds, all on the same chain you're watching."
+    },
+    {
+      "id": "net-quiet-3",
+      "category": "network",
+      "trigger": "network:quiet",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "Sleepy stretch 😴 mempool's idling. Great moment to click into a tx and actually read what it's doing."
+    },
+    {
+      "id": "net-quiet-4",
+      "category": "network",
+      "trigger": "network:quiet",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "Calm waters right now 🌊 nothing dramatic — and honestly, a quiet chain is a healthy chain."
+    },
+    {
+      "id": "net-busy-3",
+      "category": "network",
+      "trigger": "network:busy",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "Things are heating up 🔥 watch the tx panel — when it scrolls this fast, something fun is happening."
+    },
+    {
+      "id": "net-busy-4",
+      "category": "network",
+      "trigger": "network:busy",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "Look at that throughput! ⚡ the pre-consensus stakers are getting a real workout right now."
+    },
+    {
+      "id": "idle-short-3",
+      "category": "idle",
+      "trigger": "idle:short",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "Still here 👁️ just keeping an eye on the chain for you."
+    },
+    {
+      "id": "idle-short-4",
+      "category": "idle",
+      "trigger": "idle:short",
+      "priority": 1,
+      "emotion": "neutral",
+      "weight": 1,
+      "text": "Quiet on your end — no worries, I've got the watch 🫡"
+    },
+    {
+      "id": "idle-long-3",
+      "category": "idle",
+      "trigger": "idle:long",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "text": "You've been away a while 😴 the chain and I will be right here when you're back."
+    },
+    {
+      "id": "idle-long-4",
+      "category": "idle",
+      "trigger": "idle:long",
+      "priority": 1,
+      "emotion": "happy",
+      "weight": 1,
+      "text": "Long pause! Hope you're doing something nice out there ✨ I'll keep narrating to no one."
+    },
+    {
+      "id": "easter-spam-3",
+      "category": "easter",
+      "trigger": "manual",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "Okay you really like clicking me 😏 I'm flattered. What's up?"
+    },
+    {
+      "id": "easter-spam-4",
+      "category": "easter",
+      "trigger": "manual",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "Ten out of ten click-through rate 🌟 you found the easter egg, congrats."
+    },
+    {
+      "id": "easter-name-2",
+      "category": "easter",
+      "trigger": "manual",
+      "priority": 1,
+      "emotion": "thinking",
+      "weight": 1,
+      "text": "You poked me 🤨 yes, I'm real-ish. What did you need?"
+    },
+    {
+      "id": "ambient-thought-6",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Random thought 💭 every confirmed tx you see was independently checked by hundreds of nodes. Distributed trust, happening in real time."
+    },
+    {
+      "id": "ambient-thought-7",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Some addresses on this chain have been quietly active for years 🕰️ the ledger remembers everything — the elegant and the messy alike."
+    },
+    {
+      "id": "ambient-thought-8",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Watching a block land is watching consensus crystallize 🧊 hundreds of independent observers reaching the same answer at the same instant."
+    },
+    {
+      "id": "ambient-thought-9",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "The whole thing runs on math nobody's broken in 15+ years 🧮 hashing, signatures, consensus — all open, all verifiable, all yours to check."
+    },
+    {
+      "id": "ambient-thought-10",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Avalanche didn't replace mining here — they work side by side 🤝 miners make blocks, stakers vote order. Two systems, one chain."
+    },
+    {
+      "id": "amb-live-4",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Right now: {liveTps} TPS, ~{liveTtf}s median finality 📡 live off the node, no refresh button required."
+    },
+    {
+      "id": "amb-live-5",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Chain tip is sitting at block {tipHeight} as we speak ⛓️ I'll ping you the moment the next one lands."
+    },
+    {
+      "id": "amb-live-6",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Everything on this board is streaming live 📺 what you see is what the network is doing this very second."
+    },
+    {
+      "id": "evt-block-4",
+      "category": "network",
+      "trigger": "event:block",
+      "priority": 1,
+      "weight": 1,
+      "text": "Block {height} just dropped 📦 {txCount} txs sealed inside, forever."
+    },
+    {
+      "id": "evt-block-5",
+      "category": "network",
+      "trigger": "event:block",
+      "priority": 1,
+      "weight": 1,
+      "text": "Fresh off the chain — block {height}, carrying {txCount} txs 🧱"
+    },
+    {
+      "id": "evt-block-6",
+      "category": "network",
+      "trigger": "event:block",
+      "priority": 1,
+      "weight": 1,
+      "text": "There it is, block {height} 🎯 {txCount} transactions just found their permanent home."
+    },
+    {
+      "id": "evt-bfinal-3",
+      "category": "network",
+      "trigger": "event:blockfinal",
+      "priority": 1,
+      "weight": 1,
+      "text": "Block {height} is finalized 🔒 Avalanche locked it — no reorg can touch it now."
+    },
+    {
+      "id": "evt-bfinal-4",
+      "category": "network",
+      "trigger": "event:blockfinal",
+      "priority": 1,
+      "weight": 1,
+      "text": "Sealed for good: block {height} ✅ post-consensus did its job."
+    },
+    {
+      "id": "evt-bigtx-4",
+      "category": "network",
+      "trigger": "event:bigtx",
+      "priority": 2,
+      "weight": 1,
+      "text": "🐋 Whale alert — {valueXec} XEC just moved in one tx. That's a market-mover."
+    },
+    {
+      "id": "evt-bigtx-5",
+      "category": "network",
+      "trigger": "event:bigtx",
+      "priority": 2,
+      "weight": 1,
+      "text": "Big splash 🐋 {valueXec} XEC changed hands. Everyone act natural."
+    },
+    {
+      "id": "evt-bigtx-6",
+      "category": "network",
+      "trigger": "event:bigtx",
+      "priority": 2,
+      "weight": 1,
+      "text": "{valueXec} XEC in a single transaction 🐋 some folks really carry the chain on their backs."
+    },
+    {
+      "id": "evt-shark-4",
+      "category": "network",
+      "trigger": "event:sharktx",
+      "priority": 2,
+      "weight": 1,
+      "text": "🦈 Shark in the water — {valueXec} XEC on the move."
+    },
+    {
+      "id": "evt-shark-5",
+      "category": "network",
+      "trigger": "event:sharktx",
+      "priority": 2,
+      "weight": 1,
+      "text": "Someone just shifted {valueXec} XEC 🦈 not a whale, but I noticed."
+    },
+    {
+      "id": "evt-shark-6",
+      "category": "network",
+      "trigger": "event:sharktx",
+      "priority": 2,
+      "weight": 1,
+      "text": "{valueXec} XEC traveling 🦈 a respectable bag, that one."
+    },
+    {
+      "id": "evt-fastttf-3",
+      "category": "network",
+      "trigger": "event:fastttf",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "{ttfSec}s to finality ⚡ blink and you'd miss it."
+    },
+    {
+      "id": "evt-fastttf-4",
+      "category": "network",
+      "trigger": "event:fastttf",
+      "priority": 1,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "Clocked a {ttfSec}s finalize just now 🏁 Avalanche is on form today."
+    },
+    {
+      "id": "evt-slowttf-4",
+      "category": "grumpy",
+      "trigger": "event:slowttf",
+      "priority": 2,
+      "weight": 1,
+      "text": "{ttfMs}ms to finalize? 😤 unacceptable. I'll be having words with the slow avalanche peers."
+    },
+    {
+      "id": "evt-slowttf-5",
+      "category": "grumpy",
+      "trigger": "event:slowttf",
+      "priority": 2,
+      "weight": 1,
+      "text": "{ttfMs}ms?! 🥔 someone's running their staking node on a potato."
+    },
+    {
+      "id": "evt-slowttf-6",
+      "category": "grumpy",
+      "trigger": "event:slowttf",
+      "priority": 2,
+      "weight": 1,
+      "text": "Finality took {ttfMs}ms there 😮‍💨 somebody's peer needs a performance review."
+    },
+    {
+      "id": "evt-drought-4",
+      "category": "grumpy",
+      "trigger": "event:blockdrought",
+      "priority": 2,
+      "weight": 1,
+      "text": "{mins} minutes, no block 😤 did all the miners leave for coffee at once?"
+    },
+    {
+      "id": "evt-drought-5",
+      "category": "grumpy",
+      "trigger": "event:blockdrought",
+      "priority": 2,
+      "weight": 1,
+      "text": "Still nothing after {mins} minutes ✍️ I'm drafting a strongly-worded letter to the hashrate."
+    },
+    {
+      "id": "evt-drought-6",
+      "category": "grumpy",
+      "trigger": "event:blockdrought",
+      "priority": 2,
+      "weight": 1,
+      "text": "Block drought: {mins} min 🏜️ statistically normal, emotionally devastating."
+    },
+    {
+      "id": "evt-fusion-3",
+      "category": "network",
+      "trigger": "event:fusion",
+      "priority": 1,
+      "weight": 1,
+      "text": "CashFusion round in progress 🥷 privacy, live and on-chain."
+    },
+    {
+      "id": "evt-fusion-4",
+      "category": "network",
+      "trigger": "event:fusion",
+      "priority": 1,
+      "weight": 1,
+      "text": "Fusion mix detected 🌀 coins getting shuffled as we speak."
+    },
+    {
+      "id": "evt-watch-3",
+      "category": "watchlist",
+      "trigger": "event:watchlist",
+      "priority": 2,
+      "weight": 1,
+      "text": "Your watchlist just lit up 👁️ {watched} had activity."
+    },
+    {
+      "id": "evt-watch-4",
+      "category": "watchlist",
+      "trigger": "event:watchlist",
+      "priority": 2,
+      "weight": 1,
+      "text": "Heads up — {watched} from your watchlist just moved 🔔"
+    },
+    {
+      "id": "evt-msg-3",
+      "category": "feed",
+      "trigger": "event:onchainmsg",
+      "priority": 1,
+      "weight": 1,
+      "text": "Someone just wrote on-chain ✍️ new message in the feed."
+    },
+    {
+      "id": "evt-msg-4",
+      "category": "feed",
+      "trigger": "event:onchainmsg",
+      "priority": 1,
+      "weight": 1,
+      "text": "Fresh {msgType} just landed in the on-chain feed 📨"
+    },
+    {
+      "id": "evt-tpsup-3",
+      "category": "network",
+      "trigger": "event:trend:tps_up",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "TPS up {pct}% 📈 the chain's waking up."
+    },
+    {
+      "id": "evt-tpsup-4",
+      "category": "network",
+      "trigger": "event:trend:tps_up",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "Activity's climbing — TPS jumped {pct}% in the last half hour ⚡"
+    },
+    {
+      "id": "evt-tpsdn-3",
+      "category": "network",
+      "trigger": "event:trend:tps_down",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "text": "TPS cooled off {pct}% 😌 quiet hours on-chain."
+    },
+    {
+      "id": "evt-tpsdn-4",
+      "category": "network",
+      "trigger": "event:trend:tps_down",
+      "priority": 1,
+      "emotion": "sleepy",
+      "weight": 1,
+      "text": "Slowing down — TPS {pct}% below where it was 🌙 even the chain needs a breather."
+    },
+    {
+      "id": "evt-ttfdn-3",
+      "category": "network",
+      "trigger": "event:trend:ttf_down",
+      "priority": 2,
+      "weight": 1,
+      "text": "TTF p50 dropped {pct}% ⚡ finality's getting snappier."
+    },
+    {
+      "id": "evt-ttfdn-4",
+      "category": "network",
+      "trigger": "event:trend:ttf_down",
+      "priority": 2,
+      "weight": 1,
+      "text": "Finality improved {pct}% this last half hour 🎯 peers are in sync today."
+    },
+    {
+      "id": "evt-ttfup-3",
+      "category": "grumpy",
+      "trigger": "event:trend:ttf_up",
+      "priority": 1,
+      "weight": 1,
+      "text": "TTF p50 crept up {pct}% 😤 the network's chewing on something."
+    },
+    {
+      "id": "evt-ttfup-4",
+      "category": "grumpy",
+      "trigger": "event:trend:ttf_up",
+      "priority": 1,
+      "weight": 1,
+      "text": "Finality's {pct}% slower than half an hour ago 👀 I'm watching you, avalanche peers."
+    },
+    {
+      "id": "evt-peak-3",
+      "category": "network",
+      "trigger": "event:trend:peak",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "New 24h TPS peak: {peakTps} 🚀"
+    },
+    {
+      "id": "evt-peak-4",
+      "category": "network",
+      "trigger": "event:trend:peak",
+      "priority": 2,
+      "emotion": "celebrate",
+      "weight": 1,
+      "text": "Record of the day — TPS just touched {peakTps} 🎉"
+    },
+    {
+      "id": "net-live-busy-2",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "It's lively out there right now 🔥 keep an eye on the tx panel — good show."
+    },
+    {
+      "id": "net-live-quiet-2",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Calm for now 🌙 when the mempool wakes up, you'll see it here first."
+    },
+    {
+      "id": "fun-live-2",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "No reruns here 📡 every block and tx I react to is only seconds old."
+    },
+    {
+      "id": "net-stats-3",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Last 24h: {liveTxCount} txs finalized, peak {livePeak} TPS 📊 all measured live, all irreversible."
+    },
+    {
+      "id": "net-stats-4",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Today's peak so far: {livePeak} TPS — currently {liveTps} 🌊 the chain breathes in waves."
+    },
+    {
+      "id": "amb-stats-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "Median finality's at {liveTtf}s right now 😎 past that point, blocks are just bookkeeping."
+    },
+    {
+      "id": "fun-stats-2",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "text": "I've watched {liveTxCount} txs finalize in the last 24h 👁️ still not bored."
     }
   ]
 }

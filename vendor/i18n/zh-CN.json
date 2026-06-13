@@ -1,0 +1,233 @@
+{
+  "meta": {
+    "code": "zh-CN",
+    "name": "简体中文",
+    "source": "en",
+    "packVersion": 5
+  },
+  "ui": {
+    "qa.stats": "统计",
+    "qa.stats.title": "打开网络统计面板",
+    "qa.block": "最新 block",
+    "qa.block.title": "打开最新 block 的弹出框",
+    "qa.tip": "支持项目",
+    "qa.tip.title": "打开打赏框",
+    "qa.guide": "导览",
+    "qa.guide.title": "让 eChan 带你逛逛仪表盘",
+    "settings.title": "设置",
+    "settings.chattiness": "话痨程度",
+    "settings.sound": "声音",
+    "settings.help.aria": "这些模式是什么意思？",
+    "mode.quiet": "安静",
+    "mode.quiet.desc": "静默 —— 只有运营方公告能通过。",
+    "mode.casual": "适中",
+    "mode.casual.desc": "约每 45 秒评论一次；对重大事件（鲸鱼、watchlist、趋势）作出反应。",
+    "mode.chatty": "话痨",
+    "mode.chatty.desc": "默认 —— 约每 15 秒频繁评论 + 对每个事件作出反应。",
+    "chips.tour": "▶ 带我逛逛",
+    "chips.later": "稍后",
+    "chips.lang": "🌐 语言",
+    "tour.back": "⟵ 返回",
+    "tour.exit": "✕ 退出导览",
+    "tour.done": "导览结束！👋 我就在这儿，继续实时解说区块链。",
+    "lang.title": "语言 / Language"
+  },
+  "tooltips": {
+    "ava-tx": {
+      "title": "Avalanche · Transaction Finality",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Pre-consensus</strong> 让网络在一笔交易进入任何 block <em>之前</em>就对它达成一致。</p>\n          <p>交易一到达 mempool，参与 Avalanche 的 eCash 节点就开始相互询问 —— “你接受这笔交易吗？” 每次询问都是与一组随机抽取的 peer 之间的小型 UDP 交换，按它们 stake 的 eCash 数量加权。</p>\n          <p>发起询问的节点跟踪每个 peer 的投票并更新一个<strong>信任分数</strong>。当该分数越过终局化阈值，交易就被<strong>永久锁定</strong> —— 从那一刻起，任何双花或竞争交易都无法获胜。</p>\n          <p>整个过程平均耗时<strong>约 3 秒</strong> —— 快到足以让支付终端和交易所即时入账。投票汇聚时圆环会被填满；锁形对勾标记着从“投票中”到“永久共识”的转变。</p>\n          <p class=\"meta-note\">于 2025 年 11 月 15 日在 mainnet 启用。</p>\n        </div>\n        <div class=\"diagram-col\">${PRE_CONSENSUS_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "ava-block": {
+      "title": "Avalanche · Block Finality",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Post-consensus</strong> 把同样的 Avalanche 投票机制应用到 <em>block</em> 上，运行在经典的 Nakamoto proof-of-work 链之上。</p>\n          <p>每个新 block 都要经历三个阶段：</p>\n          <p>⛏ <strong>Mined</strong> —— 一个矿工找到有效的 proof-of-work 并广播该 block。</p>\n          <p>↻ <strong>Polling</strong> —— 所有 Avalanche 节点询问它们的 peer（按 eCash stake 加权），是否接受这个 block 作为链的新规范末端。</p>\n          <p>◆ <strong>Final</strong> —— 累积的信任已越过阈值。该 block 再也无法被替换或 reorg —— 哪怕是敌对的 hashpower 多数也不行。一旦锁定，任何 reorg 尝试都会被所有诚实节点判为无效而拒绝。</p>\n          <p>完整 polling 在 block 公布后平均耗时<strong>3 到 5 秒</strong>，因此存款可以安全地在 <strong>1 次确认</strong>下入账 —— 在安全性上相当于数十次 Bitcoin 确认。</p>\n          <p class=\"meta-note\">自 2022 年 9 月 14 日起保护 eCash 的 block。</p>\n        </div>\n        <div class=\"diagram-col\">${POST_CONSENSUS_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "tx-flow": {
+      "title": "Transaction Flow · How to read the colours",
+      "body": "\n      <div class=\"text-col\">\n        <p><strong>Inputs</strong> / <strong>Outputs</strong> 列中的每一行显示一个地址，以及它在这笔交易中花出或收到的金额。</p>\n        <p><span class=\"legend-dot\" style=\"background:#01a0e0;box-shadow:0 0 8px #01a0e0\"></span> <strong>青色</strong> —— 普通地址。点击可在 block explorer 中打开。</p>\n        <p><span class=\"legend-dot\" style=\"background:#ffcb47;box-shadow:0 0 8px #ffcb47\"></span> <strong>金色</strong> —— 该地址在 input 和 output <em>两侧</em>都出现。通常是付款方收回自己的<strong>找零</strong>，但在自发交易中也标志着 UTXO 的合并。</p>\n        <p><span class=\"legend-dot\" style=\"background:#a7ff37;box-shadow:0 0 8px #a7ff37\"></span> <strong>青柠色</strong> —— 来自你 <em>watchlist</em> 的地址。在每笔交易中高亮，让你留意到对你重要的 wallet 的动向。</p>\n        <p><span class=\"legend-dot\" style=\"background:rgba(255,255,255,0.3)\"></span> <em>OP_RETURN</em> —— 承载数据的 output（聊天消息、token 命令）。没有地址；不携带可花费的价值。</p>\n        <p>每行的金额是<strong>原始的 on-chain 价值</strong>。对于 token 交易，token 数量会先显示（例如 <em>1,000 USDR · 5.46 XEC</em>）—— 这 5.46 XEC 只是运送 token 的 dust 而已。</p>\n      </div>\n    "
+    },
+    "heartbeat": {
+      "title": "Heartbeat · Real-Time Targeting",
+      "body": "\n      <div class=\"with-diagram\">\n        <div class=\"text-col\">\n          <p><strong>Heartbeat</strong> 是 eCash 的实时难度调整算法，在 <strong>2024 年 11 月 15 日</strong>的网络升级中启用。</p>\n          <p>Bitcoin 类网络的目标是 block 之间<strong>平均 10 分钟</strong>，但 hashpower 的激增可能在几分钟内产出多个 block，随后是长时间的沉默。这种“block 扎堆”让用户烦躁，也给交易所添麻烦。</p>\n          <p>Heartbeat 用一个叠加在标准调整之上的<strong>第二难度层</strong>来修正它：</p>\n          <ul>\n            <li>当 block <strong>比 10 分钟的节奏来得更快</strong>时，难度立即<em>上升</em>以抑制连续产出。</li>\n            <li>随后难度会<strong>单调下降</strong>，直到回到正常水平。</li>\n            <li>违反实时目标的 block 会<strong>被 Avalanche 共识拒绝</strong> —— 即便它们按经典 Bitcoin 规则是有效的。</li>\n          </ul>\n          <p>结果是：更均匀的 block 时间、更少的矿池小动作（“switch mining”），以及对网络中每个人都更可预测的体验。</p>\n          <p class=\"meta-note\">Heartbeat 与 Avalanche post-consensus（block 终局性）和 Infrastructure Funding Policy 并肩运作 —— 这是 eCash 增强版 Nakamoto 共识的三大支柱。</p>\n        </div>\n        <div class=\"diagram-col\">${HEARTBEAT_DIAGRAM}</div>\n      </div>\n    "
+    },
+    "stats-overview": {
+      "title": "Network Statistics",
+      "body": "\n      <div class=\"so-wrap\">\n        <p class=\"so-lead\">页面底部的条形是 eCash 网络的实时数字仪表盘。这些数字来自两个来源 —— 我们运营的一个专用 eCash 节点，以及你当前的浏览器会话 —— 弄清哪个是哪个，有助于正确读懂这个条形。</p>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">Headline cell · 24h ↔ session</h3>\n          <div class=\"so-card\">\n            <p>主 Time-to-Finality（TTF）单元格可以显示 24 小时网络指标或你的会话指标。在此选择，或使用单元格上方的 <code>⇄</code> 按钮。如果节点 feed 不可用，无论此选择如何，单元格都会始终回退到会话指标。</p>\n            <div class=\"stats-view-toggle\" id=\"stats-view-toggle\">\n              <button type=\"button\" data-view=\"p50\" id=\"stats-view-p50\">显示网络 · 24h</button>\n              <button type=\"button\" data-view=\"session\" id=\"stats-view-session\">显示会话</button>\n            </div>\n            <span class=\"so-live-label\">实时数值</span>\n            <div id=\"stats-live-grid\"><span style=\"color:var(--text-3);font-family:'Fira Code',monospace;font-size:11px\">—— 正在等待下一个 stats frame ——</span></div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">两个数据来源</h3>\n          <div class=\"so-sources\">\n            <div class=\"so-source\">\n              <span class=\"so-src-name\"><span class=\"so-badge net\">Network</span> 24h</span>\n              <p>在节点上测量、每 5 秒推送到你标签页的滚动 24 小时聚合数据。无论你的标签页观察到了什么，这些单元格都反映整个网络此刻在做的事。</p>\n            </div>\n            <div class=\"so-source\">\n              <span class=\"so-src-name\"><span class=\"so-badge ses\">Session</span></span>\n              <p>自页面加载以来由这个浏览器标签页计数。新标签页从零开始；刷新会重置。作为“我看到了什么”的个人视角很有用，也是节点 feed 不可用时的后备。</p>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">每个单元格的含义</h3>\n          <div class=\"so-defs\">\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Time-to-finality · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">过去 24 小时的中位时间 —— 参见下方的<em>终局性如何测量</em>。</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">TPS · 24h avg <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">每秒终局化的交易数，在 24 小时窗口内取平均。当网络非常安静时，数值可能低于 0.01 tps；此时单元格显示 <code>&lt; 0.01 tps</code> 而非四舍五入到零（四舍五入的零会暗示根本没有交易，而 24h 窗口并不这么说）。</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Peak TPS · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">过去 24 小时内任意 1 分钟窗口中观察到的最高持续每秒交易速率。按分钟取平均是有意为之：1 秒的激增（尤其是安静网络中的单笔交易）不应主导头条数字。它在真正的活动浪潮中上升，在网络休息时保持低位。</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">% finalized &lt; 3s <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">24 小时内终局化、且 time-to-finality 低于三秒的交易占比 —— 即“快车道”比率。三秒大致是支付开始让人感觉像等待而非即时的临界点，因此这个百分比追踪近期流量中有多少在该临界点之下从容终局化。当一切都在 3 秒内终局化时显示 <code>100%</code>（不带小数）。</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Tx · 24h <span class=\"so-badge net\">Network</span></div>\n              <div class=\"so-desc\">过去 24 小时内全网终局化了多少笔交易。</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Avg block-lock <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">从 block 被挖出到被 Avalanche 终局化的平均时间。与 time-to-finality 不同：后者测量 <em>pre</em>-consensus 路径（mempool 中的交易），而 block-lock 测量 <em>post</em>-consensus 路径（已经在链上的整个 block）。两者都是会话范围。</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Avg block time <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">这个标签页观察到的连续 block 之间的平均间隔。eCash 通过实时难度算法 Heartbeat 以 10 分钟为目标。这个单元格旁的 <strong>?</strong> 按钮会打开 Heartbeat 的说明。</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Tx · session <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">这个标签页自加载以来观察到的交易。刷新归零。在移动端从条形中隐藏，但在上方的实时数值中始终可见。</div>\n            </div>\n            <div class=\"so-defrow\">\n              <div class=\"so-name\">Stream uptime <span class=\"so-badge ses\">Session</span></div>\n              <div class=\"so-desc\">这个标签页已连接 eCash 网络多久。独立于 relay feed；刷新会重置。</div>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">终局性如何测量</h3>\n          <p>time-to-finality 是一笔交易生命中两个时刻之间的距离。<strong>起点</strong>：交易首次出现在节点的 mempool 中。<strong>终点</strong>：Avalanche pre-consensus 将它锁定 —— 此后竞争的 peer 再也无法对它进行 reorg 的那一刻。</p>\n          <p>两个时间戳都来自节点自身的日志：因此它们一致，且不受你网络延迟的影响。24h 数字是滚动窗口内所有已终局化交易的百分位数和均值。</p>\n          <p style=\"margin-bottom:2px\">每个百分位都讲述一个不同的故事：</p>\n          <div class=\"so-pct\">\n            <div class=\"so-pct-item\"><div class=\"pk\">p50 · median</div><div class=\"pd\">头条数字：典型交易所经历的，对离群值不太敏感。</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">p90</div><div class=\"pd\">捕捉缓慢的尾部 —— 绝大多数远在这个标记之前就完成了。</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">p10</div><div class=\"pd\">显示最快的 10% 有多快，有助于看清协议的下限。</div></div>\n            <div class=\"so-pct-item\"><div class=\"pk\">Mean</div><div class=\"pd\">算术平均值，对极端值敏感，通常略高于 p50。</div></div>\n          </div>\n          <p>如果节点 feed 不可用，页脚单元格会回退到完全在你浏览器中测量的会话指标。这个数值可能超过真正的 time-to-finality，因为它包含了节点与你标签页之间的 WebSocket 和传播延迟。</p>\n        </div>\n\n        <div class=\"so-section\">\n          <h3 class=\"so-h\">读懂图标</h3>\n          <div class=\"so-legend\">\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"ttf-eye-wrap\" style=\"display:inline-flex;margin:0\">${TTF_EYE_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>眼睛</strong> —— 节点 feed 暂时不可用，因此这个图标旁的数值是按上述方法完全在你浏览器中算出的<em>体感</em>测量值。当 feed 重新连接时，眼睛消失，数值回到节点精度。</div>\n            </div>\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"radar-slash-wrap\" style=\"display:inline-flex;margin:0\">${RADAR_SLASH_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>带斜杠的雷达</strong> —— 由于没有连接到节点 feed，单元格没有可显示的数值。只出现在 Network · 24h 卡片上，因为会话指标总能在浏览器中算出。一旦 feed 重新连接、下一个 stats frame 到达，它就消失。</div>\n            </div>\n            <div class=\"so-legend-row\">\n              <span class=\"so-legend-ic\"><span class=\"ttf-spinner-wrap\" style=\"display:inline-flex;margin:0\">${TTF_SPINNER_SVG || ''}</span></span>\n              <div class=\"ld\"><strong>旋转图标</strong> —— 在终局化后约 3 秒内出现在交易详情面板中。显示的数值是本地算出的，一旦节点精度的数值到达，便可能向它精修。过了升级窗口，旋转图标停止，数值被视为最终值。</div>\n            </div>\n          </div>\n        </div>\n      </div>\n    "
+    }
+  },
+  "dom": {
+    "#watchlist-empty-hint": {
+      "text": "添加一个地址即可高亮它的 tx"
+    },
+    "#btn-live": {
+      "title": "视图模式 —— 点击切换：LIVE → CHAIN → FEED。在 mempool 繁忙时降低 DOM 负担，同时仍追踪状态。"
+    },
+    "#btn-pause": {
+      "title": "暂停传入的交易"
+    },
+    "#tip-btn": {
+      "title": "请我喝杯咖啡 —— 你的 tx 会在流中被高亮"
+    },
+    "#bc-goto-search": {
+      "placeholder": "前往 block #…"
+    },
+    "#btl-chain-search": {
+      "placeholder": "前往 block #…"
+    },
+    "#btl-search": {
+      "placeholder": "按 txid 前缀或片段筛选…"
+    },
+    "#wl-input-addr": {
+      "placeholder": "ecash:q… 或 64-hex 的 token ID"
+    },
+    "#wl-input-name": {
+      "placeholder": "例如 冷钱包 或 我的 NFT 收藏"
+    },
+    "#wl-edit-name": {
+      "placeholder": "例如 冷钱包"
+    },
+    "#chat-pick-input": {
+      "placeholder": "ecash:q…"
+    },
+    "#chat-textarea": {
+      "placeholder": "输入消息 · 可用表情 · Enter 发送 · Shift+Enter 换行"
+    },
+    ".info-tile[data-tile=\"avalanche\"] .info-tile-title": {
+      "text": "eCash 上的 Avalanche 是什么？"
+    },
+    ".info-tile[data-tile=\"avalanche\"] .info-tile-body": {
+      "html": "<p>一种与 eCash 的 Nakamoto Proof-of-Work <strong>并肩</strong>运行的共识协议，让节点相互询问，在几秒内就 block 以及（借助 Pre-Consensus）单笔交易达成一致。</p><p><strong>Post-Consensus</strong>（自 2022 年 9 月上线）带来 1-block 终局性和对 51% 攻击的防护。<strong>Pre-Consensus</strong>（自 2025/11/15 在 mainnet）在交易被挖出前于 &lt;3 秒内终局化 —— 让 eCash 对用户和交易所都像现金一样。</p><p>把 PoW 想成<em>书写</em>（缓慢、永久），把 Avalanche 想成<em>说话</em>（快速、转瞬即逝）—— eCash 两者都用。</p>"
+    },
+    ".info-tile[data-tile=\"agora\"] .info-tile-title": {
+      "text": "eCash 上的 Agora 是什么？"
+    },
+    ".info-tile[data-tile=\"agora\"] .info-tile-body": {
+      "html": "<p>一个建立在 eCash Script 之上的非托管<strong>原子交换协议</strong>。于 2024 年 10 月推出，任何人都能把 eToken 或 NFT 直接挂到 on-chain 出售 —— 无需交易所、无需托管方、无需许可。</p><p>交易通过买家为自己签名的交易来结算，这由 opcode <code>OP_CHECKDATASIG</code> 实现。covenant 存在于 on-chain：任何人都能浏览、出价并结算，无需中心化的订单簿。</p><p>它驱动 Cashtab 中的 eToken DEX，并以低于一美分的手续费证明 eCash 原生的 DeFi 能力。</p>"
+    },
+    ".info-tile[data-tile=\"heartbeat\"] .info-tile-title": {
+      "text": "Heartbeat 是什么？"
+    },
+    ".info-tile[data-tile=\"heartbeat\"] .info-tile-body": {
+      "html": "<p>eCash 的<strong>实时难度调整算法</strong>，于 2024 年 11 月 15 日启用。它运行在经典 Bitcoin 调整之上，用来<strong>抹平 block 时间</strong>，并终结那种 hashpower 激增在 2 分钟内产出 5 个 block、随后沉默 30 分钟的“扎堆”。</p><p>当 block 来得比 10 分钟目标更快时，难度立即上升，随后单调下降直至恢复正常。违反实时目标的 block 会<strong>被 Avalanche 共识拒绝</strong> —— 即便按经典 Bitcoin 规则在技术上有效。</p><p>结果是：更均匀的确认时间、更少的矿池利用，以及对整个网络都更可预测的体验。</p>"
+    },
+    ".info-tile[data-tile=\"chronik\"] .info-tile-title": {
+      "html": "<strong>Chronik</strong> 是什么？"
+    },
+    ".info-tile[data-tile=\"chronik\"] .info-tile-body": {
+      "html": "<p><strong>Chronik</strong> 是直接内置于 Bitcoin ABC 的高性能 eCash 索引器。它是 eCash 上每个 wallet、explorer 和 dApp 对话的数据层 —— 也包括这个实时流。</p><p>原生 Rust 并与节点紧密集成，<strong>Chronik</strong> 通过统一的 HTTP + WebSocket API 提供链上数据以及完整的 SLP / ALP token 状态。wallet 无需重新解析链就能获得快速的地址历史、感知 token 的 UTXO 集和实时交易流。</p><p>如果你用过 Cashtab、agora.cash、这个仪表盘，或 explorer.e.cash 上的 explorer —— 链上数据的每一个字节都经过一个 <strong>Chronik</strong> 实例才到达那里。</p>"
+    },
+    ".btl-right-hint": {
+      "text": "点击一笔 tx 查看 · txid 会打开 explorer"
+    },
+    ".dlg-qr-hint": {
+      "text": "用你的 wallet 应用扫描 QR · 或点按下方的按钮"
+    },
+    ".ee-hint": {
+      "text": "点按 eCash 标志前往 e.cash · 点按别处关闭"
+    },
+    ".wl-history-right-hint": {
+      "text": "悬停某行预览 · 点击固定 · 再次点击取消固定"
+    },
+    ".wl-history-empty": {
+      "html": "尚无被追踪的 tx —— 它们发生时会出现在这里。按 <b>Sync</b> 从 chronik 拉取完整历史。"
+    },
+    ".wl-sub:not(#wl-edit-sub):not(#chat-pick-sub)": {
+      "html": "输入一个 eCash 地址 <span class=\"mono\">ecash:q…</span> 或 64-hex 的 token/NFT ID。"
+    },
+    "#chat-pick-sub": {
+      "html": "输入一个 eCash 地址 <span class=\"mono\">ecash:q…</span>。"
+    },
+    ".chat-send-dialog .dlg-title": {
+      "text": "用你的 eCash wallet 发送"
+    },
+    ".chat-send-dialog .dlg-sub": {
+      "html": "你的消息和收件人已被打包成一个 BIP21 支付链接。在任意 eCash wallet 中打开它 —— Cashtab 会自动填好 Send 表单。<strong style=\"color:var(--amber)\">本站永远看不到你的 seed phrase。</strong>"
+    },
+    "#feed-warning-popover .popover-title": {
+      "text": "⚠ Feed 安全提示"
+    },
+    "#feed-warning-popover > div:last-of-type": {
+      "html": "Feed 显示<strong>来自整个 eCash 网络的所有 on-chain 消息</strong> —— 任何人都能广播任何内容。<ul><li><strong>把每个链接都当作可疑。</strong>不要点击陌生人消息中的 URL；钓鱼工具包会定期出现在这里。</li><li><strong>永远不要分享你的 seed phrase、private key 或 wallet 密码。</strong>正规项目绝不会在聊天或消息中索要它们。</li><li><strong>警惕冒充。</strong>任何人都能在消息里填任意名字；请通过可信渠道核实身份。</li><li><strong>token 空投可能是陷阱。</strong>未经请求的 token 可能含有钓鱼链接或诈骗信息 —— 在互动前先做调查更安全。</li></ul>"
+    },
+    "#chat-warning-popover .popover-title": {
+      "text": "⚠ Chat 安全提示"
+    },
+    "#chat-warning-popover > div:last-of-type": {
+      "html": "聊天消息是<strong>永久的 eCash on-chain 交易</strong> —— 广播后无法删除或编辑，且任何人都能永远读到。<ul><li><strong>所有消息都是 100% 公开的。</strong>一旦发送，它们就保存在全球每个 eCash 节点上，任何人都能索引。on-chain 没有私密聊天。</li><li><strong>永久记录。</strong>发送前请三思 —— 你的话语会在区块链上比你活得更久。</li><li><strong>警惕诈骗。</strong>即便一个 peer 的 wallet 看着眼熟，任何持有其 seed phrase 的人都可能是发送者。大额交易请通过其他渠道核实。</li><li><strong>永远不要把 seed phrase、private key 或密码粘贴到这里</strong> —— 它们会被永久暴露给全世界。</li><li><strong>本站永远看不到你的密钥。</strong>所有发送都由你的 wallet（Cashtab/Electrum-XEC/等）签名；我们只是构造 BIP21 链接。</li></ul>"
+    },
+    ".d-token-url-warn": {
+      "warn": "token 可以在其 genesis 交易中声明任意 URL —— 该 URL 不会被网络验证。钓鱼 token 可能指向试图掏空你 wallet 的恶意站点。请务必：(1) 核实 URL 与项目官方域名一致，(2) 在通过 token 的 URL 抵达的站点上，未经独立核实绝不连接 wallet，(3) 绝不在任何地方输入你的 seed phrase。"
+    }
+  },
+  "domMap": {
+    ".info-tile-links-label": {
+      "Read more on e.cash": "在 e.cash 上阅读更多",
+      "Tool": "工具",
+      "Trade now": "立即交易"
+    },
+    ".chat-chip-empty": {
+      "no address set — pick yours to see your own chat lines": "未设置地址 —— 选择你自己的以查看你的消息",
+      "add at least one peer wallet to load their messages": "至少添加一个 peer wallet 以加载他们的消息"
+    },
+    ".btl-empty": {
+      "Block has no transactions (?!)": "block 没有任何交易 (?!)"
+    },
+    ".watchlist-empty-state": {
+      "No addresses tracked yet — click \"+ add\" to start watching one.": "尚未追踪任何地址 —— 点击“+ add”开始监视一个。"
+    }
+  },
+  "titleMap": {
+    "Click for a full stats explanation. Use the ⇄ button to toggle between the network 24h reading and your session reading.": "点击查看完整的统计说明。用 ⇄ 按钮在网络 24h 读数和你的会话读数之间切换。",
+    "Network transactions per second, rolling 24h. From the dedicated eCash node. Click for details.": "网络每秒交易数，滚动 24h。来自专用 eCash 节点。点击查看详情。",
+    "Total transactions finalized network-wide in the last 24 hours. From the dedicated eCash node. Click for details.": "过去 24 小时全网终局化的交易总数。来自专用 eCash 节点。点击查看详情。",
+    "Total transactions observed by this browser tab since the page was loaded. Click for details.": "自页面加载以来这个浏览器标签页观察到的交易总数。点击查看详情。",
+    "Average time from block mined to Avalanche post-consensus finalized. Last 20 samples this session. Click for details.": "从 block 被挖出到 Avalanche post-consensus 终局化的平均时间。本会话最近 20 个样本。点击查看详情。",
+    "Average elapsed time between the last consecutive blocks observed this session. eCash targets a 10-minute average via the Heartbeat real-time difficulty algorithm.": "本会话观察到的最近连续 block 之间的平均时间。eCash 通过实时难度算法 Heartbeat 以平均 10 分钟为目标。",
+    "How long this stream has been connected to the eCash network. Click for details.": "这个流已连接 eCash 网络多久。点击查看详情。",
+    "Toggle 24h ↔ session": "切换 24h ↔ 会话",
+    "Visitors watching this page right now (server-side count of live WebSocket connections to the TTF feed)": "此刻正在看这个页面的访客（对 TTF feed 的实时 WebSocket 连接的服务端计数）",
+    "Mempool transactions finalized by Avalanche pre-consensus, awaiting inclusion in a block": "已被 Avalanche pre-consensus 终局化、正等待被纳入某个 block 的 mempool 交易",
+    "Mined by a Proof-of-Work miner": "由 Proof-of-Work 矿工挖出",
+    "What is Avalanche post-consensus?": "Avalanche post-consensus 是什么？",
+    "What is Heartbeat?": "Heartbeat 是什么？",
+    "What do these colours mean?": "这些颜色是什么意思？",
+    "Read 'What is eCash' on e.cash": "在 e.cash 上阅读 'What is eCash'",
+    "Visit e.cash": "访问 e.cash",
+    "Connection status": "连接状态",
+    "Add address to watchlist": "把地址加入 watchlist",
+    "Add one or more peer addresses (or import from Watchlist)": "添加一个或多个 peer 地址（或从 Watchlist 导入）",
+    "Edit (rename, change mode, remove)": "编辑（重命名、改模式、移除）",
+    "Highlight on either direction": "两个方向都高亮",
+    "Highlight when this wallet receives (address in outputs)": "当这个 wallet 收款时高亮（地址在 outputs 中）",
+    "Highlight when this wallet sends (address in inputs)": "当这个 wallet 付款时高亮（地址在 inputs 中）",
+    "Fetch this address/token's tx history from chronik": "从 chronik 获取这个地址/token 的 tx 历史",
+    "Watching paused — click to resume": "监视已暂停 —— 点击恢复",
+    "Watching active — click to pause": "监视进行中 —— 点击暂停",
+    "Go to block": "前往 block",
+    "Open block in explorer": "在 explorer 中打开 block",
+    "Open in explorer": "在 explorer 中打开",
+    "View on explorer": "在 explorer 上查看",
+    "open in explorer": "在 explorer 中打开",
+    "Click to copy": "点击复制",
+    "Click to unpin": "点击取消固定",
+    "Close": "关闭",
+    "Clear": "清除",
+    "Dismiss": "忽略",
+    "Expand full message": "展开完整消息",
+    "Chat with sender": "与发送者聊天",
+    "Chat with this address": "与这个地址聊天",
+    "Max rows shown per column": "每列显示的最大行数",
+    "Type a custom amount": "输入一个自定金额",
+    "Use slider instead": "改用滑块",
+    "Token transactions seen since this session started": "自本会话开始以来看到的 token 交易",
+    "Waiting for chronik to see this tx broadcast": "正在等待 chronik 看到这笔 tx 的广播",
+    "No connection to node-precise feed": "未连接到节点精度 feed",
+    "Relay stats are temporarily unavailable. Reconnect attempt is in progress.": "relay 统计暂时不可用。正在尝试重新连接。",
+    "Remove this entry from the watchlist": "把这条目从 watchlist 移除",
+    "Safety notice": "安全提示",
+    "Set your wallet address (so we can show your outgoing chat messages)": "设置你的 wallet 地址（以便我们显示你发出的聊天消息）",
+    "Showing perceived value — node-precise feed unavailable": "正在显示体感数值 —— 节点精度 feed 不可用",
+    "Token/NFT icons: ON — click to hide and skip loading them": "Token/NFT 图标：开 —— 点击隐藏并跳过加载",
+    "Token/NFT icons: OFF — click to show them again": "Token/NFT 图标：关 —— 点击重新显示",
+    "raw atomic units — decimals loading…": "原始 atomic 单位 —— 正在加载小数…"
+  }
+}
