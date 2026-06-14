@@ -179,7 +179,6 @@
     seen:       'ecashlive.echan.seen',
     visits:     'ecashlive.echan.visits',
     greeted:    'ecashlive.echan.greetedAt',
-    quietUntil: 'ecashlive.echan.quietUntil',
     statsRing:  'ecashlive.echan.statsring',
     tourDone:    'ecashlive.echan.tourdone',
     tourOffered: 'ecashlive.echan.touroffered',
@@ -197,6 +196,7 @@
   const PAGE_DOTS_MAX          = 5;
 
   const SEEN_RING_MAX          = 200;
+  const RECENT_SHOWN_MAX       = 8;        /* anti-repeat: small-pool recency window */
   const IDLE_SHORT_MS          = 4 * 60 * 1000;
   const IDLE_LONG_MS           = 15 * 60 * 1000;
   const GREET_COOLDOWN_MS      = 4 * 60 * 60 * 1000;
@@ -338,7 +338,6 @@
     lastVariantIdx: Object.create(null),
     /* Emotion */
     currentEmotion: 'neutral',
-    lockedEmotion: null,
     /* Glitch timers */
     glitchSwapTimer: null,
     glitchEndTimer: null,
@@ -370,11 +369,16 @@
     langPanelEl: null,
     categoryDefaults: {},      /* category → default emotion name */
     seenIds: null,
+    recentShown: [],                        /* anti-repeat: ids of last N shown lines (session) */
+    seenPersistTimer: null,                 /* P1: debounce seen-ring localStorage write */
     lastInteraction: Date.now(),
     contentTimer: null,
+    wakeTimer: null,                        /* V2: tracked wake-from-hidden content tick */
+    quietUntil: 0,                          /* L2/P2: in-memory quiet-hour (debug-only) */
     /* Network polling */
     networkTimer: null,
     lastNetState: 'normal',
+    netSeeded: false,                       /* T2/L1: seed net-state on first frame, don't emit */
     /* v1.3.1 — event bus / trends / drought */
     busUnsub: null,
     busSubscribedAt: 0,                     /* boot-grace anchor */
@@ -855,7 +859,16 @@
       const retry = () => {
         if (++tries > 10) return;
         state.footerTarget = document.querySelector('.footer');
-        if (state.footerTarget) { wireObs(); update(); }
+        if (state.footerTarget) {
+          wireObs(); update();
+          /* I1: match the synchronous path — a late-mounting footer should
+           * also update --ec-footer-actual on window resize, not only via
+           * the ResizeObserver. */
+          if (!state.resizeHandler) {
+            state.resizeHandler = update;
+            window.addEventListener('resize', state.resizeHandler);
+          }
+        }
         else setTimeout(retry, 200);
       };
       setTimeout(retry, 200);
@@ -946,7 +959,7 @@
     lsSet(STORAGE.mode, mode);
     refreshSettingsActiveMode();
     if (mode === 'quiet') {
-      state.queue = state.queue.filter(m => m.priority >= 3);
+      state.queue = state.queue.filter(m => m.priority >= 3 || m.source === 'owner');
       refreshPageDots();
     }
     /* Restart engine timer at the new cadence (or stop scheduling
@@ -993,15 +1006,21 @@
     const btn = document.getElementById('tip-btn');
     if (btn) btn.click();
   }
+  /* Debug-only (no UI binding): mute non-owner chatter for ~an hour.
+   * In-memory only — see isQuietActive. */
   function qaQuietHour() {
-    lsSet(STORAGE.quietUntil, String(Date.now() + QUIET_HOUR_MS));
+    state.quietUntil = Date.now() + QUIET_HOUR_MS;
     state.queue = state.queue.filter(m => m.priority >= 3 || m.source === 'owner');
     refreshPageDots();
     hide();
   }
   function isQuietActive() {
-    const until = parseInt(lsGet(STORAGE.quietUntil, '0'), 10) || 0;
-    return until > Date.now();
+    /* P2/L2: in-memory only. quiet-hour has no UI (debug-only, via
+     * __echan.qa.quietHour); reading from state avoids a localStorage hit
+     * on every gate check, and not persisting it means it can't survive —
+     * nor be silently wiped by — a reload (the old persisted path was a
+     * no-op because quietUntil is in LEGACY_KEYS and cleared at init). */
+    return state.quietUntil > Date.now();
   }
 
   /* ===========================================================================
@@ -1125,8 +1144,8 @@
       return false;
     }
     if (isQuietActive() && msg.source !== 'owner') return false;
-    if (state.mode === 'quiet'  && msg.priority < 3) return false;
-    if (state.mode === 'casual' && msg.priority < 2 && msg.source !== 'engine') return false;
+    if (state.mode === 'quiet'  && msg.priority < 3 && msg.source !== 'owner') return false;
+    if (state.mode === 'casual' && msg.priority < 2 && msg.source !== 'engine' && msg.source !== 'owner') return false;
     state.queue.push(msg);
     state.queue.sort((a, b) => (b.priority || 1) - (a.priority || 1));
     refreshPageDots();
@@ -1159,8 +1178,7 @@
     else if (msg.priority >= 3)      state.root.classList.add('echan-pri-3');
 
     state.textCat.textContent = msg.category ? '· ' + msg.category : '';
-    state.lockedEmotion = msg.emotion || 'neutral';
-    setEmotion(state.lockedEmotion);
+    setEmotion(msg.emotion || 'neutral');
     playArrival();
     /* v1.3.1: glow the dashboard card this message refers to (if any and
      * if it's still in the DOM). Display-time trigger keeps glow + words
@@ -1188,6 +1206,11 @@
     /* Reset scroll position when a new message starts so long-text
      * messages always begin at the top. */
     state.textBody.scrollTop = 0;
+    /* M2: mark the live region busy while characters stream in so screen
+     * readers announce the settled text once, not partial/repeated states.
+     * Cleared in armAdvance, which both the reduced-motion and normal
+     * completion paths reach. */
+    state.textBody.setAttribute('aria-busy', 'true');
     if (prefersReducedMotion()) {
       state.textBody.textContent = text;
       armAdvance();
@@ -1214,6 +1237,7 @@
   }
   function armAdvance() {
     state.advanceArmedAt = Date.now();
+    state.textBody.setAttribute('aria-busy', 'false');   /* M2: typing done */
     state.textAdvance.classList.add('visible');
     clearTimeout(state.advanceTimer);
     /* holdOpen (tour steps, chip prompts): wait for the user, no timer. */
@@ -1226,7 +1250,6 @@
     clearChips();
     state.textAdvance.classList.remove('visible');
     state.root.classList.remove('echan-pri-3', 'echan-pri-owner');
-    state.lockedEmotion = null;
     state.activeMessage = null;
     if (state.queue.length) showNextMessage();
     else {
@@ -1416,6 +1439,26 @@
     }
   }
 
+  /* L3: defence-in-depth for first-party i18n packs. CSP (script-src 'self'
+   * '<hash>', no unsafe-inline) already blocks inline-handler execution and
+   * packs are first-party — but innerHTML is the one sink where markup-shaped
+   * data lands, so strip <script>/<style> elements and on* handler attributes
+   * before assigning. Structural/style markup the packs legitimately use
+   * (ul/li/strong/code/span[class|style]/p/b) passes through untouched. */
+  function sanitizeForwardHtml(str) {
+    try {
+      const tpl = document.createElement('template');
+      tpl.innerHTML = String(str);
+      tpl.content.querySelectorAll('script, style').forEach(n => n.remove());
+      tpl.content.querySelectorAll('*').forEach(node => {
+        for (const a of Array.from(node.attributes)) {
+          if (a.name.toLowerCase().indexOf('on') === 0) node.removeAttribute(a.name);
+        }
+      });
+      return tpl.innerHTML;
+    } catch (e) { return ''; }
+  }
+
   function applyDomForward() {
     const pack = state.i18n;
     if (!pack) return;
@@ -1436,7 +1479,7 @@
           if (typeof d.html === 'string'
               && el.getAttribute('data-ec-html-lang') !== state.lang) {
             if (!el.hasAttribute('data-ec-orig-html')) el.setAttribute('data-ec-orig-html', el.innerHTML);
-            el.innerHTML = d.html;
+            el.innerHTML = sanitizeForwardHtml(d.html);
             el.setAttribute('data-ec-html-lang', state.lang);
           }
           if (typeof d.title === 'string' && el.title !== d.title) {
@@ -1508,8 +1551,14 @@
     stopDomI18nObserver();
     const p = state.i18n;
     if (!p || (!p.dom && !p.domMap && !p.titleMap)) return;
-    state.domObserver = new MutationObserver(() => {
+    state.domObserver = new MutationObserver((muts) => {
       if (state.domApplying) return;
+      /* P3: ignore the companion's own DOM churn. The typewriter rewrites
+       * textContent once per character; without this, every dialogue char
+       * (lang≠en) would schedule a full re-translation sweep over the whole
+       * document. The packs never target the companion subtree, so a batch
+       * confined to it is safe to skip. */
+      if (state.root && muts.every(m => state.root.contains(m.target))) return;
       clearTimeout(state.domObserverTimer);
       state.domObserverTimer = setTimeout(applyDomForward, 300);
     });
@@ -1616,12 +1665,21 @@
       return new Set(String(raw).split(',').filter(Boolean));
     } catch (e) { return new Set(); }
   }
-  function persistSeenRing() {
+  function flushSeenRing() {
+    clearTimeout(state.seenPersistTimer);
+    state.seenPersistTimer = null;
     try {
       const arr = Array.from(state.seenIds);
       while (arr.length > SEEN_RING_MAX) arr.shift();
       lsSet(STORAGE.seen, arr.join(','));
     } catch (e) {}
+  }
+  /* P1: coalesce the per-line localStorage write. markSeen fires on every
+   * accepted message (~every 15s in Chatty, plus one per event); debounce
+   * the serialize+write and flush on hide/pagehide so nothing is lost. */
+  function persistSeenRing() {
+    if (state.seenPersistTimer) return;
+    state.seenPersistTimer = setTimeout(flushSeenRing, 1000);
   }
   function markSeen(id) {
     if (!id || !state.seenIds) return;
@@ -1631,6 +1689,12 @@
       const first = state.seenIds.values().next().value;
       state.seenIds.delete(first);
     }
+    /* Anti-repeat recency deque (session-only, not persisted). */
+    const rs = state.recentShown;
+    const ix = rs.indexOf(id);
+    if (ix !== -1) rs.splice(ix, 1);
+    rs.push(id);
+    while (rs.length > RECENT_SHOWN_MAX) rs.shift();
     persistSeenRing();
   }
 
@@ -1657,6 +1721,22 @@
 
   function weightedPick(candidates) {
     if (!candidates || !candidates.length) return null;
+    /* Anti-repeat (recency): when the pool allows, drop ids shown in the
+     * last RECENT_SHOWN_MAX messages. Hard exclusion, independent of the
+     * 200-ring's 0.33 soft penalty, so small pools (events/time/network)
+     * can't collapse to uniform-random once every line is already in the
+     * ring. Never empties the pool: if exclusion removes everything, fall
+     * back to avoiding just the single most-recent id, then to all. */
+    if (candidates.length > 1 && state.recentShown.length) {
+      const recent = state.recentShown;
+      let narrowed = candidates.filter(c => recent.indexOf(c.id) === -1);
+      if (!narrowed.length) {
+        const lastId = recent[recent.length - 1];
+        narrowed = candidates.filter(c => c.id !== lastId);
+        if (!narrowed.length) narrowed = candidates;
+      }
+      candidates = narrowed;
+    }
     const weighted = candidates.map(c => {
       const w = (c.weight || 1) * (state.seenIds && state.seenIds.has(c.id) ? 0.33 : 1.0);
       return { line: c, weight: w };
@@ -1866,6 +1946,11 @@
 
   function scheduleContentTick() {
     clearTimeout(state.contentTimer);
+    /* V1: never re-arm the cadence while hidden. A stray wake tick (or any
+     * tick) firing during a hidden interval must not resurrect the engine
+     * the visibility handler paused; resumption is driven by the wake tick
+     * in onVisibilityChange when the tab returns. */
+    if (document.hidden) return;
     const interval = CONTENT_TICK_INTERVAL[state.mode];
     if (!interval) return;   /* quiet mode → engine off */
     const [min, max] = interval;
@@ -1946,8 +2031,14 @@
     if (type === 'block') {
       state.lastBlockAt = Date.now();
       if (typeof data.height === 'number' && data.height > state.maxSeenHeight) {
+        /* T1: the first block ever observed only seeds the monotonic guard.
+         * A slow WS connect + backfill can land the first block AFTER the
+         * time-based boot grace has expired; narrating it would announce a
+         * stale block as "just landed". Seed silently, mirroring the
+         * lastSeenPeak===null first-frame seed used for peaks. */
+        const wasUnseeded = state.maxSeenHeight < 0;
         state.maxSeenHeight = data.height;
-        isNewTip = true;
+        isNewTip = !wasUnseeded;
       }
     }
 
@@ -1955,6 +2046,13 @@
      * page load through the same code paths as live arrivals. None of
      * that is news — observe it (above), never speak it. */
     if (Date.now() - state.busSubscribedAt < EVENT_BOOT_GRACE_MS) return;
+
+    /* M1: don't narrate live events while the tab is hidden. Bookkeeping
+     * above (tip height, drought clock, chronik link, stats) already ran,
+     * so state stays correct; this suppresses only the spoken reaction —
+     * and the unbounded queue growth it would otherwise cause. Mirrors the
+     * document.hidden gate in evaluateTrends/evaluateTpsEdges. */
+    if (document.hidden) return;
 
     /* Monotonic guard: only the new tip is "just landed". Re-announced,
      * reorged, or out-of-order blocks are observed but not narrated. */
@@ -2454,7 +2552,10 @@
     if (tps > NETWORK_BUSY_TPS)        now = 'busy';
     else if (tps < NETWORK_QUIET_TPS)  now = 'quiet';
 
-    if (now !== state.lastNetState && now !== 'normal') {
+    /* T2/L1: the first frame only seeds lastNetState. Without this guard a
+     * load landing on a busy/quiet network fires an edge line off the
+     * default 'normal', colliding with the greeting. Mirrors lastSeenPeak. */
+    if (state.netSeeded && now !== state.lastNetState && now !== 'normal') {
       const trigger = (now === 'busy') ? 'network:busy' : 'network:quiet';
       const pool = (state.seedByTrigger[trigger] || []).filter(isLineEligible);
       const got = pickAndFill(pool, liveVars());
@@ -2471,6 +2572,7 @@
       }
     }
     state.lastNetState = now;
+    state.netSeeded = true;
   }
 
   function pollNetwork() {
@@ -2508,6 +2610,8 @@
       clearTimeout(state.contentTimer);
       clearTimeout(state.networkTimer);
       clearTimeout(state.trendTimer);
+      clearTimeout(state.wakeTimer);
+      flushSeenRing();
     } else {
       /* Resume work. Finish any in-progress typewriter so the message
        * isn't half-revealed when the user returns. */
@@ -2519,7 +2623,8 @@
        * tick self-schedules the next one at normal cadence, so no
        * double-tick risk. Eliminates the long silence after returning
        * from a hidden tab. */
-      setTimeout(contentTick, WAKE_TICK_DELAY_MS);
+      clearTimeout(state.wakeTimer);
+      state.wakeTimer = setTimeout(contentTick, WAKE_TICK_DELAY_MS);
     }
   }
   function onDocClick(e) {
@@ -2592,7 +2697,7 @@
           pulseOff: pulseRailOff,
           tick: contentTick,
           clearSeen: () => { state.seenIds.clear(); persistSeenRing(); },
-          clearQuiet: () => { lsRemove(STORAGE.quietUntil); },
+          clearQuiet: () => { state.quietUntil = 0; },
           forceGreet: () => { lsRemove(STORAGE.greeted); maybeGreet(); },
           triggerEaster,
           /* v1.3.1 — event bus / trend debug surface */
@@ -2669,6 +2774,8 @@
     document.addEventListener('visibilitychange', state.visHandler);
     document.addEventListener('click', state.docClickHandler);
     document.addEventListener('keydown', state.keyHandler);
+    /* P1: last-chance flush of the debounced seen-ring on unload. */
+    window.addEventListener('pagehide', flushSeenRing);
     /* Audio unlock — capture phase fires before any click handler, so the
      * very first interaction (including the sound toggle itself) counts. */
     document.addEventListener('pointerdown', unlockAudioOnGesture, { once: true, capture: true });
