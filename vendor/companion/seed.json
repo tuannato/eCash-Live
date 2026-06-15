@@ -1,6 +1,6 @@
 {
   "_comment": "eChan seed content — v1.3.1. Hand-editable; reload page to apply. Triggers: welcome:firstVisit, welcome:returning, time:morning|afternoon|evening|night, network:quiet|busy, idle:short, idle:long, random, manual, and v1.3.1 event triggers: event:block, event:blockfinal, event:bigtx (whale ≥1B XEC), event:sharktx (100M–1B XEC), event:fastttf, event:slowttf, event:blockdrought, event:fusion, event:watchlist, event:onchainmsg, event:trend:tps_up, event:trend:tps_down, event:trend:ttf_up, event:trend:ttf_down, event:trend:peak. Event lines may use template vars: {height} {txCount} {valueXec} {ttfMs} {pct} {peakTps} {watched} {msgType} {mins} — a line referencing a var the event doesn't carry is skipped. Emotions: neutral, happy, thinking, alert, celebrate, sleepy, studying, observing, shy, annoyed. Lines WITHOUT an emotion field inherit categoryDefaults[category]; an explicit emotion field overrides. priority: 1 shows in Chatty, 2 in Casual+, 3 always (announcements). v1.3.1 audit additions: optional per-line \"requires\" condition checked against live state (net:quiet | net:busy | net:notbusy | feed:up) — line is skipped when the condition isn't true right now. Live template vars usable in ANY line: {liveTps} {liveTtf}(seconds) {livePeak} {liveTxCount} {tipHeight} {ttfSec}(seconds) — auto-skipped while data is stale. Tour (v1.3.2): trigger 'tour:step' with ordered `step` field + optional `spot` selector; fully translatable via seed.<lang>.json.",
-  "version": 2,
+  "version": 3,
   "categoryDefaults": {
     "welcome": "happy",
     "greeting": "happy",
@@ -1462,6 +1462,24 @@
       "text": "That {liveTtf}s median you see? Pure Avalanche pre-consensus 😎 most chains make you wait on blocks — eCash quietly finalizes underneath."
     },
     {
+      "id": "edu-stats-3",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "See that {livePctUnder3s} under 3 seconds? Every one was finalized by avalanche pre-consensus — no block wait 💡"
+    },
+    {
+      "id": "edu-stats-4",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Consistency matters: the gap from fastest to slowest finality is only {liveTtfSpread}s. Predictable is powerful 📏"
+    },
+    {
       "id": "fun-popcorn-2",
       "category": "fun",
       "trigger": "random",
@@ -1659,6 +1677,69 @@
       "priority": 1,
       "weight": 1,
       "text": "Everything on this board is streaming live 📺 what you see is what the network is doing this very second."
+    },
+    {
+      "id": "amb-live-7",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Finality's running {liveTtfNow}s this minute — {liveTtf}s is typical for today. Avalanche stays sharp ⚡"
+    },
+    {
+      "id": "amb-live-8",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Last 60 seconds: {liveTpsNow} TPS flowing through. This is the chain breathing in real time 🌊"
+    },
+    {
+      "id": "amb-live-9",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Finality's rock-steady right now — fastest to slowest within {liveTtfSpread}s of each other 🎯"
+    },
+    {
+      "id": "amb-live-10",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{livePctUnder3s} of today's transactions finalized under 3 seconds. That's not a target, that's just normal here 😎"
+    },
+    {
+      "id": "amb-live-11",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Fastest finalize I've clocked this session: {liveFastest}s ⚡ Blink and you'd miss it."
+    },
+    {
+      "id": "amb-live-12",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{liveSessBlocks} blocks have landed since you opened this 🧱 The chain doesn't take breaks."
+    },
+    {
+      "id": "amb-live-13",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "That's {liveSessWhales} whale moves this session 🐋 Big money's comfortable here."
     },
     {
       "id": "evt-block-4",
@@ -1989,6 +2070,15 @@
       "text": "Today's peak so far: {livePeak} TPS — currently {liveTps} 🌊 the chain breathes in waves."
     },
     {
+      "id": "net-stats-5",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Right now: {liveTpsNow} TPS, against today's peak of {livePeak} 📊 The chain rides in waves."
+    },
+    {
       "id": "amb-stats-2",
       "category": "ambient",
       "trigger": "random",
@@ -1997,12 +2087,30 @@
       "text": "Median finality's at {liveTtf}s right now 😎 past that point, blocks are just bookkeeping."
     },
     {
+      "id": "amb-stats-3",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Median finality this minute: {liveTtfNow}s 😌 Quietly faster than you'd think."
+    },
+    {
       "id": "fun-stats-2",
       "category": "fun",
       "trigger": "random",
       "priority": 1,
       "weight": 1,
       "text": "I've watched {liveTxCount} txs finalize in the last 24h 👁️ still not bored."
+    },
+    {
+      "id": "fun-stats-3",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "My personal record this session: a {liveFastest}s finalize 🏁 I keep a little leaderboard in my head."
     }
   ]
 }

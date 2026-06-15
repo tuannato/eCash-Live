@@ -1,5 +1,5 @@
 # =============================================================================
-# ttf-relay.py v1.5.4
+# ttf-relay.py v1.5.5
 #
 # Tails Bitcoin ABC's debug.log, parses Avalanche pre-consensus events,
 # computes TTF (time-to-final) for each transaction, and broadcasts the
@@ -7,6 +7,15 @@
 # subscribes to this feed to display node-precise TTF values instead of
 # the client-side approximation (which includes WebSocket and propagation
 # latency).
+#
+# v1.5.5 changes (additive schema, no breaking change):
+#   Two short-window "now" fields in the `stats` frame, computed in the
+#   existing snapshot pass (no extra scan):
+#     - `tpsNow`:       trailing-60s transaction rate.
+#     - `ttfP50NowMs`:  median finality over the trailing 5 min.
+#   They let the frontend contrast "right now" against the 24h baseline
+#   (tps / ttfP50Ms). Older clients ignore them; the persisted ring is
+#   unchanged (these are live-only, not serialized).
 #
 # v1.5.4 changes (additive schema, no breaking change):
 #   1. Three new fields in the periodic `stats` frame and persisted ring:
@@ -523,6 +532,15 @@ class StatsRing:
         # (= abs_idx // 6) → cumulative count in that minute.
         minute_counts = {}
 
+        # v1.5.5: short-window "now" metrics, accumulated in this same pass
+        # (no extra scan). tpsNow = trailing-60s rate; ttfP50NowMs = median
+        # finality over the trailing 5 min, to contrast with the 24h p50.
+        now_lo_60 = now - 60
+        now_lo_300 = now - 300
+        now60_count = 0
+        now300_int = 0
+        now300_hist = [0] * _HIST_BIN_COUNT
+
         for slot in self.slots:
             a = slot["idx"]
             if a < oldest_abs or a > cur_abs or slot["count"] == 0:
@@ -548,6 +566,15 @@ class StatsRing:
             # current trailing-edge rate".
             minute_idx = a // 6
             minute_counts[minute_idx] = minute_counts.get(minute_idx, 0) + slot["count"]
+            # v1.5.5: fold the same slot into the trailing-60s and 5-min
+            # windows. Full (un-fracted) counts — a rate/percentile estimate
+            # over a short window doesn't need the 24h edge weighting.
+            if bucket_start_ts >= now_lo_60:
+                now60_count += slot["count"]
+            if bucket_start_ts >= now_lo_300:
+                now300_int += slot["count"]
+                for i, c in enumerate(slot["hist"]):
+                    now300_hist[i] += c
 
         tps = total_count / STATS_WINDOW_SEC if STATS_WINDOW_SEC else 0.0
         mean = (ttf_sum / int_count) if int_count else None
@@ -571,6 +598,12 @@ class StatsRing:
         else:
             pct_under_3s = None
 
+        # v1.5.5: trailing-window rate + median. p50_now is None when no
+        # samples landed in the last 5 min (caller emits null → frontend
+        # drops the field).
+        tps_now = now60_count / 60.0
+        p50_now = _hist_percentile(now300_hist, now300_int, 0.50)
+
         return {
             "tps": round(tps, 4),
             "ttfP10Ms": round(p10) if p10 is not None else None,
@@ -582,6 +615,9 @@ class StatsRing:
             # v1.5.4 additions — additive, older clients ignore.
             "tpsPeak24h": round(tps_peak, 4),
             "pctFinalUnder3s": round(pct_under_3s, 4) if pct_under_3s is not None else None,
+            # v1.5.5 additions — additive, older clients ignore.
+            "tpsNow": round(tps_now, 4),
+            "ttfP50NowMs": round(p50_now) if p50_now is not None else None,
             # currentClients injected at broadcast site (snapshot doesn't see
             # the clients set). See stats_broadcaster.
         }

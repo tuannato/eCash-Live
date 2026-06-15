@@ -1,6 +1,6 @@
 {
   "_comment": "eChan seed — Українська (uk). Generated from English seed.json; same schema/ids/triggers/vars. English source: seed.json. Technical terms kept in English by design.",
-  "version": 2,
+  "version": 3,
   "categoryDefaults": {
     "welcome": "happy",
     "greeting": "happy",
@@ -1462,6 +1462,24 @@
       "text": "Ця {liveTtf}с медіанної finality, що ти бачиш? Чистий Avalanche pre-consensus 😎 більшість ланцюгів змушує чекати block'и — eCash тихо фіналить нижче."
     },
     {
+      "id": "edu-stats-3",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Бачиш ті {livePctUnder3s} швидше за 3 секунди? Кожну фіналізував Avalanche pre-consensus — без очікування block'ів 💡"
+    },
+    {
+      "id": "edu-stats-4",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Стабільність важлива: розрив між найшвидшою та найповільнішою фінальністю лише {liveTtfSpread} с. Передбачуване — це сила 📏"
+    },
+    {
       "id": "fun-popcorn-2",
       "category": "fun",
       "trigger": "random",
@@ -1659,6 +1677,69 @@
       "priority": 1,
       "weight": 1,
       "text": "Усе на цій панелі стримиться наживо 📺 що ти бачиш — це те, що мережа робить у цю саму секунду."
+    },
+    {
+      "id": "amb-live-7",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Цієї хвилини фінальність {liveTtfNow} с — {liveTtf} с типово для сьогодні. Avalanche лишається гострим ⚡"
+    },
+    {
+      "id": "amb-live-8",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Останні 60 секунд: {liveTpsNow} TPS течуть крізь. Це ланцюг, що дихає в реальному часі 🌊"
+    },
+    {
+      "id": "amb-live-9",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Фінальність зараз міцна, як скеля — від найшвидшого до найповільнішого лише {liveTtfSpread} с різниці 🎯"
+    },
+    {
+      "id": "amb-live-10",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{livePctUnder3s} сьогоднішніх транзакцій фіналізувалися швидше за 3 секунди. Не ціль, тут це норма 😎"
+    },
+    {
+      "id": "amb-live-11",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Найшвидша фіналізація, яку я засікла за сесію: {liveFastest} с ⚡ Кліпнеш — пропустиш."
+    },
+    {
+      "id": "amb-live-12",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{liveSessBlocks} block'ів приземлилося відтоді, як ти це відкрив 🧱 Ланцюг не робить пауз."
+    },
+    {
+      "id": "amb-live-13",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Уже {liveSessWhales} рухів китів за сесію 🐋 Великим грошам тут затишно."
     },
     {
       "id": "evt-block-4",
@@ -1989,6 +2070,15 @@
       "text": "Пік дня поки що: {livePeak} TPS — зараз {liveTps} 🌊 ланцюг дихає хвилями."
     },
     {
+      "id": "net-stats-5",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Просто зараз: {liveTpsNow} TPS, проти сьогоднішнього піку {livePeak} 📊 Ланцюг іде хвилями."
+    },
+    {
       "id": "amb-stats-2",
       "category": "ambient",
       "trigger": "random",
@@ -1997,12 +2087,30 @@
       "text": "Медіанна finality зараз на {liveTtf}с 😎 за цією точкою block'и — це вже просто бухгалтерія."
     },
     {
+      "id": "amb-stats-3",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Медіанна фінальність цієї хвилини: {liveTtfNow} с 😌 Тихо швидше, ніж ти думаєш."
+    },
+    {
       "id": "fun-stats-2",
       "category": "fun",
       "trigger": "random",
       "priority": 1,
       "weight": 1,
       "text": "Я спостерігала, як за останні 24г фіналізувалось {liveTxCount} tx 👁️ і досі не нудно."
+    },
+    {
+      "id": "fun-stats-3",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Мій особистий рекорд за сесію: фіналізація за {liveFastest} с 🏁 Я тримаю маленьку таблицю лідерів у голові."
     }
   ]
 }

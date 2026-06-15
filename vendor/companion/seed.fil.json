@@ -1,6 +1,6 @@
 {
   "_comment": "eChan seed — Filipino (fil). Generated from English seed.json; same schema/ids/triggers/vars. English source: seed.json. Technical terms kept in English by design.",
-  "version": 2,
+  "version": 3,
   "categoryDefaults": {
     "welcome": "happy",
     "greeting": "happy",
@@ -1462,6 +1462,24 @@
       "text": "Ang {liveTtf}s median na nakikita mo? Puro Avalanche pre-consensus 😎 pinaghihintay ka ng karamihan sa chain sa block — tahimik na finalize ng eCash sa ilalim."
     },
     {
+      "id": "edu-stats-3",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Kita mo 'yang {livePctUnder3s} na wala pang 3 segundo? Bawat isa ay fina-finalize ng Avalanche pre-consensus — walang hintay sa block 💡"
+    },
+    {
+      "id": "edu-stats-4",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Mahalaga ang consistency: ang agwat ng pinakamabilis at pinakamabagal na finality ay {liveTtfSpread} seg lang. Malakas ang nahuhulaan 📏"
+    },
+    {
       "id": "fun-popcorn-2",
       "category": "fun",
       "trigger": "random",
@@ -1659,6 +1677,69 @@
       "priority": 1,
       "weight": 1,
       "text": "Lahat sa board na 'to ay nag-stream nang live 📺 ang nakikita mo ay ang ginagawa ng network mismo ngayon."
+    },
+    {
+      "id": "amb-live-7",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Ngayong minutong ito, nasa {liveTtfNow} seg ang finality — {liveTtf} seg ang karaniwan ngayon. Matalas pa rin ang Avalanche ⚡"
+    },
+    {
+      "id": "amb-live-8",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Nakaraang 60 segundo: {liveTpsNow} TPS ang dumadaloy. Ito ang chain na humihinga nang real-time 🌊"
+    },
+    {
+      "id": "amb-live-9",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Matatag ang finality ngayon — mula pinakamabilis hanggang pinakamabagal, {liveTtfSpread} seg lang ang agwat 🎯"
+    },
+    {
+      "id": "amb-live-10",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{livePctUnder3s} ng mga transaksiyon ngayon ay na-finalize nang wala pang 3 segundo. Hindi target, normal lang dito 😎"
+    },
+    {
+      "id": "amb-live-11",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Pinakamabilis na finalize na na-time ko ngayong session: {liveFastest} seg ⚡ Kumurap ka lang, lagpas na."
+    },
+    {
+      "id": "amb-live-12",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{liveSessBlocks} block na ang dumating mula nang buksan mo ito 🧱 Hindi nagpapahinga ang chain."
+    },
+    {
+      "id": "amb-live-13",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{liveSessWhales} na galaw ng whale ngayong session 🐋 Komportable dito ang malaking pera."
     },
     {
       "id": "evt-block-4",
@@ -1989,6 +2070,15 @@
       "text": "Peak ng araw sa ngayon: {livePeak} TPS — kasalukuyan {liveTps} 🌊 humihinga sa alon ang chain."
     },
     {
+      "id": "net-stats-5",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Ngayon: {liveTpsNow} TPS, kontra sa rurok ngayong araw na {livePeak} 📊 Umaalon ang chain."
+    },
+    {
       "id": "amb-stats-2",
       "category": "ambient",
       "trigger": "random",
@@ -1997,12 +2087,30 @@
       "text": "Nasa {liveTtf}s ang median finality ngayon mismo 😎 lagpas sa puntong 'yan, accounting na lang ang mga block."
     },
     {
+      "id": "amb-stats-3",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Median finality ngayong minuto: {liveTtfNow} seg 😌 Tahimik na mas mabilis kaysa akala mo."
+    },
+    {
       "id": "fun-stats-2",
       "category": "fun",
       "trigger": "random",
       "priority": 1,
       "weight": 1,
       "text": "Napanood ko nang mag-finalize ang {liveTxCount} tx sa nakalipas na 24h 👁️ hindi pa rin nakakaumay."
+    },
+    {
+      "id": "fun-stats-3",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Personal kong rekord ngayong session: isang {liveFastest} seg na finalize 🏁 May maliit akong leaderboard sa isip."
     }
   ]
 }

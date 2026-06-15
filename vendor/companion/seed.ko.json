@@ -1,6 +1,6 @@
 {
   "_comment": "eChan seed — 한국어 (ko). Generated from English seed.json; same schema/ids/triggers/vars. English source: seed.json. Technical terms kept in English by design.",
-  "version": 2,
+  "version": 3,
   "categoryDefaults": {
     "welcome": "happy",
     "greeting": "happy",
@@ -1462,6 +1462,24 @@
       "text": "보이는 그 중앙값 {liveTtf}초? 순수한 Avalanche pre-consensus 😎 대부분 체인은 너를 block 앞에서 기다리게 하지만 — eCash는 그 아래에서 조용히 finalize해."
     },
     {
+      "id": "edu-stats-3",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "저 3초 미만의 {livePctUnder3s} 보여? 전부 Avalanche pre-consensus가 파이널라이즈했어 — block 기다림 없이 💡"
+    },
+    {
+      "id": "edu-stats-4",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "일관성이 중요해: 가장 빠른 파이널리티와 가장 느린 것의 차이가 겨우 {liveTtfSpread}초. 예측 가능하다는 건 강력한 거야 📏"
+    },
+    {
       "id": "fun-popcorn-2",
       "category": "fun",
       "trigger": "random",
@@ -1659,6 +1677,69 @@
       "priority": 1,
       "weight": 1,
       "text": "이 보드의 모든 게 라이브 스트리밍 중 📺 네가 보는 게, 네트워크가 바로 이 순간 하고 있는 일이야."
+    },
+    {
+      "id": "amb-live-7",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "이번 분 파이널리티는 {liveTtfNow}초 — {liveTtf}초가 오늘 평소 수준이야. Avalanche는 여전히 날카로워 ⚡"
+    },
+    {
+      "id": "amb-live-8",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "지난 60초: {liveTpsNow} TPS가 흐르고 있어. 이게 실시간으로 숨 쉬는 체인이야 🌊"
+    },
+    {
+      "id": "amb-live-9",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "지금 파이널리티는 바위처럼 단단해 — 가장 빠른 것과 느린 것 차이가 고작 {liveTtfSpread}초 🎯"
+    },
+    {
+      "id": "amb-live-10",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "오늘 거래의 {livePctUnder3s}가 3초 미만에 파이널라이즈됐어. 목표가 아니라, 여기선 그냥 평범한 일이야 😎"
+    },
+    {
+      "id": "amb-live-11",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "이번 세션에서 잰 가장 빠른 파이널라이즈: {liveFastest}초 ⚡ 눈 깜짝하면 놓쳐."
+    },
+    {
+      "id": "amb-live-12",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "네가 이걸 연 뒤로 {liveSessBlocks}개의 block이 착지했어 🧱 체인은 쉬지 않아."
+    },
+    {
+      "id": "amb-live-13",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "이번 세션에 벌써 고래 움직임이 {liveSessWhales}번 🐋 큰돈은 여기가 편한가 봐."
     },
     {
       "id": "evt-block-4",
@@ -1989,6 +2070,15 @@
       "text": "오늘 지금까지 피크: {livePeak} TPS — 현재 {liveTps} 🌊 체인은 파도로 숨 쉰다."
     },
     {
+      "id": "net-stats-5",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "바로 지금: {liveTpsNow} TPS, 오늘 피크 {livePeak} 대비 📊 체인은 파도를 타고 움직여."
+    },
+    {
       "id": "amb-stats-2",
       "category": "ambient",
       "trigger": "random",
@@ -1997,12 +2087,30 @@
       "text": "중앙값 finality가 지금 {liveTtf}초 😎 그 지점 너머의 block은 그냥 장부 정리야."
     },
     {
+      "id": "amb-stats-3",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "이번 분 중앙값 파이널리티: {liveTtfNow}초 😌 생각보다 조용히 더 빨라."
+    },
+    {
       "id": "fun-stats-2",
       "category": "fun",
       "trigger": "random",
       "priority": 1,
       "weight": 1,
       "text": "지난 24시간 동안 {liveTxCount}개의 tx가 finalize되는 걸 봤어 👁️ 아직 안 질려."
+    },
+    {
+      "id": "fun-stats-3",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "이번 세션 내 개인 기록: {liveFastest}초 파이널라이즈 🏁 머릿속에 작은 리더보드를 두고 있어."
     }
   ]
 }

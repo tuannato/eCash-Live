@@ -1,6 +1,6 @@
 {
   "_comment": "eChan seed — Deutsch (de). Generated from English seed.json; same schema/ids/triggers/vars. English source: seed.json. Technical terms kept in English by design.",
-  "version": 2,
+  "version": 3,
   "categoryDefaults": {
     "welcome": "happy",
     "greeting": "happy",
@@ -1462,6 +1462,24 @@
       "text": "Diese Median-{liveTtf}s, die du siehst? Reiner Avalanche pre-consensus 😎 die meisten Chains lassen dich auf Blocks warten — eCash finalisiert leise darunter."
     },
     {
+      "id": "edu-stats-3",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Siehst du diese {livePctUnder3s} unter 3 Sekunden? Jede davon hat Avalanche pre-consensus finalisiert — ohne auf Blocks zu warten 💡"
+    },
+    {
+      "id": "edu-stats-4",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Konstanz zählt: der Abstand zwischen schnellster und langsamster Finalität beträgt nur {liveTtfSpread} s. Vorhersehbar ist mächtig 📏"
+    },
+    {
       "id": "fun-popcorn-2",
       "category": "fun",
       "trigger": "random",
@@ -1659,6 +1677,69 @@
       "priority": 1,
       "weight": 1,
       "text": "Alles auf diesem Board streamt live 📺 was du siehst, ist das, was das Netzwerk in dieser Sekunde tut."
+    },
+    {
+      "id": "amb-live-7",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Diese Minute liegt die Finalität bei {liveTtfNow} s — {liveTtf} s ist heute typisch. Avalanche bleibt scharf ⚡"
+    },
+    {
+      "id": "amb-live-8",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Letzte 60 Sekunden: {liveTpsNow} TPS fließen durch. Das ist die Kette, die in Echtzeit atmet 🌊"
+    },
+    {
+      "id": "amb-live-9",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Die Finalität ist gerade felsenfest — vom schnellsten zum langsamsten nur {liveTtfSpread} s Unterschied 🎯"
+    },
+    {
+      "id": "amb-live-10",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{livePctUnder3s} der heutigen Transaktionen unter 3 Sekunden finalisiert. Kein Ziel, hier einfach normal 😎"
+    },
+    {
+      "id": "amb-live-11",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Die schnellste Finalisierung, die ich diese Session gestoppt habe: {liveFastest} s ⚡ Einmal blinzeln und weg."
+    },
+    {
+      "id": "amb-live-12",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{liveSessBlocks} Blocks sind gelandet, seit du das geöffnet hast 🧱 Die Kette macht keine Pause."
+    },
+    {
+      "id": "amb-live-13",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Schon {liveSessWhales} Wal-Bewegungen diese Session 🐋 Großes Geld fühlt sich hier wohl."
     },
     {
       "id": "evt-block-4",
@@ -1989,6 +2070,15 @@
       "text": "Heutiger Peak bisher: {livePeak} TPS — aktuell {liveTps} 🌊 die Chain atmet in Wellen."
     },
     {
+      "id": "net-stats-5",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Gerade jetzt: {liveTpsNow} TPS, gegen das heutige Hoch von {livePeak} 📊 Die Kette läuft in Wellen."
+    },
+    {
       "id": "amb-stats-2",
       "category": "ambient",
       "trigger": "random",
@@ -1997,12 +2087,30 @@
       "text": "Median-Finality liegt gerade bei {liveTtf}s 😎 jenseits dieses Punkts sind Blocks nur noch Buchhaltung."
     },
     {
+      "id": "amb-stats-3",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Mediane Finalität diese Minute: {liveTtfNow} s 😌 Leiser und schneller, als du denkst."
+    },
+    {
       "id": "fun-stats-2",
       "category": "fun",
       "trigger": "random",
       "priority": 1,
       "weight": 1,
       "text": "Ich hab {liveTxCount} tx in den letzten 24h finalisieren sehen 👁️ noch nicht gelangweilt."
+    },
+    {
+      "id": "fun-stats-3",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Mein persönlicher Rekord diese Session: eine Finalisierung in {liveFastest} s 🏁 Ich führe eine kleine Bestenliste im Kopf."
     }
   ]
 }

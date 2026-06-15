@@ -1,6 +1,6 @@
 {
   "_comment": "eChan seed — 日本語 (ja). Generated from English seed.json; same schema/ids/triggers/vars. English source: seed.json. Technical terms kept in English by design.",
-  "version": 2,
+  "version": 3,
   "categoryDefaults": {
     "welcome": "happy",
     "greeting": "happy",
@@ -1462,6 +1462,24 @@
       "text": "見えてるその中央値{liveTtf}秒? 純粋なAvalanche pre-consensus 😎 ほとんどのチェーンはblockを待たせるけど — eCashは下で静かにfinalizeしてる。"
     },
     {
+      "id": "edu-stats-3",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "あの3秒未満の{livePctUnder3s}、見える？ どれもAvalanche pre-consensusがファイナライズした — blockを待たずに 💡"
+    },
+    {
+      "id": "edu-stats-4",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "一貫性が大事：最速と最遅のファイナリティの差はたった{liveTtfSpread}秒。予測できるって強い 📏"
+    },
+    {
       "id": "fun-popcorn-2",
       "category": "fun",
       "trigger": "random",
@@ -1659,6 +1677,69 @@
       "priority": 1,
       "weight": 1,
       "text": "このボード上の全てがライブストリーミング 📺 君が見てるのが、ネットワークがまさにこの瞬間にやってること。"
+    },
+    {
+      "id": "amb-live-7",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "この1分、ファイナリティは{liveTtfNow}秒 — {liveTtf}秒が今日の標準。Avalancheは切れ味そのまま ⚡"
+    },
+    {
+      "id": "amb-live-8",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "直近60秒：{liveTpsNow} TPSが流れてる。これがリアルタイムで呼吸するチェーン 🌊"
+    },
+    {
+      "id": "amb-live-9",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "今ファイナリティは岩のように安定 — 最速から最遅までたった{liveTtfSpread}秒差 🎯"
+    },
+    {
+      "id": "amb-live-10",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "今日の取引の{livePctUnder3s}が3秒未満でファイナライズ。目標じゃなくて、ここでは普通のこと 😎"
+    },
+    {
+      "id": "amb-live-11",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "このセッションで計測した最速ファイナライズ：{liveFastest}秒 ⚡ まばたきしたら見逃すよ。"
+    },
+    {
+      "id": "amb-live-12",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "君がこれを開いてから{liveSessBlocks}個のblockが着地した 🧱 チェーンは休まない。"
+    },
+    {
+      "id": "amb-live-13",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "このセッションでもう{liveSessWhales}回のクジラの動き 🐋 大きなお金はここが居心地いいみたい。"
     },
     {
       "id": "evt-block-4",
@@ -1989,6 +2070,15 @@
       "text": "今日ここまでのピーク: {livePeak} TPS — 現在は{liveTps} 🌊 チェーンは波で呼吸してる。"
     },
     {
+      "id": "net-stats-5",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "今まさに：{liveTpsNow} TPS、今日のピーク{livePeak}に対して 📊 チェーンは波に乗って進む。"
+    },
+    {
       "id": "amb-stats-2",
       "category": "ambient",
       "trigger": "random",
@@ -1997,12 +2087,30 @@
       "text": "中央値finalityは今{liveTtf}秒 😎 その先は、blockはただの帳簿付けだよ。"
     },
     {
+      "id": "amb-stats-3",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "この1分の中央値ファイナリティ：{liveTtfNow}秒 😌 思ってるより静かに速い。"
+    },
+    {
       "id": "fun-stats-2",
       "category": "fun",
       "trigger": "random",
       "priority": 1,
       "weight": 1,
       "text": "過去24時間で{liveTxCount}件のtxがfinalizeするのを見てきた 👁️ まだ飽きてないよ。"
+    },
+    {
+      "id": "fun-stats-3",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "このセッションの自己ベスト：{liveFastest}秒のファイナライズ 🏁 頭の中に小さなランキングをつけてるんだ。"
     }
   ]
 }

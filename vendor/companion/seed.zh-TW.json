@@ -1,6 +1,6 @@
 {
   "_comment": "eChan seed — 繁體中文 (zh-TW). Generated from English seed.json; same schema/ids/triggers/vars. English source: seed.json. Technical terms kept in English by design. Distinct Taiwan-localized translation, not an OpenCC conversion of zh-CN.",
-  "version": 2,
+  "version": 3,
   "categoryDefaults": {
     "welcome": "happy",
     "greeting": "happy",
@@ -1462,6 +1462,24 @@
       "text": "你看到的那個中位 {liveTtf} 秒? 純正的 Avalanche pre-consensus 😎 大多數鏈都讓你等 block — eCash 在底下安靜地 finalize。"
     },
     {
+      "id": "edu-stats-3",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "看到那 {livePctUnder3s} 在 3 秒以內了嗎？每一筆都是 Avalanche pre-consensus 最終化的 —— 不用等 block 💡"
+    },
+    {
+      "id": "edu-stats-4",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "一致性很重要：最快和最慢最終性之間只差 {liveTtfSpread} 秒。可預測就是力量 📏"
+    },
+    {
       "id": "fun-popcorn-2",
       "category": "fun",
       "trigger": "random",
@@ -1659,6 +1677,69 @@
       "priority": 1,
       "weight": 1,
       "text": "這個面板上的一切都在即時串流 📺 你看到的就是網路這一秒正在做的事。"
+    },
+    {
+      "id": "amb-live-7",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "這一分鐘最終性在 {liveTtfNow} 秒 —— {liveTtf} 秒是今天的常態。Avalanche 依舊鋒利 ⚡"
+    },
+    {
+      "id": "amb-live-8",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "最近 60 秒：{liveTpsNow} TPS 正在流過。這就是即時呼吸的鏈 🌊"
+    },
+    {
+      "id": "amb-live-9",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "最終性此刻穩如磐石 —— 最快到最慢只差 {liveTtfSpread} 秒 🎯"
+    },
+    {
+      "id": "amb-live-10",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "今天 {livePctUnder3s} 的交易在 3 秒內最終化。不是什麼目標，在這兒這就是常態 😎"
+    },
+    {
+      "id": "amb-live-11",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "這回我掐錶測到的最快最終化：{liveFastest} 秒 ⚡ 一眨眼就錯過。"
+    },
+    {
+      "id": "amb-live-12",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "自從你打開這個，已經有 {liveSessBlocks} 個 block 落地 🧱 鏈從不歇著。"
+    },
+    {
+      "id": "amb-live-13",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "這回已經 {liveSessWhales} 次鯨魚動作 🐋 大錢在這兒很自在。"
     },
     {
       "id": "evt-block-4",
@@ -1989,6 +2070,15 @@
       "text": "今天到目前為止的峰值: {livePeak} TPS — 現在 {liveTps} 🌊 鏈一波一波地呼吸。"
     },
     {
+      "id": "net-stats-5",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "就在此刻：{liveTpsNow} TPS，對比今天的峰值 {livePeak} 📊 鏈一波一波地走。"
+    },
+    {
       "id": "amb-stats-2",
       "category": "ambient",
       "trigger": "random",
@@ -1997,12 +2087,30 @@
       "text": "中位 finality 現在是 {liveTtf} 秒 😎 過了那個點之後，block 就只是記帳。"
     },
     {
+      "id": "amb-stats-3",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "這一分鐘的中位最終性：{liveTtfNow} 秒 😌 比你想的還要安靜地快。"
+    },
+    {
       "id": "fun-stats-2",
       "category": "fun",
       "trigger": "random",
       "priority": 1,
       "weight": 1,
       "text": "過去 24 小時我看著 {liveTxCount} 筆 tx 完成 finalize 👁️ 還沒看膩。"
+    },
+    {
+      "id": "fun-stats-3",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "這回我的個人紀錄：{liveFastest} 秒最終化 🏁 我在腦子裡記著一個小小的排行榜。"
     }
   ]
 }

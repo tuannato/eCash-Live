@@ -1,6 +1,6 @@
 {
   "_comment": "eChan seed — ไทย (th). Generated from English seed.json; same schema/ids/triggers/vars. English source: seed.json. Technical terms kept in English by design.",
-  "version": 2,
+  "version": 3,
   "categoryDefaults": {
     "welcome": "happy",
     "greeting": "happy",
@@ -1462,6 +1462,24 @@
       "text": "ค่ามัธยฐาน {liveTtf}s ที่เห็น? Avalanche pre-consensus เต็มๆ 😎 เชนส่วนใหญ่ทำให้เธอรอ block — eCash finalize อย่างเงียบๆ ข้างใต้"
     },
     {
+      "id": "edu-stats-3",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "เห็น {livePctUnder3s} ที่ต่ำกว่า 3 วินาทีไหม? แต่ละอันถูก Avalanche pre-consensus ยืนยันสิ้นสุด — ไม่ต้องรอ block 💡"
+    },
+    {
+      "id": "edu-stats-4",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ความสม่ำเสมอสำคัญ: ช่องว่างจากความสิ้นสุดเร็วสุดถึงช้าสุดแค่ {liveTtfSpread} วิ สิ่งที่คาดเดาได้คือพลัง 📏"
+    },
+    {
       "id": "fun-popcorn-2",
       "category": "fun",
       "trigger": "random",
@@ -1659,6 +1677,69 @@
       "priority": 1,
       "weight": 1,
       "text": "ทุกอย่างบนแดชบอร์ดนี้สตรีมสด 📺 ที่เธอเห็นคือสิ่งที่เครือข่ายกำลังทำในวินาทีนี้เลย"
+    },
+    {
+      "id": "amb-live-7",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "นาทีนี้ความสิ้นสุดอยู่ที่ {liveTtfNow} วิ — {liveTtf} วิ คือค่าปกติของวันนี้ Avalanche ยังคมอยู่ ⚡"
+    },
+    {
+      "id": "amb-live-8",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "60 วินาทีล่าสุด: {liveTpsNow} TPS กำลังไหลผ่าน นี่คือเชนที่หายใจแบบเรียลไทม์ 🌊"
+    },
+    {
+      "id": "amb-live-9",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ความสิ้นสุดตอนนี้นิ่งราวกับหิน — จากเร็วสุดถึงช้าสุดต่างกันแค่ {liveTtfSpread} วิ 🎯"
+    },
+    {
+      "id": "amb-live-10",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{livePctUnder3s} ของธุรกรรมวันนี้ยืนยันสิ้นสุดในเวลาต่ำกว่า 3 วินาที ไม่ใช่เป้าหมายอะไร ที่นี่มันปกติแบบนี้ 😎"
+    },
+    {
+      "id": "amb-live-11",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "การยืนยันสิ้นสุดที่เร็วที่สุดที่ฉันจับเวลาได้เซสชันนี้: {liveFastest} วิ ⚡ กะพริบตาก็พลาด"
+    },
+    {
+      "id": "amb-live-12",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{liveSessBlocks} block ลงจอดแล้วตั้งแต่เธอเปิดอันนี้ 🧱 เชนไม่เคยพัก"
+    },
+    {
+      "id": "amb-live-13",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "เซสชันนี้มีการเคลื่อนของวาฬแล้ว {liveSessWhales} ครั้ง 🐋 เงินก้อนใหญ่อยู่สบายที่นี่"
     },
     {
       "id": "evt-block-4",
@@ -1989,6 +2070,15 @@
       "text": "จุดสูงสุดของวันนี้: {livePeak} TPS — ตอนนี้ {liveTps} 🌊 เชนหายใจเป็นคลื่น"
     },
     {
+      "id": "net-stats-5",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ตอนนี้เลย: {liveTpsNow} TPS เทียบกับพีควันนี้ {livePeak} 📊 เชนเคลื่อนเป็นระลอกคลื่น"
+    },
+    {
       "id": "amb-stats-2",
       "category": "ambient",
       "trigger": "random",
@@ -1997,12 +2087,30 @@
       "text": "ค่ามัธยฐาน finality อยู่ที่ {liveTtf}s ตอนนี้ 😎 พ้นจุดนั้นไป block ก็แค่งานบัญชี"
     },
     {
+      "id": "amb-stats-3",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ความสิ้นสุดมัธยฐานนาทีนี้: {liveTtfNow} วิ 😌 เร็วกว่าที่เธอคิดแบบเงียบๆ"
+    },
+    {
       "id": "fun-stats-2",
       "category": "fun",
       "trigger": "random",
       "priority": 1,
       "weight": 1,
       "text": "ฉันดู tx {liveTxCount} ตัว finalize ใน 24 ชั่วโมงล่าสุด 👁️ ยังไม่เบื่อนะ"
+    },
+    {
+      "id": "fun-stats-3",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "สถิติส่วนตัวของฉันเซสชันนี้: ยืนยันสิ้นสุดใน {liveFastest} วิ 🏁 ฉันเก็บกระดานผู้นำเล็กๆ ไว้ในหัว"
     }
   ]
 }

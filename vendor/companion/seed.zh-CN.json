@@ -1,6 +1,6 @@
 {
   "_comment": "eChan seed — 简体中文 (zh-CN). Generated from English seed.json; same schema/ids/triggers/vars. English source: seed.json. Technical terms kept in English by design.",
-  "version": 2,
+  "version": 3,
   "categoryDefaults": {
     "welcome": "happy",
     "greeting": "happy",
@@ -1462,6 +1462,24 @@
       "text": "你看到的那个中位 {liveTtf}s? 纯粹的 Avalanche pre-consensus 😎 大多数链让你等 block — eCash 在底下悄悄 finalize。"
     },
     {
+      "id": "edu-stats-3",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "看到那 {livePctUnder3s} 在 3 秒以内了吗？每一笔都是 Avalanche pre-consensus 终局化的 —— 不用等 block 💡"
+    },
+    {
+      "id": "edu-stats-4",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "一致性很重要：最快和最慢终局性之间只差 {liveTtfSpread} 秒。可预测就是力量 📏"
+    },
+    {
       "id": "fun-popcorn-2",
       "category": "fun",
       "trigger": "random",
@@ -1659,6 +1677,69 @@
       "priority": 1,
       "weight": 1,
       "text": "这个看板上的一切都在实时流送 📺 你看到的就是网络这一秒正在做的事。"
+    },
+    {
+      "id": "amb-live-7",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "这一分钟终局性在 {liveTtfNow} 秒 —— {liveTtf} 秒是今天的常态。Avalanche 依旧锋利 ⚡"
+    },
+    {
+      "id": "amb-live-8",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "最近 60 秒：{liveTpsNow} TPS 正在流过。这就是实时呼吸的链 🌊"
+    },
+    {
+      "id": "amb-live-9",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "终局性此刻稳如磐石 —— 最快到最慢只差 {liveTtfSpread} 秒 🎯"
+    },
+    {
+      "id": "amb-live-10",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "今天 {livePctUnder3s} 的交易在 3 秒内终局化。不是什么目标，在这儿这就是常态 😎"
+    },
+    {
+      "id": "amb-live-11",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "这次会话我掐表测到的最快终局化：{liveFastest} 秒 ⚡ 一眨眼就错过。"
+    },
+    {
+      "id": "amb-live-12",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "自从你打开这个，已经有 {liveSessBlocks} 个 block 落地 🧱 链从不歇着。"
+    },
+    {
+      "id": "amb-live-13",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "这次会话已经 {liveSessWhales} 次鲸鱼动作 🐋 大钱在这儿很自在。"
     },
     {
       "id": "evt-block-4",
@@ -1989,6 +2070,15 @@
       "text": "今日截至目前的峰值: {livePeak} TPS — 现在 {liveTps} 🌊 链在按浪呼吸。"
     },
     {
+      "id": "net-stats-5",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "就在此刻：{liveTpsNow} TPS，对比今天的峰值 {livePeak} 📊 链一波一波地走。"
+    },
+    {
       "id": "amb-stats-2",
       "category": "ambient",
       "trigger": "random",
@@ -1997,12 +2087,30 @@
       "text": "中位 finality 现在是 {liveTtf}s 😎 过了那个点，block 就只是记账。"
     },
     {
+      "id": "amb-stats-3",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "这一分钟的中位终局性：{liveTtfNow} 秒 😌 比你想的还要安静地快。"
+    },
+    {
       "id": "fun-stats-2",
       "category": "fun",
       "trigger": "random",
       "priority": 1,
       "weight": 1,
       "text": "过去 24 小时我看着 {liveTxCount} 笔 tx 完成 finalize 👁️ 还没看腻。"
+    },
+    {
+      "id": "fun-stats-3",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "这次会话我的个人纪录：{liveFastest} 秒终局化 🏁 我在脑子里记着一个小小的排行榜。"
     }
   ]
 }

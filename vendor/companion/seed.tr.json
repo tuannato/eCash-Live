@@ -1,6 +1,6 @@
 {
   "_comment": "eChan seed — Türkçe (tr). Generated from English seed.json; same schema/ids/triggers/vars. English source: seed.json. Technical terms kept in English by design.",
-  "version": 2,
+  "version": 3,
   "categoryDefaults": {
     "welcome": "happy",
     "greeting": "happy",
@@ -1462,6 +1462,24 @@
       "text": "Şu {liveTtf}sn medyan mı? Saf Avalanche pre-consensus 😎 çoğu zincir seni block beklemeye zorlar — eCash altta sessizce finalize eder."
     },
     {
+      "id": "edu-stats-3",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Şu 3 saniye altındaki {livePctUnder3s} oranı görüyor musun? Her biri Avalanche pre-consensus ile kesinleşti — block beklemeden 💡"
+    },
+    {
+      "id": "edu-stats-4",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Tutarlılık önemli: en hızlı ve en yavaş kesinlik arasındaki fark yalnızca {liveTtfSpread} sn. Öngörülebilir olmak güçlüdür 📏"
+    },
+    {
       "id": "fun-popcorn-2",
       "category": "fun",
       "trigger": "random",
@@ -1659,6 +1677,69 @@
       "priority": 1,
       "weight": 1,
       "text": "Bu panodaki her şey canlı yayınlanıyor 📺 gördüğün, ağın bu saniye yaptığı şey."
+    },
+    {
+      "id": "amb-live-7",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Bu dakika kesinlik {liveTtfNow} sn'de — {liveTtf} sn bugün için tipik. Avalanche keskin kalıyor ⚡"
+    },
+    {
+      "id": "amb-live-8",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Son 60 saniye: {liveTpsNow} TPS akıyor. İşte zincirin gerçek zamanlı nefesi 🌊"
+    },
+    {
+      "id": "amb-live-9",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Kesinlik şu an kaya gibi sağlam — en hızlıdan en yavaşa yalnızca {liveTtfSpread} sn fark 🎯"
+    },
+    {
+      "id": "amb-live-10",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Bugünkü işlemlerin {livePctUnder3s} kadarı 3 saniyenin altında kesinleşti. Hedef değil, burada bu normal 😎"
+    },
+    {
+      "id": "amb-live-11",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Bu oturumda kaydettiğim en hızlı kesinleşme: {liveFastest} sn ⚡ Göz açıp kapayınca kaçırırsın."
+    },
+    {
+      "id": "amb-live-12",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Sen bunu açtığından beri {liveSessBlocks} block indi 🧱 Zincir ara vermiyor."
+    },
+    {
+      "id": "amb-live-13",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Bu oturumda şimdiden {liveSessWhales} balina hareketi 🐋 Büyük para burada rahat."
     },
     {
       "id": "evt-block-4",
@@ -1989,6 +2070,15 @@
       "text": "Şimdiye kadarki günlük zirve: {livePeak} TPS — şu an {liveTps} 🌊 zincir dalgalarla nefes alıyor."
     },
     {
+      "id": "net-stats-5",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Şu anda: {liveTpsNow} TPS, bugünün zirvesi {livePeak}'e karşı 📊 Zincir dalgalar hâlinde ilerliyor."
+    },
+    {
       "id": "amb-stats-2",
       "category": "ambient",
       "trigger": "random",
@@ -1997,12 +2087,30 @@
       "text": "Medyan finality şu an {liveTtf}sn 😎 o noktanın ötesinde block'lar sadece muhasebe."
     },
     {
+      "id": "amb-stats-3",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Bu dakikanın medyan kesinliği: {liveTtfNow} sn 😌 Sandığından sessizce daha hızlı."
+    },
+    {
       "id": "fun-stats-2",
       "category": "fun",
       "trigger": "random",
       "priority": 1,
       "weight": 1,
       "text": "Son 24 saatte {liveTxCount} tx'in finalize olmasını izledim 👁️ hâlâ sıkılmadım."
+    },
+    {
+      "id": "fun-stats-3",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Bu oturumdaki kişisel rekorum: {liveFastest} sn'lik bir kesinleşme 🏁 Kafamda küçük bir lider tablosu tutuyorum."
     }
   ]
 }

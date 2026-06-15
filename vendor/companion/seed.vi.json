@@ -1,6 +1,6 @@
 {
   "_comment": "eChan seed — Tiếng Việt (vi). Generated from English seed.json; same schema, ids, triggers, vars. English source for review: see seed.json. Technical terms kept in English by design.",
-  "version": 2,
+  "version": 3,
   "categoryDefaults": {
     "welcome": "happy",
     "greeting": "happy",
@@ -1462,6 +1462,24 @@
       "text": "Mức median {liveTtf}s cậu thấy đó? Pre-consensus Avalanche thuần đấy 😎 hầu hết chain bắt cậu chờ block — eCash âm thầm finalize bên dưới."
     },
     {
+      "id": "edu-stats-3",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Thấy {livePctUnder3s} dưới 3 giây đó chứ? Mỗi cái đều được avalanche pre-consensus hoàn tất — không chờ block 💡"
+    },
+    {
+      "id": "edu-stats-4",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Tính nhất quán quan trọng đấy: khoảng cách từ finality nhanh nhất đến chậm nhất chỉ {liveTtfSpread} giây. Đoán trước được là một sức mạnh 📏"
+    },
+    {
       "id": "fun-popcorn-2",
       "category": "fun",
       "trigger": "random",
@@ -1659,6 +1677,69 @@
       "priority": 1,
       "weight": 1,
       "text": "Tất cả trên bảng này đang stream trực tiếp 📺 cậu thấy gì là mạng đang làm cái đó ngay giây này."
+    },
+    {
+      "id": "amb-live-7",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Phút này finality đang ở {liveTtfNow} giây — {liveTtf} giây là mức điển hình hôm nay. Avalanche vẫn sắc bén ⚡"
+    },
+    {
+      "id": "amb-live-8",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "60 giây qua: {liveTpsNow} TPS đang chảy qua. Đây là chuỗi thở theo thời gian thực 🌊"
+    },
+    {
+      "id": "amb-live-9",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Finality đang cực ổn định — nhanh nhất với chậm nhất chỉ cách nhau {liveTtfSpread} giây 🎯"
+    },
+    {
+      "id": "amb-live-10",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{livePctUnder3s} giao dịch hôm nay hoàn tất dưới 3 giây. Không phải mục tiêu gì đâu, ở đây bình thường vậy thôi 😎"
+    },
+    {
+      "id": "amb-live-11",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Lần hoàn tất nhanh nhất mình bấm giờ được phiên này: {liveFastest} giây ⚡ Chớp mắt là lỡ."
+    },
+    {
+      "id": "amb-live-12",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{liveSessBlocks} block đã rơi kể từ lúc bạn mở cái này 🧱 Chuỗi chẳng nghỉ ngơi bao giờ."
+    },
+    {
+      "id": "amb-live-13",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Đã {liveSessWhales} cú cá voi phiên này 🐋 Tiền lớn thấy thoải mái ở đây."
     },
     {
       "id": "evt-block-4",
@@ -1989,6 +2070,15 @@
       "text": "Đỉnh hôm nay tới giờ: {livePeak} TPS — hiện tại {liveTps} 🌊 chain thở theo từng đợt sóng."
     },
     {
+      "id": "net-stats-5",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Ngay lúc này: {liveTpsNow} TPS, so với đỉnh {livePeak} của hôm nay 📊 Chuỗi lướt theo từng đợt sóng."
+    },
+    {
       "id": "amb-stats-2",
       "category": "ambient",
       "trigger": "random",
@@ -1997,12 +2087,30 @@
       "text": "Median finality đang ở {liveTtf}s ngay bây giờ 😎 qua mốc đó, block chỉ là việc kế toán."
     },
     {
+      "id": "amb-stats-3",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Finality trung vị phút này: {liveTtfNow} giây 😌 Lặng lẽ nhanh hơn bạn tưởng."
+    },
+    {
       "id": "fun-stats-2",
       "category": "fun",
       "trigger": "random",
       "priority": 1,
       "weight": 1,
       "text": "Mình đã xem {liveTxCount} tx finalize trong 24h qua 👁️ vẫn chưa chán nha."
+    },
+    {
+      "id": "fun-stats-3",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Kỷ lục cá nhân của mình phiên này: hoàn tất {liveFastest} giây 🏁 Mình giữ một bảng xếp hạng nhỏ trong đầu."
     }
   ]
 }

@@ -63,7 +63,7 @@
   /* ===========================================================================
    * CONFIG
    * =========================================================================*/
-  const VERSION = '1.3.3';
+  const VERSION = '1.3.5';
   const SPRITE_PATH          = './vendor/companion/sprites/';
   const SPRITE_MANIFEST_URL  = './vendor/companion/sprites/manifest.json';
   const SEED_URL             = './vendor/companion/seed.json';
@@ -200,6 +200,7 @@
   const IDLE_SHORT_MS          = 4 * 60 * 1000;
   const IDLE_LONG_MS           = 15 * 60 * 1000;
   const GREET_COOLDOWN_MS      = 4 * 60 * 60 * 1000;
+  const OPENER_DELAY           = [2500, 4000];   /* refresh opener when greeting suppressed */
   /* ---- v1.3.1: live network event reactions (via window.__echanBus) ----
    * Each route: bus event → seed trigger + gate policy + optional dashboard
    * spotlight selector builder. cooldownMs = min gap between reactions of
@@ -338,6 +339,9 @@
     lastVariantIdx: Object.create(null),
     /* Emotion */
     currentEmotion: 'neutral',
+    sessFastestMs: Infinity,                /* #4: fastest finality witnessed this session */
+    sessBlocks: 0,                          /* #3: real new tips this session */
+    sessWhales: 0,                          /* #3: whale tx witnessed this session */
     /* Glitch timers */
     glitchSwapTimer: null,
     glitchEndTimer: null,
@@ -1903,6 +1907,7 @@
     markSeen(got.pick.id);
     lsSet(STORAGE.greeted, String(Date.now()));
     lsSet(STORAGE.visits, String(visits + 1));
+    return true;
   }
 
   /* contentTick — runs at the cadence set by CONTENT_TICK_INTERVAL[mode].
@@ -1928,6 +1933,13 @@
     if (idleMs > IDLE_SHORT_MS) pool = pool.concat(state.seedByTrigger['idle:short'] || []);
     pool = pool.concat(state.seedByTrigger['random'] || []);
     pool = pool.filter(isLineEligible);
+    /* #2: when live stats are fresh, bias chatter toward the data-aware
+     * amb-live lines (they double-enter the weighted pool). When stale they
+     * self-exclude anyway — their {liveX} placeholders won't fill. */
+    if (state.lastStats && (Date.now() - state.lastStatsAt) < STATS_FRESH_MS) {
+      const liveLines = pool.filter(l => l.id && l.id.indexOf('amb-live') === 0);
+      if (liveLines.length) pool = pool.concat(liveLines);
+    }
     if (!pool.length) return;
 
     /* pickAndFill enables live template vars ({liveTps}, {tipHeight}, …)
@@ -1954,7 +1966,16 @@
     const interval = CONTENT_TICK_INTERVAL[state.mode];
     if (!interval) return;   /* quiet mode → engine off */
     const [min, max] = interval;
-    const delay = min + Math.random() * (max - min);
+    let delay = min + Math.random() * (max - min);
+    /* #2: gently pace cadence with live throughput — busier network → talk a
+     * little more often, quiet → a little less. Clamped to [0.7,1.3]× so it
+     * never spams or goes silent. No-op when stats are stale. */
+    const st = state.lastStats;
+    if (st && (Date.now() - state.lastStatsAt) < STATS_FRESH_MS && typeof st.tpsNow === 'number') {
+      const pivot = NETWORK_BUSY_TPS || 5;
+      const factor = pivot / Math.max(st.tpsNow, 0.01);
+      delay *= Math.max(0.7, Math.min(1.3, factor));
+    }
     state.contentTimer = setTimeout(contentTick, delay);
   }
 
@@ -2039,6 +2060,7 @@
         const wasUnseeded = state.maxSeenHeight < 0;
         state.maxSeenHeight = data.height;
         isNewTip = !wasUnseeded;
+        if (isNewTip) state.sessBlocks++;   /* #3: session tip counter */
       }
     }
 
@@ -2063,6 +2085,7 @@
     let routeKey = type;
     if (type === 'ttf') {
       if (!data.precise) return;
+      if (typeof data.ms === 'number' && data.ms < state.sessFastestMs) state.sessFastestMs = data.ms;
       if (data.ms < FAST_TTF_MAX_MS)      routeKey = 'fastttf';
       else if (data.ms > SLOW_TTF_MIN_MS) routeKey = 'slowttf';
       else return;
@@ -2073,6 +2096,7 @@
     if (type === 'bigtx') {
       if (typeof data.valueXec !== 'number' || data.valueXec < SHARK_XEC) return;
       routeKey = (data.valueXec >= WHALE_XEC) ? 'bigtx' : 'sharktx';
+      if (routeKey === 'bigtx') state.sessWhales++;   /* #3: session whale counter */
     }
 
     const route = EVENT_ROUTES[routeKey];
@@ -2172,6 +2196,17 @@
       liveTxCount: (fresh && typeof st.sampleCount === 'number' && st.sampleCount > 0)
                      ? st.sampleCount.toLocaleString('en-US') : undefined,
       tipHeight:   (state.maxSeenHeight > 0) ? String(state.maxSeenHeight) : undefined,
+      /* v1.5.5 relay now-window + derived consistency (all gated on fresh). */
+      liveTpsNow:  (fresh && typeof st.tpsNow === 'number') ? fmtTps(st.tpsNow) : undefined,
+      liveTtfNow:  (fresh && typeof st.ttfP50NowMs === 'number') ? fmtTtfSec(st.ttfP50NowMs) : undefined,
+      livePctUnder3s: (fresh && typeof st.pctFinalUnder3s === 'number')
+                     ? (Math.round(st.pctFinalUnder3s * 100) + '%') : undefined,
+      liveTtfSpread: (fresh && typeof st.ttfP90Ms === 'number' && typeof st.ttfP10Ms === 'number')
+                     ? fmtTtfSec(st.ttfP90Ms - st.ttfP10Ms) : undefined,
+      /* Session records/memory — not from the stats frame, so not fresh-gated. */
+      liveFastest:    isFinite(state.sessFastestMs) ? (state.sessFastestMs / 1000).toFixed(2) : undefined,
+      liveSessBlocks: (state.sessBlocks > 0) ? String(state.sessBlocks) : undefined,
+      liveSessWhales: (state.sessWhales > 0) ? String(state.sessWhales) : undefined,
     };
   }
 
@@ -2789,7 +2824,20 @@
     seedPromise.then(() => {
       applyDomI18n();
       startDomI18nObserver();
-      setTimeout(maybeGreet, 500);
+      setTimeout(() => {
+        const greeted = maybeGreet();
+        /* Refresh opener: when the greeting is suppressed (e.g. the 4h
+         * cooldown after a page reload), don't sit silent until the first
+         * cadence tick (12–22s in Chatty). Bring the first content line
+         * forward to a few seconds so eChan visibly "wakes up". Only when no
+         * greeting showed, the tab is visible, and the mode has a cadence
+         * (skips quiet). The early tick self-reschedules normal cadence. */
+        if (!greeted && !document.hidden && CONTENT_TICK_INTERVAL[state.mode]) {
+          clearTimeout(state.contentTimer);
+          const d = OPENER_DELAY[0] + Math.random() * (OPENER_DELAY[1] - OPENER_DELAY[0]);
+          state.contentTimer = setTimeout(contentTick, d);
+        }
+      }, 500);
       scheduleContentTick();
       scheduleNetworkPoll();
       scheduleTrendEval();

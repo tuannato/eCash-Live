@@ -1,6 +1,6 @@
 {
   "_comment": "eChan seed — Bahasa Indonesia (id). Generated from English seed.json; same schema/ids/triggers/vars. English source: seed.json. Technical terms kept in English by design.",
-  "version": 2,
+  "version": 3,
   "categoryDefaults": {
     "welcome": "happy",
     "greeting": "happy",
@@ -1462,6 +1462,24 @@
       "text": "Median {liveTtf} detik yang kamu lihat? Avalanche pre-consensus murni 😎 kebanyakan chain bikin kamu nunggu block — eCash diam-diam memfinalisasi di bawah."
     },
     {
+      "id": "edu-stats-3",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Lihat {livePctUnder3s} di bawah 3 detik itu? Tiap satu difinalisasi Avalanche pre-consensus — tanpa nunggu block 💡"
+    },
+    {
+      "id": "edu-stats-4",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Konsistensi itu penting: jarak finalitas tercepat ke terlambat cuma {liveTtfSpread} dtk. Yang bisa ditebak itu kuat 📏"
+    },
+    {
       "id": "fun-popcorn-2",
       "category": "fun",
       "trigger": "random",
@@ -1659,6 +1677,69 @@
       "priority": 1,
       "weight": 1,
       "text": "Semua di papan ini streaming live 📺 yang kamu lihat itu yang jaringan lakukan detik ini juga."
+    },
+    {
+      "id": "amb-live-7",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Menit ini finalitas di {liveTtfNow} dtk — {liveTtf} dtk khas hari ini. Avalanche tetap tajam ⚡"
+    },
+    {
+      "id": "amb-live-8",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "60 detik terakhir: {liveTpsNow} TPS mengalir. Inilah rantai yang bernapas secara real-time 🌊"
+    },
+    {
+      "id": "amb-live-9",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Finalitas kokoh seperti batu sekarang — dari tercepat ke terlambat cuma beda {liveTtfSpread} dtk 🎯"
+    },
+    {
+      "id": "amb-live-10",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{livePctUnder3s} transaksi hari ini terfinalisasi di bawah 3 detik. Bukan target, di sini memang biasa 😎"
+    },
+    {
+      "id": "amb-live-11",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Finalisasi tercepat yang kucatat sesi ini: {liveFastest} dtk ⚡ Kedip sedikit, terlewat."
+    },
+    {
+      "id": "amb-live-12",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "{liveSessBlocks} block sudah mendarat sejak kamu membuka ini 🧱 Rantai tak pernah istirahat."
+    },
+    {
+      "id": "amb-live-13",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Sudah {liveSessWhales} gerakan paus sesi ini 🐋 Uang besar betah di sini."
     },
     {
       "id": "evt-block-4",
@@ -1989,6 +2070,15 @@
       "text": "Puncak hari ini sejauh ini: {livePeak} TPS — sekarang {liveTps} 🌊 chain bernapas dalam gelombang."
     },
     {
+      "id": "net-stats-5",
+      "category": "network",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Saat ini: {liveTpsNow} TPS, lawan puncak hari ini {livePeak} 📊 Rantai bergerak dalam gelombang."
+    },
+    {
       "id": "amb-stats-2",
       "category": "ambient",
       "trigger": "random",
@@ -1997,12 +2087,30 @@
       "text": "Median finality ada di {liveTtf} detik sekarang 😎 lewat titik itu, block cuma jadi pembukuan."
     },
     {
+      "id": "amb-stats-3",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Finalitas median menit ini: {liveTtfNow} dtk 😌 Diam-diam lebih cepat dari dugaanmu."
+    },
+    {
       "id": "fun-stats-2",
       "category": "fun",
       "trigger": "random",
       "priority": 1,
       "weight": 1,
       "text": "Aku sudah menonton {liveTxCount} tx selesai dalam 24 jam terakhir 👁️ masih belum bosan."
+    },
+    {
+      "id": "fun-stats-3",
+      "category": "fun",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Rekor pribadiku sesi ini: finalisasi {liveFastest} dtk 🏁 Aku simpan papan peringkat kecil di kepala."
     }
   ]
 }
