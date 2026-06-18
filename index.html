@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-XytZO1Ap1wBVFIZY66Wgc1ZrDt9/rXay7UtyAjPkqXM=';
+  script-src 'self' 'sha256-ZVwQVlDfLQS788eXDiSuuI2YLBebYpgCUEgmMe2HceQ=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -6591,7 +6591,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.3.5">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.3.5</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.3.6">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.3.6</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -8982,6 +8982,23 @@ function connectTtfFeed() {
       // formatter coerce >0.9995 to "100%".
       const okPctOrNull = (v) =>
         v === null || v === undefined || (typeof v === 'number' && isFinite(v) && v >= 0 && v <= 1.01);
+      // v1.5.6: warmup frame. While the relay is still accumulating its first
+      // 24h (fresh start / _HIST_LO_MS change / >24h downtime) it deliberately
+      // OMITS every 24h headline field and sends only { warmup, coverageSec,
+      // windowSec, currentClients }. Cache a warmup marker (NOT a misleading 0)
+      // and keep relayStatsAt fresh — the feed is connected, just warming up.
+      // currentClients is still live, so "online now" keeps working.
+      if (data.warmup === true) {
+        state.relayStats = {
+          warmup: true,
+          coverageSec: (typeof data.coverageSec === 'number' && isFinite(data.coverageSec)) ? data.coverageSec : 0,
+          windowSec: (typeof data.windowSec === 'number') ? data.windowSec : 86400,
+          currentClients: (typeof data.currentClients === 'number') ? (data.currentClients | 0) : null,
+        };
+        state.relayStatsAt = Date.now();
+        scheduleTtfRender();
+        return;
+      }
       if (okNum(data.tps) && data.tps < 100_000
           && okMsOrNull(data.ttfP10Ms)
           && okMsOrNull(data.ttfP50Ms)
@@ -9008,9 +9025,20 @@ function connectTtfFeed() {
         // eChan (v1.3.1): forward the relay snapshot — companion derives
         // busy/quiet edges + 30-min trends from these, replacing its old
         // DOM polling of #f-tps whenever the feed is healthy.
+        // v1.3.6: forward the FULL set eChan's liveVars() reads, not just 4.
+        // The extra fields feed ambient lines (liveTpsNow/liveTtfNow/
+        // livePctUnder3s/liveTtfSpread) that were silently dropping because the
+        // var was undefined. NOT a spam risk: eChan speaks these only on its
+        // paced contentTick (minutes, with cooldown + random-skip), never per
+        // 5s frame. Nulls are fine — eChan type-checks each var and skips the
+        // line when missing. ttfMeanMs is omitted (liveVars doesn't read it).
         __ecBus.emit('stats', { tps: data.tps, ttfP50Ms: data.ttfP50Ms,
           tpsPeak24h: (typeof data.tpsPeak24h === 'number') ? data.tpsPeak24h : null,
-          sampleCount: data.sampleCount | 0 });
+          sampleCount: data.sampleCount | 0,
+          ttfP10Ms: data.ttfP10Ms, ttfP90Ms: data.ttfP90Ms,
+          pctFinalUnder3s: (typeof data.pctFinalUnder3s === 'number') ? data.pctFinalUnder3s : null,
+          tpsNow: (typeof data.tpsNow === 'number') ? data.tpsNow : null,
+          ttfP50NowMs: (typeof data.ttfP50NowMs === 'number') ? data.ttfP50NowMs : null });
         // Re-render through the rAF coalescer so a burst (initial hello+stats
         // back-to-back on connect) renders once, not twice.
         scheduleTtfRender();
@@ -14552,6 +14580,11 @@ function updateStats() {
   const ttfLabelEl = $('f-ttf-label');
   const statsFresh = state.relayStats
     && (Date.now() - state.relayStatsAt) < STATS_FRESH_MS;
+  // v1.5.6: warmup state. The relay omits the 24h headline fields until the
+  // ring covers a real day; render "—" (no eye — the feed is fine), never a
+  // misleading 0. have24h gates every cell that prints a 24h number.
+  const warmingUp = !!(state.relayStats && state.relayStats.warmup);
+  const have24h = ttfFeedState.connected && statsFresh && state.relayStats && !warmingUp;
   const haveLiveP50 = ttfFeedState.connected
     && statsFresh
     && typeof state.relayStats.ttfP50Ms === 'number';
@@ -14611,7 +14644,7 @@ function updateStats() {
   // or stats frame stale — mirrors the existing renderTtfIndicator pattern
   // so users see a consistent "data source unavailable" affordance across
   // every relay-backed cell.
-  if (ttfFeedState.connected && statsFresh && state.relayStats) {
+  if (have24h) {
     const tps = state.relayStats.tps;
     const samples = state.relayStats.sampleCount;
     let tpsHtml;
@@ -14631,6 +14664,10 @@ function updateStats() {
       tpsHtml = '— <span class="u">tps</span>';
     }
     $('f-tps').innerHTML = tpsHtml;
+  } else if (warmingUp) {
+    // Connected + healthy, just collecting the first 24h. Plain em-dash, no
+    // eye (the eye means "feed unavailable", which would be wrong here).
+    $('f-tps').innerHTML = '<span title="Relay is warming up — collecting its first 24h of data">—</span> <span class="u">tps</span>';
   } else {
     // Eye prefix + em-dash. renderTtfIndicator(null, null) returns the eye
     // SVG (with the correct tooltip text for dropped-vs-never-connected)
@@ -14678,9 +14715,11 @@ function updateStats() {
   // Network-wide finalized tx count over the rolling 24h window. From the
   // relay's StatsRing.sampleCount — constant memory regardless of TPS (see
   // ttf-relay.py header). Locale-formatted so a 100k+ number reads cleanly.
-  if (ttfFeedState.connected && statsFresh && state.relayStats) {
+  if (have24h) {
     $('f-finalized-24h').textContent =
       state.relayStats.sampleCount.toLocaleString('en-US');
+  } else if (warmingUp) {
+    $('f-finalized-24h').innerHTML = '<span title="Relay is warming up — collecting its first 24h of data">—</span>';
   } else {
     // Same eye treatment as the TPS cell — visual parity matters because the
     // two relay-backed network cells live side-by-side in the footer.
@@ -19593,7 +19632,10 @@ function refreshStatsOverviewIfActive() {
   // normally.
   const s = state.relayStats;
   const fresh = s && (Date.now() - state.relayStatsAt) < STATS_FRESH_MS;
-  const netAvailable = !!(s && fresh && ttfFeedState.connected);
+  // v1.5.6: during warmup the relay omits every 24h field, so treat the panel
+  // as "not available yet" (placeholder icons) rather than reading undefined
+  // fields like s.sampleCount.toLocaleString() — which would throw.
+  const netAvailable = !!(s && fresh && ttfFeedState.connected && !s.warmup);
 
   // Formatter for the new % finalized <3s card. v gets a single decimal
   // place unless it rounds to 100% — then no decimal (cleaner headline).

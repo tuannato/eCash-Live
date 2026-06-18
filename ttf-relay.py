@@ -1,5 +1,36 @@
 # =============================================================================
-# ttf-relay.py v1.5.5
+# ttf-relay.py v1.5.6
+#
+# v1.5.6 changes:
+#   1. tail_log() now detects IN-PLACE TRUNCATION, not just inode-change
+#      rotation. WHY: on 2026-06-17 the relay sat with its read offset at
+#      ~174MB while debug.log was only ~12MB — a daily cleanup truncated the
+#      file in place (same inode 136007), so the inode-only reopen check
+#      never fired and every readline() returned EOF. The 24h ring drained
+#      to empty and the bar read "0 TPS" for ~2 days while bitcoind was
+#      writing normally. Fix: track last_size; if the file shrinks below our
+#      offset (size < last_size) we seek(0) and keep reading. Self-heals in
+#      seconds regardless of WHAT truncated it (manual `>`, truncate(1),
+#      logrotate copytruncate, bitcoind shrinkdebugfile).
+#   2. _HIST_LO_MS 200 -> 1000. The 200 floor put ~13 of 40 log-spaced bins
+#      BELOW the ~1.34s protocol minimum — wasted resolution exactly in the
+#      1-3s mode where P10/P50 live (this re-aligns the code with the v1.4
+#      changelog note below, which had drifted). 1000 sits just under the
+#      floor so every bin earns its keep. The hist_lo_ms sentinel (v1.5.1)
+#      makes this self-healing: one 24h refill, then a cleaner ring.
+#      ecash_bot.py mirrors this constant — changed there too.
+#   3. Warmup gating. Until the ring has genuinely accumulated ~24h of
+#      coverage (fresh install, _HIST_LO_MS change, or >24h downtime), the
+#      stats frame OMITS every 24h headline field and sends only
+#      {warmup:true, coverageSec, windowSec, currentClients}. The frontend
+#      then shows "—" instead of a misleading 0/partial value labelled "24h"
+#      (the source of the 2026-06-17 "looks broken" confusion). Once
+#      coverageSec >= windowSec the full frame resumes. Coverage is derived
+#      from the oldest in-window bucket holding data — no new persisted
+#      field, and it resets naturally whenever the ring resets.
+#   Note: the v1.5.5 "now" fields (tpsNow, ttfP50NowMs) are RETAINED — the
+#   eChan companion consumes them (cadence pacing + liveTpsNow/liveTtfNow).
+#   They ride only in the normal (non-warmup) frame.
 #
 # Tails Bitcoin ABC's debug.log, parses Avalanche pre-consensus events,
 # computes TTF (time-to-final) for each transaction, and broadcasts the
@@ -242,13 +273,15 @@ STATS_PERSIST_PATH = Path(os.environ.get(
 # Histogram bins for percentile (p50/p90) estimation. We can't store every
 # raw TTF value (would scale with TPS), so each bucket keeps a small fixed
 # histogram and we derive percentiles by merging histograms at broadcast.
-# Log-spaced 200ms .. 60s matches the realistic TTF range (the protocol floor
-# is ~1.34s — 128 rounds at the 10ms event-loop cadence — so the 200ms low
-# edge already sits comfortably below any plausible reading) and gives fine
-# resolution where it matters (the 1-3s mode) without wasting bins on the
-# long tail. Precise values below the low edge fall in bin 0; that's fine.
+# Log-spaced 1000ms .. 60s matches the realistic TTF range. The protocol floor
+# is ~1.34s (128 rounds at the 10ms event-loop cadence), so a 1000ms low edge
+# sits JUST below any plausible reading — every bin then lands in the live
+# 1-3s..tail range instead of being wasted below the physical floor. (v1.5.6:
+# raised from 200, which stranded ~13 of 40 bins below 1.34s and coarsened
+# P10/P50 resolution in the 1-3s mode.) Precise sub-floor values fall in bin 0;
+# that's fine. The hist_lo_ms sentinel self-heals the ring on this change.
 import math as _math
-_HIST_LO_MS = 200
+_HIST_LO_MS = 1000
 _HIST_HI_MS = 60_000
 _HIST_BIN_COUNT = 40
 # Precompute log-spaced upper edges once. bin index for a value is found by
@@ -535,11 +568,18 @@ class StatsRing:
         # v1.5.5: short-window "now" metrics, accumulated in this same pass
         # (no extra scan). tpsNow = trailing-60s rate; ttfP50NowMs = median
         # finality over the trailing 5 min, to contrast with the 24h p50.
+        # Consumed by the eChan companion (cadence pacing + liveTpsNow/
+        # liveTtfNow dialog vars) — do NOT remove.
         now_lo_60 = now - 60
         now_lo_300 = now - 300
         now60_count = 0
         now300_int = 0
         now300_hist = [0] * _HIST_BIN_COUNT
+
+        # v1.5.6: track the oldest in-window bucket that actually holds data,
+        # so we can derive how much of the 24h window is genuinely covered
+        # (warmup gating below). None until we see the first non-empty slot.
+        oldest_data_start = None
 
         for slot in self.slots:
             a = slot["idx"]
@@ -576,6 +616,11 @@ class StatsRing:
                 for i, c in enumerate(slot["hist"]):
                     now300_hist[i] += c
 
+            # v1.5.6: remember the oldest bucket-with-data still in window.
+            # Drives coverageSec / warmup below.
+            if oldest_data_start is None or bucket_start_ts < oldest_data_start:
+                oldest_data_start = bucket_start_ts
+
         tps = total_count / STATS_WINDOW_SEC if STATS_WINDOW_SEC else 0.0
         mean = (ttf_sum / int_count) if int_count else None
         # P10/P50/P90 = floor/typical/tail. P10 sits near the protocol's 1.34s
@@ -598,13 +643,40 @@ class StatsRing:
         else:
             pct_under_3s = None
 
-        # v1.5.5: trailing-window rate + median. p50_now is None when no
-        # samples landed in the last 5 min (caller emits null → frontend
-        # drops the field).
+        # v1.5.5: trailing-window rate + median (consumed by eChan). p50_now
+        # is None when no samples landed in the last 5 min → emitted as null.
         tps_now = now60_count / 60.0
         p50_now = _hist_percentile(now300_hist, now300_int, 0.50)
 
+        # v1.5.6: warmup gating. coverageSec = how much of the 24h window is
+        # genuinely backed by data, measured from the oldest in-window bucket
+        # holding samples up to now. Resets naturally whenever the ring resets
+        # (fresh install, _HIST_LO_MS change, >24h downtime).
+        if oldest_data_start is None:
+            coverage_sec = 0
+        else:
+            coverage_sec = int(min(float(STATS_WINDOW_SEC),
+                                   max(0.0, now - oldest_data_start)))
+        warmup = coverage_sec < STATS_WINDOW_SEC
+
+        # Until the window is truly ~24h, DO NOT emit the 24h headline fields:
+        # a partial window labelled "24h" reads as broken (the 2026-06-17
+        # "0 TPS" confusion). Send only the warmup marker + progress so the
+        # frontend can show "—". We omit the short-window now-fields here too:
+        # the frontend's warmup path returns before forwarding to eChan, and
+        # eChan's recordStats() rejects any frame without `tps`, so they'd be
+        # dead weight in this frame. currentClients is spliced in at the
+        # broadcast site (snapshot can't see the clients set).
+        if warmup:
+            return {
+                "warmup": True,
+                "coverageSec": coverage_sec,
+                "windowSec": STATS_WINDOW_SEC,
+            }
+
         return {
+            "warmup": False,
+            "coverageSec": coverage_sec,
             "tps": round(tps, 4),
             "ttfP10Ms": round(p10) if p10 is not None else None,
             "ttfP50Ms": round(p50) if p50 is not None else None,
@@ -615,7 +687,8 @@ class StatsRing:
             # v1.5.4 additions — additive, older clients ignore.
             "tpsPeak24h": round(tps_peak, 4),
             "pctFinalUnder3s": round(pct_under_3s, 4) if pct_under_3s is not None else None,
-            # v1.5.5 additions — additive, older clients ignore.
+            # v1.5.5 additions — additive, older clients ignore. Consumed by
+            # the eChan companion (cadence pacing + liveTpsNow/liveTtfNow).
             "tpsNow": round(tps_now, 4),
             "ttfP50NowMs": round(p50_now) if p50_now is not None else None,
             # currentClients injected at broadcast site (snapshot doesn't see
@@ -770,6 +843,7 @@ async def tail_log(path):
     byte 0 of the new file as documented.
     """
     last_inode = None
+    last_size = 0
     is_first_open = True
     while True:
         try:
@@ -792,21 +866,37 @@ async def tail_log(path):
                 if is_first_open and st.st_size > 0:
                     f.seek(0, 2)  # seek to end
                 is_first_open = False
+                # v1.5.6: baseline for in-place-truncation detection. Set to
+                # the current size at (re)open so a later shrink is visible.
+                last_size = st.st_size
             # Read whatever's new
             while True:
                 line = f.readline()
-                if not line:
-                    await asyncio.sleep(0.2)
-                    # Check for rotation
-                    try:
-                        new_st = path.stat()
-                        if new_st.st_ino != last_inode:
-                            f.close()
-                            break  # outer loop will reopen
-                    except FileNotFoundError:
-                        break
+                if line:
+                    yield line.rstrip("\n")
                     continue
-                yield line.rstrip("\n")
+                # EOF for now — pause, then check for rotation OR in-place
+                # truncation before looping back to read more.
+                await asyncio.sleep(0.2)
+                try:
+                    new_st = path.stat()
+                except FileNotFoundError:
+                    break  # file vanished; outer loop re-creates
+                if new_st.st_ino != last_inode:
+                    f.close()
+                    break  # rotated to a new inode → outer loop reopens
+                # v1.5.6: in-place truncation (SAME inode, file shrank below
+                # our read offset). WHY: on 2026-06-17 a daily cleanup
+                # truncated debug.log from ~174MB to ~0; our fd stayed parked
+                # past EOF and the feed silently died for ~2 days. The inode
+                # never changed, so the check above could never catch it.
+                # Detect the shrink and rewind to byte 0 to resume reading.
+                if new_st.st_size < last_size:
+                    log.info(f"{path} truncated in place "
+                             f"({new_st.st_size}B < last {last_size}B), "
+                             f"seeking to 0")
+                    f.seek(0)
+                last_size = new_st.st_size
         except Exception as e:
             log.exception(f"tail_log error: {e}, restarting in 5s")
             await asyncio.sleep(5)
