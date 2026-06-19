@@ -25,9 +25,10 @@
 #      {warmup:true, coverageSec, windowSec, currentClients}. The frontend
 #      then shows "—" instead of a misleading 0/partial value labelled "24h"
 #      (the source of the 2026-06-17 "looks broken" confusion). Once
-#      coverageSec >= windowSec the full frame resumes. Coverage is derived
-#      from the oldest in-window bucket holding data — no new persisted
-#      field, and it resets naturally whenever the ring resets.
+#      coverageSec >= windowSec the full frame resumes. Coverage is wall-time
+#      since the ring epoch (first sample of the generation, persisted), capped
+#      at the window — monotonic, so it doesn't flicker at low TPS, and a
+#      one-bucket tolerance avoids the boundary never quite reaching 24h.
 #   Note: the v1.5.5 "now" fields (tpsNow, ttfP50NowMs) are RETAINED — the
 #   eChan companion consumes them (cadence pacing + liveTpsNow/liveTtfNow).
 #   They ride only in the normal (non-warmup) frame.
@@ -505,6 +506,12 @@ class StatsRing:
         # Each slot: dict with absolute bucket index `idx` (-1 = empty),
         # count, ttf_sum (ms), and a fixed histogram for percentiles.
         self.slots = [self._empty(-1) for _ in range(ring_len)]
+        # v1.5.6: wall-clock time this ring generation began collecting (first
+        # sample after a fresh start / floor change). Drives warmup coverage
+        # monotonically — independent of sample density, so it doesn't flicker
+        # at low TPS the way an oldest-sample measure does. None = no samples
+        # yet → fully warming up.
+        self.epoch_ts = None
 
     @staticmethod
     def _empty(abs_idx):
@@ -531,6 +538,8 @@ class StatsRing:
 
     def record(self, ttf_ms, now):
         """O(1) — accumulate one finalized tx into its time bucket."""
+        if self.epoch_ts is None:
+            self.epoch_ts = now  # first sample of this generation
         abs_idx = self._abs_bucket(now)
         slot = self._slot_for(abs_idx)
         slot["count"] += 1
@@ -576,11 +585,6 @@ class StatsRing:
         now300_int = 0
         now300_hist = [0] * _HIST_BIN_COUNT
 
-        # v1.5.6: track the oldest in-window bucket that actually holds data,
-        # so we can derive how much of the 24h window is genuinely covered
-        # (warmup gating below). None until we see the first non-empty slot.
-        oldest_data_start = None
-
         for slot in self.slots:
             a = slot["idx"]
             if a < oldest_abs or a > cur_abs or slot["count"] == 0:
@@ -616,11 +620,6 @@ class StatsRing:
                 for i, c in enumerate(slot["hist"]):
                     now300_hist[i] += c
 
-            # v1.5.6: remember the oldest bucket-with-data still in window.
-            # Drives coverageSec / warmup below.
-            if oldest_data_start is None or bucket_start_ts < oldest_data_start:
-                oldest_data_start = bucket_start_ts
-
         tps = total_count / STATS_WINDOW_SEC if STATS_WINDOW_SEC else 0.0
         mean = (ttf_sum / int_count) if int_count else None
         # P10/P50/P90 = floor/typical/tail. P10 sits near the protocol's 1.34s
@@ -648,16 +647,21 @@ class StatsRing:
         tps_now = now60_count / 60.0
         p50_now = _hist_percentile(now300_hist, now300_int, 0.50)
 
-        # v1.5.6: warmup gating. coverageSec = how much of the 24h window is
-        # genuinely backed by data, measured from the oldest in-window bucket
-        # holding samples up to now. Resets naturally whenever the ring resets
-        # (fresh install, _HIST_LO_MS change, >24h downtime).
-        if oldest_data_start is None:
+        # v1.5.6: warmup gating. coverageSec = wall-time this ring generation
+        # has been collecting (now - epoch_ts), capped at the window. Monotonic
+        # and density-independent, so it doesn't flicker at low TPS. The
+        # threshold carries a one-bucket tolerance: the seed-from-oldest-bucket
+        # path (older files w/o epoch) tops out at (ring_len-1)*bucket_sec, one
+        # bucket short of the full window, and we don't want that to pin warmup
+        # on forever. int_count==0 also forces warmup (nothing to show — e.g. a
+        # drained ring after long downtime).
+        if self.epoch_ts is None:
             coverage_sec = 0
         else:
             coverage_sec = int(min(float(STATS_WINDOW_SEC),
-                                   max(0.0, now - oldest_data_start)))
-        warmup = coverage_sec < STATS_WINDOW_SEC
+                                   max(0.0, now - self.epoch_ts)))
+        warmup = (int_count == 0
+                  or coverage_sec < STATS_WINDOW_SEC - self.bucket_sec)
 
         # Until the window is truly ~24h, DO NOT emit the 24h headline fields:
         # a partial window labelled "24h" reads as broken (the 2026-06-17
@@ -708,6 +712,7 @@ class StatsRing:
             "bucket_sec": self.bucket_sec,
             "ring_len": self.ring_len,
             "hist_lo_ms": _HIST_LO_MS,
+            "epoch_ts": self.epoch_ts,
             "slots": [s for s in self.slots if s["idx"] >= 0 and s["count"] > 0],
         }
 
@@ -727,6 +732,7 @@ class StatsRing:
         cur_abs = self._abs_bucket(now)
         oldest_abs = cur_abs - self.ring_len + 1
         restored = 0
+        oldest_restored_abs = None
         for slot in data.get("slots", []):
             a = slot.get("idx", -1)
             if a < oldest_abs or a > cur_abs:
@@ -741,6 +747,26 @@ class StatsRing:
                 "hist": [int(x) for x in hist],
             }
             restored += 1
+            if oldest_restored_abs is None or a < oldest_restored_abs:
+                oldest_restored_abs = a
+        # v1.5.6: restore the ring epoch (when this generation began
+        # collecting) so warmup coverage survives a restart. Priority:
+        #   1. explicit epoch_ts from the file (normal restart) — but only if
+        #      we actually restored in-window data; an all-stale ring (>24h
+        #      downtime) gets a fresh epoch so warmup restarts honestly.
+        #   2. older file without the field but with live data: seed from the
+        #      oldest restored bucket, so an already-populated ~24h window
+        #      isn't forced to warm up for another full day.
+        #   3. nothing restored (fresh install / drained ring): None.
+        ep = data.get("epoch_ts")
+        if restored == 0:
+            self.epoch_ts = None
+        elif isinstance(ep, (int, float)):
+            self.epoch_ts = float(ep)
+        elif oldest_restored_abs is not None:
+            self.epoch_ts = float(oldest_restored_abs * self.bucket_sec)
+        else:
+            self.epoch_ts = None
         log.info(f"stats ring restored {restored} live buckets from disk")
 
 
