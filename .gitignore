@@ -1,1 +1,9 @@
 .env
+
+# bot secrets & runtime — never commit
+.ecash_bot_config.json
+*.config.json
+ttf-stats.json
+ttf.log
+ttf-daily.jsonl
+ttf-stats.json.tmp
