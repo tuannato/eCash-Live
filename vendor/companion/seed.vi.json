@@ -924,7 +924,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Đỉnh chuỗi đang ở block {tipHeight} ngay lúc ta nói chuyện ⛓️ Có block mới mình sẽ báo ngay."
+      "text": "Đỉnh chuỗi đang ở block {tipHeight} ngay lúc mình nói đây ⛓️ Có block mới mình sẽ báo ngay."
     },
     {
       "id": "amb-live-3",
@@ -1130,7 +1130,7 @@
       "priority": 1,
       "emotion": "neutral",
       "weight": 1,
-      "text": "Xem ai trở lại này 🙌 Chain chẳng dừng giây nào — để mình cập nhật cho cậu."
+      "text": "Xem ai trở lại này 🙌 Chain chẳng dừng giây nào — để mình cập nhật cho bạn."
     },
     {
       "id": "welcome-return-4",
@@ -1139,7 +1139,7 @@
       "priority": 1,
       "emotion": "neutral",
       "weight": 1,
-      "text": "Chào lại nha! Mempool vẫn ù ù trong lúc cậu vắng. Kéo ghế ngồi xuống đi."
+      "text": "Chào lại nha! Mempool vẫn ù ù trong lúc bạn vắng. Kéo ghế ngồi xuống đi."
     },
     {
       "id": "welcome-settings-3",
@@ -1157,7 +1157,7 @@
       "priority": 2,
       "emotion": "shy",
       "weight": 1,
-      "text": "Thú nhận nhanh 🙈 mình thích kể chuyện cho cậu lắm. Chỉnh độ nói nhiều trong settings ⚙️ — nhưng nghĩ kỹ trước khi mute mình nha?"
+      "text": "Thú nhận nhanh 🙈 mình thích kể chuyện cho bạn lắm. Chỉnh độ nói nhiều trong settings ⚙️ — nhưng nghĩ kỹ trước khi mute mình nha?"
     },
     {
       "id": "greet-morning-3",
@@ -1175,7 +1175,7 @@
       "priority": 1,
       "emotion": "neutral",
       "weight": 1,
-      "text": "Dậy rồi nha 🌅 chain thức cả đêm — để mình kể cậu nghe chuyện đêm qua."
+      "text": "Dậy rồi nha 🌅 chain thức cả đêm — để mình kể bạn nghe chuyện đêm qua."
     },
     {
       "id": "greet-afternoon-2",
@@ -1211,7 +1211,7 @@
       "priority": 1,
       "emotion": "sleepy",
       "weight": 1,
-      "text": "Ca đêm hả 🌃 mình sẽ kể nhỏ thôi để cậu tập trung. Block không ngủ, nhưng mình sẽ thì thầm."
+      "text": "Ca đêm hả 🌃 mình sẽ kể nhỏ thôi để bạn tập trung. Block không ngủ, nhưng mình sẽ thì thầm."
     },
     {
       "id": "edu-preconsensus-3",
@@ -1259,7 +1259,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Mempool là phòng chờ của chain 🚪 trên eCash tx chỉ chờ ~3s trước khi pre-consensus niêm phong. Trên Bitcoin cậu phải chờ ~10 phút cho mỗi xác nhận."
+      "text": "Mempool là phòng chờ của chain 🚪 trên eCash tx chỉ chờ ~3s trước khi pre-consensus niêm phong. Trên Bitcoin bạn phải chờ ~10 phút cho mỗi xác nhận."
     },
     {
       "id": "edu-agora-3",
@@ -1283,7 +1283,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Mọi wallet và explorer cậu từng dùng trên eCash đều nói chuyện với Chronik 🗂️ nó là indexer biến block thô thành lịch sử địa chỉ tức thời. Dashboard này cũng chạy nhờ nó."
+      "text": "Mọi wallet và explorer bạn từng dùng trên eCash đều nói chuyện với Chronik 🗂️ nó là indexer biến block thô thành lịch sử địa chỉ tức thời. Dashboard này cũng chạy nhờ nó."
     },
     {
       "id": "edu-heartbeat-4",
@@ -1323,7 +1323,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Staker của Avalanche chính là phép màu ~3s 🗳️ lock XEC, chạy node, và lá phiếu của cậu giúp finalize mọi tx. Phi tập trung kèm cam kết thật."
+      "text": "Staker của Avalanche chính là phép màu ~3s 🗳️ lock XEC, chạy node, và lá phiếu của bạn giúp finalize mọi tx. Phi tập trung kèm cam kết thật."
     },
     {
       "id": "edu-alp-2",
@@ -1371,7 +1371,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Wallet của cậu giữ key, không phải coin 🌐 chain theo dõi các output chưa tiêu (UTXO); private key chỉ chứng minh cậu sở hữu chúng. Mất key là mất truy cập."
+      "text": "Wallet của bạn giữ key, không phải coin 🌐 chain theo dõi các output chưa tiêu (UTXO); private key chỉ chứng minh bạn sở hữu chúng. Mất key là mất truy cập."
     },
     {
       "id": "edu-address-2",
@@ -1427,7 +1427,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Cậu thực sự có thể viết lên chain ✍️ output OP_RETURN mang chữ vĩnh viễn — ghi chú, thông báo, những dòng nhỏ sống lâu hơn cả chúng ta."
+      "text": "Bạn thực sự có thể viết lên chain ✍️ output OP_RETURN mang chữ vĩnh viễn — ghi chú, thông báo, những dòng nhỏ sống lâu hơn cả chúng ta."
     },
     {
       "id": "edu-bigblock-2",
@@ -1459,7 +1459,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Mức median {liveTtf}s cậu thấy đó? Pre-consensus Avalanche thuần đấy 😎 hầu hết chain bắt cậu chờ block — eCash âm thầm finalize bên dưới."
+      "text": "Mức median {liveTtf}s bạn thấy đó? Pre-consensus Avalanche thuần đấy 😎 hầu hết chain bắt bạn chờ block — eCash âm thầm finalize bên dưới."
     },
     {
       "id": "edu-stats-3",
@@ -1504,7 +1504,7 @@
       "priority": 1,
       "emotion": "happy",
       "weight": 1,
-      "text": "Sự thật vui về mình: 'chan' chỉ là kiểu thân thương 😌 'e' là eCash. Ghép lại được… người dẫn chuyện chain mà cậu thích."
+      "text": "Sự thật vui về mình: 'chan' chỉ là kiểu thân thương 😌 'e' là eCash. Ghép lại được… người dẫn chuyện chain mà bạn thích."
     },
     {
       "id": "fun-tokens-2",
@@ -1513,7 +1513,7 @@
       "priority": 1,
       "emotion": "celebrate",
       "weight": 1,
-      "text": "Token biến eCash thành cả phiên chợ 🎪 mint, swap, marketplace — tất cả chốt trong vài giây, tất cả trên cùng chain cậu đang xem."
+      "text": "Token biến eCash thành cả phiên chợ 🎪 mint, swap, marketplace — tất cả chốt trong vài giây, tất cả trên cùng chain bạn đang xem."
     },
     {
       "id": "net-quiet-3",
@@ -1558,7 +1558,7 @@
       "priority": 1,
       "emotion": "neutral",
       "weight": 1,
-      "text": "Vẫn ở đây 👁️ chỉ canh chừng chain giúp cậu thôi."
+      "text": "Vẫn ở đây 👁️ chỉ canh chừng chain giúp bạn thôi."
     },
     {
       "id": "idle-short-4",
@@ -1567,7 +1567,7 @@
       "priority": 1,
       "emotion": "neutral",
       "weight": 1,
-      "text": "Bên cậu im ắng — không sao, mình trông coi 🫡"
+      "text": "Bên bạn im ắng — không sao, mình trông coi 🫡"
     },
     {
       "id": "idle-long-3",
@@ -1576,7 +1576,7 @@
       "priority": 1,
       "emotion": "happy",
       "weight": 1,
-      "text": "Cậu đi lâu rồi 😴 chain với mình sẽ ngay đây khi cậu quay lại."
+      "text": "Bạn đi lâu rồi 😴 chain với mình sẽ ngay đây khi bạn quay lại."
     },
     {
       "id": "idle-long-4",
@@ -1585,7 +1585,7 @@
       "priority": 1,
       "emotion": "happy",
       "weight": 1,
-      "text": "Im lâu quá! Mong cậu đang làm điều gì đó hay ho ngoài kia ✨ mình sẽ vẫn kể chuyện cho không ai nghe."
+      "text": "Im lâu quá! Mong bạn đang làm điều gì đó hay ho ngoài kia ✨ mình sẽ vẫn kể chuyện cho không ai nghe."
     },
     {
       "id": "easter-spam-3",
@@ -1594,7 +1594,7 @@
       "priority": 1,
       "emotion": "celebrate",
       "weight": 1,
-      "text": "Được rồi cậu thật sự thích click mình nhỉ 😏 mình thấy được tâng bốc đấy. Có gì không?"
+      "text": "Được rồi bạn thật sự thích click mình nhỉ 😏 mình thấy được tâng bốc đấy. Có gì không?"
     },
     {
       "id": "easter-spam-4",
@@ -1603,7 +1603,7 @@
       "priority": 1,
       "emotion": "celebrate",
       "weight": 1,
-      "text": "Tỷ lệ click mười trên mười 🌟 cậu tìm được easter egg rồi đó, chúc mừng."
+      "text": "Tỷ lệ click mười trên mười 🌟 bạn tìm được easter egg rồi đó, chúc mừng."
     },
     {
       "id": "easter-name-2",
@@ -1612,7 +1612,7 @@
       "priority": 1,
       "emotion": "thinking",
       "weight": 1,
-      "text": "Cậu chọc mình 🤨 ừ mình có thật-ấy. Cần gì?"
+      "text": "Bạn chọc mình 🤨 ừ mình có thật-ấy. Cần gì?"
     },
     {
       "id": "ambient-thought-6",
@@ -1620,7 +1620,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Suy nghĩ vu vơ 💭 mỗi tx đã xác nhận cậu thấy đều được hàng trăm node kiểm tra độc lập. Niềm tin phân tán, đang diễn ra theo thời gian thực."
+      "text": "Suy nghĩ vu vơ 💭 mỗi tx đã xác nhận bạn thấy đều được hàng trăm node kiểm tra độc lập. Niềm tin phân tán, đang diễn ra theo thời gian thực."
     },
     {
       "id": "ambient-thought-7",
@@ -1644,7 +1644,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Cả hệ thống chạy trên toán mà 15+ năm chưa ai phá 🧮 hashing, chữ ký, consensus — tất cả mở, tất cả kiểm chứng được, tất cả thuộc về cậu để check."
+      "text": "Cả hệ thống chạy trên toán mà 15+ năm chưa ai phá 🧮 hashing, chữ ký, consensus — tất cả mở, tất cả kiểm chứng được, tất cả thuộc về bạn để check."
     },
     {
       "id": "ambient-thought-10",
@@ -1668,7 +1668,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Đỉnh chain đang ở block {tipHeight} khi mình nói đây ⛓️ mình ping cậu ngay khi block tiếp theo hạ cánh."
+      "text": "Đỉnh chain đang ở block {tipHeight} khi mình nói đây ⛓️ mình ping bạn ngay khi block tiếp theo hạ cánh."
     },
     {
       "id": "amb-live-6",
@@ -1676,7 +1676,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Tất cả trên bảng này đang stream trực tiếp 📺 cậu thấy gì là mạng đang làm cái đó ngay giây này."
+      "text": "Tất cả trên bảng này đang stream trực tiếp 📺 bạn thấy gì là mạng đang làm cái đó ngay giây này."
     },
     {
       "id": "amb-live-7",
@@ -1917,7 +1917,7 @@
       "trigger": "event:watchlist",
       "priority": 2,
       "weight": 1,
-      "text": "Watchlist của cậu vừa sáng lên 👁️ {watched} có hoạt động."
+      "text": "Watchlist của bạn vừa sáng lên 👁️ {watched} có hoạt động."
     },
     {
       "id": "evt-watch-4",
@@ -1925,7 +1925,7 @@
       "trigger": "event:watchlist",
       "priority": 2,
       "weight": 1,
-      "text": "Chú ý nha — {watched} trong watchlist của cậu vừa di chuyển 🔔"
+      "text": "Chú ý nha — {watched} trong watchlist của bạn vừa di chuyển 🔔"
     },
     {
       "id": "evt-msg-3",
@@ -2009,7 +2009,7 @@
       "trigger": "event:trend:ttf_up",
       "priority": 1,
       "weight": 1,
-      "text": "Finality chậm hơn {pct}% so với nửa giờ trước 👀 mình đang nhìn các cậu đấy, avalanche peer."
+      "text": "Finality chậm hơn {pct}% so với nửa giờ trước 👀 mình đang nhìn các bạn đấy, avalanche peer."
     },
     {
       "id": "evt-peak-3",
@@ -2043,7 +2043,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Tạm yên 🌙 khi mempool tỉnh dậy, cậu sẽ thấy ở đây đầu tiên."
+      "text": "Tạm yên 🌙 khi mempool tỉnh dậy, bạn sẽ thấy ở đây đầu tiên."
     },
     {
       "id": "fun-live-2",

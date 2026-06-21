@@ -1157,7 +1157,7 @@
       "priority": 2,
       "emotion": "shy",
       "weight": 1,
-      "text": "ちょっと白状すると 🙈 君に解説するの好きなんだ。おしゃべり度は設定 ⚙️ で調整してね — でもミュートする前にもう一度考えて、ね?"
+      "text": "ちょっと白状すると 🙈 あなたに解説するの好きなんだ。おしゃべり度は設定 ⚙️ で調整してね — でもミュートする前にもう一度考えて、ね?"
     },
     {
       "id": "greet-morning-3",
@@ -1323,7 +1323,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "Avalancheのstakerこそが ~3秒の魔法 🗳️ XECをロック、nodeを動かせば、君の票が毎txのfinalizeを助ける。本当に肌をかけた分散化。"
+      "text": "Avalancheのstakerこそが ~3秒の魔法 🗳️ XECをロック、nodeを動かせば、あなたの票が毎txのfinalizeを助ける。本当に肌をかけた分散化。"
     },
     {
       "id": "edu-alp-2",
@@ -1371,7 +1371,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "君のwalletは鍵を持ってるだけで、coinじゃない 🌐 未使用output(UTXO)を追ってるのはチェーンの方; private keyはそれが君のものだと証明するだけ。鍵をなくすとアクセスもなくなる。"
+      "text": "あなたのwalletは鍵を持ってるだけで、coinじゃない 🌐 未使用output(UTXO)を追ってるのはチェーンの方; private keyはそれがあなたのものだと証明するだけ。鍵をなくすとアクセスもなくなる。"
     },
     {
       "id": "edu-address-2",
@@ -1504,7 +1504,7 @@
       "priority": 1,
       "emotion": "happy",
       "weight": 1,
-      "text": "私についての豆知識: 'chan'は親しみだけ 😌 'e'はeCashから。合わせると… 君のお気に入りチェーンナレーター。"
+      "text": "私についての豆知識: 'chan'は親しみだけ 😌 'e'はeCashから。合わせると… あなたのお気に入りチェーンナレーター。"
     },
     {
       "id": "fun-tokens-2",
@@ -1513,7 +1513,7 @@
       "priority": 1,
       "emotion": "celebrate",
       "weight": 1,
-      "text": "tokenはeCashを丸ごとバザールに変える 🎪 mint、swap、マーケットプレイス — 全部が数秒で決済、全部が君が見てるのと同じチェーンで。"
+      "text": "tokenはeCashを丸ごとバザールに変える 🎪 mint、swap、マーケットプレイス — 全部が数秒で決済、全部があなたが見てるのと同じチェーンで。"
     },
     {
       "id": "net-quiet-3",
@@ -1558,7 +1558,7 @@
       "priority": 1,
       "emotion": "neutral",
       "weight": 1,
-      "text": "まだここにいるよ 👁️ 君のためにチェーンを見張ってるだけ。"
+      "text": "まだここにいるよ 👁️ あなたのためにチェーンを見張ってるだけ。"
     },
     {
       "id": "idle-short-4",
@@ -1567,7 +1567,7 @@
       "priority": 1,
       "emotion": "neutral",
       "weight": 1,
-      "text": "君の方は静かだね — 大丈夫、私が見張りに立ってる 🫡"
+      "text": "あなたの方は静かだね — 大丈夫、私が見張りに立ってる 🫡"
     },
     {
       "id": "idle-long-3",
@@ -1620,7 +1620,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "ふと思ったこと 💭 君が見てる確認済みのtxは1件1件、何百ものnodeに独立に検証された。分散した信頼、リアルタイムで。"
+      "text": "ふと思ったこと 💭 あなたが見てる確認済みのtxは1件1件、何百ものnodeに独立に検証された。分散した信頼、リアルタイムで。"
     },
     {
       "id": "ambient-thought-7",
@@ -1644,7 +1644,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "全体が15年以上誰にも破られていない数学で走ってる 🧮 hashing、署名、コンセンサス — 全部オープン、全部検証可能、全部君がチェックできる。"
+      "text": "全体が15年以上誰にも破られていない数学で走ってる 🧮 hashing、署名、コンセンサス — 全部オープン、全部検証可能、全部あなたがチェックできる。"
     },
     {
       "id": "ambient-thought-10",
@@ -1676,7 +1676,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "このボード上の全てがライブストリーミング 📺 君が見てるのが、ネットワークがまさにこの瞬間にやってること。"
+      "text": "このボード上の全てがライブストリーミング 📺 あなたが見てるのが、ネットワークがまさにこの瞬間にやってること。"
     },
     {
       "id": "amb-live-7",
@@ -1730,7 +1730,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "君がこれを開いてから{liveSessBlocks}個のblockが着地した 🧱 チェーンは休まない。"
+      "text": "あなたがこれを開いてから{liveSessBlocks}個のblockが着地した 🧱 チェーンは休まない。"
     },
     {
       "id": "amb-live-13",
@@ -1917,7 +1917,7 @@
       "trigger": "event:watchlist",
       "priority": 2,
       "weight": 1,
-      "text": "君のwatchlistが今点灯した 👁️ {watched}に動きがあった。"
+      "text": "あなたのwatchlistが今点灯した 👁️ {watched}に動きがあった。"
     },
     {
       "id": "evt-watch-4",
@@ -1925,7 +1925,7 @@
       "trigger": "event:watchlist",
       "priority": 2,
       "weight": 1,
-      "text": "注意 — 君のwatchlistの{watched}が今動いた 🔔"
+      "text": "注意 — あなたのwatchlistの{watched}が今動いた 🔔"
     },
     {
       "id": "evt-msg-3",
@@ -2043,7 +2043,7 @@
       "trigger": "random",
       "priority": 1,
       "weight": 1,
-      "text": "今のところ穏やか 🌙 mempoolが起きたら、ここで君が最初に見ることになる。"
+      "text": "今のところ穏やか 🌙 mempoolが起きたら、ここであなたが最初に見ることになる。"
     },
     {
       "id": "fun-live-2",
