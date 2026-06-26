@@ -86,6 +86,37 @@
 }
 @keyframes mc-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 
+/* Mobile variant: the tab lives in the dashboard's main #mobile-tabs bar (left of
+ * "New"), icon-only and NARROWER than the text tabs. Distinct .mc-tab-mobile class so
+ * the dashboard section switcher (keyed off .mobile-tab) ignores it. It inherits the
+ * .mc-tab tint/glow/accent so it pops among the grey mobile tabs. #mobile-tabs is
+ * display:none on desktop, so this is auto-hidden there. */
+.mc-tab.mc-tab-mobile {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 44px;          /* match .mobile-tab height */
+  padding: 12px 15px;        /* match .mobile-tab vertical; a touch narrower */
+  /* Speak the flat mobile-tab language: drop the desktop gradient fill, the left
+   * accent bar and the glow. Stays gently distinct as the only cyan icon. */
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--mc-cyan);
+}
+.mc-tab.mc-tab-mobile:hover,
+.mc-tab.mc-tab-mobile:focus-visible {
+  background: rgba(255,255,255,0.03);
+  box-shadow: none;
+  color: var(--mc-cyan-bright);
+}
+/* No active underline/fill — the Media center panel covers the tab once open. */
+.mc-tab.mc-tab-mobile.mc-tab-active { background: transparent; box-shadow: none; }
+.mc-tab.mc-tab-mobile svg { width: 16px; height: 16px; filter: none; }
+.mc-tab.mc-tab-mobile.mc-tab-pulse::after { top: 9px; right: 9px; }
+@media (max-width: 939px) {
+  #msg-tabs .mc-tab { display: none; }   /* moved out to the main mobile bar */
+}
+
 /* ----------------------------------------------------------------------------
  * DIM scrim — shown only while content is playing. JS sets top/right/bottom
  * (top = topbar bottom, bottom = footer height, right = panel left edge) so the

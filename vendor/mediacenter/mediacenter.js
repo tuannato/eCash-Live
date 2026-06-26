@@ -746,8 +746,7 @@
     requestAnimationFrame(() => state.nodes.panel.classList.add('mc-on'));
     markTab(true);
     lsSet(LS_OPENED, '1');
-    const tab = document.querySelector('.mc-tab');
-    if (tab) tab.classList.remove('mc-tab-pulse');
+    document.querySelectorAll('.mc-tab').forEach((t) => t.classList.remove('mc-tab-pulse'));
   }
 
   function closePanel() {
@@ -760,8 +759,7 @@
   }
 
   function markTab(active) {
-    const tab = document.querySelector('.mc-tab');
-    if (tab) tab.classList.toggle('mc-tab-active', !!active);
+    document.querySelectorAll('.mc-tab').forEach((t) => t.classList.toggle('mc-tab-active', !!active));
   }
 
   /* Placeholder shown for a series episode that has no YouTube id yet. */
@@ -778,10 +776,12 @@
    * wire entry points + boot
    * -------------------------------------------------------------------------*/
   function wireTab() {
-    const tab = document.querySelector('.mc-tab');
-    if (!tab) return;
-    if (!lsGet(LS_OPENED, '')) tab.classList.add('mc-tab-pulse');
-    tab.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); state.open ? closePanel() : open(); });
+    const tabs = document.querySelectorAll('.mc-tab');   // desktop (#msg-tabs) + mobile (#mobile-tabs)
+    const fresh = !lsGet(LS_OPENED, '');
+    tabs.forEach((tab) => {
+      if (fresh) tab.classList.add('mc-tab-pulse');
+      tab.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); state.open ? closePanel() : open(); });
+    });
   }
 
   window.__mediaCenter = {

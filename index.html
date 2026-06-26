@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-ZVwQVlDfLQS788eXDiSuuI2YLBebYpgCUEgmMe2HceQ=';
+  script-src 'self' 'sha256-9ovqKarjeBvyelnTGEXB2T4rtlHhninacNvhNctSmIU=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -6563,8 +6563,8 @@
      update-csp-hash.sh. See /vendor/companion/echan.js header for the
      module's architecture + roadmap (Phase 1a → 1e).
      ===================================================================== -->
-<link rel="stylesheet" href="./vendor/companion/echan.css?v=mc17">
-<link rel="stylesheet" href="./vendor/mediacenter/mediacenter.css?v=mc17">
+<link rel="stylesheet" href="./vendor/companion/echan.css?v=mc20">
+<link rel="stylesheet" href="./vendor/mediacenter/mediacenter.css?v=mc20">
 
 </head>
 <body>
@@ -6594,7 +6594,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.4.0">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.4.0</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.4.1">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.4.1</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -6732,6 +6732,10 @@
 
     <!-- MOBILE TABS - only visible on mobile -->
     <div class="mobile-tabs" id="mobile-tabs">
+      <!-- Media center entry (mobile only). Distinct class (.mc-tab.mc-tab-mobile, NOT
+           .mobile-tab) so the section switcher ignores it; wired by mediacenter.js.
+           Icon-only + narrow, sits left of "New" which stays the default section. -->
+      <button class="mc-tab mc-tab-mobile" id="mc-mtab-btn" type="button" title="Media center" aria-label="Open Media center"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>
       <button class="mobile-tab active" data-section="col1">New<span class="badge" id="tab-badge-1">0</span></button>
       <button class="mobile-tab" data-section="col2">Mempool<span class="badge" id="tab-badge-2">0</span></button>
       <button class="mobile-tab" data-section="messages">Msgs<span class="badge" id="tab-badge-3">0</span></button>
@@ -7619,6 +7623,26 @@ const CHRONIK_URLS = URL_PARAM_ENDPOINT
       // module further down).
       'https://chronik1.ecashlive.net',
     ];
+
+// Token display overrides. On-chain genesis metadata is immutable; UI apps apply
+// display-only overrides here (name / ticker / url), keyed by tokenId. Applied at the
+// data source (fetchTokenInfo) + at tx-parse time, so every consumer (feed, Agora,
+// detail panel, watchlist) shows the override. The detail URL helper prepends https://
+// to scheme-less hosts, so a bare domain is fine.
+const TOKEN_DISPLAY_OVERRIDES = {
+  // Firma
+  '0387947fd575db4fb19a3e322f635dec37fd192b5941625b66bc4b2c3008cbf0': {
+    tokenName: 'Firma Alpha', tokenTicker: 'FIRMA α', url: 'firmaprotocol.com',
+  },
+};
+function applyTokenOverride(tokenId, o) {
+  const ov = tokenId && TOKEN_DISPLAY_OVERRIDES[tokenId];
+  if (!ov || !o) return o;
+  if (ov.tokenName)   o.name   = ov.tokenName;
+  if (ov.tokenTicker) o.ticker = ov.tokenTicker;
+  if (ov.url)         o.url    = ov.url;
+  return o;
+}
 
 let activeEndpoint = CHRONIK_URLS[0];
 
@@ -10587,6 +10611,9 @@ function parseTransaction(txData) {
       action: entry.txType || 'TRANSFER',
       isInvalid: entry.isInvalid,
     };
+    // Display-only name/ticker/url override (e.g. Firma) — apply immediately so the
+    // first render shows it even before fetchTokenInfo resolves.
+    applyTokenOverride(tx.token.tokenId, tx.token);
     // Sum token amounts in outputs — for the same reason as XEC above, we
     // exclude outputs that loop back to an input address (token change).
     let tokenAmount = 0n;       // sent (recipients only)
@@ -10988,6 +11015,7 @@ async function fetchTokenInfo(tokenId) {
           ? parseInt(info.timeFirstSeen, 10) * 1000
           : (info.block?.timestamp ? info.block.timestamp * 1000 : null),
       };
+      applyTokenOverride(tokenId, result);   // display-only name/ticker/url override
       tokenInfoCache.set(tokenId, result);
       tokenInfoRetryAfter.delete(tokenId);
       return result;
@@ -21016,12 +21044,12 @@ startTtfFeedModule();
      already fired when the module's IIFE runs, so init() can find
      #stage-wrap without a readyState dance. External script under 'self'
      — covered by the script-src whitelist, no CSP hash needed. -->
-<script src="./vendor/companion/echan.js?v=mc17" defer></script>
+<script src="./vendor/companion/echan.js?v=mc20" defer></script>
 
 <!-- Media center external module (sibling to eChan). External script/style under
      'self' — no CSP hash. Self-injects its DOM; opened via the play tab
      (#mc-tab-btn) or the eChan "Media center" quick-action. -->
-<script src="./vendor/mediacenter/mediacenter.js?v=mc17" defer></script>
+<script src="./vendor/mediacenter/mediacenter.js?v=mc20" defer></script>
 
 </body>
 </html>
