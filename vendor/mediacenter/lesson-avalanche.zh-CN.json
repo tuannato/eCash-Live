@@ -1,0 +1,22 @@
+{
+  "_comment": "eChan narration — Simplified Chinese translation of lesson-avalanche.en.json. 15 lines, index-aligned with window.SCENES. Protocol proper-nouns kept in English.",
+  "lang": "zh-CN",
+  "lines": [
+    "嗨！我是 eChan——让我带你看看 eCash 如何在区块被挖出之前，仅用 2–3 秒就锁定一笔支付。底层是 Proof-of-Work，Avalanche 运行在其之上。",
+    "在传统的 Proof-of-Work 上，一笔支付会数分钟处于未确认状态——足够让人尝试把同一枚币花两次。",
+    "Avalanche 解决了这点：它在 Proof-of-Work 之上叠加一层快速投票。区块投票于 2022 年上线，交易 pre-consensus 于 2025 年到来。",
+    "每个参与者都是像我这样的节点：我持有 stake，带着一个偏好——我的一票——并保有一份要询问的 peer 名单。",
+    "为了获得发言权，我发布一个 Proof：每个 UTXO 至少持有 1 亿 XEC。币仍留在我自己的钱包里——没有 stake 就没有投票，所以伪造节点毫无价值。",
+    "只有当足够多的已连接 stake 在线时，网络才会最终确定——大约 80%——这就是我们所说的达到 quorum。",
+    "当我选择询问谁时，stake 更多的 peer 被抽中的频率更高——影响力取决于你投入了多少。",
+    "每一轮我都会向一小批随机的 peer 发送 avapoll——同时最多十个询问：你更倾向于这笔交易吗？",
+    "peer 用 avaresponse 回复——是、否或未知。只有当最近 8 个明确回答中至少 7 个一致时，这一轮才算赢。",
+    "这就是 VoteRecord：与我的偏好一致的获胜轮次会把置信度 +1；若答案翻转，则归零。",
+    "在 10 毫秒的循环里不断重复。连续 128 轮一致之后——约 2 到 3 秒——该项目即被最终确定，无法逆转。",
+    "对于支付，真正的交易达到 128 并被锁定，而相冲突的双花永远到不了那里——它变为 stale 并被剔除。",
+    "同样的 128 投票也守护区块。已最终确定的区块在任何深度都防 reorg——即便 51% 攻击者的隐藏链也会被拒绝。",
+    "post-consensus 还多了一招——Real-Time Targeting。节点用同样的投票就区块时间达成一致，把 eCash 平滑到稳定的约 10 分钟节奏。",
+    "而且它从不停歇：交易涌入，我们 poll，数 7/8，爬升到 128——全天候。这就是 eCash：以现金的速度达成共识。"
+  ],
+  "emotions": ["happy","thinking","happy","studying","studying","thinking","observing","thinking","studying","thinking","celebrate","happy","happy","observing","celebrate"]
+}

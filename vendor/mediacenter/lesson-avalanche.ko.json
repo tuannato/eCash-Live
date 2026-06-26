@@ -1,0 +1,22 @@
+{
+  "_comment": "eChan narration — Korean translation of lesson-avalanche.en.json. 15 lines, index-aligned with window.SCENES. Protocol proper-nouns kept in English.",
+  "lang": "ko",
+  "lines": [
+    "안녕! 난 eChan이야 — eCash가 블록이 채굴되기도 전에 단 2~3초 만에 결제를 확정하는 방법을 보여줄게. 토대는 Proof-of-Work, 그 위에 Avalanche가 얹혀 있어.",
+    "고전적인 Proof-of-Work에서는 결제가 몇 분 동안 미확인 상태로 남아 — 누군가 같은 코인을 두 번 쓰려 시도하기에 충분한 시간이지.",
+    "Avalanche가 이를 해결해: Proof-of-Work 위에 빠른 투표를 얹는 거야. 블록 투표는 2022년, 거래 pre-consensus는 2025년에 등장했어.",
+    "참여자는 모두 나 같은 노드야: 난 stake를 보유하고, 하나의 선호 — 내 표 — 를 지니며, 물어볼 peer 목록을 유지해.",
+    "발언권을 얻으려면 Proof를 공개해: UTXO당 최소 1억 XEC. 코인은 내 wallet에 그대로 남아 — stake가 없으면 표도 없으니, 가짜 노드는 쓸모없어.",
+    "네트워크는 충분한 연결 stake가 온라인일 때에만 확정돼 — 약 80% — 우리는 이를 quorum 도달이라 불러.",
+    "누구에게 물을지 고를 때, stake가 많은 peer일수록 더 자주 표본으로 뽑혀 — 영향력은 건 만큼 따라오지.",
+    "매 라운드마다 난 작은 무작위 peer 집합에 avapoll을 보내 — 동시에 최대 열 개의 질문: 이 거래를 선호해?",
+    "peer는 avaresponse로 답해 — 예, 아니오, 또는 모름. 라운드는 최근 8표 중 적어도 7표가 일치할 때만 이겨.",
+    "그게 VoteRecord야: 내 선호와 맞는 승리 라운드는 확신도를 +1, 답이 뒤집히면 0으로 초기화돼.",
+    "이를 10밀리초 루프로 반복해. 128번 연속 합의한 뒤 — 약 2~3초 — 항목은 확정되어 되돌릴 수 없어.",
+    "결제에서는 진짜 거래가 128에 도달해 잠기고, 충돌하는 이중지불은 결코 거기 못 가 — stale가 되어 퇴출돼.",
+    "같은 128 투표가 블록도 지켜. 확정된 블록은 어떤 깊이에서도 reorg 불가 — 51% 공격자의 숨긴 체인조차 거부돼.",
+    "post-consensus는 한 가지 기술을 더해 — Real-Time Targeting. 노드들은 같은 투표로 블록 타이밍을 합의해, eCash를 안정적인 약 10분 박자로 다듬어.",
+    "그리고 결코 멈추지 않아: 거래가 밀려들고, poll하고, 7/8을 세고, 128까지 올라가 — 하루 종일. 그게 eCash야: 현금의 속도로 이루는 합의."
+  ],
+  "emotions": ["happy","thinking","happy","studying","studying","thinking","observing","thinking","studying","thinking","celebrate","happy","happy","observing","celebrate"]
+}

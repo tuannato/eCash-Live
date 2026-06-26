@@ -32,6 +32,7 @@
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
+  media-src 'self';
   connect-src 'self'
     https://chronik.e.cash wss://chronik.e.cash
     https://chronik-native1.fabien.cash wss://chronik-native1.fabien.cash
@@ -40,6 +41,7 @@
     https://chronik.pay2stay.com wss://chronik.pay2stay.com
     https://chronik1.ecashlive.net wss://chronik1.ecashlive.net
     https://api.coingecko.com;
+  frame-src 'self' https://www.youtube-nocookie.com;
   frame-ancestors 'none';
   base-uri 'none';
   form-action 'none';
@@ -6561,7 +6563,8 @@
      update-csp-hash.sh. See /vendor/companion/echan.js header for the
      module's architecture + roadmap (Phase 1a → 1e).
      ===================================================================== -->
-<link rel="stylesheet" href="./vendor/companion/echan.css">
+<link rel="stylesheet" href="./vendor/companion/echan.css?v=mc17">
+<link rel="stylesheet" href="./vendor/mediacenter/mediacenter.css?v=mc17">
 
 </head>
 <body>
@@ -6591,7 +6594,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.3.6">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.3.6</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.4.0">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.4.0</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -7019,6 +7022,12 @@
             Chat<span class="pill" id="chat-tab-pill">0</span>
             <span class="new-badge" id="chat-new-badge">NEW</span>
             <span class="warn-btn" id="chat-warn-btn" role="button" tabindex="0" title="Safety notice" aria-label="Safety notice for the Chat tab">!</span>
+          </button>
+          <!-- Media center entry: a narrow play tab. Distinct class (.mc-tab, NOT
+               .msg-tab) so the in-module Feed/Chat tab loop never touches it;
+               vendor/mediacenter/mediacenter.js wires its own click. -->
+          <button class="mc-tab" id="mc-tab-btn" type="button" title="Media center" aria-label="Open Media center">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
           </button>
           <!-- Warning popovers — opened on hover/focus of the ! buttons.
                Click also toggles them so they stay open while reading. -->
@@ -21007,7 +21016,12 @@ startTtfFeedModule();
      already fired when the module's IIFE runs, so init() can find
      #stage-wrap without a readyState dance. External script under 'self'
      — covered by the script-src whitelist, no CSP hash needed. -->
-<script src="./vendor/companion/echan.js" defer></script>
+<script src="./vendor/companion/echan.js?v=mc17" defer></script>
+
+<!-- Media center external module (sibling to eChan). External script/style under
+     'self' — no CSP hash. Self-injects its DOM; opened via the play tab
+     (#mc-tab-btn) or the eChan "Media center" quick-action. -->
+<script src="./vendor/mediacenter/mediacenter.js?v=mc17" defer></script>
 
 </body>
 </html>

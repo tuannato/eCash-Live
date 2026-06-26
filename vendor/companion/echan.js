@@ -110,6 +110,8 @@
     'qa.stats.title':  'Open Network Statistics popover',
     'qa.block':        'Latest block',
     'qa.block.title':  'Open the most recent block popover',
+    'qa.media':        'Media center',
+    'qa.media.title':  'Open the Media center',
     'qa.tip':          'Tip the project',
     'qa.tip.title':    'Open the tip dialog',
     'qa.guide':        'Guide',
@@ -349,9 +351,11 @@
     shown: false,
     mode: DEFAULT_MODE,
     deskpos: DESKPOS_PERCH,
+    deskposLocked: false,   /* true while the Media center pins her to the footer */
     soundEnabled: false,
     settingsOpen: false,
     quickActionsOpen: false,
+    presenting: false,   /* Media-center lesson narration owns the dialog (presenter mode) */
     /* Queue / typewriter */
     queue: [],
     activeMessage: null,
@@ -796,6 +800,10 @@
         'data-i18n': 'qa.block', 'data-i18n-title': 'qa.block.title',
         title: t('qa.block.title'),
         onclick: (e) => { e.stopPropagation(); closeQuickActions(); qaLatestBlock(); } }),
+      el('button', { class: 'echan-qa-btn', type: 'button', text: t('qa.media'),
+        'data-i18n': 'qa.media', 'data-i18n-title': 'qa.media.title',
+        title: t('qa.media.title'),
+        onclick: (e) => { e.stopPropagation(); closeQuickActions(); qaMedia(); } }),
       el('button', { class: 'echan-qa-btn', type: 'button', text: t('qa.tip'),
         'data-i18n': 'qa.tip', 'data-i18n-title': 'qa.tip.title',
         title: t('qa.tip.title'),
@@ -805,6 +813,12 @@
         title: t('qa.guide.title'),
         onclick: (e) => { e.stopPropagation(); closeQuickActions(); startTour(); } }),
     );
+  }
+
+  /* Quick-action: open the Media center external module (vendor/mediacenter/).
+   * No-op if that module isn't loaded yet. */
+  function qaMedia() {
+    try { window.__mediaCenter && window.__mediaCenter.open(); } catch (e) {}
   }
 
   function onAvatarClick(e) {
@@ -934,8 +948,123 @@
     else                        state.root.classList.remove('echan-deskpos-footer');
   }
   function toggleDeskPos() {
+    /* The Media center pins her to the footer during a lesson and disables the
+     * up-toggle; ignore user toggles while locked. */
+    if (state.deskposLocked) return;
     setDeskPos(state.deskpos === DESKPOS_FOOTER ? DESKPOS_PERCH : DESKPOS_FOOTER);
   }
+
+  /* ===========================================================================
+   * MEDIA-CENTER CONTROL API (window.__echan)
+   *
+   * The Media center (vendor/mediacenter/) drives eChan's position/visibility
+   * through this small imperative surface — NOT through __echanBus, which is
+   * display-only text whose emit() swallows errors (see CLAUDE.md §4). Every
+   * move here is TRANSIENT (persist:false) so the user's stored deskpos / shown
+   * preference is preserved and restored on exitMode().
+   *   - enterLessonMode(): keep her visible, drop to the footer, lock the
+   *     up-toggle, and elevate her above the media-center dim.
+   *   - enterMediaMode():  hide her completely (incl. the rail toggle) for video.
+   *   - exitMode():        restore the saved shown + deskpos and clear locks.
+   * =========================================================================*/
+  let _mcPrior = null;
+  function _mcSetPosLockUI(on) {
+    if (state.railPosToggle) state.railPosToggle.classList.toggle('echan-postoggle-locked', !!on);
+  }
+  function mcEnterLessonMode() {
+    if (!_mcPrior) _mcPrior = { shown: state.shown, deskpos: state.deskpos };
+    if (!state.shown) show();
+    setDeskPos(DESKPOS_FOOTER, false);
+    state.deskposLocked = true;
+    _mcSetPosLockUI(true);
+    if (state.root) {
+      state.root.classList.add('echan-mc-elevated');
+      // Mobile: drop her all the way over the footer to free vertical space (req #11).
+      if (window.matchMedia && window.matchMedia('(max-width: 939px)').matches) {
+        state.root.classList.add('echan-mc-lesson-mobile');
+      }
+    }
+    presentBegin();   /* lesson narration takes over the dialog */
+  }
+  function mcEnterMediaMode() {
+    if (!_mcPrior) _mcPrior = { shown: state.shown, deskpos: state.deskpos };
+    hide();
+    if (state.root) state.root.classList.add('echan-mc-hidden');
+  }
+  function mcExitMode() {
+    presentEnd();   /* clear any leftover narration + resume normal chatter */
+    state.deskposLocked = false;
+    _mcSetPosLockUI(false);
+    if (state.root) {
+      state.root.classList.remove('echan-mc-elevated');
+      state.root.classList.remove('echan-mc-hidden');
+      state.root.classList.remove('echan-mc-lesson-mobile');
+    }
+    if (_mcPrior) {
+      setDeskPos(_mcPrior.deskpos, false);
+      if (_mcPrior.shown) show(); else hide();
+      _mcPrior = null;
+    }
+  }
+
+  /* ---- Presenter mode: lesson narration that BYPASSES the message queue ----
+   * presentLine shows a line immediately (interrupting the current one), holdOpen
+   * so it stays until the next scene's line. presentBegin/End clear the queue +
+   * suppress chatter (see pushMessage/contentTick gates) so nothing mixes in or
+   * lingers. Driven by the Media center via window.__echan.presentLine(). */
+  function presentBegin() {
+    state.presenting = true;
+    state.queue = [];
+    stopTypewriter();
+    clearTimeout(state.advanceTimer);
+    clearChips();
+    state.activeMessage = null;
+    refreshPageDots();
+  }
+  function presentLine(text, emotion) {
+    if (!state.presenting) return;
+    if (!state.shown) show();
+    stopTypewriter();
+    clearTimeout(state.advanceTimer);
+    clearChips();
+    state.queue = [];
+    state.root.classList.remove('echan-pri-3', 'echan-pri-owner');
+    state.activeMessage = { text: String(text || ''), emotion: emotion || 'neutral',
+      source: 'lesson', category: '', holdOpen: true };
+    state.textCat.textContent = '';
+    setEmotion(emotion || 'neutral');
+    startTypewriter(state.activeMessage.text);
+    refreshPageDots();
+  }
+  function presentEnd() {
+    if (!state.presenting) return;
+    state.presenting = false;
+    state.queue = [];
+    stopTypewriter();
+    clearTimeout(state.advanceTimer);
+    clearChips();
+    state.activeMessage = null;
+    state.textAdvance.classList.remove('visible');
+    state.textCat.textContent = '';
+    state.textBody.textContent = '';
+    state.root.classList.remove('echan-pri-3', 'echan-pri-owner');
+    setEmotion('neutral', { glitch: false });
+    refreshPageDots();
+    /* Resume chatter PROMPTLY (~2.5-4s) instead of waiting a full cadence gap
+     * (~12-22s), so the dialog doesn't sit empty after the lesson closes. Mirrors
+     * the wake-opener in init(). Quiet mode (no interval) stays silent. */
+    clearTimeout(state.contentTimer);
+    if (!document.hidden && CONTENT_TICK_INTERVAL[state.mode]) {
+      const d = OPENER_DELAY[0] + Math.random() * (OPENER_DELAY[1] - OPENER_DELAY[0]);
+      state.contentTimer = setTimeout(contentTick, d);
+    }
+  }
+
+  /* NOTE: the media-center control methods are exposed on the EXISTING
+   * window.__echan getter installed by publishApi() during init() — see there.
+   * A separate `window.__echan = …` here would be silently clobbered by that
+   * getter (Object.defineProperty), which is the bug that left the companion
+   * dimmed in the media-center lesson mode. Do not re-add an assignment here. */
 
   /* ===========================================================================
    * SETTINGS POPOVER
@@ -1140,6 +1269,9 @@
    *    70-of-90 seed lines at priority 1 never displayed in casual at all.
    *  - chatty: everything. */
   function pushMessage(msg) {
+    /* Presenter mode (Media-center lesson narration) owns the dialog — drop all
+     * normal/engine/event/owner chatter so it can't mix in or pile up behind. */
+    if (state.presenting && (!msg || msg.source !== 'lesson')) return false;
     /* Tour owns the dialog: engine/event messages are dropped (returning
      * false keeps cooldowns + seen-ring untouched); owner announcements
      * queue silently and surface right after the tour. */
@@ -1919,6 +2051,7 @@
      * in quiet mode (returns early without setting a timer). */
     scheduleContentTick();
 
+    if (state.presenting) return;        /* lesson narration owns the dialog */
     if (state.mode === 'quiet') return;
     if (state.tour.active) return;
     if (!state.seedLoaded) return;
@@ -2727,6 +2860,12 @@
           show, hide, toggle, setMode,
           setEmotion: (name, opts) => setEmotion(name, opts || {}),
           setDeskPos, toggleDeskPos,
+          /* Media-center control surface (driven by vendor/mediacenter/). */
+          isReady: () => !!state.root,
+          enterLessonMode: mcEnterLessonMode,
+          enterMediaMode:  mcEnterMediaMode,
+          exitMode:        mcExitMode,
+          presentLine:     presentLine,
           push: pushMessage,
           pulseOn:  pulseRailOn,
           pulseOff: pulseRailOff,

@@ -1,0 +1,22 @@
+{
+  "_comment": "eChan narration — Vietnamese translation of lesson-avalanche.en.json. 15 lines, index-aligned with window.SCENES. Protocol proper-nouns kept in English.",
+  "lang": "vi",
+  "lines": [
+    "Chào! Mình là eChan — để mình chỉ bạn cách eCash chốt một thanh toán chỉ trong 2–3 giây, trước cả khi có block nào được đào. Nền tảng là Proof-of-Work; Avalanche chạy bên trên.",
+    "Với Proof-of-Work cổ điển, một thanh toán nằm chưa xác nhận trong nhiều phút — đủ lâu để ai đó thử tiêu cùng một đồng hai lần.",
+    "Avalanche giải quyết điều đó: nó đặt một lớp bỏ phiếu nhanh lên trên Proof-of-Work. Bỏ phiếu cho block ra mắt năm 2022; pre-consensus cho giao dịch đến năm 2025.",
+    "Mỗi người chơi là một node như mình: mình nắm stake, mang một lựa chọn — lá phiếu của mình — và giữ một danh sách peer để hỏi.",
+    "Để có tiếng nói, mình công bố một Proof: ít nhất 100 triệu XEC cho mỗi UTXO. Đồng coin vẫn nằm trong ví của mình — không stake thì không có phiếu, nên node giả là vô dụng.",
+    "Mạng chỉ chốt khi đủ stake đang kết nối online — khoảng 80% — điều mà ta gọi là đạt quorum.",
+    "Khi mình chọn hỏi ai, peer có nhiều stake hơn được lấy mẫu thường xuyên hơn — ảnh hưởng đi theo phần đặt cược.",
+    "Mỗi vòng mình gửi một avapoll tới một nhóm peer ngẫu nhiên nhỏ — tối đa mười câu hỏi cùng lúc: bạn thích giao dịch này chứ?",
+    "Peer trả lời bằng avaresponse — có, không, hoặc không rõ. Một vòng chỉ thắng khi ít nhất 7 trong 8 câu trả lời rõ ràng gần nhất đồng thuận.",
+    "Đó là VoteRecord: một vòng thắng khớp với lựa chọn của mình cộng +1 độ tin cậy; nếu câu trả lời đảo chiều, nó về 0.",
+    "Lặp lại theo vòng lặp 10 mili-giây. Sau 128 vòng đồng thuận liên tiếp — khoảng 2 đến 3 giây — mục được chốt và không thể đảo ngược.",
+    "Với thanh toán, giao dịch thật đạt 128 và được khóa lại, còn một giao dịch tiêu hai lần xung đột thì không bao giờ tới được — nó thành stale và bị loại bỏ.",
+    "Cùng cơ chế 128 phiếu đó cũng bảo vệ block. Một block đã chốt thì chống reorg ở mọi độ sâu — kể cả chuỗi giấu của kẻ tấn công nắm 51% cũng bị từ chối.",
+    "Post-consensus thêm một chiêu nữa — Real-Time Targeting. Các node dùng chính cơ chế bỏ phiếu để thống nhất thời điểm block, làm mượt eCash về nhịp ~10 phút ổn định.",
+    "Và nó không bao giờ dừng: giao dịch đổ về, ta poll, đếm 7-trên-8, leo lên 128 — suốt ngày đêm. Đó là eCash: đồng thuận với tốc độ của tiền mặt."
+  ],
+  "emotions": ["happy","thinking","happy","studying","studying","thinking","observing","thinking","studying","thinking","celebrate","happy","happy","observing","celebrate"]
+}

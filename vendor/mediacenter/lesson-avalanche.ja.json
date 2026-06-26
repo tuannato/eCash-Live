@@ -1,0 +1,22 @@
+{
+  "_comment": "eChan narration — Japanese translation of lesson-avalanche.en.json. 15 lines, index-aligned with window.SCENES. Protocol proper-nouns kept in English.",
+  "lang": "ja",
+  "lines": [
+    "やあ！私はeChan — eCashがブロックが掘られる前に、たった2〜3秒で支払いを確定する仕組みを見せるね。土台はProof-of-Work、その上にAvalancheが乗っているの。",
+    "従来のProof-of-Workでは、支払いは数分間未確認のまま — 誰かが同じコインを二重に使おうとするには十分な時間なんだ。",
+    "Avalancheがそれを解決する：Proof-of-Workの上に高速な投票を重ねるの。ブロックの投票は2022年、取引のpre-consensusは2025年に登場したよ。",
+    "参加者はみんな私のようなノード：stakeを持ち、ひとつの選好 — 私の票 — を抱え、尋ねる相手のpeerリストを持っているの。",
+    "発言権を得るにはProofを公開する：UTXOあたり最低1億XEC。コインは自分のwalletに残ったまま — stakeが無ければ票も無い、だから偽ノードは無価値なの。",
+    "ネットワークは十分な接続stakeがオンラインになって初めて確定する — およそ80% — これをquorum到達と呼ぶよ。",
+    "誰に尋ねるか選ぶとき、stakeの多いpeerほど頻繁に選ばれる — 影響力は賭けた分についてくるの。",
+    "各ラウンドで私は小さなランダムなpeerの集合にavapollを送る — 同時に最大10件の問い合わせ：この取引を支持する？",
+    "peerはavaresponseで答える — はい、いいえ、または不明。ラウンドは直近8票のうち少なくとも7票が一致したときだけ勝つの。",
+    "それがVoteRecord：私の選好と一致した勝ちラウンドは確信度を+1、答えが反転すれば0にリセットされるよ。",
+    "これを10ミリ秒のループで繰り返す。128回連続で合意したあと — およそ2〜3秒 — その項目は確定し、もう覆せないの。",
+    "支払いでは本物の取引が128に達してロックされ、矛盾する二重支払いは決してそこに届かない — staleになって排除されるの。",
+    "同じ128票がブロックも守る。確定したブロックはどんな深さでもreorg不可 — 51%攻撃者の隠しチェーンさえ拒否されるよ。",
+    "post-consensusはもうひとつの技を加える — Real-Time Targeting。ノードは同じ投票でブロックのタイミングを合意し、eCashを安定した約10分のリズムに整えるの。",
+    "そして決して止まらない：取引が流れ込み、pollして、7/8を数え、128まで登る — 一日中ね。それがeCash：現金の速さで合意するんだ。"
+  ],
+  "emotions": ["happy","thinking","happy","studying","studying","thinking","observing","thinking","studying","thinking","celebrate","happy","happy","observing","celebrate"]
+}

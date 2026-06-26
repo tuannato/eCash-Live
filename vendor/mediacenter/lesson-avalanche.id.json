@@ -1,0 +1,22 @@
+{
+  "_comment": "eChan narration — Indonesian translation of lesson-avalanche.en.json. 15 lines, index-aligned with window.SCENES. Protocol proper-nouns kept in English.",
+  "lang": "id",
+  "lines": [
+    "Hai! Aku eChan — kutunjukkan bagaimana eCash mengunci pembayaran hanya dalam 2–3 detik, bahkan sebelum ada block ditambang. Dasarnya Proof-of-Work; Avalanche berjalan di atasnya.",
+    "Pada Proof-of-Work klasik, pembayaran tetap belum terkonfirmasi selama bermenit-menit — cukup lama bagi seseorang untuk mencoba membelanjakan koin yang sama dua kali.",
+    "Avalanche mengatasinya: ia menambahkan voting cepat di atas Proof-of-Work. Voting block aktif tahun 2022; pre-consensus transaksi hadir tahun 2025.",
+    "Setiap pemain adalah node sepertiku: aku memegang stake, membawa satu preferensi — suaraku — dan menyimpan daftar peer untuk ditanya.",
+    "Untuk punya suara, aku menerbitkan Proof: minimal 100 juta XEC per UTXO. Koin tetap di wallet-ku sendiri — tanpa stake tak ada suara, jadi node palsu tak berguna.",
+    "Jaringan baru final ketika cukup stake terhubung sedang online — sekitar 80% — yang kita sebut mencapai quorum.",
+    "Saat aku memilih siapa yang ditanya, peer dengan stake lebih besar lebih sering disampel — pengaruh mengikuti taruhan.",
+    "Tiap ronde aku mengirim avapoll ke sampel acak kecil dari peer — paling banyak sepuluh pertanyaan sekaligus: apakah kamu memilih transaksi ini?",
+    "Peer membalas dengan avaresponse — ya, tidak, atau tidak tahu. Sebuah ronde hanya menang bila setidaknya 7 dari 8 jawaban jelas terakhir setuju.",
+    "Itulah VoteRecord: ronde menang yang cocok dengan preferensiku menambah +1 confidence; jika jawaban berbalik, ia kembali ke 0.",
+    "Ulangi dalam loop 10 milidetik. Setelah 128 ronde setuju berturut-turut — sekitar 2 sampai 3 detik — item difinalkan dan tak bisa dibatalkan.",
+    "Untuk pembayaran, transaksi asli mencapai 128 dan terkunci, sementara double-spend yang bertentangan tak pernah sampai — ia menjadi stale dan disingkirkan.",
+    "Voting 128 yang sama juga menjaga block. Block yang final kebal reorg di kedalaman berapa pun — bahkan rantai tersembunyi penyerang 51% pun ditolak.",
+    "Post-consensus menambah satu trik lagi — Real-Time Targeting. Node memakai voting yang sama untuk menyepakati waktu block, menghaluskan eCash ke irama ~10 menit yang stabil.",
+    "Dan tak pernah berhenti: transaksi mengalir masuk, kita poll, hitung 7-dari-8, naik ke 128 — sepanjang waktu. Itulah eCash: kesepakatan secepat uang tunai."
+  ],
+  "emotions": ["happy","thinking","happy","studying","studying","thinking","observing","thinking","studying","thinking","celebrate","happy","happy","observing","celebrate"]
+}

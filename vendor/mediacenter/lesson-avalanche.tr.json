@@ -1,0 +1,22 @@
+{
+  "_comment": "eChan narration — Turkish translation of lesson-avalanche.en.json. 15 lines, index-aligned with window.SCENES. Protocol proper-nouns kept in English.",
+  "lang": "tr",
+  "lines": [
+    "Selam! Ben eChan — eCash'in bir blok bile kazılmadan bir ödemeyi yalnızca 2–3 saniyede nasıl kilitlediğini göstereyim. Temel Proof-of-Work; Avalanche onun üstünde çalışır.",
+    "Klasik Proof-of-Work'te bir ödeme dakikalarca onaysız bekler — birinin aynı parayı iki kez harcamayı denemesine yetecek kadar uzun.",
+    "Avalanche bunu çözer: Proof-of-Work'ün üstüne hızlı bir oylama ekler. Blok oylaması 2022'de, işlem pre-consensus'u 2025'te devreye girdi.",
+    "Her oyuncu benim gibi bir düğüm: stake tutarım, tek bir tercih — oyum — taşırım ve soracağım peer'lerin listesini tutarım.",
+    "Söz hakkı kazanmak için bir Proof yayımlarım: UTXO başına en az 100 milyon XEC. Paralar kendi cüzdanımda kalır — stake yoksa oy da yok, yani sahte düğümler değersizdir.",
+    "Ağ yalnızca yeterli bağlı stake çevrimiçi olunca kesinleşir — yaklaşık %80 — buna quorum'a ulaşmak deriz.",
+    "Kime soracağımı seçerken daha çok stake'i olan peer'ler daha sık örneklenir — etki, ortaya konan paya göre gelir.",
+    "Her turda küçük rastgele bir peer örneklemine avapoll gönderirim — aynı anda en fazla on soru: bu işlemi tercih eder misin?",
+    "Peer'ler avaresponse ile yanıtlar — evet, hayır ya da bilinmiyor. Bir tur ancak son 8 net yanıtın en az 7'si aynı fikirdeyse kazanılır.",
+    "İşte VoteRecord: tercihimle örtüşen kazanılan bir tur güveni +1 artırır; yanıt ters dönerse 0'a sıfırlanır.",
+    "Bunu 10 milisaniyelik bir döngüde tekrarla. Üst üste 128 mutabık turdan sonra — yaklaşık 2 ila 3 saniye — öğe kesinleşir ve geri alınamaz.",
+    "Ödemelerde gerçek işlem 128'e ulaşıp kilitlenir, çakışan bir çifte harcama oraya asla varamaz — stale olur ve atılır.",
+    "Aynı 128 oylaması blokları da korur. Kesinleşmiş bir blok her derinlikte reorg'a dayanıklıdır — %51 saldırganın gizli zinciri bile reddedilir.",
+    "Post-consensus bir numara daha ekler — Real-Time Targeting. Düğümler aynı oylamayla blok zamanlamasında anlaşır, eCash'i istikrarlı ~10 dakikalık bir ritme yumuşatır.",
+    "Ve hiç durmaz: işlemler akar, poll yaparız, 7-de-8 sayarız, 128'e tırmanırız — gün boyu. İşte eCash bu: nakit hızında mutabakat."
+  ],
+  "emotions": ["happy","thinking","happy","studying","studying","thinking","observing","thinking","studying","thinking","celebrate","happy","happy","observing","celebrate"]
+}

@@ -10,6 +10,8 @@
     "qa.stats.title": "Abrir o painel de estatísticas da rede",
     "qa.block": "Último block",
     "qa.block.title": "Abrir o popover do block mais recente",
+    "qa.media": "Central de mídia",
+    "qa.media.title": "Abrir a Central de mídia",
     "qa.tip": "Apoiar o projeto",
     "qa.tip.title": "Abrir o diálogo de gorjeta",
     "qa.guide": "Guia",

@@ -1,0 +1,401 @@
+/* =============================================================================
+ * mediacenter.css — eCash Live "Media center" external module (Phase 1 scaffold)
+ *
+ * Sibling to the eChan companion (vendor/companion/echan.css): an EXTERNAL,
+ * self-injected UI loaded under script-src/style-src 'self' — it never touches
+ * the CSP-hashed inline module in index.html.
+ *
+ * Layout model (verified against index.html):
+ *   - Right slide-in PANEL matches the #section-messages (grid col 4) footprint;
+ *     JS measures that rect and positions .mc-panel over it.
+ *   - When media is "playing", a DIM scrim covers the #stage area EXCEPT the
+ *     top bar (.topbar) and footer (.footer) — JS sets the scrim/content insets
+ *     from their measured rects, so we never hardcode bar heights here.
+ *   - z-index band sits BELOW the page's modals (10000–12000) and ABOVE the
+ *     dashboard (≤ ~600):
+ *         scrim 9000 · content 9100 · (eChan elevated to 9200 in lesson mode,
+ *         see echan.css .echan-mc-elevated) · media controls 9300 · panel 9400.
+ *
+ * Design tokens (--cyan, --bg-2, --line, --text*, --amber …) come from
+ * index.html :root and are global; we read them with safe fallbacks like
+ * echan.css does, so the file still renders if a token is ever renamed.
+ * ===========================================================================*/
+
+:root {
+  --mc-cyan:        var(--cyan, #01a0e0);
+  --mc-cyan-bright: var(--cyan-bright, #29b6f0);
+  --mc-amber:       var(--amber, #ffb800);
+  --mc-gold:        var(--gold, #ffcb47);
+  --mc-bg:          var(--bg-2, #0d0d1a);
+  --mc-bg-deep:     var(--bg, #08080f);
+  --mc-line:        var(--line, rgba(255,255,255,0.08));
+  --mc-line-2:      var(--line-2, rgba(255,255,255,0.14));
+  --mc-text:        var(--text, #ffffff);
+  --mc-text-2:      var(--text-2, rgba(255,255,255,0.62));
+  --mc-text-3:      var(--text-3, rgba(255,255,255,0.34));
+
+  --mc-z-scrim:    9000;
+  --mc-z-content:  9100;
+  --mc-z-controls: 9300;
+  --mc-z-panel:    9400;
+
+  --mc-anim-slide: 340ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --mc-anim-fade:  260ms ease-out;
+  --mc-mono: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace;
+}
+
+/* ----------------------------------------------------------------------------
+ * The narrow "play" tab added to #msg-tabs. Distinct class (.mc-tab, NOT
+ * .msg-tab) so the in-module Feed/Chat tab loop never touches it; mediacenter.js
+ * wires its own click. Fixed-narrow so Feed/Chat keep their flex:1 width.
+ * --------------------------------------------------------------------------*/
+.mc-tab {
+  flex: 0 0 auto;
+  width: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 0;
+  border: none;
+  border-left: 1px solid var(--mc-line-2);
+  color: var(--mc-cyan-bright);
+  /* A coloured tint + a cyan accent edge — the only colour in the tab row, so it
+   * stands out from the muted Feed/Chat tabs, but no solid fill or animation. */
+  background: linear-gradient(180deg, rgba(1,160,224,0.20), rgba(255,184,0,0.10));
+  box-shadow: inset 2px 0 0 var(--mc-cyan);
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s, color 0.15s;
+  position: relative;
+}
+.mc-tab:hover,
+.mc-tab:focus-visible {
+  background: linear-gradient(180deg, rgba(1,160,224,0.30), rgba(255,184,0,0.15));
+  box-shadow: inset 2px 0 0 var(--mc-cyan), 0 0 12px rgba(1,160,224,0.30);
+  outline: none;
+}
+.mc-tab.mc-tab-active { background: linear-gradient(180deg, rgba(1,160,224,0.34), rgba(255,184,0,0.17)); }
+.mc-tab svg { width: 17px; height: 17px; display: block; filter: drop-shadow(0 0 3px rgba(1,160,224,0.45)); }
+/* Subtle "new" ring to hint the feature (removed once opened — JS toggles). */
+.mc-tab.mc-tab-pulse::after {
+  content: '';
+  position: absolute; top: 6px; right: 7px;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--mc-amber);
+  box-shadow: 0 0 6px var(--mc-amber);
+  animation: mc-pulse 2s infinite;
+}
+@keyframes mc-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* ----------------------------------------------------------------------------
+ * DIM scrim — shown only while content is playing. JS sets top/right/bottom
+ * (top = topbar bottom, bottom = footer height, right = panel left edge) so the
+ * top bar, footer and the panel stay fully lit.
+ * --------------------------------------------------------------------------*/
+.mc-scrim {
+  position: fixed;
+  left: 0; top: 0; right: 0; bottom: 0;
+  z-index: var(--mc-z-scrim);
+  background: rgba(2, 6, 12, 0.74);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--mc-anim-fade);
+}
+.mc-scrim.mc-on { opacity: 1; pointer-events: auto; }
+
+/* ----------------------------------------------------------------------------
+ * CONTENT host — where the lesson iframe (Phase 2) / YouTube facade (Phase 3)
+ * render. JS positions it: lesson mode stops at eChan's top edge; media mode
+ * fills the whole dimmed area. Phase 1 shows a placeholder inside.
+ * --------------------------------------------------------------------------*/
+.mc-content {
+  position: fixed;
+  z-index: var(--mc-z-content);
+  display: none;
+  border: 1px solid var(--mc-line-2);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--mc-bg-deep);
+  box-shadow: 0 18px 60px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(1,160,224,0.06);
+  opacity: 0;
+  transition: opacity var(--mc-anim-fade);
+}
+.mc-content.mc-on { display: block; }
+.mc-content.mc-shown { opacity: 1; }
+.mc-content-inner { width: 100%; height: 100%; }
+.mc-content-inner iframe { width: 100%; height: 100%; border: 0; display: block; background: #000; }
+/* Close affordance on the content itself — the only way out on mobile, where
+ * the panel is hidden during playback. */
+.mc-content-close {
+  position: absolute; top: 8px; right: 8px; z-index: 2;
+  width: 30px; height: 30px; border-radius: 8px;
+  border: 1px solid var(--mc-line-2);
+  background: rgba(8, 10, 18, 0.72);
+  color: var(--mc-text-2); cursor: pointer;
+  font-size: 15px; line-height: 1;
+}
+.mc-content-close:hover { color: var(--mc-text); border-color: var(--mc-cyan); }
+
+/* "Watch on YouTube" fallback — only injected when a video never starts (e.g.
+ * YouTube's robot gate). Sits over the bottom of the player. */
+.mc-yt-link {
+  position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
+  z-index: 3;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 999px;
+  background: rgba(8, 10, 18, 0.88); border: 1px solid var(--mc-cyan);
+  color: var(--mc-text); text-decoration: none;
+  font-family: var(--mc-mono); font-size: 12px; letter-spacing: 0.04em;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  transition: background 0.15s, color 0.15s;
+}
+.mc-yt-link:hover { background: rgba(1, 160, 224, 0.28); color: #fff; }
+
+/* ----------------------------------------------------------------------------
+ * Lesson media controls — shown only during a lesson. JS positions them in the
+ * leftover dim area (desktop: right of eChan; mobile: between content + dialog).
+ * --------------------------------------------------------------------------*/
+.mc-controls {
+  position: fixed;
+  z-index: var(--mc-z-controls);
+  transform: translateY(-50%);          /* JS sets `top` to the band's center */
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  padding: 11px 14px;
+  border: 1px solid var(--mc-line-2);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(13,13,26,0.96), rgba(8,8,15,0.96));
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity var(--mc-anim-fade);
+}
+.mc-controls.mc-on { display: flex; }
+.mc-controls.mc-shown { opacity: 1; }
+
+.mc-ctl-meta { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.mc-ctl-idx { font-family: var(--mc-mono); font-size: 10px; letter-spacing: 0.08em; color: var(--mc-cyan); flex: 0 0 auto; }
+.mc-ctl-name { font-size: 12px; color: var(--mc-text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.mc-ctl-bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,0.12); overflow: hidden; }
+.mc-ctl-fill { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--mc-cyan), var(--mc-amber)); transition: width 0.2s linear; }
+
+.mc-ctl-btns { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.mc-ctl {
+  width: 38px; height: 38px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--mc-line-2); background: rgba(255,255,255,0.04);
+  color: var(--mc-text); cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.mc-ctl:hover,
+.mc-ctl:focus-visible { border-color: var(--mc-cyan); color: var(--mc-cyan-bright); background: rgba(1,160,224,0.10); outline: none; }
+.mc-ctl svg { width: 16px; height: 16px; display: block; }
+.mc-ctl-play { width: 46px; height: 46px; border-color: var(--mc-cyan); color: var(--mc-cyan); }
+.mc-ctl-play svg { width: 20px; height: 20px; }
+.mc-ctl-play:hover { background: rgba(1,160,224,0.18); }
+.mc-ctl-mute.mc-ctl-muted { border-color: var(--mc-amber); color: var(--mc-amber); background: rgba(255,184,0,0.14); }
+.mc-audio { display: none; }
+
+/* Mobile: compact single-row layout to fit the band between content + dialog. */
+@media (max-width: 939px) {
+  .mc-controls { padding: 8px 12px; gap: 6px; }
+  .mc-ctl { width: 34px; height: 34px; }
+  .mc-ctl-play { width: 40px; height: 40px; }
+  .mc-ctl-btns { gap: 10px; }
+}
+
+/* Phase 1 placeholder shown inside the content host. */
+.mc-placeholder {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column; gap: 10px;
+  align-items: center; justify-content: center;
+  text-align: center; padding: 24px;
+  color: var(--mc-text-2);
+  font-family: var(--mc-mono);
+}
+.mc-placeholder .mc-ph-title {
+  font-size: 14px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--mc-cyan);
+}
+.mc-placeholder .mc-ph-sub { font-size: 12px; color: var(--mc-text-3); max-width: 42ch; line-height: 1.6; }
+.mc-placeholder .mc-ph-badge {
+  font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--mc-amber); border: 1px solid rgba(255,184,0,0.4);
+  padding: 3px 8px; border-radius: 999px;
+}
+
+/* ----------------------------------------------------------------------------
+ * PANEL — the right slide-in. Positioned by JS over the col-4 rect; starts
+ * off-screen-right and slides to translateX(0).
+ * --------------------------------------------------------------------------*/
+.mc-panel {
+  position: fixed;
+  z-index: var(--mc-z-panel);
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, var(--mc-bg) 0%, var(--mc-bg-deep) 100%);
+  border-left: 1px solid var(--mc-line-2);
+  box-shadow: -16px 0 50px rgba(0,0,0,0.5);
+  transform: translateX(110%);
+  opacity: 0;
+  pointer-events: none;        /* off-screen/hidden panel must not catch clicks */
+  transition: transform var(--mc-anim-slide), opacity var(--mc-anim-slide);
+  /* A slightly "louder" top accent so the panel stands out from the dashboard. */
+  border-top: 2px solid transparent;
+  border-image: linear-gradient(90deg, var(--mc-cyan), var(--mc-amber)) 1;
+}
+.mc-panel.mc-on { transform: translateX(0); opacity: 1; pointer-events: auto; }
+/* Tucked = transiently slid out while content plays on mobile (panel stays
+ * "open" in state; this just hides it). Higher specificity than .mc-on so it
+ * wins even though open()'s rAF keeps re-asserting mc-on. */
+.mc-panel.mc-on.mc-tucked { transform: translateX(110%); opacity: 0; pointer-events: none; }
+
+.mc-panel-head {
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--mc-line);
+}
+.mc-panel-back {
+  display: none;               /* shown only in "playing" view (JS toggles) */
+  background: transparent; border: none; cursor: pointer;
+  color: var(--mc-text-2); font-size: 16px; line-height: 1; padding: 2px 4px;
+}
+.mc-panel-back:hover { color: var(--mc-cyan); }
+.mc-panel.mc-playing .mc-panel-back { display: inline-block; }
+.mc-panel-title {
+  flex: 1 1 auto;
+  font-family: var(--mc-mono);
+  font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--mc-text);
+}
+.mc-panel-title .mc-accent { color: var(--mc-cyan); }
+.mc-panel-close {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--mc-text-3); font-size: 18px; line-height: 1; padding: 2px 6px;
+  border-radius: 6px;
+}
+.mc-panel-close:hover { color: var(--mc-text); background: rgba(255,255,255,0.06); }
+
+.mc-panel-body { flex: 1 1 auto; overflow-y: auto; padding: 12px; }
+
+/* ----------------------------------------------------------------------------
+ * CARDS — info on the left, art on the right; art fades into the card toward
+ * the text (left→right mask), game-menu style. Art file (you supply):
+ *   vendor/mediacenter/cards/<id>.webp · WebP · landscape 3:2 ~960×640 ·
+ *   keep the focal subject on the RIGHT (left ~40% fades out).
+ * --------------------------------------------------------------------------*/
+.mc-card {
+  position: relative;
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--mc-line);
+  border-radius: 12px;
+  background: var(--mc-bg-deep);
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 12px;
+  min-height: 116px;
+  transition: border-color 0.18s, transform 0.18s, box-shadow 0.18s;
+}
+.mc-card:hover,
+.mc-card:focus-visible {
+  border-color: var(--mc-cyan);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4), 0 0 0 1px rgba(1,160,224,0.25);
+  outline: none;
+}
+/* Art layer (right side), masked to dissolve toward the left text column. */
+.mc-card-art {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 62%;
+  background-size: cover;
+  background-position: right center;
+  /* Fallback placeholder gradient until a real .webp is dropped in. */
+  background-image:
+    radial-gradient(120% 140% at 100% 50%, rgba(1,160,224,0.30), transparent 60%),
+    linear-gradient(135deg, #10233a, #0a1422);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.5) 34%, #000 78%);
+          mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.5) 34%, #000 78%);
+  pointer-events: none;
+}
+.mc-card-art.mc-art-placeholder::after {
+  content: 'art →';
+  position: absolute; right: 10px; bottom: 8px;
+  font-family: var(--mc-mono); font-size: 9px; letter-spacing: 0.18em;
+  color: rgba(255,255,255,0.35); text-transform: uppercase;
+}
+.mc-card-info {
+  position: relative;          /* above the art layer */
+  z-index: 1;
+  max-width: 64%;
+  padding: 14px 14px 16px;
+}
+.mc-card-tag {
+  display: inline-block;
+  font-family: var(--mc-mono);
+  font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--mc-amber);
+  border: 1px solid rgba(255,184,0,0.35);
+  border-radius: 999px; padding: 2px 7px; margin-bottom: 8px;
+}
+.mc-card-title { font-size: 15px; font-weight: 700; color: var(--mc-text); margin: 0 0 5px; }
+.mc-card-desc  { font-size: 12px; line-height: 1.55; color: var(--mc-text-2); margin: 0; }
+.mc-card-meta  { margin-top: 9px; font-family: var(--mc-mono); font-size: 10px; color: var(--mc-text-3); }
+
+/* Episode cards (Why crypto): same art-with-fade look as the home cards, but
+ * SHORTER (title only). Episode art file (you supply):
+ *   vendor/mediacenter/cards/<seriesId>-ep<n>.webp · WebP · 16:9 (~640×360 —
+ *   standard YouTube thumbnail ratio), cover-cropped into the short card. */
+.mc-episodes { display: flex; flex-direction: column; gap: 10px; }
+.mc-ecard {
+  position: relative; display: block; width: 100%; text-align: left;
+  border: 1px solid var(--mc-line); border-radius: 10px;
+  background: var(--mc-bg-deep); overflow: hidden; cursor: pointer;
+  padding: 0; min-height: 76px;
+  transition: border-color 0.16s, transform 0.16s, box-shadow 0.16s;
+}
+.mc-ecard:hover,
+.mc-ecard:focus-visible {
+  border-color: var(--mc-cyan); transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(0,0,0,0.4), 0 0 0 1px rgba(1,160,224,0.22); outline: none;
+}
+.mc-ecard .mc-card-art { width: 52%; }   /* wider + shorter than the home-card art */
+.mc-ecard-info {
+  position: relative; z-index: 1; max-width: 62%; padding: 12px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.mc-ecard-num { font-family: var(--mc-mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--mc-cyan); }
+.mc-ecard-title { font-size: 13px; font-weight: 600; color: var(--mc-text); line-height: 1.35; }
+/* Play badge floating over the thumbnail (video affordance). */
+.mc-ecard-play {
+  position: absolute; top: 50%; right: 15%; transform: translateY(-50%); z-index: 1;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.55); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4); transition: background 0.16s, border-color 0.16s;
+}
+.mc-ecard-play svg { width: 13px; height: 13px; margin-left: 1px; }
+.mc-ecard:hover .mc-ecard-play { background: rgba(1,160,224,0.7); border-color: var(--mc-cyan-bright); }
+
+/* ----------------------------------------------------------------------------
+ * Mobile (≤ 939px, matches eChan + the dashboard's mobile breakpoint).
+ * The panel takes most of the width; content fills the dimmed area.
+ * --------------------------------------------------------------------------*/
+@media (max-width: 939px) {
+  .mc-tab { width: 34px; }
+  .mc-card { min-height: 104px; }
+  .mc-card-info { max-width: 70%; }
+  .mc-card-art { width: 56%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-panel, .mc-scrim, .mc-content { transition: none; }
+}

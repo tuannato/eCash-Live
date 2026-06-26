@@ -1,0 +1,26 @@
+{
+  "_comment": "eChan's presenter narration for the Avalanche consensus lesson. One entry per scene, INDEX-ALIGNED with window.SCENES in the lesson (15 scenes). EN is the source of truth; translations live in lesson-avalanche.<lang>.json with the SAME order/length. Facts grounded in internal/eCash_Avalanche_Technical_Reference.md (bitcoin-abc-verified) and the lesson's own scene script. eChan speaks one line per scene, in her dialog, synced to the lesson timeline. Keep lines ~1-2 sentences so they read within a scene (~9-13s). NOTE: RTT here = Real-Time Targeting (block-time smoothing), NOT round-trip time.",
+  "lang": "en",
+  "lines": [
+    "Hey! I'm eChan — let me show you how eCash locks in a payment in just 2–3 seconds, before any block is even mined. The base is Proof-of-Work; Avalanche rides on top.",
+    "On classic Proof-of-Work a payment sits unconfirmed for minutes — long enough for someone to try spending the same coin twice.",
+    "Avalanche fixes that: it layers a fast vote on top of Proof-of-Work. Block voting went live in 2022; transaction pre-consensus arrived in 2025.",
+    "Every player is a node like me: I hold stake, carry one preference — my vote — and keep a list of peers to ask.",
+    "To earn a voice I publish a Proof: at least 100 million XEC held per UTXO. The coins stay in my own wallet — no stake, no vote, so fake nodes are worthless.",
+    "The network only finalizes once enough connected stake is online — about 80% — what we call reaching quorum.",
+    "When I choose whom to ask, peers with more stake are sampled more often — influence follows skin in the game.",
+    "Each round I send an avapoll to a small random sample of peers — at most ten questions in flight at once: do you prefer this transaction?",
+    "Peers reply with avaresponse — yes, no, or unknown. A round is only won when at least 7 of the last 8 clear answers agree.",
+    "That's the VoteRecord: a winning round that matches my preference adds +1 confidence; if the answer ever flips, it resets to 0.",
+    "Repeat on a 10-millisecond loop. After 128 agreeing rounds in a row — about 2 to 3 seconds — the item is finalized and can't be reversed.",
+    "For payments, the real transaction reaches 128 and locks in, while a conflicting double-spend never gets there — it goes stale and is evicted.",
+    "The same 128-vote guards blocks too. A finalized block is reorg-proof at any depth — even a 51% attacker's hidden chain is rejected.",
+    "Post-consensus adds one more trick — Real-Time Targeting. Nodes use the same voting to agree on block timing, smoothing eCash toward a steady ~10-minute beat.",
+    "And it never stops: transactions stream in, we poll, tally 7-of-8, climb to 128 — around the clock. That's eCash: agreement at the speed of cash."
+  ],
+  "emotions": [
+    "happy", "thinking", "happy", "studying", "studying",
+    "thinking", "observing", "thinking", "studying", "thinking",
+    "celebrate", "happy", "happy", "observing", "celebrate"
+  ]
+}

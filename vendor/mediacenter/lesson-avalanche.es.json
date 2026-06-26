@@ -1,0 +1,22 @@
+{
+  "_comment": "eChan narration — Spanish translation of lesson-avalanche.en.json. 15 lines, index-aligned with window.SCENES. Protocol proper-nouns kept in English.",
+  "lang": "es",
+  "lines": [
+    "¡Hola! Soy eChan — te muestro cómo eCash asegura un pago en solo 2–3 segundos, antes de que se mine ningún bloque. La base es Proof-of-Work; Avalanche va encima.",
+    "Con el Proof-of-Work clásico, un pago queda sin confirmar durante minutos — tiempo suficiente para que alguien intente gastar la misma moneda dos veces.",
+    "Avalanche lo resuelve: añade una votación rápida sobre Proof-of-Work. La votación de bloques se activó en 2022; el pre-consenso de transacciones llegó en 2025.",
+    "Cada participante es un nodo como yo: tengo stake, llevo una preferencia — mi voto — y mantengo una lista de peers a quienes preguntar.",
+    "Para tener voz publico un Proof: al menos 100 millones de XEC por UTXO. Las monedas siguen en mi propia wallet — sin stake no hay voto, así que los nodos falsos no valen nada.",
+    "La red solo finaliza cuando hay suficiente stake conectado en línea — alrededor del 80% — lo que llamamos alcanzar el quórum.",
+    "Cuando elijo a quién preguntar, los peers con más stake se muestrean con más frecuencia — la influencia va con lo que arriesgas.",
+    "En cada ronda envío un avapoll a una pequeña muestra aleatoria de peers — como máximo diez preguntas a la vez: ¿prefieres esta transacción?",
+    "Los peers responden con avaresponse — sí, no o desconocido. Una ronda solo se gana cuando al menos 7 de las últimas 8 respuestas claras coinciden.",
+    "Ese es el VoteRecord: una ronda ganada que coincide con mi preferencia suma +1 de confianza; si la respuesta cambia, se reinicia a 0.",
+    "Se repite en un bucle de 10 milisegundos. Tras 128 rondas de acuerdo seguidas — unos 2 a 3 segundos — el elemento queda finalizado y no se puede revertir.",
+    "Para los pagos, la transacción real llega a 128 y queda fijada, mientras que un doble gasto en conflicto nunca llega — se vuelve stale y es expulsado.",
+    "La misma votación de 128 protege también los bloques. Un bloque finalizado es a prueba de reorgs a cualquier profundidad — incluso la cadena oculta de un atacante con 51% es rechazada.",
+    "El post-consenso añade un truco más — Real-Time Targeting. Los nodos usan la misma votación para acordar el tiempo de los bloques, suavizando eCash hacia un ritmo estable de ~10 minutos.",
+    "Y nunca para: las transacciones llegan, hacemos poll, contamos 7-de-8, subimos a 128 — sin descanso. Eso es eCash: acuerdo a la velocidad del efectivo."
+  ],
+  "emotions": ["happy","thinking","happy","studying","studying","thinking","observing","thinking","studying","thinking","celebrate","happy","happy","observing","celebrate"]
+}

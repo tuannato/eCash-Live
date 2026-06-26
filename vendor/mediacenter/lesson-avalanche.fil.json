@@ -1,0 +1,22 @@
+{
+  "_comment": "eChan narration — Filipino translation of lesson-avalanche.en.json. 15 lines, index-aligned with window.SCENES. Protocol proper-nouns kept in English.",
+  "lang": "fil",
+  "lines": [
+    "Hi! Ako si eChan — ipapakita ko kung paano nila-lock ng eCash ang isang bayad sa loob lang ng 2–3 segundo, bago pa man may ma-mine na block. Ang pundasyon ay Proof-of-Work; nakapatong ang Avalanche sa ibabaw.",
+    "Sa klasikong Proof-of-Work, nananatiling hindi kumpirmado ang isang bayad nang ilang minuto — sapat na para subukan ng isang tao na gastusin ang parehong barya nang dalawang beses.",
+    "Inaayos iyon ng Avalanche: naglalagay ito ng mabilis na botohan sa ibabaw ng Proof-of-Work. Nag-live ang botohan ng block noong 2022; dumating ang transaction pre-consensus noong 2025.",
+    "Ang bawat manlalaro ay isang node tulad ko: may hawak akong stake, may dala akong isang kagustuhan — ang boto ko — at may listahan ng mga peer na tatanungin.",
+    "Para magkaroon ng boses, naglalathala ako ng Proof: hindi bababa sa 100 milyong XEC kada UTXO. Nananatili ang mga coin sa sarili kong wallet — walang stake, walang boto, kaya walang silbi ang mga pekeng node.",
+    "Nagfa-finalize lang ang network kapag sapat na ang nakakonektang stake na online — mga 80% — na tinatawag naming pag-abot sa quorum.",
+    "Kapag pumipili ako kung sino ang tatanungin, mas madalas na-sa-sample ang mga peer na mas malaki ang stake — sumusunod ang impluwensya sa itinaya.",
+    "Bawat round, nagpapadala ako ng avapoll sa maliit na random na sample ng mga peer — hanggang sampung tanong nang sabay-sabay: gusto mo ba ang transaksyong ito?",
+    "Sumasagot ang mga peer gamit ang avaresponse — oo, hindi, o hindi alam. Napapanalunan lang ang isang round kapag hindi bababa sa 7 sa huling 8 malinaw na sagot ang nagkakasundo.",
+    "Iyan ang VoteRecord: ang panalong round na tumutugma sa kagustuhan ko ay nagdadagdag ng +1 confidence; kapag bumaliktad ang sagot, nire-reset ito sa 0.",
+    "Ulitin sa loop na 10 milisegundo. Pagkatapos ng 128 magkakasunod na sang-ayon na round — mga 2 hanggang 3 segundo — na-finalize na ang item at hindi na mababawi.",
+    "Para sa mga bayad, naaabot ng totoong transaksyon ang 128 at nala-lock, habang ang sumasalungat na double-spend ay hindi kailanman nakakarating doon — nagiging stale ito at pinapaalis.",
+    "Ang parehong 128-vote ay nagbabantay din sa mga block. Ang na-finalize na block ay reorg-proof sa anumang lalim — kahit ang nakatagong chain ng isang 51% attacker ay tinatanggihan.",
+    "Nagdaragdag ng isa pang trick ang post-consensus — Real-Time Targeting. Ginagamit ng mga node ang parehong botohan para magkasundo sa timing ng block, ginagawang pantay ang eCash tungo sa matatag na ~10-minutong ritmo.",
+    "At hindi ito tumitigil: dumadaloy ang mga transaksyon, nagpo-poll kami, binibilang ang 7-sa-8, umaakyat sa 128 — buong araw. Iyan ang eCash: pagkakasundo sa bilis ng cash."
+  ],
+  "emotions": ["happy","thinking","happy","studying","studying","thinking","observing","thinking","studying","thinking","celebrate","happy","happy","observing","celebrate"]
+}

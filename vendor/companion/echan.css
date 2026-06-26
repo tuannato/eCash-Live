@@ -66,6 +66,24 @@
   bottom: var(--ec-footer-actual, var(--footer-h, 44px));
 }
 
+/* ---- Media-center coordination (driven by window.__echan; see echan.js) ----
+ * elevated: sit ABOVE the media-center dim (z 9000/9100) while a lesson runs so
+ *           she stays visible and narrates; mc-hidden: fully gone during video.
+ *           postoggle-locked: the up-toggle is disabled while pinned to footer. */
+.echan-root.echan-mc-elevated { z-index: 9200; }
+.echan-root.echan-mc-hidden {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--ec-anim-fade);
+}
+.echan-rail-postoggle.echan-postoggle-locked {
+  opacity: 0.3;
+  pointer-events: none;
+}
+/* Mobile lesson: pin her over the footer to reclaim vertical space (req #11).
+ * After the deskpos-footer rule (same specificity) so this `bottom` wins. */
+.echan-root.echan-mc-lesson-mobile { bottom: 0; }
+
 /* =============================================================================
  * RAIL
  * ===========================================================================*/
