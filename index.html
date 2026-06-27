@@ -6563,8 +6563,8 @@
      update-csp-hash.sh. See /vendor/companion/echan.js header for the
      module's architecture + roadmap (Phase 1a → 1e).
      ===================================================================== -->
-<link rel="stylesheet" href="./vendor/companion/echan.css?v=mc20">
-<link rel="stylesheet" href="./vendor/mediacenter/mediacenter.css?v=mc20">
+<link rel="stylesheet" href="./vendor/companion/echan.css?v=mc21">
+<link rel="stylesheet" href="./vendor/mediacenter/mediacenter.css?v=mc21">
 
 </head>
 <body>
@@ -6594,7 +6594,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.4.1">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.4.1</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.4.2">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.4.2</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -21044,12 +21044,12 @@ startTtfFeedModule();
      already fired when the module's IIFE runs, so init() can find
      #stage-wrap without a readyState dance. External script under 'self'
      — covered by the script-src whitelist, no CSP hash needed. -->
-<script src="./vendor/companion/echan.js?v=mc20" defer></script>
+<script src="./vendor/companion/echan.js?v=mc21" defer></script>
 
 <!-- Media center external module (sibling to eChan). External script/style under
      'self' — no CSP hash. Self-injects its DOM; opened via the play tab
      (#mc-tab-btn) or the eChan "Media center" quick-action. -->
-<script src="./vendor/mediacenter/mediacenter.js?v=mc20" defer></script>
+<script src="./vendor/mediacenter/mediacenter.js?v=mc21" defer></script>
 
 </body>
 </html>

@@ -128,6 +128,9 @@
   const RESTART_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.5 15a9 9 0 1 0 2.1-9.4L1 10"/></svg>';
   const VOL_ON_SVG  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.7 5.3a9 9 0 0 1 0 13.4"/></svg>';
   const VOL_OFF_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>';
+  // Fullscreen toggle (corners-out = enter, corners-in = exit).
+  const FS_ENTER_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>';
+  const FS_EXIT_SVG  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M16 21v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>';
 
   /* Deployed lesson docs (copied from internal/). Loaded lazily — only when the
    * Avalanche card is clicked. Same-origin, so we drive them via their global
@@ -192,6 +195,9 @@
     return (r.width || r.height) ? r : null;
   }
   function topbarBottom() { const r = rectOf('.topbar'); return r ? Math.round(r.bottom) : 0; }
+  // Top of the stats row (block/online/price = row 2). Mobile fullscreen climbs
+  // up to here so it covers the stats but leaves row 1 (brand/LIVE/menu) lit.
+  function statsRowTop() { const r = rectOf('.meta'); return r ? Math.round(r.top) : topbarBottom(); }
   function footerHeight() {
     const r = rectOf('.footer');
     if (r) return Math.round(r.height);
@@ -229,13 +235,17 @@
    * left edge and leaves the top bar + footer lit. */
   function positionScrimAndContent(mode) {
     const mob = isMobile();
-    const top = topbarBottom();
     const fH = footerHeight();
+    // Fullscreen lesson: edge-to-edge, cover the panel + controls; on mobile also
+    // climb over the stats row. eChan keeps floating on top (z above content).
+    const fs = mode === 'lesson' && state.lesson && state.lesson.fullscreen;
+    const top = (fs && mob) ? statsRowTop() : topbarBottom();
     const panelLeft = Math.round(targetRect().left);
-    // On mobile the panel is hidden during playback, so the dim + content use
-    // the full width; on desktop they stop at the panel's left edge (req #9/#10).
-    const rightInset = mob ? 0 : Math.max(0, window.innerWidth - panelLeft);
-    const m = mob ? 12 : 14;
+    // On mobile the panel is hidden during playback (full-width content); on
+    // desktop windowed it stops at the panel's left edge (req #9/#10); fullscreen
+    // covers the panel too → no right inset.
+    const rightInset = (mob || fs) ? 0 : Math.max(0, window.innerWidth - panelLeft);
+    const m = fs ? 0 : (mob ? 12 : 14);
 
     const s = state.nodes.scrim.style;
     s.top = top + 'px';
@@ -249,12 +259,18 @@
     c.right = (rightInset + m) + 'px';
     if (mode === 'lesson') {
       // Stop at eChan's settled top (measured after her move) — fall back to a
-      // sensible gap above the footer if she isn't present. On mobile, reserve a
-      // band above her for the controls (they sit between content and dialog).
+      // sensible gap above the footer if she isn't present. On mobile windowed,
+      // reserve a band above her for the controls (between content and dialog).
       const ech = rectOf('.echan-root');
       const bottomY = ech ? Math.round(window.innerHeight - ech.top) : (fH + 200);
-      const band = mob ? 92 : 0;
-      c.bottom = (bottomY + band + m) + 'px';
+      if (fs) {
+        // Mobile: down to eChan's top (she sits at the footer). Desktop: all the
+        // way to the footer top — eChan floats over the content's bottom-left.
+        c.bottom = (mob ? bottomY : fH) + 'px';
+      } else {
+        const band = mob ? 92 : 0;
+        c.bottom = (bottomY + band + m) + 'px';
+      }
     } else {
       c.bottom = (fH + m) + 'px';
     }
@@ -277,9 +293,14 @@
 
     const contentClose = el('button', { class: 'mc-content-close', type: 'button',
       title: 'Close', 'aria-label': 'Close content', html: '✕', onclick: () => stopPlaying() });
+    // Dim fullscreen toggle — shown only while a lesson plays (CSS gates on
+    // .mc-content.mc-lesson). Returns the lesson to the windowed layout.
+    const contentFs = el('button', { class: 'mc-content-fs', type: 'button',
+      title: 'Exit fullscreen', 'aria-label': 'Toggle fullscreen', html: FS_EXIT_SVG,
+      onclick: () => toggleFullscreen() });
     const contentInner = el('div', { class: 'mc-content-inner' });
     const content = el('div', { class: 'mc-content', role: 'region', 'aria-label': 'Media content' },
-      contentClose, contentInner);
+      contentFs, contentClose, contentInner);
 
     const back = el('button', { class: 'mc-panel-back', type: 'button', title: 'Back',
       'aria-label': 'Back', html: '‹', onclick: () => goBack() });
@@ -327,7 +348,7 @@
     host.appendChild(audio);
     host.appendChild(panel);
 
-    state.nodes = { scrim, content, contentInner, panel, body, head, title, back,
+    state.nodes = { scrim, content, contentInner, contentFs, panel, body, head, title, back,
       controls, ctlIdx, ctlName, ctlFill, ctlPlay, ctlMute, audio };
     state.built = true;
 
@@ -420,24 +441,48 @@
       src: isMobile() ? LESSON_SRC.mobile : LESSON_SRC.desktop,
       title: card.title, loading: 'eager',
     });
-    state.lesson = { iframe, ready: false, scenes: [], curIdx: 0, poll: null, narration: null, lastNarrated: -1 };
+    // Fullscreen is the default on open (req: cover stats row + media buttons,
+    // panel; eChan keeps floating). Toggle returns to the windowed layout.
+    state.lesson = { iframe, ready: false, scenes: [], curIdx: 0, poll: null, narration: null, lastNarrated: -1, fullscreen: true };
+    state.nodes.content.classList.add('mc-lesson');   // reveals the fullscreen toggle
     loadNarration(card.narrationBase);
     startMusic();
     showContent(iframe);
     state.nodes.scrim.classList.add('mc-on');
     state.nodes.controls.classList.add('mc-on');
-    positionScrimAndContent('lesson');
+    applyFullscreen();                                 // sets classes + positions
     state.nodes.content.classList.add('mc-on');
     waitForLessonApi(iframe);
     // Reveal after her slide settles so the box lands above her top edge (req #10).
     setTimeout(() => {
       if (state.playing === 'lesson') {
-        positionScrimAndContent('lesson');
-        positionControls();
+        applyFullscreen();
         state.nodes.content.classList.add('mc-shown');
         state.nodes.controls.classList.add('mc-shown');
       }
     }, LESSON_REVEAL_MS);
+  }
+
+  /* Flip the lesson between fullscreen (default) and the windowed layout. In
+   * fullscreen the content goes edge-to-edge over the panel + media controls
+   * (mobile: also over the stats row); eChan stays floating on top. */
+  function toggleFullscreen() {
+    if (!state.lesson) return;
+    state.lesson.fullscreen = !state.lesson.fullscreen;
+    applyFullscreen();
+  }
+  function applyFullscreen() {
+    if (state.playing !== 'lesson' || !state.lesson) return;
+    const fs = !!state.lesson.fullscreen;
+    state.nodes.content.classList.toggle('mc-fs', fs);
+    state.nodes.controls.classList.toggle('mc-fs-hide', fs);   // CSS hides controls
+    // Desktop: hide the Media-center panel under fullscreen (mobile is already
+    // tucked for the whole lesson). Re-shows it on exit.
+    if (!isMobile()) state.nodes.panel.classList.toggle('mc-tucked', fs);
+    const b = state.nodes.contentFs;
+    if (b) { b.innerHTML = fs ? FS_EXIT_SVG : FS_ENTER_SVG; b.title = fs ? 'Exit fullscreen' : 'Fullscreen'; }
+    positionScrimAndContent('lesson');
+    positionControls();
   }
 
   /* Read the lesson's control API FRESH on every call. The lesson reassigns
@@ -709,8 +754,8 @@
     // Stop the media IMMEDIATELY — removing the iframe now kills YouTube/lesson
     // playback at once (no audio tail). The empty box then fades out.
     state.nodes.contentInner.textContent = '';
-    state.nodes.content.classList.remove('mc-shown');
-    state.nodes.controls.classList.remove('mc-on', 'mc-shown');
+    state.nodes.content.classList.remove('mc-shown', 'mc-fs', 'mc-lesson');
+    state.nodes.controls.classList.remove('mc-on', 'mc-shown', 'mc-fs-hide');
     state.nodes.scrim.classList.remove('mc-on');
     setTimeout(() => { if (!state.playing) state.nodes.content.classList.remove('mc-on'); }, 280);
     try { window.__echan && window.__echan.exitMode && window.__echan.exitMode(); } catch (e) {}
