@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-9ovqKarjeBvyelnTGEXB2T4rtlHhninacNvhNctSmIU=';
+  script-src 'self' 'sha256-uxffcVT53gLIf8pHKTgDCTqNwn6kLzxyH1xfMFVJxdw=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -1241,6 +1241,63 @@
   .detail-body { display: none; flex: 1; overflow-y: auto; padding-right: 4px; }
   .detail.has-tx .detail-empty { display: none; }
   .detail.has-tx .detail-body { display: flex; flex-direction: column; gap: 14px; }
+
+  /* ============ CONSENSUS RADAR (v1.5.0) ============
+     The empty-state reticle (bullseye) is a button: click it to swap the
+     detail panel's empty/body content for a live consensus radar driven by
+     real tx data (state.txs). On mobile the radar instead takes over the
+     NEW tab (#section-col1) and the tab renames New → RADAR. */
+  .empty-reticle { cursor: pointer; border-radius: 50%; transition: filter .15s, transform .15s; }
+  .empty-reticle:hover { transform: scale(1.04); filter: drop-shadow(0 0 18px rgba(1,160,224,0.6)); }
+  .empty-reticle:focus-visible { outline: 1px solid var(--cyan); outline-offset: 6px; }
+
+  /* Radar containers hidden until toggled on. */
+  .detail-radar, .col1-radar { display: none; }
+  .detail.radar-on .detail-empty,
+  .detail.radar-on .detail-body { display: none; }
+  .detail.radar-on .detail-radar { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+  #section-col1.radar-on .col-head,
+  #section-col1.radar-on .tx-list { display: none; }
+  #section-col1.radar-on .col1-radar { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+
+  .radar-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 12px; border-bottom: 1px solid var(--line);
+    font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace; font-size: 10.5px;
+    letter-spacing: 0.04em; color: var(--text-3);
+  }
+  .radar-bar .radar-title { color: var(--text-2); }
+  .radar-close {
+    appearance: none; cursor: pointer;
+    font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace; font-size: 10.5px;
+    color: var(--text-2); background: var(--bg-2);
+    border: 1px solid var(--line-2); border-radius: 4px; padding: 5px 9px; transition: 0.15s;
+  }
+  .radar-close:hover { color: var(--cyan); border-color: var(--cyan); }
+  .radar-stage {
+    position: relative; flex: 1; min-height: 0;
+    background: radial-gradient(circle at 50% 50%, #0a1322 0%, #08080f 74%);
+  }
+  .radar-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .radar-legend {
+    padding: 8px 12px; border-top: 1px solid var(--line);
+    font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace; font-size: 10px;
+    letter-spacing: 0.04em; color: var(--text-3); text-align: center;
+  }
+  .radar-legend .rl-green { color: var(--green); }
+
+  /* Reticle entry button inside the NEW tab head — mobile only. */
+  .radar-reticle-btn {
+    display: none; appearance: none; cursor: pointer;
+    align-items: center; justify-content: center;
+    width: 26px; height: 26px; margin-right: 8px; padding: 0;
+    background: transparent; border: 1px solid var(--cyan); border-radius: 50%;
+    color: var(--cyan); vertical-align: middle; transition: 0.15s;
+  }
+  .radar-reticle-btn:hover { background: rgba(1,160,224,0.12); }
+  .radar-reticle-btn svg { width: 16px; height: 16px; }
+  @media (max-width: 767px) { .radar-reticle-btn { display: inline-flex; } }
+
   .detail-body::-webkit-scrollbar { width: 4px; }
   .detail-body::-webkit-scrollbar-track { background: transparent; }
   .detail-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
@@ -6231,7 +6288,7 @@
     .block-card {
       flex: 0 0 auto;
       width: 100%;
-      max-width: 360px;   /* keep cards readable but not "quá lố" on wide phones */
+      max-width: 360px;   /* keep cards readable but not oversized on wide phones */
       margin: 0 auto;     /* center within the panel */
       padding: 14px 16px 16px;
       font-size: 13px;
@@ -6594,7 +6651,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.4.2">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.4.2</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.5.0">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.5.0</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -6751,10 +6808,29 @@
         <div class="col-head">
           <div class="l"><span class="num">01</span>New tx · Pre-consensus polling</div>
           <div class="r">
+            <button class="radar-reticle-btn" id="radar-open-mobile" type="button" title="Open consensus radar" aria-label="Open consensus radar">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.4"/>
+                <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="1.4"/>
+                <circle cx="12" cy="12" r="1.6" fill="currentColor"/>
+                <line x1="12" y1="1" x2="12" y2="4" stroke="currentColor" stroke-width="1.4"/>
+                <line x1="12" y1="20" x2="12" y2="23" stroke="currentColor" stroke-width="1.4"/>
+                <line x1="1" y1="12" x2="4" y2="12" stroke="currentColor" stroke-width="1.4"/>
+                <line x1="20" y1="12" x2="23" y2="12" stroke="currentColor" stroke-width="1.4"/>
+              </svg>
+            </button>
             <span id="r-polling" class="accent">0</span> tx
           </div>
         </div>
         <div class="tx-list" id="col1-list"></div>
+        <div class="col1-radar" id="col1-radar">
+          <div class="radar-bar">
+            <span class="radar-title">Consensus radar · live mempool</span>
+            <button class="radar-close" id="radar-back-mobile" type="button">← back</button>
+          </div>
+          <div class="radar-stage"><canvas id="radar-canvas-mobile"></canvas></div>
+          <div class="radar-legend">amount → centre · colour → consensus · <span class="rl-green">●</span> finalized</div>
+        </div>
       </div>
 
       <!-- COL 2: MEMPOOL (pre-finalized) -->
@@ -6783,7 +6859,7 @@
         </div>
 
         <div class="detail-empty">
-          <div class="empty-reticle" aria-hidden="true">
+          <div class="empty-reticle" role="button" tabindex="0" aria-label="Open consensus radar" title="Open consensus radar">
             <svg viewBox="0 0 80 80" width="80" height="80">
               <circle cx="40" cy="40" r="30" fill="none" stroke="rgba(1,160,224,0.18)" stroke-width="1"/>
               <circle cx="40" cy="40" r="20" fill="none" stroke="rgba(1,160,224,0.28)" stroke-width="1"/>
@@ -6797,7 +6873,16 @@
             </svg>
           </div>
           <div class="l1">Awaiting selection</div>
-          <div class="l2">Hover a tx to preview · Click to pin</div>
+          <div class="l2">Hover a tx to preview · Click to pin · Click the reticle for radar</div>
+        </div>
+
+        <div class="detail-radar" id="detail-radar">
+          <div class="radar-bar">
+            <span class="radar-title">Consensus radar · live mempool</span>
+            <button class="radar-close" id="radar-close-detail" type="button">✕ radar</button>
+          </div>
+          <div class="radar-stage"><canvas id="radar-canvas-detail"></canvas></div>
+          <div class="radar-legend">amount → centre · colour → consensus · <span class="rl-green">●</span> finalized</div>
         </div>
 
         <div class="detail-body">
@@ -9963,6 +10048,11 @@ function setupWebSocket() {
           // the topbar count without being visible anywhere meaningful.
           const tx = state.txs.get(msg.txid);
           if (tx && tx.state !== 'included') {
+            // Flash a red "dropped from mempool" blip on the radar (no-op when
+            // the radar isn't visible). Guarded so a radar bug can't break the
+            // tx pipeline. Not labelled a double-spend — tx_removed is usually
+            // replaced/orphaned, which we can't distinguish here.
+            try { radarCtl.markRejected(tx); } catch (e) {}
             evictTxRow(msg.txid, false);
             state.txs.delete(msg.txid);
             if (typeof updateStats === 'function') {
@@ -11583,7 +11673,7 @@ wireListClickDelegation('col1-list');
 wireListClickDelegation('col2-list');
 
 // Mark lists as .scrolling during wheel/scroll so hover-driven rebuilds pause —
-// this is what fixes the "scroll lúc đơ lúc nhạy" feel.
+// this is what fixes the janky/laggy scroll feel.
 ['col1-list', 'col2-list', 'msg-list'].forEach(id => {
   const el = document.getElementById(id);
   if (!el) return;
@@ -11902,9 +11992,13 @@ function _renderDetailInner(tx) {
     d.classList.remove('has-tx');
     $('d-pinstate').innerHTML = '<span class="pin-state unpinned">— unpinned</span>';
     if (explorerLink) explorerLink.style.display = 'none';
+    // Empty state: show the radar if the user enabled it (desktop only);
+    // a loading tx counts as "a tx is coming" so hide the radar.
+    try { if (tx) radarCtl.hideForDetail(); else radarCtl.showForDetailEmpty(); } catch (e) {}
     return;
   }
   d.classList.add('has-tx');
+  try { radarCtl.hideForDetail(); } catch (e) {}
   $('d-pinstate').innerHTML = (state.pinnedTx === tx)
     ? '<span class="pin-state">◆ pinned</span>'
     : '<span class="pin-state unpinned">hovering</span>';
@@ -14860,6 +14954,234 @@ function switchMobileTab(name, subtab) {
 document.querySelectorAll('.mobile-tab').forEach(tab => {
   tab.addEventListener('click', () => switchMobileTab(tab.dataset.section, tab.dataset.subtab));
 });
+
+// ============ CONSENSUS RADAR (v1.5.0) ============
+// A live radar that plots real mempool txs: radius encodes XEC amount
+// (bigger → centre), colour ramps grey-blue → cyan → green over the tx's
+// Avalanche consensus (confidence / FINAL_SCORE). Ported from the
+// internal/consensus-radar-demo.html prototype with the node-POV lesson
+// (dialog) and synthetic spawner removed — here the blips are driven by
+// state.txs, never random. Surfaces in two places:
+//   • Desktop: replaces the empty-state reticle in the #detail panel
+//     (only while no tx is hovered/pinned). Click the reticle to enable,
+//     "✕ radar" to disable; the choice persists across reloads.
+//   • Mobile: takes over the NEW tab (#section-col1) and renames the tab
+//     New → RADAR. Reticle button to enable, "← back" to disable.
+// rAF loop runs only while visible and naturally pauses on a hidden tab
+// (rAF doesn't fire when document.hidden). prefers-reduced-motion stops
+// the sweep. Memory is O(live tx): blips are bounded by a hard cap.
+const RADAR_PREF_KEY = 'ecash-live:radar:open';
+const RADAR_GREYBLUE = [120, 146, 176], RADAR_CYAN = [1, 160, 224], RADAR_GREEN = [0, 231, 129], RADAR_RED = [255, 77, 109];
+const _radarRgba = (c, a) => 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')';
+const _radarMix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+const _radarColor = l => l < 0.7 ? _radarMix(RADAR_GREYBLUE, RADAR_CYAN, l / 0.7) : _radarMix(RADAR_CYAN, RADAR_GREEN, (l - 0.7) / 0.3);
+const RADAR_SWEEP_MS = 2800;          // sweep beam period
+const RADAR_GOLDEN = 2.399963;        // golden angle — even, stable blip placement
+const RADAR_AMT_LO = Math.log(100), RADAR_AMT_HI = Math.log(5e7); // 100 .. 50M XEC
+const RADAR_FLASH_MS = 1500;          // how long a finalized blip lingers before dropping
+const RADAR_REJECT_FADE_MS = 1500;    // red "dropped from mempool" blip fade
+const RADAR_MAX_BLIPS = 200;          // hard cap (CLAUDE.md §10) — defensive
+const _radarRM = (window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false });
+
+class Radar {
+  constructor() { this.cv = null; this.ctx = null; this.sweep = 0; this.blips = new Map(); this._dpr = 1; this.W = 0; this.H = 0; this._last = 0; this._angSeed = 0; }
+  attach(cv) { if (this.cv === cv) { return; } this.cv = cv; this.ctx = cv.getContext('2d'); }
+  resize() {
+    if (!this.cv) return;
+    const r = this.cv.getBoundingClientRect();
+    this._dpr = Math.min(2, window.devicePixelRatio || 1);
+    this.cv.width = Math.max(1, Math.round(r.width * this._dpr));
+    this.cv.height = Math.max(1, Math.round(r.height * this._dpr));
+    this.W = r.width; this.H = r.height;
+    this.ctx.setTransform(this._dpr, 0, 0, this._dpr, 0, 0);
+  }
+  _c() { return { x: this.W / 2, y: this.H / 2, R: Math.min(this.W, this.H) * 0.44 }; }
+  // log-scale amount → [0,1]; guarded so 0-XEC txs don't blow up Math.log.
+  _norm(a) { return Math.max(0, Math.min(1, (Math.log(Math.max(1, a)) - RADAR_AMT_LO) / (RADAR_AMT_HI - RADAR_AMT_LO))); }
+  _pos(b) { const c = this._c(); const r = c.R * (0.15 + 0.82 * (1 - this._norm(b.amt))); return { x: c.x + Math.cos(b.ang) * r, y: c.y + Math.sin(b.ang) * r }; }
+  _newBlip(amt) {
+    this._angSeed += RADAR_GOLDEN;
+    return { ang: (this._angSeed % (Math.PI * 2)) + (Math.random() - 0.5) * 0.2, amt: amt || 0, level: 0, state: 'polling', flash: 0, fade: 1 };
+  }
+  // Pull the live set from state.txs. A blip exists for any pending/polling tx,
+  // or a just-finalized one inside the flash window. Everything else is pruned
+  // (rejected blips fade out on their own timer — they're already gone from txs).
+  sync(now) {
+    const seen = new Set();
+    try {
+      state.txs.forEach((tx, id) => {
+        const st = tx.state;
+        const live = (st === 'pending' || st === 'polling');
+        const justFinal = (st === 'final' || st === 'included') && tx.finalizedAt && (Date.now() - tx.finalizedAt < RADAR_FLASH_MS);
+        if (!live && !justFinal) return;
+        seen.add(id);
+        let b = this.blips.get(id);
+        if (!b) {
+          if (this.blips.size >= RADAR_MAX_BLIPS) return;
+          b = this._newBlip(tx.valueXec);
+          this.blips.set(id, b);
+        }
+        b.amt = tx.valueXec || 0;
+        b.level = Math.max(0, Math.min(1, (tx.confidence || 0) / FINAL_SCORE));
+        if (justFinal) { if (b.state !== 'final') { b.state = 'final'; b.flash = 1; } }
+        else { b.state = 'polling'; }
+      });
+    } catch (e) {}
+    for (const [id, b] of this.blips) {
+      if (seen.has(id)) continue;
+      if (b.state === 'rejected') continue; // keep fading
+      this.blips.delete(id);
+    }
+  }
+  // Flash a red blip for a tx that just dropped out of the mempool (replaced/
+  // orphaned). NOT necessarily a double-spend — labelled "dropped", not blamed.
+  markRejected(tx) {
+    if (!tx || !tx.id) return;
+    let b = this.blips.get(tx.id);
+    if (!b) { if (this.blips.size >= RADAR_MAX_BLIPS) return; b = this._newBlip(tx.valueXec); this.blips.set(tx.id, b); }
+    b.state = 'rejected'; b.fade = 1; b.flash = 0;
+  }
+  tick(nowMs) {
+    const dt = this._last ? Math.min(64, nowMs - this._last) : 0;
+    this._last = nowMs;
+    this.sync(nowMs);
+    if (!_radarRM.matches) this.sweep = (this.sweep + dt / RADAR_SWEEP_MS * Math.PI * 2) % (Math.PI * 2);
+    for (const [id, b] of this.blips) {
+      if (b.flash > 0) b.flash = Math.max(0, b.flash - dt / 650);
+      if (b.state === 'rejected') {
+        b.fade = Math.max(0, (b.fade == null ? 1 : b.fade) - dt / RADAR_REJECT_FADE_MS);
+        if (b.fade <= 0) this.blips.delete(id);
+      }
+    }
+    this.render();
+  }
+  render() {
+    const ctx = this.ctx; if (!ctx) return;
+    const c = this._c();
+    ctx.clearRect(0, 0, this.W, this.H);
+    for (let i = 1; i <= 4; i++) { ctx.strokeStyle = _radarRgba(RADAR_CYAN, i === 4 ? 0.10 : 0.05); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(c.x, c.y, c.R * i / 4, 0, 6.283); ctx.stroke(); }
+    ctx.strokeStyle = _radarRgba(RADAR_CYAN, 0.07);
+    for (let a = 0; a < 4; a++) { ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(c.x + Math.cos(a * Math.PI / 2) * c.R, c.y + Math.sin(a * Math.PI / 2) * c.R); ctx.stroke(); }
+    if (ctx.createConicGradient) {
+      const g = ctx.createConicGradient(this.sweep, c.x, c.y);
+      g.addColorStop(0, _radarRgba(RADAR_CYAN, 0.26)); g.addColorStop(0.02, _radarRgba(RADAR_CYAN, 0)); g.addColorStop(0.82, _radarRgba(RADAR_CYAN, 0)); g.addColorStop(0.985, _radarRgba(RADAR_CYAN, 0.13)); g.addColorStop(1, _radarRgba(RADAR_CYAN, 0.24));
+      ctx.save(); ctx.beginPath(); ctx.arc(c.x, c.y, c.R, 0, 6.283); ctx.clip(); ctx.fillStyle = g; ctx.fillRect(c.x - c.R, c.y - c.R, c.R * 2, c.R * 2); ctx.restore();
+    }
+    ctx.strokeStyle = _radarRgba(RADAR_CYAN, 0.4); ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(c.x + Math.cos(this.sweep) * c.R, c.y + Math.sin(this.sweep) * c.R); ctx.stroke();
+    for (const [id, b] of this.blips) {
+      const p = this._pos(b);
+      const col = b.state === 'rejected' ? RADAR_RED : _radarColor(b.level);
+      const d = Math.abs(((b.ang - this.sweep + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+      const near = d < 0.5 ? (1 - d / 0.5) : 0;
+      const al = (b.state === 'rejected' ? (b.fade == null ? 1 : b.fade) : 1) * (0.82 + 0.18 * near);
+      const rad = 3 + b.flash * 3 + near * 0.6;
+      if (b.flash > 0 || near > 0.5) { ctx.shadowColor = _radarRgba(col, 0.9); ctx.shadowBlur = 6 + b.flash * 12 + near * 4; }
+      ctx.fillStyle = _radarRgba(col, al); ctx.beginPath(); ctx.arc(p.x, p.y, rad, 0, 6.283); ctx.fill(); ctx.shadowBlur = 0;
+      if (b.state === 'final' && b.flash > 0.2) { ctx.strokeStyle = _radarRgba(RADAR_GREEN, b.flash); ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(p.x, p.y, rad + 4 + (1 - b.flash) * 7, 0, 6.283); ctx.stroke(); }
+    }
+    ctx.fillStyle = _radarRgba(RADAR_CYAN, 0.5); ctx.beginPath(); ctx.arc(c.x, c.y, 2.5, 0, 6.283); ctx.fill();
+  }
+}
+
+function _radarSavePref(v) { try { localStorage.setItem(RADAR_PREF_KEY, v ? '1' : '0'); } catch (e) {} }
+function _radarLoadPref() { try { return localStorage.getItem(RADAR_PREF_KEY) === '1'; } catch (e) { return false; } }
+
+const radarCtl = {
+  radar: null, raf: 0, visible: false, mode: null, prefOn: _radarLoadPref(),
+  _ensure() { if (!this.radar) this.radar = new Radar(); return this.radar; },
+  _loop() {
+    this.raf = requestAnimationFrame((t) => {
+      this.raf = 0;
+      if (!this.visible) return;
+      // Mobile: skip drawing while the NEW tab isn't the active one (its canvas
+      // is display:none — no point rendering into it), but keep the loop alive.
+      let draw = true;
+      if (this.mode === 'mobile') {
+        const sec = document.getElementById('section-col1');
+        if (sec && !sec.classList.contains('mobile-active')) draw = false;
+      }
+      if (draw) { try { this.radar.tick(t); } catch (e) {} }
+      this._loop();
+    });
+  },
+  _start(cv) { this._ensure().attach(cv); this.radar.resize(); if (!this.raf) { this.radar._last = 0; this._loop(); } },
+  _stop() { if (this.raf) { cancelAnimationFrame(this.raf); this.raf = 0; } },
+
+  // ---- Desktop: radar lives in the empty #detail panel ----
+  showForDetailEmpty() {
+    if (isMobile()) return;
+    const d = document.getElementById('detail'); if (!d) return;
+    if (this.prefOn) {
+      d.classList.add('radar-on');
+      this.visible = true; this.mode = 'detail';
+      const cv = document.getElementById('radar-canvas-detail');
+      if (cv) this._start(cv);
+    } else {
+      d.classList.remove('radar-on');
+      if (this.mode === 'detail') { this.visible = false; this._stop(); this.mode = null; }
+    }
+  },
+  hideForDetail() {
+    const d = document.getElementById('detail'); if (d) d.classList.remove('radar-on');
+    if (this.mode === 'detail') { this.visible = false; this._stop(); this.mode = null; }
+  },
+  toggleDetail(on) { this.prefOn = on; _radarSavePref(on); this.showForDetailEmpty(); },
+
+  // ---- Mobile: radar takes over the NEW tab ----
+  _setMobileLabel(txt) {
+    const btn = document.querySelector('.mobile-tab[data-section="col1"]');
+    if (btn && btn.firstChild && btn.firstChild.nodeType === 3) btn.firstChild.textContent = txt;
+  },
+  openMobile() {
+    const sec = document.getElementById('section-col1'); if (!sec) return;
+    this.prefOn = true; _radarSavePref(true);
+    sec.classList.add('radar-on');
+    this._setMobileLabel('RADAR');
+    this.visible = true; this.mode = 'mobile';
+    const cv = document.getElementById('radar-canvas-mobile');
+    if (cv) this._start(cv);
+  },
+  // Visual teardown of the mobile overlay WITHOUT touching the saved pref —
+  // used both by the user "← back" action and by a breakpoint crossing.
+  _hideMobileVisual() {
+    const sec = document.getElementById('section-col1'); if (sec) sec.classList.remove('radar-on');
+    this._setMobileLabel('New');
+    if (this.mode === 'mobile') { this.visible = false; this._stop(); this.mode = null; }
+  },
+  closeMobile() { this._hideMobileVisual(); this.prefOn = false; _radarSavePref(false); },
+
+  markRejected(tx) { if (this.visible && this.radar) this.radar.markRejected(tx); },
+
+  onResize() {
+    if (!this.visible || !this.radar) return;
+    // If the viewport crossed the mobile breakpoint, hand the radar to the mode
+    // that owns the now-visible layout (preserving the saved pref) so we never
+    // draw into a hidden canvas or strand an overlay in the wrong column.
+    if (isMobile() && this.mode === 'detail') { this.hideForDetail(); this.openMobile(); return; }
+    if (!isMobile() && this.mode === 'mobile') { this._hideMobileVisual(); this.showForDetailEmpty(); return; }
+    this.radar.resize();
+  },
+
+  restore() {
+    if (!this.prefOn) return;
+    if (isMobile()) this.openMobile();
+    else if (!state.pinnedTx) this.showForDetailEmpty();
+  },
+};
+
+(function wireRadar() {
+  const reticle = document.querySelector('#detail .empty-reticle');
+  if (reticle) {
+    reticle.addEventListener('click', () => radarCtl.toggleDetail(true));
+    reticle.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); radarCtl.toggleDetail(true); } });
+  }
+  document.getElementById('radar-close-detail')?.addEventListener('click', () => radarCtl.toggleDetail(false));
+  document.getElementById('radar-open-mobile')?.addEventListener('click', () => radarCtl.openMobile());
+  document.getElementById('radar-back-mobile')?.addEventListener('click', () => radarCtl.closeMobile());
+  window.addEventListener('resize', () => radarCtl.onResize());
+  // Restore the persisted choice once layout has settled (canvas needs a size).
+  requestAnimationFrame(() => { try { radarCtl.restore(); } catch (e) {} });
+})();
 
 // ============ DETAIL PANEL MOBILE GESTURES ============
 // Provides three ways to dismiss the detail modal on mobile:
@@ -20937,7 +21259,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ============ PULL-TO-REFRESH GUARD (v1.1.3) ============
-// Kill the browser's native pull-to-refresh (kéo xuống → reload) on mobile.
+// Kill the browser's native pull-to-refresh (pull down → reload) on mobile.
 // WHY JS instead of CSS overscroll-behavior: putting overscroll-behavior-y:
 // contain on the root html/body scroller killed PTR on real phones but ALSO
 // trapped desktop-narrow scrolling (Chrome treats `contain` on the document
