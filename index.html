@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-cJuMY8ldXdCIYhGy+cHlI1AAJqD/tmXs8semhM5/qUM=';
+  script-src 'self' 'sha256-fowM1Bvxjup7xghgoPwESehU8Ue4i7dVP8cDqlkfTno=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -6670,7 +6670,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.5.2">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.5.2</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.5.3">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.5.3</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -15203,13 +15203,22 @@ const radarCtl = {
   },
   _onGesture() {
     this._userGestured = true;
-    if (this.soundOn) { const ctx = this._ensureAudio(); if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {}); }
+    this._resumeIfNeeded();
+  },
+  // Resume a context that the browser suspended after the initial unlock
+  // (bfcache restore, app-switch, screen lock, idle auto-suspend). Safe to call
+  // anytime: no-op before the first gesture or when sound is off.
+  _resumeIfNeeded() {
+    if (!this.soundOn || !this._userGestured) return;
+    const ctx = this._ensureAudio();
+    if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
   },
   // rFrac in [0.15..0.97]: centre (big tx) → higher pitch, outer edge → lower.
   _ping(rFrac) {
     if (!this.soundOn || !this.visible) return;
     const ctx = this._ensureAudio();
     if (!ctx) return;
+    if (ctx.state === 'suspended') { ctx.resume().catch(() => {}); return; } // recover; this ping is skipped
     const norm = Math.max(0, Math.min(1, (rFrac - 0.15) / (0.97 - 0.15)));
     const freq = RADAR_PING_FREQ_HI - norm * (RADAR_PING_FREQ_HI - RADAR_PING_FREQ_LO);
     const osc = ctx.createOscillator();
@@ -15346,16 +15355,19 @@ const radarCtl = {
   document.getElementById('radar-sound-detail')?.addEventListener('click', () => radarCtl.toggleSound());
   document.getElementById('radar-sound-mobile')?.addEventListener('click', () => radarCtl.toggleSound());
   radarCtl._refreshSoundButtons();
-  // Unlock Web Audio on the first real user gesture (capture phase, so the sound
-  // toggle's own click also counts). Until then no AudioContext is created → no
-  // autoplay console warning. Mirrors echan.js's gesture-unlock approach.
+  // Unlock Web Audio on user gestures (capture phase, so the sound toggle's own
+  // click also counts). Until the first gesture no AudioContext is created → no
+  // autoplay console warning. NOT once: a context can get suspended later
+  // (reopen browser/bfcache, app-switch, screen lock, idle auto-suspend) and
+  // there'd be nothing left to resume it — so we re-resume on every gesture.
   const _radarUnlock = () => radarCtl._onGesture();
-  document.addEventListener('pointerdown', _radarUnlock, { capture: true, once: true });
-  document.addEventListener('keydown', _radarUnlock, { capture: true, once: true });
+  document.addEventListener('pointerdown', _radarUnlock, { capture: true });
+  document.addEventListener('keydown', _radarUnlock, { capture: true });
   window.addEventListener('resize', () => radarCtl.onResize());
-  // Re-measure when the tab becomes visible again (rAF — and thus the radar
-  // loop — is paused while hidden; a relayout can happen during that gap).
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && radarCtl.visible && radarCtl.radar) radarCtl.radar.resize(); });
+  // Re-measure + re-resume audio when the tab becomes visible again (rAF and a
+  // suspended AudioContext both pause while hidden / on bfcache restore).
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (radarCtl.visible && radarCtl.radar) radarCtl.radar.resize(); radarCtl._resumeIfNeeded(); } });
+  window.addEventListener('pageshow', () => radarCtl._resumeIfNeeded());
   // Restore the persisted choice once layout has settled (canvas needs a size).
   requestAnimationFrame(() => { try { radarCtl.restore(); } catch (e) {} });
 })();

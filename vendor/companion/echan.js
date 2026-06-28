@@ -477,7 +477,13 @@
    * toggle's own click counts). A suspended context is also resume()d on
    * the next gesture. All play* calls silently no-op until unlocked. */
   function ensureAudio() {
-    if (state.audioCtx) return state.audioCtx;
+    if (state.audioCtx) {
+      // Self-heal: the browser can suspend the context after the initial unlock
+      // (reopen browser/bfcache, app-switch, screen lock, idle auto-suspend).
+      // Resume it so every play call recovers instead of staying silent.
+      if (state.audioCtx.state === 'suspended' && state.userGestured) state.audioCtx.resume().catch(() => {});
+      return state.audioCtx;
+    }
     if (!state.userGestured) return null;
     try {
       const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -2784,6 +2790,8 @@
       /* Resume work. Finish any in-progress typewriter so the message
        * isn't half-revealed when the user returns. */
       if (state.activeMessage) finishTypewriter();
+      /* Re-resume audio if the browser suspended it while hidden. */
+      if (state.soundEnabled && state.audioCtx && state.audioCtx.state === 'suspended') state.audioCtx.resume().catch(() => {});
       scheduleNetworkPoll();
       scheduleTrendEval();
       /* Wake-from-sleep: fire an immediate content tick after a brief
@@ -2951,9 +2959,12 @@
     /* P1: last-chance flush of the debounced seen-ring on unload. */
     window.addEventListener('pagehide', flushSeenRing);
     /* Audio unlock — capture phase fires before any click handler, so the
-     * very first interaction (including the sound toggle itself) counts. */
-    document.addEventListener('pointerdown', unlockAudioOnGesture, { once: true, capture: true });
-    document.addEventListener('keydown',     unlockAudioOnGesture, { once: true, capture: true });
+     * very first interaction (including the sound toggle itself) counts. NOT
+     * once: the context can be suspended later (reopen browser/bfcache,
+     * app-switch, screen lock, idle auto-suspend); re-running unlock on each
+     * gesture resumes it instead of leaving sound permanently dead. */
+    document.addEventListener('pointerdown', unlockAudioOnGesture, { capture: true });
+    document.addEventListener('keydown',     unlockAudioOnGesture, { capture: true });
 
     publishApi();
     restoreStatsRing();
