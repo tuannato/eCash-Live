@@ -297,7 +297,7 @@
   const GLITCH_SWAP_MS  = 140;
   const SPRITE_VARIANT_CAP = 20;
 
-  const SOUND_MASTER_GAIN          = 0.15;
+  const SOUND_MASTER_GAIN          = 0.27;
   const SOUND_TYPE_FREQ_BASE_HZ    = 440;
   const SOUND_TYPE_FREQ_JITTER_HZ  = 15;
   const SOUND_TYPE_DUR_MS          = 12;
