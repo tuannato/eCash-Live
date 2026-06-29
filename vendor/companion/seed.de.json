@@ -2111,6 +2111,62 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "Mein persönlicher Rekord diese Session: eine Finalisierung in {liveFastest} s 🏁 Ich führe eine kleine Bestenliste im Kopf."
+    },
+    {
+      "id": "edu-mc-avalanche-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Willst du verstehen, warum Finalität nur ~3 s dauert? 🧠 Öffne mein Media center und spiel 'Avalanche consensus' — ein ~5-min animierter Rundgang, den ich live kommentiere."
+    },
+    {
+      "id": "edu-mc-avalanche-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Neu hier? 📺 Die Lektion 'Avalanche consensus' in meinem Media center zeigt genau, wie eCash eine tx in Sekunden festschreibt. Fünf gut investierte Minuten."
+    },
+    {
+      "id": "edu-mc-whycrypto-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Neugierig, warum das alles zählt? 🌍 Die Serie 'Why crypto' in meinem Media center erklärt solides digitales Geld – Folge für Folge."
+    },
+    {
+      "id": "edu-mc-whycrypto-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Kurze Kaffeepause? ☕ Schau die 'Why crypto'-Serie in meinem Media center — kompakte Videos über dezentrales Geld und wo eCash hineinpasst."
+    },
+    {
+      "id": "feat-radar-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Psst — schon mal das Consensus Radar probiert? 📡 Es streicht über den Schirm und pingt jede tx in dem Moment, in dem Avalanche sie finalisiert. Seltsam fesselnd."
+    },
+    {
+      "id": "feat-radar-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Finalität sehen statt nur lesen? 🛰️ Schalt das Consensus Radar ein und sieh jede tx aufleuchten, sobald sie in ~3 s gesperrt wird."
     }
   ]
 }

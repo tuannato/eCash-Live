@@ -2111,6 +2111,62 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "このセッションの自己ベスト：{liveFastest}秒のファイナライズ 🏁 頭の中に小さなランキングをつけてるんだ。"
+    },
+    {
+      "id": "edu-mc-avalanche-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "なぜ確定がわずか〜3秒なのか腑に落としたい？ 🧠 私のMedia centerを開いて『Avalanche consensus』を再生してみて — 私がライブでナレーションする〜5分のアニメ解説だよ。"
+    },
+    {
+      "id": "edu-mc-avalanche-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ここは初めて？ 📺 私のMedia centerの『Avalanche consensus』レッスンは、eCashが数秒でtxを確定させる仕組みをそのまま見せてくれる。5分の価値あり。"
+    },
+    {
+      "id": "edu-mc-whycrypto-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "これが何で大事なのか気になる？ 🌍 私のMedia centerの『Why crypto』シリーズが、健全なデジタルマネーを短い1話ずつ噛み砕いて説明するよ。"
+    },
+    {
+      "id": "edu-mc-whycrypto-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "コーヒー休憩はある？ ☕ 私のMedia centerで『Why crypto』シリーズを観てみて — 分散型のお金とeCashの位置づけを短い動画で。"
+    },
+    {
+      "id": "feat-radar-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ねえ — Consensus Radarはもう試した？ 📡 画面をスイープして、Avalancheが確定させた瞬間に各txをpingするんだ。妙にクセになるよ。"
+    },
+    {
+      "id": "feat-radar-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "確定を読むだけじゃなく、見てみたい？ 🛰️ Consensus Radarをオンにして、各txが〜3秒でロックされる瞬間に光るのを見てみて。"
     }
   ]
 }

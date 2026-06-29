@@ -2111,6 +2111,62 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "Mon record perso cette session : une finalisation en {liveFastest} s 🏁 Je tiens un petit classement dans ma tête."
+    },
+    {
+      "id": "edu-mc-avalanche-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Envie de comprendre pourquoi la finalité ne prend que ~3 s ? 🧠 Ouvre mon Media center et lance 'Avalanche consensus' — une visite animée de ~5 min que je commente en direct."
+    },
+    {
+      "id": "edu-mc-avalanche-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Nouveau ici ? 📺 La leçon 'Avalanche consensus' dans mon Media center montre exactement comment eCash verrouille une tx en quelques secondes. Cinq minutes bien employées."
+    },
+    {
+      "id": "edu-mc-whycrypto-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Curieux de savoir pourquoi tout ça compte ? 🌍 La série 'Why crypto' de mon Media center décortique la monnaie numérique saine, un court épisode à la fois."
+    },
+    {
+      "id": "edu-mc-whycrypto-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Une pause café ? ☕ Regarde la série 'Why crypto' dans mon Media center — des vidéos courtes sur la monnaie décentralisée et la place d'eCash."
+    },
+    {
+      "id": "feat-radar-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Psst — tu as essayé le Consensus Radar ? 📡 Il balaie l'écran et fait un ping à chaque tx à l'instant où Avalanche la finalise. Étrangement hypnotique."
+    },
+    {
+      "id": "feat-radar-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Voir la finalité plutôt que la lire ? 🛰️ Active le Consensus Radar et regarde chaque tx s'allumer dès qu'elle est verrouillée en ~3 s."
     }
   ]
 }

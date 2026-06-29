@@ -2111,6 +2111,62 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "Мой личный рекорд за сессию: финализация за {liveFastest} с 🏁 Я держу маленькую таблицу лидеров в голове."
+    },
+    {
+      "id": "edu-mc-avalanche-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Хочешь понять, почему финализация занимает всего ~3 с? 🧠 Открой мой Media center и запусти 'Avalanche consensus' — анимированный разбор на ~5 мин, который я озвучиваю вживую."
+    },
+    {
+      "id": "edu-mc-avalanche-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Впервые здесь? 📺 Урок 'Avalanche consensus' в моём Media center показывает, как именно eCash фиксирует tx за секунды. Пять минут с пользой."
+    },
+    {
+      "id": "edu-mc-whycrypto-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Интересно, почему всё это важно? 🌍 Серия 'Why crypto' в моём Media center разбирает здоровые цифровые деньги — по одному короткому эпизоду."
+    },
+    {
+      "id": "edu-mc-whycrypto-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Есть пара минут на кофе? ☕ Посмотри серию 'Why crypto' в моём Media center — короткие видео о децентрализованных деньгах и месте eCash."
+    },
+    {
+      "id": "feat-radar-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Эй — уже пробовал Consensus Radar? 📡 Он сканирует экран и пингует каждую tx в момент, когда Avalanche её финализирует. Странно затягивает."
+    },
+    {
+      "id": "feat-radar-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Хочешь видеть финализацию, а не только читать о ней? 🛰️ Включи Consensus Radar и смотри, как каждая tx вспыхивает, фиксируясь за ~3 с."
     }
   ]
 }

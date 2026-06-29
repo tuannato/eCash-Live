@@ -2111,6 +2111,62 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "สถิติส่วนตัวของฉันเซสชันนี้: ยืนยันสิ้นสุดใน {liveFastest} วิ 🏁 ฉันเก็บกระดานผู้นำเล็กๆ ไว้ในหัว"
+    },
+    {
+      "id": "edu-mc-avalanche-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "อยากเข้าใจจริง ๆ ว่าทำไมการไฟนอลถึงใช้แค่ ~3 วินาที? 🧠 เปิด Media center ของฉันแล้วเล่น 'Avalanche consensus' — คู่มือแอนิเมชัน ~5 นาทีที่ฉันบรรยายสด"
+    },
+    {
+      "id": "edu-mc-avalanche-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "เพิ่งมาใหม่เหรอ? 📺 บทเรียน 'Avalanche consensus' ใน Media center ของฉันแสดงให้เห็นชัด ๆ ว่า eCash ล็อก tx ได้ในไม่กี่วินาทีอย่างไร ห้านาทีที่คุ้มค่า"
+    },
+    {
+      "id": "edu-mc-whycrypto-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "สงสัยไหมว่าทำไมเรื่องพวกนี้ถึงสำคัญ? 🌍 ซีรีส์ 'Why crypto' ใน Media center ของฉันอธิบายเงินดิจิทัลที่มั่นคงทีละตอนสั้น ๆ"
+    },
+    {
+      "id": "edu-mc-whycrypto-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "มีเวลาพักดื่มกาแฟไหม? ☕ ดูซีรีส์ 'Why crypto' ใน Media center ของฉัน — วิดีโอสั้น ๆ เกี่ยวกับเงินแบบกระจายศูนย์และที่ทางของ eCash"
+    },
+    {
+      "id": "feat-radar-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "นี่ — ลอง Consensus Radar หรือยัง? 📡 มันกวาดทั่วจอและส่งสัญญาณ ping ทุก tx ในวินาทีที่ Avalanche ไฟนอล ติดใจอย่างประหลาด"
+    },
+    {
+      "id": "feat-radar-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "อยากเห็นการไฟนอลเกิดขึ้นจริง ไม่ใช่แค่อ่าน? 🛰️ เปิด Consensus Radar แล้วดูแต่ละ tx สว่างขึ้นตอนถูกล็อกใน ~3 วินาที"
     }
   ]
 }

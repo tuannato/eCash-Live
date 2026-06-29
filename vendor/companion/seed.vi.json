@@ -2111,6 +2111,62 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "Kỷ lục cá nhân của mình phiên này: hoàn tất {liveFastest} giây 🏁 Mình giữ một bảng xếp hạng nhỏ trong đầu."
+    },
+    {
+      "id": "edu-mc-avalanche-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Muốn hiểu rõ vì sao chốt giao dịch chỉ ~3 giây? 🧠 Mở Media center của mình và xem 'Avalanche consensus' — bài hướng dẫn hoạt hình ~5 phút mình thuyết minh trực tiếp."
+    },
+    {
+      "id": "edu-mc-avalanche-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Mới tới hả? 📺 Bài 'Avalanche consensus' trong Media center của mình cho thấy chính xác cách eCash chốt một tx trong vài giây. Năm phút rất đáng."
+    },
+    {
+      "id": "edu-mc-whycrypto-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Tò mò vì sao mấy thứ này quan trọng? 🌍 Series 'Why crypto' trong Media center của mình giải thích tiền số lành mạnh, từng tập ngắn một."
+    },
+    {
+      "id": "edu-mc-whycrypto-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Có chút thời gian nghỉ? ☕ Xem series 'Why crypto' trong Media center của mình — video ngắn gọn về tiền phi tập trung và chỗ đứng của eCash."
+    },
+    {
+      "id": "feat-radar-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Nè — đã thử Consensus Radar chưa? 📡 Nó quét khắp màn hình và ping mỗi tx ngay khoảnh khắc Avalanche chốt xong. Cuốn lạ luôn."
+    },
+    {
+      "id": "feat-radar-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Muốn tận mắt thấy quá trình chốt, không chỉ đọc? 🛰️ Bật Consensus Radar và xem từng tx sáng lên khi được chốt trong ~3 giây."
     }
   ]
 }

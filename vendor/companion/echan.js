@@ -1,5 +1,5 @@
 /* =============================================================================
- * eChan companion — 1.3.1 controller
+ * eChan companion — 1.3.2 controller
  * =============================================================================
  *
  * Changes vs 1.3.0:
@@ -356,6 +356,7 @@
     settingsOpen: false,
     quickActionsOpen: false,
     presenting: false,   /* Media-center lesson narration owns the dialog (presenter mode) */
+    mcMediaActive: false, /* true only while a media-center VIDEO is playing (mutes her sound; lessons are exempt) */
     /* Queue / typewriter */
     queue: [],
     activeMessage: null,
@@ -503,7 +504,7 @@
     }
   }
   function canPlaySound() {
-    return state.soundEnabled && !isQuietActive();
+    return state.soundEnabled && !isQuietActive() && !state.mcMediaActive;
   }
   function playTypeBlip() {
     if (!canPlaySound()) return;
@@ -982,6 +983,7 @@
     if (!state.shown) show();
     setDeskPos(DESKPOS_FOOTER, false);
     state.deskposLocked = true;
+    state.mcMediaActive = false;   /* lessons keep her voice — never muted */
     _mcSetPosLockUI(true);
     if (state.root) {
       state.root.classList.add('echan-mc-elevated');
@@ -994,11 +996,13 @@
   }
   function mcEnterMediaMode() {
     if (!_mcPrior) _mcPrior = { shown: state.shown, deskpos: state.deskpos };
+    state.mcMediaActive = true;    /* video playing — mute her sound entirely */
     hide();
     if (state.root) state.root.classList.add('echan-mc-hidden');
   }
   function mcExitMode() {
     presentEnd();   /* clear any leftover narration + resume normal chatter */
+    state.mcMediaActive = false;
     state.deskposLocked = false;
     _mcSetPosLockUI(false);
     if (state.root) {

@@ -2111,6 +2111,62 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "Мій особистий рекорд за сесію: фіналізація за {liveFastest} с 🏁 Я тримаю маленьку таблицю лідерів у голові."
+    },
+    {
+      "id": "edu-mc-avalanche-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Хочеш зрозуміти, чому фіналізація триває лише ~3 с? 🧠 Відкрий мій Media center і запусти 'Avalanche consensus' — анімований огляд на ~5 хв, який я озвучую наживо."
+    },
+    {
+      "id": "edu-mc-avalanche-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Уперше тут? 📺 Урок 'Avalanche consensus' у моєму Media center показує, як саме eCash фіксує tx за секунди. П'ять хвилин з користю."
+    },
+    {
+      "id": "edu-mc-whycrypto-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Цікаво, чому все це важливо? 🌍 Серія 'Why crypto' у моєму Media center пояснює здорові цифрові гроші — по одному короткому епізоду."
+    },
+    {
+      "id": "edu-mc-whycrypto-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Є хвилинка на каву? ☕ Подивись серію 'Why crypto' у моєму Media center — короткі відео про децентралізовані гроші й місце eCash."
+    },
+    {
+      "id": "feat-radar-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Гей — уже пробував Consensus Radar? 📡 Він сканує екран і пінгує кожну tx тієї ж миті, коли Avalanche її фіналізує. Дивно затягує."
+    },
+    {
+      "id": "feat-radar-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Хочеш бачити фіналізацію, а не лише читати про неї? 🛰️ Увімкни Consensus Radar і дивись, як кожна tx спалахує, фіксуючись за ~3 с."
     }
   ]
 }

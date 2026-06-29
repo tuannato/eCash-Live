@@ -2111,6 +2111,62 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "Bu oturumdaki kişisel rekorum: {liveFastest} sn'lik bir kesinleşme 🏁 Kafamda küçük bir lider tablosu tutuyorum."
+    },
+    {
+      "id": "edu-mc-avalanche-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Kesinleşmenin neden sadece ~3 sn sürdüğünü tam kavramak ister misin? 🧠 Media center'ımı aç ve 'Avalanche consensus'u oynat — canlı anlattığım ~5 dakikalık animasyonlu bir tur."
+    },
+    {
+      "id": "edu-mc-avalanche-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Buraya yeni misin? 📺 Media center'ımdaki 'Avalanche consensus' dersi, eCash'in bir tx'i saniyeler içinde nasıl kilitlediğini tam olarak gösterir. İyi geçen beş dakika."
+    },
+    {
+      "id": "edu-mc-whycrypto-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Tüm bunların neden önemli olduğunu merak mı ediyorsun? 🌍 Media center'ımdaki 'Why crypto' serisi, sağlam dijital parayı kısa bölümler hâlinde anlatıyor."
+    },
+    {
+      "id": "edu-mc-whycrypto-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Kahve molan var mı? ☕ Media center'ımda 'Why crypto' serisini izle — merkeziyetsiz para ve eCash'in yeri hakkında kısa videolar."
+    },
+    {
+      "id": "feat-radar-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Psst — Consensus Radar'ı denedin mi? 📡 Ekranı tarar ve Avalanche bir tx'i kesinleştirdiği anda ping atar. Tuhaf biçimde bağımlılık yapıyor."
+    },
+    {
+      "id": "feat-radar-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Kesinleşmeyi okumak yerine görmek ister misin? 🛰️ Consensus Radar'ı aç ve her tx'in ~3 sn'de kilitlenirken parladığını izle."
     }
   ]
 }

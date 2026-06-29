@@ -2111,6 +2111,62 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "Rekor pribadiku sesi ini: finalisasi {liveFastest} dtk 🏁 Aku simpan papan peringkat kecil di kepala."
+    },
+    {
+      "id": "edu-mc-avalanche-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Mau paham kenapa finalitas cuma ~3 detik? 🧠 Buka Media center-ku dan putar 'Avalanche consensus' — panduan animasi ~5 menit yang aku narasikan langsung."
+    },
+    {
+      "id": "edu-mc-avalanche-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Baru di sini? 📺 Pelajaran 'Avalanche consensus' di Media center-ku menunjukkan persis bagaimana eCash mengunci tx dalam hitungan detik. Lima menit yang berharga."
+    },
+    {
+      "id": "edu-mc-whycrypto-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Penasaran kenapa semua ini penting? 🌍 Seri 'Why crypto' di Media center-ku mengupas uang digital yang sehat, satu episode pendek sekaligus."
+    },
+    {
+      "id": "edu-mc-whycrypto-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Ada waktu rehat kopi? ☕ Tonton seri 'Why crypto' di Media center-ku — video ringkas soal uang terdesentralisasi dan posisi eCash."
+    },
+    {
+      "id": "feat-radar-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Psst — sudah coba Consensus Radar? 📡 Ia menyapu layar dan ping setiap tx tepat saat Avalanche memfinalisasinya. Anehnya bikin betah."
+    },
+    {
+      "id": "feat-radar-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Mau lihat finalitas terjadi, bukan cuma baca? 🛰️ Nyalakan Consensus Radar dan lihat tiap tx menyala saat terkunci dalam ~3 detik."
     }
   ]
 }

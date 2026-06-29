@@ -2111,6 +2111,62 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "Personal kong rekord ngayong session: isang {liveFastest} seg na finalize 🏁 May maliit akong leaderboard sa isip."
+    },
+    {
+      "id": "edu-mc-avalanche-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Gusto mong maintindihan bakit ~3s lang ang finality? 🧠 Buksan ang Media center ko at i-play ang 'Avalanche consensus' — animated na walkthrough na ~5 min na ako mismo ang nagsasalaysay nang live."
+    },
+    {
+      "id": "edu-mc-avalanche-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Bago ka rito? 📺 Ipinapakita ng lesson na 'Avalanche consensus' sa Media center ko kung paano eksaktong nila-lock ng eCash ang isang tx sa loob ng ilang segundo. Sulit na limang minuto."
+    },
+    {
+      "id": "edu-mc-whycrypto-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Curious kung bakit mahalaga ang lahat ng ito? 🌍 Hinihimay ng 'Why crypto' series sa Media center ko ang matibay na digital money, isang maikling episode sa bawat sandali."
+    },
+    {
+      "id": "edu-mc-whycrypto-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "May coffee break? ☕ Panoorin ang 'Why crypto' series sa Media center ko — maiikling video tungkol sa decentralized money at kung saan pumapasok ang eCash."
+    },
+    {
+      "id": "feat-radar-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Psst — nasubukan mo na ba ang Consensus Radar? 📡 Nagwa-sweep ito sa screen at nagpi-ping sa bawat tx sa mismong sandaling i-finalize ito ng Avalanche. Nakakaaliw nang kakaiba."
+    },
+    {
+      "id": "feat-radar-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Gusto mong makita ang finality, hindi lang basahin? 🛰️ Buksan ang Consensus Radar at panoorin ang bawat tx na magliwanag habang nila-lock sa loob ng ~3s."
     }
   ]
 }

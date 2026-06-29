@@ -2111,6 +2111,62 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "这次会话我的个人纪录：{liveFastest} 秒终局化 🏁 我在脑子里记着一个小小的排行榜。"
+    },
+    {
+      "id": "edu-mc-avalanche-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "想真正弄懂为什么终局化只要约 3 秒？🧠 打开我的 Media center，播放『Avalanche consensus』——一段约 5 分钟、由我现场讲解的动画讲解。"
+    },
+    {
+      "id": "edu-mc-avalanche-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "新来的？📺 我的 Media center 里的『Avalanche consensus』课程，会清清楚楚地展示 eCash 如何在几秒内锁定一笔 tx。这五分钟值。"
+    },
+    {
+      "id": "edu-mc-whycrypto-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "好奇这些到底有什么意义？🌍 我的 Media center 里的『Why crypto』系列，用一个个短小的剧集讲清健全的数字货币。"
+    },
+    {
+      "id": "edu-mc-whycrypto-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "有空喝杯咖啡吗？☕ 来看我的 Media center 里的『Why crypto』系列——关于去中心化货币以及 eCash 定位的简短视频。"
+    },
+    {
+      "id": "feat-radar-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "嘿——试过 Consensus Radar 了吗？📡 它会扫过屏幕，在 Avalanche 终局化每一笔 tx 的瞬间发出 ping。莫名上头。"
+    },
+    {
+      "id": "feat-radar-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "想亲眼看到终局化，而不只是读到？🛰️ 打开 Consensus Radar，看每笔 tx 在约 3 秒被锁定时亮起。"
     }
   ]
 }

@@ -830,7 +830,9 @@
   }
 
   window.__mediaCenter = {
-    open, close: closePanel, isOpen: () => state.open, version: VERSION,
+    open, close: closePanel, isOpen: () => state.open,
+    isPlaying: () => state.playing !== null,   // true during lesson OR video playback
+    version: VERSION,
   };
 
   /* Deep-link: ?mc=open opens the library; ?mc=<cardId> opens + plays a card

@@ -2111,6 +2111,62 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "這回我的個人紀錄：{liveFastest} 秒最終化 🏁 我在腦子裡記著一個小小的排行榜。"
+    },
+    {
+      "id": "edu-mc-avalanche-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "想真正搞懂為什麼最終化只要約 3 秒？🧠 打開我的 Media center，播放『Avalanche consensus』——一段約 5 分鐘、由我現場講解的動畫導覽。"
+    },
+    {
+      "id": "edu-mc-avalanche-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "新來的？📺 我的 Media center 裡的『Avalanche consensus』課程，會清清楚楚地展示 eCash 如何在幾秒內鎖定一筆 tx。這五分鐘值得。"
+    },
+    {
+      "id": "edu-mc-whycrypto-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "好奇這些到底有什麼意義？🌍 我的 Media center 裡的『Why crypto』系列，用一集集短片講清健全的數位貨幣。"
+    },
+    {
+      "id": "edu-mc-whycrypto-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "有空喝杯咖啡嗎？☕ 來看我的 Media center 裡的『Why crypto』系列——關於去中心化貨幣以及 eCash 定位的簡短影片。"
+    },
+    {
+      "id": "feat-radar-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "嘿——試過 Consensus Radar 了嗎？📡 它會掃過螢幕，在 Avalanche 最終化每一筆 tx 的瞬間發出 ping。莫名上癮。"
+    },
+    {
+      "id": "feat-radar-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "想親眼看到最終化，而不只是讀到？🛰️ 打開 Consensus Radar，看每筆 tx 在約 3 秒被鎖定時亮起。"
     }
   ]
 }

@@ -2111,6 +2111,62 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "이번 세션 내 개인 기록: {liveFastest}초 파이널라이즈 🏁 머릿속에 작은 리더보드를 두고 있어."
+    },
+    {
+      "id": "edu-mc-avalanche-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "확정이 왜 ~3초밖에 안 걸리는지 확실히 이해하고 싶어? 🧠 내 Media center를 열고 'Avalanche consensus'를 재생해 봐 — 내가 라이브로 해설하는 ~5분짜리 애니메이션 가이드야."
+    },
+    {
+      "id": "edu-mc-avalanche-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "여기 처음이야? 📺 내 Media center의 'Avalanche consensus' 레슨은 eCash가 몇 초 만에 tx를 확정하는 과정을 그대로 보여줘. 5분의 가치가 있어."
+    },
+    {
+      "id": "edu-mc-whycrypto-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "이 모든 게 왜 중요한지 궁금해? 🌍 내 Media center의 'Why crypto' 시리즈가 건전한 디지털 화폐를 짧은 에피소드 하나씩 풀어줘."
+    },
+    {
+      "id": "edu-mc-whycrypto-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "커피 한 잔의 여유 있어? ☕ 내 Media center에서 'Why crypto' 시리즈를 봐 — 탈중앙 화폐와 eCash의 자리에 대한 짧은 영상들이야."
+    },
+    {
+      "id": "feat-radar-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "있잖아 — Consensus Radar 써 봤어? 📡 화면을 훑으면서 Avalanche가 확정하는 순간 모든 tx에 핑을 보내. 묘하게 빠져들어."
+    },
+    {
+      "id": "feat-radar-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "확정을 읽기만 하지 말고 직접 보고 싶어? 🛰️ Consensus Radar를 켜고 각 tx가 ~3초 만에 잠기며 빛나는 걸 지켜봐."
     }
   ]
 }

@@ -2111,6 +2111,62 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "My personal record this session: a {liveFastest}s finalize 🏁 I keep a little leaderboard in my head."
+    },
+    {
+      "id": "edu-mc-avalanche-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Want that ~3s finality to really click? 🧠 Open my Media center and play 'Avalanche consensus' — a ~5-min animated walkthrough I narrate live."
+    },
+    {
+      "id": "edu-mc-avalanche-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "New here? 📺 The 'Avalanche consensus' lesson in my Media center shows exactly how eCash locks a tx in seconds. Five minutes well spent."
+    },
+    {
+      "id": "edu-mc-whycrypto-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Curious why any of this matters? 🌍 The 'Why crypto' series in my Media center breaks down sound digital money, one short episode at a time."
+    },
+    {
+      "id": "edu-mc-whycrypto-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Got a coffee break? ☕ Watch the 'Why crypto' series in my Media center — bite-size videos on decentralized money and where eCash fits."
+    },
+    {
+      "id": "feat-radar-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Psst — have you tried the Consensus Radar? 📡 It sweeps the screen and pings every tx the instant Avalanche finalizes it. Weirdly mesmerizing."
+    },
+    {
+      "id": "feat-radar-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Want to see finality happen, not just read it? 🛰️ Switch on the Consensus Radar and watch each tx light up as it locks in ~3s."
     }
   ]
 }

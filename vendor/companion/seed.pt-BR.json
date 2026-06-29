@@ -2111,6 +2111,62 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "Meu recorde pessoal nesta sessão: uma finalização de {liveFastest} s 🏁 Guardo um pequeno ranking na cabeça."
+    },
+    {
+      "id": "edu-mc-avalanche-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Quer entender por que a finalidade leva só ~3s? 🧠 Abra meu Media center e reproduza 'Avalanche consensus' — um passeio animado de ~5 min que eu narro ao vivo."
+    },
+    {
+      "id": "edu-mc-avalanche-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Novo por aqui? 📺 A lição 'Avalanche consensus' no meu Media center mostra exatamente como o eCash fixa uma tx em segundos. Cinco minutos bem gastos."
+    },
+    {
+      "id": "edu-mc-whycrypto-1",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Curioso por que tudo isso importa? 🌍 A série 'Why crypto' no meu Media center destrincha o dinheiro digital sólido, um episódio curto por vez."
+    },
+    {
+      "id": "edu-mc-whycrypto-2",
+      "category": "education",
+      "trigger": "random",
+      "priority": 1,
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Uma pausa para o café? ☕ Assista à série 'Why crypto' no meu Media center — vídeos curtos sobre dinheiro descentralizado e onde o eCash se encaixa."
+    },
+    {
+      "id": "feat-radar-1",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Psiu — já testou o Consensus Radar? 📡 Ele varre a tela e dá um ping em cada tx no instante em que o Avalanche a finaliza. Estranhamente hipnótico."
+    },
+    {
+      "id": "feat-radar-2",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Quer ver a finalidade acontecer, não só ler sobre? 🛰️ Ligue o Consensus Radar e veja cada tx acender ao ser travada em ~3s."
     }
   ]
 }
