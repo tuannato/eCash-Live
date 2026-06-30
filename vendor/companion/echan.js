@@ -1,5 +1,5 @@
 /* =============================================================================
- * eChan companion — 1.3.2 controller
+ * eChan companion — 1.3.3 controller
  * =============================================================================
  *
  * Changes vs 1.3.0:
@@ -2309,7 +2309,8 @@
     if (v >= 10)  return String(Math.round(v));
     if (v >= 1)   return v.toFixed(1).replace(/\.0$/, '');
     if (v >= 0.1) return v.toFixed(2);
-    if (v > 0)    return v.toFixed(v >= 0.01 ? 2 : 3);
+    if (v >= 0.001) return v.toFixed(v >= 0.01 ? 2 : 3);  // keep full digits: 0.001 .. 0.099
+    if (v > 0)      return '< 0.001';                     // never quote a zero-looking "0.000"
     return '0';
   }
 
