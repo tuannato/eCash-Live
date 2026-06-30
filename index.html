@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-Ynjk6nYmJ0OgOmTpXjJ7ZnBl6aIMo31NYswshz868j4=';
+  script-src 'self' 'sha256-K7fnuwoS3rgKSnLM5Nus32Y1nBFKlyfE8lw3g+at+cA=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -1297,7 +1297,7 @@
     position: relative; flex: 1; min-height: 0;
     background: radial-gradient(circle at 50% 50%, #0a1322 0%, #08080f 74%);
   }
-  .radar-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .radar-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: pointer; }
   .radar-legend {
     padding: 8px 12px; border-top: 1px solid var(--line);
     font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace; font-size: 10px;
@@ -6670,7 +6670,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.5.4">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.5.4</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.5.5">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.5.5</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -6856,7 +6856,7 @@
               <button class="radar-close" id="radar-back-mobile" type="button">← back</button>
             </span>
           </div>
-          <div class="radar-stage"><canvas id="radar-canvas-mobile"></canvas></div>
+          <div class="radar-stage"><canvas id="radar-canvas-mobile" title="Tap to switch sweep mode"></canvas></div>
           <div class="radar-legend">amount → centre · colour → consensus · <span class="rl-green">●</span> finalized</div>
         </div>
       </div>
@@ -6918,7 +6918,7 @@
               <button class="radar-close" id="radar-close-detail" type="button">✕ radar</button>
             </span>
           </div>
-          <div class="radar-stage"><canvas id="radar-canvas-detail"></canvas></div>
+          <div class="radar-stage"><canvas id="radar-canvas-detail" title="Click to switch sweep mode"></canvas></div>
           <div class="radar-legend">amount → centre · colour → consensus · <span class="rl-green">●</span> finalized</div>
         </div>
 
@@ -15024,11 +15024,12 @@ const _radarRM = (window.matchMedia ? window.matchMedia('(prefers-reduced-motion
 // Radar blip "ping" sound (Web Audio, generated — no media file, no CSP change).
 const RADAR_PING_FREQ_HI = 900;       // centre (big tx) — higher pitch
 const RADAR_PING_FREQ_LO = 320;       // outer edge (small tx) — lower pitch
+const RADAR_PING_FREQ_MID = 520;      // ring mode: neutral per-cycle pulse (position-independent)
 const RADAR_PING_MIN_GAP_MS = 40;     // global min gap between any two pings (anti-machinegun)
 const RADAR_PING_MAX_PER_FRAME = 4;   // cap pings emitted in one tick
 
 class Radar {
-  constructor() { this.cv = null; this.ctx = null; this.sweep = 0; this.blips = new Map(); this._dpr = 1; this.W = 0; this.H = 0; this._last = 0; this._angSeed = 0; }
+  constructor() { this.cv = null; this.ctx = null; this.sweep = 0; this.ringT = 0; this.style = 'ring'; this.blips = new Map(); this._dpr = 1; this.W = 0; this.H = 0; this._last = 0; this._angSeed = 0; }
   attach(cv) { if (this.cv === cv) { return; } this.cv = cv; this.ctx = cv.getContext('2d'); }
   resize() {
     if (!this.cv) return;
@@ -15075,7 +15076,7 @@ class Radar {
         } else if (done && b && b.state !== 'rejected') {
           // Only green-flash txs we were already tracking — never pop in a
           // long-finalized tx when the radar first opens.
-          if (b.state !== 'final') { b.state = 'final'; b.flash = 1; b.finalAt = now; }
+          if (b.state !== 'final') { b.state = 'final'; b.flash = 1; b.finalAt = now; b._chime = true; }
           b.amt = tx.valueXec || 0;
           b.level = 1;
           if (now - (b.finalAt || now) < RADAR_FLASH_MS) seen.add(id);
@@ -15103,20 +15104,41 @@ class Radar {
     this.sync(nowMs);
     const TAU = Math.PI * 2;
     const prevSweep = this.sweep;
-    if (!_radarRM.matches) this.sweep = (this.sweep + dt / RADAR_SWEEP_MS * TAU) % TAU;
-    // Radar "bip": fire when the sweep beam passes over a blip this frame.
-    const delta = (this.sweep - prevSweep + TAU) % TAU;
-    if (delta > 0 && this.onPing) {
-      let pings = 0;
-      for (const [id, b] of this.blips) {
-        if (pings >= RADAR_PING_MAX_PER_FRAME) break;
-        if (b.state === 'rejected') continue;
-        const a = ((b.ang % TAU) + TAU) % TAU;
-        if (((a - prevSweep + TAU) % TAU) > delta) continue;      // not crossed this frame
-        if (nowMs - (b.lastPingAt || 0) < RADAR_SWEEP_MS * 0.5) continue; // ≤1 ping/blip/rev
-        if (nowMs - (this._lastPingAt || 0) < RADAR_PING_MIN_GAP_MS) continue; // anti-machinegun
-        b.lastPingAt = nowMs; this._lastPingAt = nowMs; pings++;
-        try { this.onPing(this._rFrac(b)); } catch (e) {}
+    const prevRingT = this.ringT;
+    if (!_radarRM.matches) {
+      this.sweep = (this.sweep + dt / RADAR_SWEEP_MS * TAU) % TAU;
+      this.ringT = (this.ringT + dt / RADAR_SWEEP_MS) % 1;
+    }
+    if (this.style === 'beam') {
+      // Beam: fire a position-pitched bip when the rotating arm crosses a blip.
+      const delta = (this.sweep - prevSweep + TAU) % TAU;
+      if (delta > 0 && this.onPing) {
+        let pings = 0;
+        for (const [id, b] of this.blips) {
+          b._chime = false;   // consume finalize markers silently in beam mode
+          if (pings >= RADAR_PING_MAX_PER_FRAME) break;
+          if (b.state === 'rejected') continue;
+          const a = ((b.ang % TAU) + TAU) % TAU;
+          if (((a - prevSweep + TAU) % TAU) > delta) continue;      // not crossed this frame
+          if (nowMs - (b.lastPingAt || 0) < RADAR_SWEEP_MS * 0.5) continue; // ≤1 ping/blip/rev
+          if (nowMs - (this._lastPingAt || 0) < RADAR_PING_MIN_GAP_MS) continue; // anti-machinegun
+          b.lastPingAt = nowMs; this._lastPingAt = nowMs; pings++;
+          try { this.onPing(this._rFrac(b)); } catch (e) {}
+        }
+      }
+    } else {
+      // Ring: one neutral pulse per cycle, plus a position-pitched chime when a tx
+      // FINALIZES (not when the ring sweeps over it).
+      if (!_radarRM.matches && this.ringT < prevRingT && this.onCycle) { try { this.onCycle(); } catch (e) {} }
+      if (this.onPing) {
+        let pings = 0;
+        for (const [id, b] of this.blips) {
+          if (!b._chime) continue;
+          if (pings >= RADAR_PING_MAX_PER_FRAME) break;             // rest retried next frame
+          if (nowMs - (this._lastPingAt || 0) < RADAR_PING_MIN_GAP_MS) continue;
+          b._chime = false; this._lastPingAt = nowMs; pings++;
+          try { this.onPing(this._rFrac(b)); } catch (e) {}
+        }
       }
     }
     for (const [id, b] of this.blips) {
@@ -15135,17 +15157,34 @@ class Radar {
     for (let i = 1; i <= 4; i++) { ctx.strokeStyle = _radarRgba(RADAR_CYAN, i === 4 ? 0.10 : 0.05); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(c.x, c.y, c.R * i / 4, 0, 6.283); ctx.stroke(); }
     ctx.strokeStyle = _radarRgba(RADAR_CYAN, 0.07);
     for (let a = 0; a < 4; a++) { ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(c.x + Math.cos(a * Math.PI / 2) * c.R, c.y + Math.sin(a * Math.PI / 2) * c.R); ctx.stroke(); }
-    if (ctx.createConicGradient) {
-      const g = ctx.createConicGradient(this.sweep, c.x, c.y);
-      g.addColorStop(0, _radarRgba(RADAR_CYAN, 0.12)); g.addColorStop(0.02, _radarRgba(RADAR_CYAN, 0)); g.addColorStop(0.82, _radarRgba(RADAR_CYAN, 0)); g.addColorStop(0.985, _radarRgba(RADAR_CYAN, 0.06)); g.addColorStop(1, _radarRgba(RADAR_CYAN, 0.11));
-      ctx.save(); ctx.beginPath(); ctx.arc(c.x, c.y, c.R, 0, 6.283); ctx.clip(); ctx.fillStyle = g; ctx.fillRect(c.x - c.R, c.y - c.R, c.R * 2, c.R * 2); ctx.restore();
+    if (this.style === 'beam') {
+      if (ctx.createConicGradient) {
+        const g = ctx.createConicGradient(this.sweep, c.x, c.y);
+        g.addColorStop(0, _radarRgba(RADAR_CYAN, 0.12)); g.addColorStop(0.02, _radarRgba(RADAR_CYAN, 0)); g.addColorStop(0.82, _radarRgba(RADAR_CYAN, 0)); g.addColorStop(0.985, _radarRgba(RADAR_CYAN, 0.06)); g.addColorStop(1, _radarRgba(RADAR_CYAN, 0.11));
+        ctx.save(); ctx.beginPath(); ctx.arc(c.x, c.y, c.R, 0, 6.283); ctx.clip(); ctx.fillStyle = g; ctx.fillRect(c.x - c.R, c.y - c.R, c.R * 2, c.R * 2); ctx.restore();
+      }
+      ctx.strokeStyle = _radarRgba(RADAR_CYAN, 0.20); ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(c.x + Math.cos(this.sweep) * c.R, c.y + Math.sin(this.sweep) * c.R); ctx.stroke();
+    } else {
+      // Ring: a pulse expanding center → rim, fading out as it nears the edge. A
+      // soft wide stroke (glow) under a crisp leading edge. Dim to match the
+      // dark-mode tuning of the beam.
+      const rr = c.R * this.ringT;
+      const a = 0.22 * (1 - this.ringT);
+      ctx.strokeStyle = _radarRgba(RADAR_CYAN, a * 0.5); ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(c.x, c.y, rr, 0, 6.283); ctx.stroke();
+      ctx.strokeStyle = _radarRgba(RADAR_CYAN, a); ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(c.x, c.y, rr, 0, 6.283); ctx.stroke();
     }
-    ctx.strokeStyle = _radarRgba(RADAR_CYAN, 0.20); ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(c.x + Math.cos(this.sweep) * c.R, c.y + Math.sin(this.sweep) * c.R); ctx.stroke();
     for (const [id, b] of this.blips) {
       const p = this._pos(b);
       const col = b.state === 'rejected' ? RADAR_RED : _radarColor(b.level);
-      const d = Math.abs(((b.ang - this.sweep + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
-      const near = d < 0.5 ? (1 - d / 0.5) : 0;
+      let near;
+      if (this.style === 'beam') {
+        const d = Math.abs(((b.ang - this.sweep + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+        near = d < 0.5 ? (1 - d / 0.5) : 0;
+      } else {
+        // Ring: brighten as the expanding pulse radius passes the blip's radius.
+        const dr = Math.abs(this._rFrac(b) - this.ringT), band = 0.06;
+        near = dr < band ? (1 - dr / band) : 0;
+      }
       let al = (b.state === 'rejected' ? (b.fade == null ? 1 : b.fade) : 1) * (0.82 + 0.18 * near);
       let rad = 3 + b.flash * 3 + near * 0.6;
       // Finalized blip: bloom outward + fade alpha to 0 over the flash window so
@@ -15169,11 +15208,15 @@ function _radarLoadPref() { try { return localStorage.getItem(RADAR_PREF_KEY) ==
 const RADAR_SOUND_KEY = 'ecash-live:radar:sound';
 function _radarSaveSound(v) { try { localStorage.setItem(RADAR_SOUND_KEY, v ? '1' : '0'); } catch (e) {} }
 function _radarLoadSound() { try { return localStorage.getItem(RADAR_SOUND_KEY) === '1'; } catch (e) { return false; } } // default OFF
+// Sweep style: 'ring' (expanding sonar pulse — DEFAULT) | 'beam' (rotating arm).
+const RADAR_SWEEP_KEY = 'ecash-live:radar:sweep';
+function _radarSaveSweep(v) { try { localStorage.setItem(RADAR_SWEEP_KEY, v === 'beam' ? 'beam' : 'ring'); } catch (e) {} }
+function _radarLoadSweep() { try { return localStorage.getItem(RADAR_SWEEP_KEY) === 'beam' ? 'beam' : 'ring'; } catch (e) { return 'ring'; } } // default ring
 
 const radarCtl = {
   radar: null, raf: 0, visible: false, mode: null, prefOn: _radarLoadPref(), _ro: null, popupSuspended: false,
-  soundOn: _radarLoadSound(), _audioCtx: null, _masterGain: null, _userGestured: false,
-  _ensure() { if (!this.radar) { this.radar = new Radar(); this.radar.onPing = (rFrac) => this._ping(rFrac); } return this.radar; },
+  soundOn: _radarLoadSound(), sweepStyle: _radarLoadSweep(), _audioCtx: null, _masterGain: null, _userGestured: false,
+  _ensure() { if (!this.radar) { this.radar = new Radar(); this.radar.style = this.sweepStyle; this.radar.onPing = (rFrac) => this._ping(rFrac); this.radar.onCycle = () => this._pingCycle(); } return this.radar; },
   // ---- Web Audio: radar blip "bip" (generated, no media file → no CSP change).
   // Autoplay-policy compliant: the AudioContext is NOT constructed until a real
   // user gesture has happened (mirrors echan.js ensureAudio), so there is no
@@ -15217,20 +15260,29 @@ const radarCtl = {
   },
   // rFrac in [0.15..0.97]: centre (big tx) → higher pitch, outer edge → lower.
   _ping(rFrac) {
+    const norm = Math.max(0, Math.min(1, (rFrac - 0.15) / (0.97 - 0.15)));
+    this._playTone(RADAR_PING_FREQ_HI - norm * (RADAR_PING_FREQ_HI - RADAR_PING_FREQ_LO));
+  },
+  // Ring mode: one neutral (position-independent) pulse per cycle. Debounced so
+  // rapid mode-toggling can't double-fire it.
+  _pingCycle() {
+    const now = (window.performance && performance.now) ? performance.now() : Date.now();
+    if (now - (this._lastCycleAt || 0) < 250) return;
+    this._lastCycleAt = now;
+    this._playTone(RADAR_PING_FREQ_MID);
+  },
+  // Shared sonar tone (osc + downward glide + feedback-delay echo tail). All the
+  // gates (sound off, radar hidden, media-center playing, suspended ctx) live here.
+  _playTone(freq) {
     if (!this.soundOn || !this.visible) return;
-    // Don't bip over media-center playback (lesson or YouTube video).
     try { if (window.__mediaCenter && window.__mediaCenter.isPlaying && window.__mediaCenter.isPlaying()) return; } catch (e) {}
     const ctx = this._ensureAudio();
     if (!ctx) return;
     if (ctx.state === 'suspended') { ctx.resume().catch(() => {}); return; } // recover; this ping is skipped
-    const norm = Math.max(0, Math.min(1, (rFrac - 0.15) / (0.97 - 0.15)));
-    const freq = RADAR_PING_FREQ_HI - norm * (RADAR_PING_FREQ_HI - RADAR_PING_FREQ_LO);
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine';
     const t = ctx.currentTime, dur = 0.22;
-    // Slight downward pitch glide → that "ping" sonar character (still centred
-    // on the position-mapped frequency, so outer↔centre pitch difference holds).
     osc.frequency.setValueAtTime(freq * 1.06, t);
     osc.frequency.exponentialRampToValueAtTime(freq * 0.94, t + dur);
     gain.gain.setValueAtTime(0.0, t);
@@ -15240,6 +15292,12 @@ const radarCtl = {
     gain.connect(this._masterGain);   // dry
     if (this._delay) gain.connect(this._delay); // wet → echo tail
     osc.start(t); osc.stop(t + dur);
+  },
+  toggleSweepStyle() {
+    this.sweepStyle = this.sweepStyle === 'ring' ? 'beam' : 'ring';
+    _radarSaveSweep(this.sweepStyle);
+    if (this.radar) { this.radar.style = this.sweepStyle; this.radar.ringT = 0; }
+    if (this.sweepStyle === 'ring') this._pingCycle();   // immediate audible feedback
   },
   toggleSound() {
     this.soundOn = !this.soundOn;
@@ -15366,6 +15424,9 @@ const radarCtl = {
   document.getElementById('radar-back-mobile')?.addEventListener('click', () => radarCtl.closeMobile());
   document.getElementById('radar-sound-detail')?.addEventListener('click', () => radarCtl.toggleSound());
   document.getElementById('radar-sound-mobile')?.addEventListener('click', () => radarCtl.toggleSound());
+  // Click the radar canvas to switch sweep style (ring ↔ beam); choice persists.
+  document.getElementById('radar-canvas-detail')?.addEventListener('click', () => radarCtl.toggleSweepStyle());
+  document.getElementById('radar-canvas-mobile')?.addEventListener('click', () => radarCtl.toggleSweepStyle());
   radarCtl._refreshSoundButtons();
   // Unlock Web Audio on user gestures (capture phase, so the sound toggle's own
   // click also counts). Until the first gesture no AudioContext is created → no
