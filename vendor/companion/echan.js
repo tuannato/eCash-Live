@@ -1,6 +1,10 @@
 /* =============================================================================
- * eChan companion — 1.3.3 controller
+ * eChan companion — 1.3.4 controller
  * =============================================================================
+ *
+ * 1.3.4: transient Chat-tab hide API (enterChatHide/exitChatHide) — the mobile
+ *   tab router collapses eChan to hide mode while the Chat tab is focused and
+ *   restores the user's prior state on any other tab, without persisting.
  *
  * Changes vs 1.3.0:
  *  - LIVE NETWORK REACTIONS via window.__echanBus: stats frames, block,
@@ -921,19 +925,19 @@
   /* ===========================================================================
    * SHOW / HIDE / TOGGLE
    * =========================================================================*/
-  function show() {
+  function show(persist) {
     state.shown = true;
     state.root.classList.add('echan-shown');
     pulseRailOff();
-    lsSet(STORAGE.shown, '1');
+    if (persist !== false) lsSet(STORAGE.shown, '1');
     if (!state.activeMessage && state.queue.length) showNextMessage();
   }
-  function hide() {
+  function hide(persist) {
     state.shown = false;
     state.root.classList.remove('echan-shown');
     closeSettings();
     closeQuickActions();
-    lsSet(STORAGE.shown, '0');
+    if (persist !== false) lsSet(STORAGE.shown, '0');
     stopTypewriter();
   }
   function toggle() { if (state.shown) hide(); else show(); }
@@ -1015,6 +1019,26 @@
       if (_mcPrior.shown) show(); else hide();
       _mcPrior = null;
     }
+  }
+
+  /* ---- Transient chat-tab hide (mobile) ------------------------------------
+   * The mobile UI collapses eChan to hide mode while the Chat tab is focused
+   * and restores the user's prior state on any other tab. Like the media-center
+   * moves above, this is TRANSIENT (persist:false) so the stored `shown`
+   * preference is never overwritten. Kept on its own `_chatHidePrior` so it can
+   * never fight the media center, which owns visibility while active. */
+  let _chatHidePrior = null;
+  function enterChatHide() {
+    if (state.mcMediaActive) return;   /* media center owns visibility */
+    if (_chatHidePrior !== null) return;
+    _chatHidePrior = state.shown;
+    if (state.shown) hide(false);
+  }
+  function exitChatHide() {
+    if (_chatHidePrior === null) return;
+    const prior = _chatHidePrior;
+    _chatHidePrior = null;
+    if (prior && !state.shown && !state.mcMediaActive) show(false);
   }
 
   /* ---- Presenter mode: lesson narration that BYPASSES the message queue ----
@@ -2878,6 +2902,9 @@
           enterLessonMode: mcEnterLessonMode,
           enterMediaMode:  mcEnterMediaMode,
           exitMode:        mcExitMode,
+          /* Mobile Chat-tab transient hide (driven by index.html tab router). */
+          enterChatHide:   enterChatHide,
+          exitChatHide:    exitChatHide,
           presentLine:     presentLine,
           push: pushMessage,
           pulseOn:  pulseRailOn,

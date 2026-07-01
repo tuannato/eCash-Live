@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-K7fnuwoS3rgKSnLM5Nus32Y1nBFKlyfE8lw3g+at+cA=';
+  script-src 'self' 'sha256-05tj9yvr22df4U+eHzJGCVHYWng8ZIhksAQ8t/ZAvF0=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -6683,7 +6683,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.5.6">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.5.6</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.5.7">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.5.7</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -15000,6 +15000,14 @@ function switchMobileTab(name, subtab) {
   // panel's internal tab strip so the chatbox is what's actually showing.
   if (name === 'messages' && typeof chatSwitchTab === 'function') {
     chatSwitchTab(subtab === 'chat' ? 'chat' : 'feed');
+  }
+  // Mobile: collapse eChan to hide mode while the Chat tab is focused, and
+  // restore the user's prior state on any other tab. Transient — never
+  // overwrites the stored eChan pref. No-ops if the companion isn't ready.
+  const inChat = (name === 'messages' && subtab === 'chat');
+  if (window.__echan) {
+    if (inChat && window.__echan.enterChatHide) window.__echan.enterChatHide();
+    else if (!inChat && window.__echan.exitChatHide) window.__echan.exitChatHide();
   }
 }
 
