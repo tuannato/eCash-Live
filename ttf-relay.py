@@ -1,5 +1,24 @@
 # =============================================================================
-# ttf-relay.py v1.5.6
+# ttf-relay.py v1.5.7
+#
+# v1.5.7 changes:
+#   1. Re-read guard for the 24h stats ring. WHY: on 2026-07-01 the 24h ring
+#      read 27,351 samples / peak TPS 318.8 while real traffic was ~7,000/day.
+#      Root cause: a cron capped debug.log to 10MB IN PLACE; tail_log (v1.5.6)
+#      correctly self-heals by seek(0) and re-reads the file, BUT log_reader
+#      then fed every replayed finalization into stats_ring.record(ttf, now)
+#      — which buckets by time.time(), NOT the tx's log timestamp — dumping
+#      ~19,128 historical finalizations into a single 1-minute bucket (19128/60
+#      = 318.8 peak TPS, exactly the observed spike). Fix: tail_log now yields a
+#      `None` sentinel whenever it rewinds to byte 0 (in-place truncation OR a
+#      rotation reopen); log_reader arms a catch-up filter on that sentinel and
+#      drops every event whose log timestamp is <= the high-water mark of what
+#      it already processed, disarming the moment genuinely new content (ts >
+#      hwm) appears. Log timestamps are monotonic non-decreasing, so no new data
+#      is dropped. The filter fires ONLY right after a rewind — normal live
+#      reading never arms it, so a backward clock step cannot wedge the feed.
+#      No stats-frame/schema change; ecash_bot.py needs no mirror (it reads the
+#      persisted ttf-stats.json, it does not record).
 #
 # v1.5.6 changes:
 #   1. tail_log() now detects IN-PLACE TRUNCATION, not just inode-change
@@ -879,7 +898,8 @@ async def tail_log(path):
                 continue
             st = path.stat()
             if last_inode != st.st_ino:
-                if last_inode is not None:
+                rotated = last_inode is not None
+                if rotated:
                     log.info(f"log rotated, reopening {path} from byte 0")
                 last_inode = st.st_ino
                 f = path.open("r", encoding="utf-8", errors="replace")
@@ -895,6 +915,12 @@ async def tail_log(path):
                 # v1.5.6: baseline for in-place-truncation detection. Set to
                 # the current size at (re)open so a later shrink is visible.
                 last_size = st.st_size
+                # v1.5.7: a rotation reopen reads the new file from byte 0 and
+                # may replay lines the previous fd already processed. Signal the
+                # rewind so log_reader can filter the replay out of the stats
+                # ring. (Not on the very first open — that seeks to end.)
+                if rotated:
+                    yield None
             # Read whatever's new
             while True:
                 line = f.readline()
@@ -922,6 +948,12 @@ async def tail_log(path):
                              f"({new_st.st_size}B < last {last_size}B), "
                              f"seeking to 0")
                     f.seek(0)
+                    last_size = new_st.st_size
+                    # v1.5.7: seek(0) will replay the (retained) head of the
+                    # file we've already processed. Signal the rewind so
+                    # log_reader filters the replay out of the stats ring.
+                    yield None
+                    continue
                 last_size = new_st.st_size
         except Exception as e:
             log.exception(f"tail_log error: {e}, restarting in 5s")
@@ -932,13 +964,40 @@ async def log_reader():
     """Reads log lines, parses events, manages pending dict, pushes
     finalized events into event_queue."""
     last_evict = time.time()
+    # v1.5.7: high-water mark of the newest log timestamp we've processed, and
+    # a flag armed by tail_log's rewind sentinel. Together they drop replayed
+    # lines after a seek(0)/rotation so historical finalizations aren't dumped
+    # into the current time bucket of the 24h ring (record() buckets by
+    # time.time(), not by log ts). See the v1.5.7 header note.
+    last_ts_seen = 0.0
+    catching_up = False
     audit_log = TTF_LOG_PATH.open("a", buffering=1)  # line-buffered
     try:
         async for line in tail_log(DEBUG_LOG_PATH):
+            if line is None:
+                # tail_log rewound to byte 0 (in-place truncation or rotation)
+                # and is about to replay already-processed content. Arm the
+                # catch-up filter; it disarms below once we reach genuinely new
+                # content (a line newer than the high-water mark).
+                catching_up = True
+                continue
             evt = parse_line(line)
             if evt is None:
                 continue
             event_type, txid, ts = evt
+
+            # v1.5.7: while catching up past a rewind, drop every event at or
+            # before the high-water mark — it's a replay of content we already
+            # processed. Log timestamps are monotonic non-decreasing, so nothing
+            # new is lost; we disarm the instant a newer line appears. This runs
+            # ONLY after a rewind sentinel — steady-state live reading never arms
+            # it, so a backward clock step can't wedge the feed.
+            if catching_up:
+                if ts <= last_ts_seen:
+                    continue
+                catching_up = False
+            if ts > last_ts_seen:
+                last_ts_seen = ts
 
             # Periodic eviction (don't let pending grow unbounded)
             if time.time() - last_evict > 60:
