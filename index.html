@@ -296,17 +296,17 @@
       rgba(1,160,224,0.55) 50%,
       rgba(1,160,224,0) 92%,
       transparent 100%);
-    box-shadow: 0 0 24px rgba(1,160,224,0.35);
+    box-shadow: 0 0 18px rgba(1,160,224,0.22);
     opacity: 0;
-    animation: stageScan 9s linear infinite;
+    animation: stageScan 12s linear infinite;  /* calmer: was 9s + 0.35 glow */
     pointer-events: none;
     z-index: 1;
     mix-blend-mode: screen;
   }
   @keyframes stageScan {
     0%   { transform: translateY(0);    opacity: 0; }
-    8%   { opacity: 0.55; }
-    92%  { opacity: 0.55; }
+    8%   { opacity: 0.28; }
+    92%  { opacity: 0.28; }
     100% { transform: translateY(100vh); opacity: 0; }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -360,7 +360,7 @@
   .brand .dot, .brand-id .dot {
     width: 6px; height: 6px; border-radius: 50%;
     background: var(--green); box-shadow: 0 0 12px var(--green);
-    animation: pulse 1.8s ease-in-out infinite;
+    /* calm (quick-win #2): solid dot — .live-pill .pulse-dot is the single liveness blink */
     flex-shrink: 0;
   }
   .brand .dot.disconnected, .brand-id .dot.disconnected { background: var(--magenta); box-shadow: 0 0 12px var(--magenta); }
@@ -5844,6 +5844,17 @@
     .meta .cell .v { font-size: 12px; }
   }
 
+  /* iOS auto-zooms on focus when a text input's font-size < 16px. Pin focusable
+     text inputs to 16px on mobile (desktop sizing above is unchanged). NOTE: footer
+     .global-page-size select is intentionally left as-is per design. */
+  @media (max-width: 939px) {
+    .chat-textarea,
+    .chat-amount-input,
+    .wl-dialog .wl-input,
+    .btl-col-left .btl-chain-search,
+    .block-txlist-dialog .btl-search { font-size: 16px; }
+  }
+
   /* ============ RESPONSIVE - mobile (<768px) ============ */
   @media (max-width: 767px) {
     body {
@@ -6038,7 +6049,7 @@
       border: 1px solid var(--line-2);
       border-radius: 4px;
       color: var(--text);
-      font-family: 'Fira Code', monospace; font-size: 13px;
+      font-family: 'Fira Code', monospace; font-size: 16px; /* iOS: 16px stops focus auto-zoom (was 13px) */
     }
     .blockchain.mobile-active .bc-goto-search:focus { outline: none; border-color: var(--cyan-dim); }
     .blockchain.mobile-active .bc-goto-search::placeholder { color: var(--text-3); }
@@ -6099,6 +6110,8 @@
     .messages.mobile-active[data-tab="chat"] .chat-textarea {
       max-height: 96px; /* keep composer compact so it doesn't dominate the screen */
     }
+    /* shift byte-count right so the eChan hide-mode rail (left:0, 18px) doesn't cover it */
+    .messages.mobile-active[data-tab="chat"] .chat-byte-count { margin-left: 22px; }
     .watchlist.mobile-active .watchlist-cards {
       flex-direction: column;
       overflow-x: hidden;
@@ -6670,7 +6683,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.5.5">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.5.5</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.5.6">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.5.6</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
