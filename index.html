@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-IXErLnbcMVj3RTCtrPZqMZwgGR1G2DvFRx3VDvQT1yg=';
+  script-src 'self' 'sha256-gN0N5GoFBSRCYaj2iZw0j6ioeHegd5xD8BXmVVitIow=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -4435,7 +4435,7 @@
   }
 
   /* ============ EXPLORER BUTTON ============ */
-  .explorer-btn {
+  .explorer-btn, .powr-btn, .d-msg-link {
     display: inline-flex; align-items: center; gap: 5px;
     padding: 4px 8px;
     border-radius: 3px;
@@ -4453,7 +4453,14 @@
     border-color: var(--cyan-dim);
     color: var(--cyan);
   }
-  .explorer-btn .arrow { font-size: 10px; }
+  /* Proof of Writing links get an amber hover to match the POWR tag */
+  .powr-btn:hover, .d-msg-link:hover {
+    background: rgba(255,184,0,0.10);
+    border-color: rgba(255,184,0,0.45);
+    color: var(--amber);
+  }
+  .explorer-btn .arrow, .powr-btn .arrow, .d-msg-link .arrow { font-size: 10px; }
+  .d-msg-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 
   /* Topbar block height as clickable */
   .meta .cell .v.linkable {
@@ -6703,7 +6710,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.5.8">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.5.8</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.5.9">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.5.9</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -7134,6 +7141,7 @@
               <span class="k">Content</span>
               <div id="d-msg-content" style="font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; font-size: 12px; color: var(--text); margin-top: 4px; word-break: break-word; line-height: 1.4"></div>
             </div>
+            <div id="d-msg-links" class="d-msg-links" style="display:none"></div>
           </div>
 
           <div class="d-section" id="d-opreturn-section" style="display:none">
@@ -11394,10 +11402,10 @@ function parseOpReturn(hex) {
       if (h && payload.length === 1) { powr.contentHash = h; content = `${action} · ${short(h)}`; }
     } else if (action === 'reply' || action === 'quote') {
       const t = hash32(payload[0]), h = hash32(payload[1]);
-      if (t && h && payload.length === 2) { powr.targetHash = t; powr.contentHash = h; content = `${action} → ${short(t)} · ${short(h)}`; }
+      if (t && h && payload.length === 2) { powr.targetTxid = t; powr.contentHash = h; content = `${action} → ${short(t)} · ${short(h)}`; }
     } else if (action === 'repost' || action === 'like') {
       const t = hash32(payload[0]);
-      if (t && payload.length === 1) { powr.targetHash = t; content = `${action} → ${short(t)}`; }
+      if (t && payload.length === 1) { powr.targetTxid = t; content = `${action} → ${short(t)}`; }
     } else if (action === 'unlock') {
       if (payload.length === 0) content = 'unlock';
     } else {
@@ -12732,6 +12740,13 @@ function _renderDetailInner(tx) {
   if (tx.message) {
     msgSec.style.display = '';
     $('d-msg-content').textContent = tx.message.content || '(empty)';
+    // Proof of Writing deep-links (empty string for every non-POWR message)
+    const msgLinksEl = $('d-msg-links');
+    if (msgLinksEl) {
+      const linksHtml = powrFeedLinksHtml(tx);
+      msgLinksEl.innerHTML = linksHtml;
+      msgLinksEl.style.display = linksHtml ? '' : 'none';
+    }
   } else {
     msgSec.style.display = 'none';
   }
@@ -13054,6 +13069,71 @@ function renderOpReturnSection(tx) {
   if (scripts.length > OPRET_MAX_SCRIPTS) html += `<div class="d-opret-item">+${scripts.length - OPRET_MAX_SCRIPTS} more OP_RETURN outputs</div>`;
   wrap.innerHTML = html;
   sec.style.display = '';
+}
+
+// ============ PROOF OF WRITING DEEP-LINKS ============
+// proofofwriting.com addresses each feed item by the TXID of the transaction
+// that created it — /feed/<txid>. Confirmed empirically: a POWR reply's
+// stackArray[3] (spec name `targetTxid`) resolves at /feed/<that txid>. So:
+//   • the tx's OWN txid  → /feed/<tx.id>        = this post/reply itself
+//   • powr.targetTxid    → /feed/<targetTxid>   = the post being replied to etc.
+// The `contentHash` push (stackArray[4]) is a sha256 of the OFF-chain content
+// for integrity only — it is NOT an address, so it is never linked.
+// NOTE: the self-link (own txid) is inferred from the same txid scheme; it is
+// slated for verification in the follow-up API-investigation step.
+const POWR_FEED_BASE = 'https://www.proofofwriting.com/feed/';
+// Actions whose OWN transaction is a readable feed item (has its own page).
+// repost/like are intentionally excluded — their subject is the target, not
+// a new readable article, so only the target link is offered for them.
+const POWR_SELF_LINK_ACTIONS = new Set(['post', 'publish', 'reply', 'quote']);
+const POWR_LINK_TEXT = {
+  self:   { label: 'read on Proof of Writing', title: 'Read this post on proofofwriting.com' },
+  target: { label: 'target post',              title: 'Open the target post on proofofwriting.com' },
+};
+
+// Build the proofofwriting.com feed link(s) for a tx. Returns [] for non-POWR
+// txs (or POWR actions with nothing linkable: unlock/auth/handle). Each id is
+// re-validated as 64-hex before it reaches a URL (defense in depth).
+function powrFeedLinks(tx) {
+  const p = tx && tx.message && tx.message.powr;
+  if (!p) return [];
+  const out = [];
+  if (POWR_SELF_LINK_ACTIONS.has(p.action) && /^[0-9a-f]{64}$/i.test(tx.id || '')) {
+    out.push({ kind: 'self', href: POWR_FEED_BASE + tx.id });
+  }
+  if (p.targetTxid && /^[0-9a-f]{64}$/i.test(p.targetTxid)) {
+    out.push({ kind: 'target', href: POWR_FEED_BASE + p.targetTxid });
+  }
+  return out;
+}
+
+// Detail-panel chips: show BOTH the self and target feed links (full labels).
+function powrFeedLinksHtml(tx) {
+  return powrFeedLinks(tx).map((l) => {
+    const t = POWR_LINK_TEXT[l.kind];
+    return `<a class="d-msg-link" href="${escapeHtml(l.href)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(t.title)}">${escapeHtml(t.label)}<span class="arrow">↗</span></a>`;
+  }).join('');
+}
+
+// Feed-card single "Read" target (v1.5.9). One link that also absorbs the old
+// "parent" role: read the tx's OWN feed item for every content action
+// (post/publish/reply/quote/repost — i.e. "read the latest response"), but a
+// bare like has no readable content of its own, so it falls back to the liked
+// post. unlock/auth/handle have nothing to read → no link.
+function powrReadHref(tx) {
+  const p = tx && tx.message && tx.message.powr;
+  if (!p) return null;
+  if (p.action === 'like') {
+    return /^[0-9a-f]{64}$/i.test(p.targetTxid || '') ? POWR_FEED_BASE + p.targetTxid : null;
+  }
+  if (p.action === 'unlock' || p.action === 'auth' || p.action === 'handle') return null;
+  return /^[0-9a-f]{64}$/i.test(tx.id || '') ? POWR_FEED_BASE + tx.id : null;
+}
+
+function powrReadBtnHtml(tx) {
+  const href = powrReadHref(tx);
+  if (!href) return '';
+  return `<a class="powr-btn" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" title="Read on Proof of Writing">read<span class="arrow">↗</span></a>`;
 }
 
 function formatTokenType(t) {
@@ -13388,6 +13468,7 @@ function renderMessages() {
       <div class="msg-foot">
         <button class="msg-expand-btn" type="button" title="Expand full message" aria-label="Expand full message" aria-expanded="false">⤢</button>
         <span class="msg-foot-spacer"></span>
+        ${powrReadBtnHtml(m.tx)}
         <button class="msg-chat-btn" type="button" title="Chat with sender" aria-label="Chat with sender">chat<span class="arrow">↔</span></button>
         <a class="explorer-btn" href="${explorerUrl}" target="_blank" rel="noopener" title="Open in explorer">explorer<span class="arrow">↗</span></a>
       </div>
@@ -13436,7 +13517,8 @@ function renderMessages() {
     // Both skip clicks on the copy/explorer/chat/expand controls.
     card.addEventListener('click', (e) => {
       if (e.target.closest('.copy-btn') || e.target.closest('.explorer-btn')
-        || e.target.closest('.msg-chat-btn') || e.target.closest('.msg-expand-btn')) return;
+        || e.target.closest('.msg-chat-btn') || e.target.closest('.msg-expand-btn')
+        || e.target.closest('.powr-btn')) return;
       if (!isMobile()) toggleExpand();   // desktop: click also expands
       // v1.2.4: use m.tx directly. Without this, clicking an Agora message
       // older than 30s (state.txs cleanup window) silently failed to open
@@ -15893,15 +15975,23 @@ document.getElementById('d-pinstate')?.addEventListener('click', () => {
 
 // Update tab badges
 function updateMobileBadges() {
-  const c1 = $('col1-list')?.children.length || 0;
+  // v1.5.9: c1 (NEW/polling badge) counts pending+polling from state.txs — the
+  // SAME source as the r-polling header (updateStats). It previously read the
+  // col1-list DOM row count, which trimList caps at pageSize.col1, so the badge
+  // under-reported the true waiting-to-finalize count on any non-"All" filter.
+  // This mirrors the v1.2.9 fix already applied to c2 below.
   // v1.2.9: c2 mirrors panel-02 header semantic — preFinal from state.txs
   // (NOT DOM rows, which were filter-dependent). When state.txs hits
   // MAX_TXS we render compact "preFinal / chronikTotal" (e.g. "2k/3.1k")
   // to fit the narrow badge. Same logic & format as r-mempool in
   // updateStats() — _fmtK is defined alongside it; keep both sites in
   // sync if the semantic changes.
-  let preFinal = 0;
-  state.txs.forEach(tx => { if (tx.state === 'final') preFinal++; });
+  let preFinal = 0, polling = 0;
+  state.txs.forEach(tx => {
+    if (tx.state === 'final') preFinal++;
+    else if (tx.state === 'pending' || tx.state === 'polling') polling++;
+  });
+  const c1 = polling;
   let c2;
   if (state.txs.size >= MAX_TXS && typeof state.realMempoolSize === 'number'
       && state.realMempoolSize > preFinal) {
