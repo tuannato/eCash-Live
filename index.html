@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-05tj9yvr22df4U+eHzJGCVHYWng8ZIhksAQ8t/ZAvF0=';
+  script-src 'self' 'sha256-IXErLnbcMVj3RTCtrPZqMZwgGR1G2DvFRx3VDvQT1yg=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -1032,6 +1032,7 @@
   }
   .tag.alp { color: var(--purple-light); background: rgba(185,133,255,0.08); border: 1px solid rgba(185,133,255,0.25); }
   .tag.slp { color: var(--cyan); background: rgba(1,160,224,0.08); border: 1px solid rgba(1,160,224,0.25); }
+  .tag.powr { color: var(--amber); background: rgba(255,184,0,0.10); border: 1px solid rgba(255,184,0,0.35); }
 
   /* ============ TOKEN / NFT ICON ============
      Pulled from icons.etokens.cash (the same CDN used by Cashtab + the
@@ -1785,6 +1786,24 @@
     text-shadow: 0 0 6px rgba(167,255,55,0.35);
   }
   .d-flow-row .d-flow-addr.is-op-return { color: var(--text-3); font-style: italic; }
+  /* OP_RETURN decode section (detail panel) */
+  .d-opret-block { margin: 4px 0 6px; }
+  .d-opret-block + .d-opret-block { border-top: 1px dashed var(--line); padding-top: 6px; }
+  .d-opret-proto {
+    font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace;
+    font-size: 10px; color: var(--cyan);
+    letter-spacing: 0.06em;
+    margin-bottom: 3px;
+  }
+  .d-opret-item {
+    font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace;
+    font-size: 10px; color: var(--text-2);
+    word-break: break-all;
+    line-height: 1.5;
+  }
+  .d-opret-item .op { color: var(--purple-light); }
+  .d-opret-hex { color: var(--text-3); }
+  .d-opret-utf8 { color: var(--text); }
   .d-flow-row .d-flow-copy-slot { display: inline-flex; }
   .d-flow-row .d-flow-copy-slot .copy-btn {
     width: 16px; height: 16px;
@@ -1905,6 +1924,7 @@
   .msg-card.agora-cancel .type { color: var(--text-3); }
   .msg-card.empp .type { color: var(--purple-light); }
   .msg-card.airdrop .type { color: var(--amber); }
+  .msg-card.powr .type { color: var(--amber); }
 
   .msg-card .time {
     font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace; font-size: 9px;
@@ -6683,7 +6703,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.5.7">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.5.7</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.5.8">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.5.8</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -7116,6 +7136,11 @@
             </div>
           </div>
 
+          <div class="d-section" id="d-opreturn-section" style="display:none">
+            <div class="lbl">OP_RETURN Decode</div>
+            <div id="d-opreturn-content"></div>
+          </div>
+
           <div class="d-meta">
             <div class="row"><span class="k">Inputs</span><span class="v" id="d-in">—</span></div>
             <div class="row"><span class="k">Outputs</span><span class="v" id="d-out">—</span></div>
@@ -7204,6 +7229,7 @@
           <button class="msg-filter" data-filter="cashtab">Msg</button>
           <button class="msg-filter" data-filter="token">Token</button>
           <button class="msg-filter" data-filter="agora">Agora</button>
+          <button class="msg-filter" data-filter="powr">POWR</button>
           <button class="msg-filter" data-filter="alias">Alias</button>
         </div>
         <div class="msg-list" id="msg-list"></div>
@@ -8480,6 +8506,35 @@ const LOKAD = {
   PAYWALL:        '70617977',  // payw — Paywall tx
   CASHFUSION:     '46555a00',  // FUZ\x00 — CashFusion
   ARTICLE:        '626c6f67',  // blog — Article/Blog reply
+  POWR:           '504f5752',  // POWR — Proof of Writing (proofofwriting.com)
+};
+
+// POWR action opcodes (bare OP_1..OP_9 following the bare OP_0 version
+// byte) — per Bitcoin ABC doc/standards/proofofwriting.md (D20215).
+const POWR_ACTIONS = {
+  0x51: 'post', 0x52: 'reply', 0x53: 'quote', 0x54: 'repost', 0x55: 'like',
+  0x56: 'publish', 0x57: 'unlock', 0x58: 'auth', 0x59: 'handle',
+};
+
+// Display names for the OP_RETURN decode section + the protocol-aware
+// tx-flow row label. Keys are 4-byte lokad ids (lowercase hex): the LOKAD
+// map above plus the two token protocol markers. Deliberately NOT a full
+// registry — unknown ids render as generic "data".
+const LOKAD_NAMES = {
+  '00746162': 'Cashtab Msg',
+  '6361736d': 'Cashtab Encrypted',
+  '2e786563': 'Alias',
+  '64726f70': 'Airdrop',
+  '41475230': 'Agora',
+  '63686174': 'eCashChat',
+  '61757468': 'eCashChat Auth',
+  '50415900': 'PayButton',
+  '70617977': 'Paywall',
+  '46555a00': 'CashFusion',
+  '626c6f67': 'Article',
+  '504f5752': 'Proof of Writing',
+  '534c5000': 'SLP',
+  '534c5032': 'ALP',
 };
 
 // ============ STATE ============
@@ -11314,6 +11369,47 @@ function parseOpReturn(hex) {
     const title = pushes[0] ? hexToUtf8(pushes[0]) : '';
     return { type: 'broadcast', content: title ? `Article: ${title.slice(0, 80)}` : 'eCashChat article' };
   }
+  if (lokad === LOKAD.POWR) {
+    // Proof of Writing (proofofwriting.com) — Bitcoin ABC doc/standards/
+    // proofofwriting.md (D20215). After the 4-byte lokad push the script uses
+    // BARE opcodes, not pushes: OP_0 version, OP_1..OP_9 action, then payload
+    // pushes — so readAllPushes (which stops at bare opcodes) cannot parse
+    // it; readScriptItems can. Article content is NOT on-chain (sha256 hashes
+    // only), so there is nothing textual to show. Any payload that deviates
+    // from the spec degrades to a generic label — recognize by lokad id,
+    // enrich only when the shape holds (mirrors Cashtab's ecash-parse).
+    const generic = { type: 'powr', content: 'Proof of Writing activity' };
+    const { items, truncated } = readScriptItems(afterId);
+    if (truncated || items.length < 2) return generic;
+    if (items[0].kind !== 'op' || items[0].op !== 0x00) return generic; // version byte
+    const action = items[1].kind === 'op' ? POWR_ACTIONS[items[1].op] : null;
+    if (!action) return generic;
+    const payload = items.slice(2);
+    const hash32 = (it) => (it && it.kind === 'push' && /^[0-9a-f]{64}$/.test(it.hex)) ? it.hex : null;
+    const short = (h) => h.slice(0, 8) + '…' + h.slice(-4);
+    const powr = { action };
+    let content = null;
+    if (action === 'post' || action === 'publish') {
+      const h = hash32(payload[0]);
+      if (h && payload.length === 1) { powr.contentHash = h; content = `${action} · ${short(h)}`; }
+    } else if (action === 'reply' || action === 'quote') {
+      const t = hash32(payload[0]), h = hash32(payload[1]);
+      if (t && h && payload.length === 2) { powr.targetHash = t; powr.contentHash = h; content = `${action} → ${short(t)} · ${short(h)}`; }
+    } else if (action === 'repost' || action === 'like') {
+      const t = hash32(payload[0]);
+      if (t && payload.length === 1) { powr.targetHash = t; content = `${action} → ${short(t)}`; }
+    } else if (action === 'unlock') {
+      if (payload.length === 0) content = 'unlock';
+    } else {
+      // auth / handle — one 36-byte ASCII UUID nonce push
+      const it = payload[0];
+      const nonce = (it && it.kind === 'push' && it.len === 36) ? hexToUtf8(it.hex) : '';
+      if (payload.length === 1 && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(nonce)) {
+        powr.nonce = nonce; content = `${action} · ${nonce}`;
+      }
+    }
+    return content ? { type: 'powr', content, powr } : generic;
+  }
   // SLP/ALP token markers - skip (handled via tokenEntries)
   if (lokad === '534c5000' || lokad === '534c5032') return null;
   // EMPP marker (Extended Multi-Push Protocol — starts with 0x50)
@@ -11336,6 +11432,49 @@ function parseOpReturn(hex) {
     return { type: 'broadcast', content: text };
   }
   return null;
+}
+
+// Bare-opcode-aware script-item walker for OP_RETURN payloads (POWR branch +
+// the detail panel's raw decode). readAllPushes (nested in parseOpReturn)
+// deliberately STOPS at the first non-push byte and the existing protocol
+// branches depend on that (Cashtab msg text joining, Alias's bare-OP_0
+// version) — keep the two walkers separate, do not merge them.
+// Convention follows ecash-parse's getStackArray: a bare opcode surfaces as
+// its own one-byte item ('00', '51', …). Returns { items, truncated }:
+//   { kind: 'push', hex, len } — 0x01-0x4b direct, 0x4c/0x4d/0x4e PUSHDATA1/2/4
+//   { kind: 'op',   hex, op  } — OP_0, OP_1NEGATE, OP_1..OP_16, anything else
+// truncated=true when a declared push length overruns the remaining bytes or
+// the defensive item cap is hit.
+function readScriptItems(hex, maxItems = 32) {
+  const items = [];
+  let truncated = false;
+  let p = (hex || '').toLowerCase();
+  if (p.length % 2 !== 0) return { items, truncated: true };
+  while (p.length >= 2) {
+    if (items.length >= maxItems) { truncated = true; break; }
+    const b = parseInt(p.slice(0, 2), 16);
+    if (Number.isNaN(b)) { truncated = true; break; }
+    let len = -1, start = 0;
+    if (b >= 0x01 && b <= 0x4b) { len = b; start = 2; }
+    else if (b === 0x4c || b === 0x4d || b === 0x4e) {
+      start = b === 0x4c ? 4 : b === 0x4d ? 6 : 10;
+      if (p.length < start) { truncated = true; break; }
+      const lenHex = b === 0x4c ? p.slice(2, 4)
+                   : b === 0x4d ? p.slice(4, 6) + p.slice(2, 4)
+                   : p.slice(8, 10) + p.slice(6, 8) + p.slice(4, 6) + p.slice(2, 4);
+      len = parseInt(lenHex, 16);
+      if (Number.isNaN(len)) { truncated = true; break; }
+    }
+    if (len >= 0) {
+      if (p.length - start < len * 2) { truncated = true; break; }
+      items.push({ kind: 'push', hex: p.slice(start, start + len * 2), len });
+      p = p.slice(start + len * 2);
+    } else {
+      items.push({ kind: 'op', hex: p.slice(0, 2), op: b });
+      p = p.slice(2);
+    }
+  }
+  return { items, truncated };
 }
 
 function parseFirstPush(hex) {
@@ -11550,6 +11689,9 @@ function renderRowContent(tx) {
     }
   }
   if (tx.agora) tags.push('<span class="tag agora">AGORA</span>');
+  // Proof of Writing — tx.message.type survives the agora override above
+  // (agora rewrites the type), so an agora tx can never show both tags.
+  if (tx.message && tx.message.type === 'powr') tags.push('<span class="tag powr">POWR</span>');
 
   // Watchlist match — computed here (not appended later) so the label
   // survives every re-render path: fetchTokenInfo updates, state transitions,
@@ -12594,6 +12736,9 @@ function _renderDetailInner(tx) {
     msgSec.style.display = 'none';
   }
 
+  // Raw OP_RETURN decode — always visible when the tx carries one
+  renderOpReturnSection(tx);
+
   $('d-in').textContent = tx.inputs;
   $('d-out').textContent = tx.outputs;
   // Total output (gross) — shows the sum of every output, which often
@@ -12671,8 +12816,9 @@ function renderTxFlow(tx) {
   function outputAddrAndAmount(out) {
     const script = out.outputScript || '';
     if (script.startsWith('6a')) {
-      // OP_RETURN — show as a special row, no address
-      return { addr: null, sats: Number(out.sats ?? out.value ?? 0), isOpReturn: true, tokenAtoms: null };
+      // OP_RETURN — show as a special row, no address; the label carries the
+      // recognized protocol name (or generic data + payload size)
+      return { addr: null, sats: Number(out.sats ?? out.value ?? 0), isOpReturn: true, tokenAtoms: null, opLabel: opReturnFlowLabel(script) };
     }
     return {
       addr: encodeOutputScript(script),
@@ -12706,14 +12852,14 @@ function renderTxFlow(tx) {
       .map(a => a.addr)
   );
 
-  function buildRow(idx, addr, sats, isOpReturn, tokenAtoms) {
+  function buildRow(idx, addr, sats, isOpReturn, tokenAtoms, opLabel) {
     const row = document.createElement('div');
     row.className = 'd-flow-row';
     let addrClass = 'd-flow-addr';
     let addrText, addrHref = null;
     if (isOpReturn) {
       addrClass += ' is-op-return';
-      addrText = 'OP_RETURN · burn / data';
+      addrText = opLabel || 'OP_RETURN · data';
     } else if (!addr) {
       addrClass += ' is-op-return';
       addrText = 'non-standard script';
@@ -12771,7 +12917,7 @@ function renderTxFlow(tx) {
 
   outWrap.innerHTML = '';
   outputs.forEach((it, idx) => {
-    const row = buildRow(idx, it.addr, it.sats, it.isOpReturn, it.tokenAtoms);
+    const row = buildRow(idx, it.addr, it.sats, it.isOpReturn, it.tokenAtoms, it.opLabel);
     // Mark change-back outputs in gold (input address re-receiving funds)
     if (it.addr && inputAddrSet.has(it.addr)) {
       const addrEl = row.querySelector('.d-flow-addr');
@@ -12782,6 +12928,132 @@ function renderTxFlow(tx) {
     }
     outWrap.appendChild(row);
   });
+}
+
+// ============ OP_RETURN RAW DECODE (detail panel) ============
+// Everything below is display-only: it re-reads the raw output script and
+// never touches tx.message / parseOpReturn classification.
+
+// Identify which protocol an OP_RETURN output belongs to, from its raw
+// script hex ('6a…'). Returns a display name or null when unrecognized.
+//  - first item = 4-byte push                → LOKAD_NAMES lookup (lokad id)
+//  - first item = bare OP_RESERVED (0x50)    → eMPP container; each following
+//    push carries its own 4-byte lokad prefix (ALP, Agora plugin, …)
+//  - first item = 2-byte push starting '6d'  → memo.cash action
+function opReturnProtocolName(scriptHex) {
+  const s = (scriptHex || '').toLowerCase();
+  if (!/^6a[0-9a-f]*$/.test(s)) return null;
+  const { items } = readScriptItems(s.slice(2));
+  if (!items.length) return null;
+  const first = items[0];
+  if (first.kind === 'op' && first.op === 0x50) {
+    const names = [];
+    for (const it of items.slice(1)) {
+      if (it.kind !== 'push' || it.hex.length < 8) continue;
+      const n = LOKAD_NAMES[it.hex.slice(0, 8)];
+      if (n && !names.includes(n)) names.push(n);
+    }
+    return names.length ? 'eMPP · ' + names.join(' + ') : 'eMPP';
+  }
+  if (first.kind === 'push' && first.len === 4) return LOKAD_NAMES[first.hex] || null;
+  if (first.kind === 'push' && first.len === 2 && first.hex.startsWith('6d')) return 'memo.cash';
+  return null;
+}
+
+// Compact protocol-aware label for the tx-flow OP_RETURN row.
+function opReturnFlowLabel(scriptHex) {
+  const name = opReturnProtocolName(scriptHex);
+  if (name) return 'OP_RETURN · ' + name;
+  const bytes = Math.max(0, Math.floor(((scriptHex || '').length - 2) / 2));
+  return 'OP_RETURN · data · ' + bytes + ' B';
+}
+
+function opcodeName(op) {
+  if (op === 0x00) return 'OP_0';
+  if (op === 0x4f) return 'OP_1NEGATE';
+  if (op === 0x50) return 'OP_RESERVED';
+  if (op >= 0x51 && op <= 0x60) return 'OP_' + (op - 0x50);
+  return 'OP_0x' + op.toString(16).padStart(2, '0');
+}
+
+// Printable UTF-8 preview of a push. Same character-range test as
+// parseOpReturn's plain-text fallback, but additionally rejects U+FFFD:
+// hexToUtf8 decodes with fatal:false, so binary garbage comes back as
+// replacement chars that the range test alone would wrongly accept.
+function printableUtf8(hex) {
+  const text = hexToUtf8(hex);
+  if (!text || text.includes('\uFFFD')) return '';
+  return /^[\x20-\x7e\u00A0-\uFFFF]+$/.test(text) ? text : '';
+}
+
+// Build the decode HTML for ONE OP_RETURN output script. Pure string builder
+// (harness-testable, no DOM). Input is strictly validated up front (same
+// defensive pattern as tokenIconHtml) and every interpolated string is
+// escaped — OP_RETURN payloads are attacker-controlled.
+function buildOpReturnDecodeHtml(scriptHex) {
+  const s = (scriptHex || '').toLowerCase();
+  if (!/^6a[0-9a-f]*$/.test(s) || s.length % 2 !== 0) return '';
+  const payload = s.slice(2);
+  const { items, truncated } = readScriptItems(payload);
+  const name = opReturnProtocolName(s);
+  const isEmpp = items.length > 0 && items[0].kind === 'op' && items[0].op === 0x50;
+
+  // Headline: protocol + payload size; POWR also gets its action verb,
+  // derived locally from THIS script (not tx.message — a second OP_RETURN
+  // in the same tx must not cross-wire).
+  let proto = name || 'data';
+  if (items[0] && items[0].kind === 'push' && items[0].hex === LOKAD.POWR &&
+      items[1] && items[1].kind === 'op' && items[1].op === 0x00 &&
+      items[2] && items[2].kind === 'op' && POWR_ACTIONS[items[2].op]) {
+    proto += ' · ' + POWR_ACTIONS[items[2].op];
+  }
+
+  const OPRET_MAX_ROWS = 12;     // rows rendered per script
+  const OPRET_MAX_HEX = 160;     // hex chars shown per push before eliding
+  const rows = [];
+  items.slice(0, OPRET_MAX_ROWS).forEach((it, i) => {
+    if (it.kind === 'op') {
+      rows.push(`<div class="d-opret-item">[${i}] <span class="op">${escapeHtml(opcodeName(it.op))}</span></div>`);
+      return;
+    }
+    const hexShown = it.hex.length > OPRET_MAX_HEX ? it.hex.slice(0, OPRET_MAX_HEX) + '…' : it.hex;
+    const txt = printableUtf8(it.hex);
+    const txtShown = txt ? (txt.length > 120 ? txt.slice(0, 120) + '…' : txt) : '';
+    const emppName = (isEmpp && it.hex.length >= 8) ? LOKAD_NAMES[it.hex.slice(0, 8)] : null;
+    rows.push(
+      `<div class="d-opret-item">[${i}] <span class="op">push · ${it.len} B</span>` +
+      (emppName ? ` <span class="op">→ ${escapeHtml(emppName)}</span>` : '') +
+      ` <span class="d-opret-hex">${escapeHtml(hexShown)}</span>` +
+      (txtShown ? ` <span class="d-opret-utf8">"${escapeHtml(txtShown)}"</span>` : '') +
+      `</div>`
+    );
+  });
+  if (items.length > OPRET_MAX_ROWS) rows.push(`<div class="d-opret-item">+${items.length - OPRET_MAX_ROWS} more items</div>`);
+  if (truncated) rows.push('<div class="d-opret-item">… (truncated)</div>');
+  return `<div class="d-opret-block"><div class="d-opret-proto">${escapeHtml(proto)} · ${payload.length / 2} B</div>${rows.join('')}</div>`;
+}
+
+// Populate the always-visible "OP_RETURN Decode" detail section. Reads the
+// same tx.raw.outputs that renderTxFlow relies on; hides itself when the tx
+// has no OP_RETURN output (or raw data is unavailable). Multiple OP_RETURN
+// outputs are nonstandard but possible in blocks — render up to 3.
+function renderOpReturnSection(tx) {
+  const sec = $('d-opreturn-section');
+  const wrap = $('d-opreturn-content');
+  if (!sec || !wrap) return;
+  const raw = tx && tx.raw;
+  const outs = (raw && raw.outputs) ? raw.outputs : [];
+  const scripts = [];
+  for (const o of outs) {
+    const s = (o && typeof o.outputScript === 'string') ? o.outputScript.toLowerCase() : '';
+    if (s.startsWith('6a')) scripts.push(s);
+  }
+  if (!scripts.length) { sec.style.display = 'none'; wrap.innerHTML = ''; return; }
+  const OPRET_MAX_SCRIPTS = 3;
+  let html = scripts.slice(0, OPRET_MAX_SCRIPTS).map(buildOpReturnDecodeHtml).join('');
+  if (scripts.length > OPRET_MAX_SCRIPTS) html += `<div class="d-opret-item">+${scripts.length - OPRET_MAX_SCRIPTS} more OP_RETURN outputs</div>`;
+  wrap.innerHTML = html;
+  sec.style.display = '';
 }
 
 function formatTokenType(t) {
@@ -13040,6 +13312,7 @@ function renderMessages() {
     if (filter === 'cashtab') return m.type === 'cashtab' || m.type === 'encrypted';
     if (filter === 'token') return m.type === 'airdrop' || m.type === 'token-genesis';
     if (filter === 'agora') return m.type === 'agora-list' || m.type === 'agora-buy' || m.type === 'agora-cancel';
+    if (filter === 'powr') return m.type === 'powr';
     if (filter === 'alias') return m.type === 'alias';
     if (filter === 'broadcast') return m.type === 'broadcast';
     return true;
@@ -13223,6 +13496,7 @@ function msgTypeIcon(t) {
     case 'agora-buy': return '💰';
     case 'agora-cancel': return '❌';
     case 'airdrop': return '🪂';
+    case 'powr': return '📝';
     default: return '◆';
   }
 }
@@ -13238,6 +13512,7 @@ function msgTypeLabel(t) {
     case 'agora-buy': return 'Agora Trade';
     case 'agora-cancel': return 'Agora Cancel';
     case 'airdrop': return 'Airdrop';
+    case 'powr': return 'Proof of Writing';
     default: return 'Onchain';
   }
 }
