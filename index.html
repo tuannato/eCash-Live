@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-gN0N5GoFBSRCYaj2iZw0j6ioeHegd5xD8BXmVVitIow=';
+  script-src 'self' 'sha256-dciYdaMA710Wj/QeODTBpZEYHyBIxE5rN65IPvlW/Zw=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -1922,6 +1922,7 @@
   .msg-card.agora-list .type { color: var(--magenta); }
   .msg-card.agora-buy .type { color: var(--green); }
   .msg-card.agora-cancel .type { color: var(--text-3); }
+  .msg-card.agora-relist .type { color: var(--cyan); }
   .msg-card.empp .type { color: var(--purple-light); }
   .msg-card.airdrop .type { color: var(--amber); }
   .msg-card.powr .type { color: var(--amber); }
@@ -2039,6 +2040,10 @@
     background: rgba(255,255,255,0.04);
     border-color: var(--line-2);
   }
+  .msg-card.agora-relist .agora-meta {
+    background: rgba(1,160,224,0.06);
+    border-color: rgba(1,160,224,0.20);
+  }
   /* The icon at the far left */
   .agora-meta-icon-wrap {
     display: inline-flex;
@@ -2063,6 +2068,7 @@
   .agora-meta-side.side-list   { color: var(--gold);    background: rgba(255,184,0,0.16); }
   .agora-meta-side.side-buy    { color: var(--green);   background: rgba(0,231,129,0.16); }
   .agora-meta-side.side-cancel { color: var(--text-3);  background: rgba(255,255,255,0.06); }
+  .agora-meta-side.side-relist { color: var(--cyan);    background: rgba(1,160,224,0.16); }
   /* Ticker */
   .agora-meta-ticker {
     color: var(--text);
@@ -6710,7 +6716,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.5.9">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.5.9</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.6.0">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.6.0</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -10713,6 +10719,45 @@ function injectSimulatedReply(fromAddr, text) {
 }
 
 // ============ TX PARSING ============
+// F5: recover an AgoraPartial offer's asking price from its inline ad. ALP
+// listings carry the covenant params in the OP_RETURN pushdata right after the
+// AGR0+PARTIAL marker (SLP hides them in the scriptSig, not present at LIST
+// time → null). Layout (little-endian, verified vs Bitcoin-ABC ecash-agora
+// AgoraPartial.adPushdata + a 13-day / 686-list corpus): u8 numAtomsTruncBytes,
+// u8 numSatsTruncBytes, u64 atomsScaleFactor, u64 scaledTruncAtomsPerTruncSat,
+// u64 minAcceptedScaledTruncAtoms, u32 lockTime, 33B makerPk. Returns
+// priceNanoSatsPerAtom (BigInt) or null.
+function agoraPartialPriceNanoSats(scriptHex) {
+  const MARKER = '41475230' + '07' + '5041525449414c';   // AGR0 + push(7) + "PARTIAL"
+  const midx = scriptHex.indexOf(MARKER);
+  if (midx < 0 || (midx % 2) !== 0) return null;
+  const off = midx / 2 + MARKER.length / 2;               // byte offset past the marker
+  const readLE = (o, n) => {
+    const h = scriptHex.slice(o * 2, o * 2 + n * 2);
+    if (h.length !== n * 2) return null;
+    let v = 0n;
+    for (let i = h.length - 2; i >= 0; i -= 2) v = (v << 8n) | BigInt(parseInt(h.slice(i, i + 2), 16));
+    return v;
+  };
+  try {
+    const numAtomsTrunc = readLE(off, 1);
+    const numSatsTrunc  = readLE(off + 1, 1);
+    const atomsScale    = readLE(off + 2, 8);
+    const scaledPerSat  = readLE(off + 10, 8);
+    const makerPk = scriptHex.slice((off + 30) * 2, (off + 30) * 2 + 66);
+    // Reject anything that isn't a real AgoraPartial ad (guards a stray marker
+    // match): trunc bytes 0..7, positive scale factors, a plausible pubkey.
+    if (numAtomsTrunc == null || numSatsTrunc == null || atomsScale == null || scaledPerSat == null) return null;
+    if (numAtomsTrunc > 7n || numSatsTrunc > 7n || atomsScale <= 0n || scaledPerSat <= 0n) return null;
+    if (makerPk.length !== 66 || !['02', '03', '04'].includes(makerPk.slice(0, 2))) return null;
+    // priceNanoSatsPerAtom ≈ 1e9·atomsScale·2^(8·numSatsTrunc) / (scaledPerSat·2^(8·numAtomsTrunc))
+    const num = 1000000000n * atomsScale * (1n << (8n * numSatsTrunc));
+    const den = scaledPerSat * (1n << (8n * numAtomsTrunc));
+    if (den === 0n) return null;
+    return num / den;
+  } catch { return null; }
+}
+
 function parseTransaction(txData) {
   const tx = {
     id: txData.txid,
@@ -10918,6 +10963,7 @@ function parseTransaction(txData) {
   // the variant.
   const AGR0_PARTIAL_MARKER = '41475230' + '07' + '5041525449414c';   // 24 hex chars
   const AGR0_ONESHOT_MARKER = '41475230' + '07' + '4f4e4553484f54';   // 24 hex chars
+  const AGORA_DUST_SATS = 546;  // dust floor; a relist/cancel pays no one above this
   tx.agora = null;
   try {
     const inputs = txData.inputs || [];
@@ -10955,108 +11001,132 @@ function parseTransaction(txData) {
       if (s.startsWith('a914') && s.endsWith('87') && s.length === 46) p2shOutputCount++;
     }
 
-    // -------- BUY (covenant in inputs[0]) --------
-    if (covenantInputIdx === 0) {
-      const isOneshot = covenantVariant === 'oneshot';
-      const buyerPaidSats = Number(outputs[1]?.sats || outputs[1]?.value || 0);
-      const buyerPaidXec  = buyerPaidSats > 0 ? buyerPaidSats / 100 : null;
+    // Maker payment: the external XEC an ACCEPT pays the seller — the largest
+    // non-OP_RETURN, non-P2SH output to an address OUTSIDE the input set, above
+    // dust. Its presence is what distinguishes a real BUY from a seller-side
+    // relist/cancel (which pay no one). Replaces the unreliable input-index
+    // heuristic (covenant@0 = buy) that mislabelled ~2,274 relists as 5.46-XEC
+    // "buys" — corpus-verified over 13 days / 6,174 Agora txs.
+    let makerPaymentSats = 0;
+    for (const o of outputs) {
+      const s = o.outputScript || '';
+      if (s.startsWith('6a')) continue;                                          // OP_RETURN
+      if (s.startsWith('a914') && s.endsWith('87') && s.length === 46) continue; // P2SH covenant
+      const v = Number(o.sats || o.value || 0);
+      if (v <= AGORA_DUST_SATS) continue;
+      let addr = null;
+      try { addr = encodeOutputScript(s); } catch {}
+      if (addr && inputAddrSet.has(addr)) continue;                              // change to an input addr
+      if (v > makerPaymentSats) makerPaymentSats = v;
+    }
 
-      // For NFT BUY: also try to extract the LISTED price from the covenant
-      // inputScript. The covenant template has the price encoded as a
-      // little-endian uint64 at a fixed offset INSIDE the AGR0 push payload.
-      // We find AGR0+ONESHOT then read 8 bytes (16 hex chars) at the
-      // appropriate offset within the same push frame. If extraction fails
-      // we fall back to buyerPaidSats which is what the buyer actually paid.
-      let listedPriceSats = 0;
-      if (isOneshot) {
-        const covScript = getScript(inputs[0]);
-        const markerIdx = covScript.indexOf(AGR0_ONESHOT_MARKER);
-        if (markerIdx >= 0) {
-          // Try a few candidate offsets relative to the marker — Agora has
-          // had subtle template revisions and the price field has moved by
-          // a few bytes. We accept whichever yields a non-zero value that
-          // matches `buyerPaidSats` (best confirmation) OR is at least
-          // a "reasonable" sats amount (>0 and <10^16).
-          const candidates = [
-            markerIdx + 24,   // immediately after marker
-            markerIdx + 26,
-            markerIdx + 28,
-            markerIdx + 30,
-            markerIdx + 32,
-          ];
-          for (const off of candidates) {
-            const hex = covScript.slice(off, off + 16);
-            if (!hex || hex.length !== 16) continue;
-            try {
-              const beHex = hex.match(/../g).reverse().join('');
-              const v = Number(BigInt('0x' + beHex));
-              if (v > 0 && v < 1e16) {
-                if (v === buyerPaidSats) {       // perfect match → done
-                  listedPriceSats = v; break;
+    // -------- SPEND: covenant is being spent → BUY / RELIST / CANCEL --------
+    // BUY iff the maker got paid. Otherwise the seller re-spent their own
+    // covenant: tokens into a fresh P2SH covenant = RELIST (offer re-created,
+    // still live); tokens back to the seller's wallet = CANCEL (withdrawn).
+    if (covenantInputIdx >= 0) {
+      const isOneshot = covenantVariant === 'oneshot';
+
+      if (makerPaymentSats > AGORA_DUST_SATS) {
+        const buyerPaidXec = makerPaymentSats / 100;
+
+        // For NFT BUY: try to extract the LISTED price from the covenant
+        // inputScript (kept as-is; in practice this falls back to the paid
+        // sats — the offset scan rarely yields a distinct value).
+        let listedPriceSats = 0;
+        if (isOneshot) {
+          const covScript = getScript(inputs[covenantInputIdx]);
+          const markerIdx = covScript.indexOf(AGR0_ONESHOT_MARKER);
+          if (markerIdx >= 0) {
+            const candidates = [
+              markerIdx + 24, markerIdx + 26, markerIdx + 28,
+              markerIdx + 30, markerIdx + 32,
+            ];
+            for (const off of candidates) {
+              const hex = covScript.slice(off, off + 16);
+              if (!hex || hex.length !== 16) continue;
+              try {
+                const beHex = hex.match(/../g).reverse().join('');
+                const v = Number(BigInt('0x' + beHex));
+                if (v > 0 && v < 1e16) {
+                  if (v === makerPaymentSats) { listedPriceSats = v; break; }
+                  if (!listedPriceSats) listedPriceSats = v;
                 }
-                if (!listedPriceSats) listedPriceSats = v;   // best guess
-              }
-            } catch {}
+              } catch {}
+            }
           }
         }
-      }
 
-      // Quantity bought: for PARTIAL, sum token outputs going to addresses
-      // that are NOT in the input set (= buyer's new addresses) and not
-      // the relist P2SH. For NFT it's always 1.
-      let boughtAtoms = 0n;
-      if (isOneshot) {
-        boughtAtoms = 1n;
-      } else if (tx.token && tx.token.tokenId) {
-        for (const o of outputs) {
-          if (!o.token || o.token.tokenId !== tx.token.tokenId) continue;
-          const s = o.outputScript || '';
-          // Skip the relist covenant (P2SH)
-          if (s.startsWith('a914') && s.endsWith('87')) continue;
-          // Skip change to input addresses
-          let addr = null;
-          try { addr = encodeOutputScript(s); } catch {}
-          if (addr && inputAddrSet.has(addr)) continue;
-          try { boughtAtoms += BigInt(o.token.atoms || o.token.amount || 0); } catch {}
+        // Quantity bought (F2 fix): tokens that LEFT the covenant = covenant
+        // input atoms − atoms returned to the partial-fill remainder covenant.
+        // The old "sum outputs not going to an input address" undercounted to
+        // 0 because the buyer receives the tokens at its OWN fuel-input address
+        // (verified on 2,978/2,978 real buys).
+        let boughtAtoms = 0n;
+        if (isOneshot) {
+          boughtAtoms = 1n;
+        } else if (tx.token && tx.token.tokenId) {
+          let covInAtoms = 0n, remainderAtoms = 0n;
+          const covIn = inputs[covenantInputIdx];
+          if (covIn && covIn.token && covIn.token.tokenId === tx.token.tokenId) {
+            try { covInAtoms = BigInt(covIn.token.atoms || covIn.token.amount || 0); } catch {}
+          }
+          for (const o of outputs) {
+            if (!o.token || o.token.tokenId !== tx.token.tokenId) continue;
+            const s = o.outputScript || '';
+            if (s.startsWith('a914') && s.endsWith('87')) {
+              try { remainderAtoms += BigInt(o.token.atoms || o.token.amount || 0); } catch {}
+            }
+          }
+          boughtAtoms = covInAtoms - remainderAtoms;
+          if (boughtAtoms < 0n) boughtAtoms = 0n;
         }
-      }
-      let priceSatsPerToken = null;
-      if (isOneshot) {
-        priceSatsPerToken = listedPriceSats || buyerPaidSats || null;
-      }
-      tx.agora = {
-        detected: true,
-        side: 'buy',
-        kind: isOneshot ? 'oneshot' : 'partial',
-        label: isOneshot ? 'Agora Purchase (NFT)' : 'Agora Purchase (token)',
-        tokenAmountAtoms: boughtAtoms.toString(),
-        priceSatsPerToken,
-        priceXecTotal: buyerPaidXec,
-        isPartialFill: p2shOutputCount > 0,
-      };
-    }
-    // -------- CANCEL (covenant in inputs[≥1]) --------
-    else if (covenantInputIdx > 0) {
-      const isOneshot = covenantVariant === 'oneshot';
-      // Reclaimed quantity = sum of token outputs (tokens flow back to seller).
-      let reclaimedAtoms = 0n;
-      if (isOneshot) {
-        reclaimedAtoms = 1n;
-      } else if (tx.token && tx.token.tokenId) {
-        for (const o of outputs) {
-          if (!o.token || o.token.tokenId !== tx.token.tokenId) continue;
-          try { reclaimedAtoms += BigInt(o.token.atoms || o.token.amount || 0); } catch {}
+        let priceSatsPerToken = null;
+        if (isOneshot) {
+          priceSatsPerToken = listedPriceSats || makerPaymentSats || null;
         }
+        tx.agora = {
+          detected: true,
+          side: 'buy',
+          kind: isOneshot ? 'oneshot' : 'partial',
+          label: isOneshot ? 'Agora Purchase (NFT)' : 'Agora Purchase (token)',
+          tokenAmountAtoms: boughtAtoms.toString(),
+          priceSatsPerToken,
+          priceXecTotal: buyerPaidXec,
+          isPartialFill: p2shOutputCount > 0,
+        };
+      } else {
+        // No maker payment → seller-side re-spend. Tokens into a fresh P2SH
+        // covenant = RELIST; tokens back to the seller's wallet = CANCEL.
+        let tokenToP2sh = false;
+        let movedAtoms = 0n;
+        if (isOneshot) {
+          movedAtoms = 1n;
+          tokenToP2sh = p2shOutputCount > 0;
+        } else if (tx.token && tx.token.tokenId) {
+          let p2shAtoms = 0n, walletAtoms = 0n;
+          for (const o of outputs) {
+            if (!o.token || o.token.tokenId !== tx.token.tokenId) continue;
+            const s = o.outputScript || '';
+            let a = 0n;
+            try { a = BigInt(o.token.atoms || o.token.amount || 0); } catch {}
+            if (s.startsWith('a914') && s.endsWith('87')) { tokenToP2sh = true; p2shAtoms += a; }
+            else walletAtoms += a;
+          }
+          movedAtoms = tokenToP2sh ? p2shAtoms : walletAtoms;
+        }
+        tx.agora = {
+          detected: true,
+          side: tokenToP2sh ? 'relist' : 'cancel',
+          kind: isOneshot ? 'oneshot' : 'partial',
+          label: tokenToP2sh
+            ? (isOneshot ? 'Agora Relist (NFT)' : 'Agora Relist (token)')
+            : (isOneshot ? 'Agora Cancel (NFT)' : 'Agora Cancel (token)'),
+          tokenAmountAtoms: movedAtoms.toString(),
+          priceSatsPerToken: null,
+          priceXecTotal: null,
+        };
       }
-      tx.agora = {
-        detected: true,
-        side: 'cancel',
-        kind: isOneshot ? 'oneshot' : 'partial',
-        label: isOneshot ? 'Agora Cancel (NFT)' : 'Agora Cancel (token)',
-        tokenAmountAtoms: reclaimedAtoms.toString(),
-        priceSatsPerToken: null,
-        priceXecTotal: null,
-      };
     }
     // -------- LIST (no AGR0 in inputs, OP_RETURN has marker + P2SH output exists) --------
     else if ((op0HasPartial || op0HasOneshot) && p2shOutputCount > 0) {
@@ -11073,10 +11143,20 @@ function parseTransaction(txData) {
           try { listedAtoms += BigInt(o.token.atoms || o.token.amount || 0); } catch {}
         }
       }
-      // PARTIAL list price encoding lives inside the covenant template —
-      // exact offset varies across Agora versions, so we leave price null
-      // for now. NFT list price could be extracted from the OP_RETURN
-      // pushed-data but the byte offset isn't yet verified — leave null.
+      // F5: ALP partial listings carry the AgoraPartial params inline in the
+      // OP_RETURN → recover the asking price. Total asking XEC = listedAtoms ×
+      // (nanoSats/atom) / 1e9 / 100. renderAgoraMeta derives per-token from
+      // total÷qty once decimals load. SLP/NFT listings don't expose the params
+      // at LIST time (marker hidden in the scriptSig) → leave null. Corpus:
+      // 686/686 ALP lists parsed; price cross-checked vs actual paid on buys.
+      let listPriceXecTotal = null;
+      if (!isOneshot && op0HasPartial && listedAtoms > 0n) {
+        const nsat = agoraPartialPriceNanoSats(opRet0);
+        if (nsat != null && nsat > 0n) {
+          const t = Number(listedAtoms) * Number(nsat) / 1e11;
+          if (Number.isFinite(t) && t > 0) listPriceXecTotal = t;
+        }
+      }
       tx.agora = {
         detected: true,
         side: 'list',
@@ -11084,7 +11164,7 @@ function parseTransaction(txData) {
         label: isOneshot ? 'Agora Listed (NFT)' : 'Agora Listed (token)',
         tokenAmountAtoms: listedAtoms.toString(),
         priceSatsPerToken: null,
-        priceXecTotal: null,
+        priceXecTotal: listPriceXecTotal,
       };
     }
   } catch (e) {
@@ -11112,6 +11192,7 @@ function parseTransaction(txData) {
     let synthType = 'agora-list';
     if (tx.agora.side === 'buy') synthType = 'agora-buy';
     else if (tx.agora.side === 'cancel') synthType = 'agora-cancel';
+    else if (tx.agora.side === 'relist') synthType = 'agora-relist';
     else synthType = 'agora-list';
     tx.message = {
       type: synthType,
@@ -12723,6 +12804,7 @@ function _renderDetailInner(tx) {
     agoraSec.style.display = '';
     $('d-agora-type').textContent = tx.agora.label || 'Agora covenant';
     const sideText = tx.agora.side === 'buy' ? 'Buyer-side spend (purchase)' :
+                     tx.agora.side === 'relist' ? 'Seller re-list (new offer created)' :
                      tx.agora.side === 'cancel' ? 'Seller cancellation' :
                      tx.agora.side === 'list' ?
                        (tx.agora.kind === 'oneshot' ? 'NFT listing (ONESHOT covenant)' :
@@ -13337,6 +13419,7 @@ function renderAgoraMeta(tx) {
   // Side-coloured label (Listed = gold, Buy = green, Cancel = grey/red)
   const sideClass = 'agora-meta-side side-' + a.side;
   const sideText = a.side === 'list' ? 'LIST'
+                 : a.side === 'relist' ? 'RELIST'
                  : a.side === 'buy'    ? 'BUY'
                  : a.side === 'cancel' ? 'CANCEL'
                  : a.side.toUpperCase();
@@ -13391,7 +13474,7 @@ function renderMessages() {
     if (filter === 'all') return true;
     if (filter === 'cashtab') return m.type === 'cashtab' || m.type === 'encrypted';
     if (filter === 'token') return m.type === 'airdrop' || m.type === 'token-genesis';
-    if (filter === 'agora') return m.type === 'agora-list' || m.type === 'agora-buy' || m.type === 'agora-cancel';
+    if (filter === 'agora') return m.type === 'agora-list' || m.type === 'agora-buy' || m.type === 'agora-cancel' || m.type === 'agora-relist';
     if (filter === 'powr') return m.type === 'powr';
     if (filter === 'alias') return m.type === 'alias';
     if (filter === 'broadcast') return m.type === 'broadcast';
@@ -13452,7 +13535,7 @@ function renderMessages() {
     // quantity, price/token, and total. The .agora-meta div stays even
     // when fields are empty so we can update in place once token info
     // resolves asynchronously.
-    const isAgora = m.type === 'agora-list' || m.type === 'agora-buy' || m.type === 'agora-cancel';
+    const isAgora = m.type === 'agora-list' || m.type === 'agora-buy' || m.type === 'agora-cancel' || m.type === 'agora-relist';
     // v1.2.4: read from m.tx — same reasoning as the re-render path above.
     // m.tx is set at msg construction (~11657) and is reference-stable for
     // the msg's lifetime, independent of state.txs eviction.
@@ -13577,6 +13660,7 @@ function msgTypeIcon(t) {
     case 'agora-list': return '🏷';
     case 'agora-buy': return '💰';
     case 'agora-cancel': return '❌';
+    case 'agora-relist': return '♻';
     case 'airdrop': return '🪂';
     case 'powr': return '📝';
     default: return '◆';
@@ -13593,6 +13677,7 @@ function msgTypeLabel(t) {
     case 'agora-list': return 'Agora Listed';
     case 'agora-buy': return 'Agora Trade';
     case 'agora-cancel': return 'Agora Cancel';
+    case 'agora-relist': return 'Agora Relist';
     case 'airdrop': return 'Airdrop';
     case 'powr': return 'Proof of Writing';
     default: return 'Onchain';
