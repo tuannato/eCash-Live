@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-6yC150NbT0aVT05mdrddc0+km5v0EtCAB4CZcpMwtLo=';
+  script-src 'self' 'sha256-q8ZEez28Tt3YYJp2PqxMK1BMSg3MywoDBTGxBGYJjAw=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -4441,7 +4441,7 @@
   }
 
   /* ============ EXPLORER BUTTON ============ */
-  .explorer-btn, .powr-btn, .d-msg-link {
+  .explorer-btn, .powr-btn, .d-msg-link, .cashtab-btn {
     display: inline-flex; align-items: center; gap: 5px;
     padding: 4px 8px;
     border-radius: 3px;
@@ -4465,7 +4465,13 @@
     border-color: rgba(255,184,0,0.45);
     color: var(--amber);
   }
-  .explorer-btn .arrow, .powr-btn .arrow, .d-msg-link .arrow { font-size: 10px; }
+  /* Cashtab "buy" links get a green hover (Agora buy accent) */
+  .cashtab-btn:hover {
+    background: rgba(0,231,129,0.10);
+    border-color: rgba(0,231,129,0.45);
+    color: var(--green);
+  }
+  .explorer-btn .arrow, .powr-btn .arrow, .d-msg-link .arrow, .cashtab-btn .arrow { font-size: 10px; }
   .d-msg-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 
   /* Topbar block height as clickable */
@@ -6716,7 +6722,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.6.1">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.6.1</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.6.2">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.6.2</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -13242,6 +13248,17 @@ function powrReadBtnHtml(tx) {
   return `<a class="powr-btn" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" title="Read on Proof of Writing">read<span class="arrow">↗</span></a>`;
 }
 
+// Cashtab deep-link for Agora txs (except cancel): opens the token's Agora market
+// page, where the offer can be bought — the same URL for SLP, ALP and NFT. An <a>
+// navigation, not a fetch → no connect-src change. tokenId is ^[0-9a-f]{64}$-gated.
+function agoraBuyBtnHtml(tx) {
+  if (!tx || !tx.agora || tx.agora.side === 'cancel') return '';
+  const tid = tx.token && tx.token.tokenId;
+  if (!tid || !/^[0-9a-f]{64}$/i.test(tid)) return '';
+  const href = 'https://cashtab.com/#/token/' + tid;
+  return `<a class="cashtab-btn" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" title="Buy on Cashtab (this token's Agora market)">buy<span class="arrow">↗</span></a>`;
+}
+
 function formatTokenType(t) {
   if (!t) return 'UNKNOWN';
   if (t.includes('SLP')) {
@@ -13576,6 +13593,7 @@ function renderMessages() {
         <button class="msg-expand-btn" type="button" title="Expand full message" aria-label="Expand full message" aria-expanded="false">⤢</button>
         <span class="msg-foot-spacer"></span>
         ${powrReadBtnHtml(m.tx)}
+        ${agoraBuyBtnHtml(m.tx)}
         <button class="msg-chat-btn" type="button" title="Chat with sender" aria-label="Chat with sender">chat<span class="arrow">↔</span></button>
         <a class="explorer-btn" href="${explorerUrl}" target="_blank" rel="noopener" title="Open in explorer">explorer<span class="arrow">↗</span></a>
       </div>
@@ -13625,7 +13643,7 @@ function renderMessages() {
     card.addEventListener('click', (e) => {
       if (e.target.closest('.copy-btn') || e.target.closest('.explorer-btn')
         || e.target.closest('.msg-chat-btn') || e.target.closest('.msg-expand-btn')
-        || e.target.closest('.powr-btn')) return;
+        || e.target.closest('.powr-btn') || e.target.closest('.cashtab-btn')) return;
       if (!isMobile()) toggleExpand();   // desktop: click also expands
       // v1.2.4: use m.tx directly. Without this, clicking an Agora message
       // older than 30s (state.txs cleanup window) silently failed to open
