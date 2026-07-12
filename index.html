@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-dciYdaMA710Wj/QeODTBpZEYHyBIxE5rN65IPvlW/Zw=';
+  script-src 'self' 'sha256-6yC150NbT0aVT05mdrddc0+km5v0EtCAB4CZcpMwtLo=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -6716,7 +6716,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.6.0">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.6.0</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.6.1">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.6.1</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -11096,8 +11096,14 @@ function parseTransaction(txData) {
           isPartialFill: p2shOutputCount > 0,
         };
       } else {
-        // No maker payment → seller-side re-spend. Tokens into a fresh P2SH
-        // covenant = RELIST; tokens back to the seller's wallet = CANCEL.
+        // No maker payment → not a purchase. Token destination decides:
+        //   • token → a fresh P2SH covenant: an offer (re)appears. ALP lists via
+        //     an OP_RETURN marker (caught by the LIST branch below), so an ALP
+        //     covenant→covenant here is a re-spend → RELIST. SLP has no
+        //     OP_RETURN listing (its marker lives in the scriptSig), so an SLP
+        //     covenant→covenant IS how a listing surfaces → LIST.
+        //   • token → the seller's wallet: CANCEL (withdrawn).
+        const isSlp = !!(tx.token && (tx.token.type || '').toUpperCase().startsWith('SLP'));
         let tokenToP2sh = false;
         let movedAtoms = 0n;
         if (isOneshot) {
@@ -11115,16 +11121,34 @@ function parseTransaction(txData) {
           }
           movedAtoms = tokenToP2sh ? p2shAtoms : walletAtoms;
         }
+        const spendSide = tokenToP2sh ? (isSlp ? 'list' : 'relist') : 'cancel';
+        // C: an SLP NFT (oneshot) listing reveals its covenant in the spent
+        // input; the asking price sits at a fixed offset (byte 82, u64 LE) in
+        // that scriptSig — verified 47/47 on corpus. Fungible SLP list price has
+        // no stable offset → left null (needs the Agora plugin/SDK, deferred).
+        let nftPriceSats = null;
+        if (spendSide === 'list' && isOneshot && covenantInputIdx >= 0) {
+          const covScript = getScript(inputs[covenantInputIdx]);
+          const hex = covScript.slice(164, 180);          // bytes 82..90
+          if (hex.length === 16) {
+            try {
+              const v = Number(BigInt('0x' + hex.match(/../g).reverse().join('')));
+              if (v > 0 && v < 1e16) nftPriceSats = v;
+            } catch {}
+          }
+        }
         tx.agora = {
           detected: true,
-          side: tokenToP2sh ? 'relist' : 'cancel',
+          side: spendSide,
           kind: isOneshot ? 'oneshot' : 'partial',
-          label: tokenToP2sh
-            ? (isOneshot ? 'Agora Relist (NFT)' : 'Agora Relist (token)')
-            : (isOneshot ? 'Agora Cancel (NFT)' : 'Agora Cancel (token)'),
+          label: spendSide === 'list'
+            ? (isOneshot ? 'Agora Listed (NFT)' : 'Agora Listed (token)')
+            : spendSide === 'relist'
+              ? (isOneshot ? 'Agora Relist (NFT)' : 'Agora Relist (token)')
+              : (isOneshot ? 'Agora Cancel (NFT)' : 'Agora Cancel (token)'),
           tokenAmountAtoms: movedAtoms.toString(),
-          priceSatsPerToken: null,
-          priceXecTotal: null,
+          priceSatsPerToken: nftPriceSats,
+          priceXecTotal: nftPriceSats != null ? nftPriceSats / 100 : null,
         };
       }
     }
