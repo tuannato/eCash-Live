@@ -151,6 +151,18 @@ identified by an `AGR0` marker in script.
 - **OP_RETURN messages:** parsed from outputs and surfaced as on-chain messages /
   chat (`~10502-10869`); emitted to the companion (`__ecBus.emit('onchainmsg', …)`
   `index.html:12703`; fusion `12701`).
+- **LOKAD protocols & raw decode (v1.5.8):** OP_RETURN outputs whose first push is
+  a 4-byte LOKAD id are classified via the `LOKAD` map in `parseOpReturn`. **POWR**
+  (`504f5752`, Proof of Writing — proofofwriting.com, spec
+  `doc/standards/proofofwriting.md` in bitcoin-abc) stores only sha256 content
+  hashes on-chain (bare `OP_0` version + bare `OP_1..OP_9` action opcodes — parsed
+  by the bare-opcode-aware `readScriptItems`, NOT `readAllPushes`). The tx-detail
+  panel additionally renders a raw per-push decode (`renderOpReturnSection`) with
+  protocol names from `LOKAD_NAMES` (incl. SLP/ALP, per-push eMPP ids, memo.cash).
+  proofofwriting.com addresses feed items by the **creating tx's TXID**
+  (`/feed/<txid>`), so `powrFeedLinks` links the tx's own txid (post/publish/reply/
+  quote) and the `targetTxid` push (reply/quote/repost/like) from the Messages card +
+  detail panel; the `contentHash` push is an off-chain integrity hash, never a link.
 - **Security:** every chronik-derived string (tickers, names, addresses, OP_RETURN
   bodies) is `escapeHtml()`-escaped before `innerHTML` — an attacker can mint a token
   with HTML in its ticker for ~$1 of XEC (`SECURITY.md`).

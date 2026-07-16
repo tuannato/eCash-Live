@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-q8ZEez28Tt3YYJp2PqxMK1BMSg3MywoDBTGxBGYJjAw=';
+  script-src 'self' 'sha256-3sZcOpAHa37vuKyofLqMjItfTh2xMFWf+tF2VCVQGWM=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -150,6 +150,24 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { width: 100%; height: 100%; overflow: hidden; }
+  /* Visually hidden but still announced by screen readers (standard clip
+     pattern). Used by #a11y-live and the skip-link. */
+  .sr-only {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0 0 0 0); clip-path: inset(50%);
+    white-space: nowrap; border: 0;
+  }
+  /* Keyboard-only escape hatch past the topbar. Off-screen until focused. */
+  .skip-link {
+    position: absolute; top: 8px; left: 8px; z-index: 9999;
+    padding: 8px 14px; background: var(--bg-2); color: var(--text);
+    border: 1px solid var(--cyan); border-radius: 4px;
+    font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace; font-size: 12px;
+    text-decoration: none;
+    transform: translateY(-250%); transition: transform .15s;
+  }
+  .skip-link:focus { transform: translateY(0); }
   /* On viewports that don't fit the desktop dashboard (≤939px), drop the
      fixed-viewport lock so the page can scroll natively. This is the fix
      for "can't scroll on mobile" — both html AND body need overflow:auto;
@@ -433,6 +451,14 @@
   }
   .nav-toggle {
     display: none;
+    /* Park the hamburger on the RIGHT, immediately left of the stat block, so
+       it sits under the right-anchored dropdown instead of stranding beside the
+       brand. Inert while display:none (≥1240 uncollapsed) — a hidden flex item
+       contributes no margin — so .meta keeps its own margin-left:auto there.
+       In BOTH states where this button is visible (body.topbar-nav-collapsed and
+       the ≤1239 media query) .meta drops that auto margin; two autos would split
+       the free space and park the button mid-bar. */
+    margin-left: auto;
     align-items: center; gap: 8px;
     padding: 7px 11px;
     font-family: 'Fira Code', monospace; font-size: 10px;
@@ -534,6 +560,8 @@
      rules below mirror the @media (max-width:1239px) layout so the toggle
      button appears and the nav becomes a dropdown panel. */
   body.topbar-nav-collapsed .nav-toggle { display: inline-flex !important; }
+  /* Toggle is visible → it owns the auto margin (see .nav-toggle). */
+  body.topbar-nav-collapsed .topbar .meta { margin-left: 0; }
   body.topbar-nav-collapsed .topbar-nav {
     position: absolute;
     top: calc(100% + 4px);
@@ -654,6 +682,9 @@
   }
   .topbar .meta { margin-left: auto; display: flex; gap: 22px; flex: 0 0 auto; }
   .meta .cell { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+  /* Price cell doubles as the unit toggle (raw ↔ per-1M XEC). */
+  .price-cell { cursor: pointer; }
+  .price-cell:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 3px; }
   .meta .cell .k {
     font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace; font-size: 10px;
     text-transform: uppercase; letter-spacing: 0.16em; color: var(--text-3);
@@ -678,6 +709,15 @@
   @media (max-width: 1100px) {
     .meta .cell.hide-narrow { display: none; }
     .topbar .meta { gap: 18px; }
+  }
+  /* Below 1240 the hamburger is visible, so IT owns the auto margin (see
+     .nav-toggle) and .meta must give its own up — two autos would split the free
+     space and strand the button mid-bar. Must sit AFTER the base
+     `.topbar .meta { margin-left: auto }` above: same specificity (0,2,0), so
+     source order decides. (The ≥1240 JS path is handled by the higher-specificity
+     `body.topbar-nav-collapsed .topbar .meta` rule and needs no ordering care.) */
+  @media (max-width: 1239px) {
+    .topbar .meta { margin-left: 0; }
   }
   /* ============ TOPBAR OVERFLOW (JS-driven) ============
      When the layout detects the Learn hamburger / "?" controls are about to
@@ -917,6 +957,16 @@
     -webkit-user-select: text;
   }
   .tx-row:hover { background: var(--row-hover); }
+  /* Keyboard focus ring for the click-to-open cards (:focus-visible fires on
+     keyboard nav only, never mouse). Cyan to match the app accent; inset offset
+     so the ring is never clipped by the lists' overflow. */
+  .tx-row:focus-visible,
+  .msg-card:focus-visible,
+  .wl-card:focus-visible,
+  .block-card:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: -2px;
+  }
   .tx-row.pinned {
     background: var(--row-pinned);
     border-left: 2px solid var(--cyan);
@@ -1175,6 +1225,9 @@
     pointer-events: none;
   }
   .detail-head .l {
+    /* display pinned: this heading is an <h2> (was a <span>) — h2's default
+       block display would break the head row, so keep it inline as before. */
+    display: inline;
     font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace; font-size: 9px;
     text-transform: uppercase; letter-spacing: 0.28em; color: var(--text);
     font-weight: 500;
@@ -1251,6 +1304,14 @@
   .empty-reticle { cursor: pointer; border-radius: 50%; transition: filter .15s, transform .15s; }
   .empty-reticle:hover { transform: scale(1.04); filter: drop-shadow(0 0 18px rgba(1,160,224,0.6)); }
   .empty-reticle:focus-visible { outline: 1px solid var(--cyan); outline-offset: 6px; }
+
+  /* When a block/watchlist popup borrows #detail the radar is suspended
+     (radarCtl.suspendForPopup), so the reticle is non-functional there — hide it
+     and swap the hint so the empty state never invites a dead click. */
+  .l2-borrowed { display: none; }
+  .detail.radar-popup-borrowed .detail-empty .empty-reticle,
+  .detail.radar-popup-borrowed .detail-empty .l2:not(.l2-borrowed) { display: none; }
+  .detail.radar-popup-borrowed .detail-empty .l2-borrowed { display: block; }
 
   /* Radar containers hidden until toggled on. */
   .detail-radar, .col1-radar { display: none; }
@@ -1908,6 +1969,19 @@
     display: flex; align-items: center; justify-content: space-between;
     margin-bottom: 6px;
     gap: 8px;
+  }
+  /* Collapsed bot-relist run: ×N badge + the folded txids (expanded only). */
+  .msg-group-badge {
+    margin-left: 6px; padding: 0 4px;
+    border: 1px solid var(--cyan-dim); border-radius: 3px;
+    color: var(--cyan); font-weight: 600;
+    white-space: nowrap;
+  }
+  .msg-group-list { display: none; flex-wrap: wrap; gap: 3px 10px; margin-top: 6px; }
+  .msg-card.expanded .msg-group-list { display: flex; }
+  .msg-group-txid {
+    font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace;
+    font-size: 9px; color: var(--text-3);
   }
   .msg-card .type {
     font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace; font-size: 9px;
@@ -4465,7 +4539,7 @@
     border-color: rgba(255,184,0,0.45);
     color: var(--amber);
   }
-  /* Cashtab "buy" links get a green hover (Agora buy accent) */
+  /* Cashtab "trade" links get a green hover (Agora accent) */
   .cashtab-btn:hover {
     background: rgba(0,231,129,0.10);
     border-color: rgba(0,231,129,0.45);
@@ -5990,6 +6064,26 @@
       overscroll-behavior-x: contain;
     }
     .mobile-tabs::-webkit-scrollbar { display: none; }
+    /* 7 tabs overflow a phone viewport and the scrollbar is hidden above, so
+       Blocks/Watch sat off-screen with nothing hinting they existed. Fade the
+       trailing edge while there's more to scroll. The pseudo is the last flex
+       item and `position: sticky; right: 0` pins it to the scrollport edge (an
+       absolutely-positioned one would scroll away with the content); the
+       negative margin makes it overlay the last tab instead of taking width.
+       Toggled by updateMobileTabsFade() so it vanishes at the end of the run. */
+    .mobile-tabs::after {
+      content: '';
+      position: sticky;
+      right: 0;
+      flex: 0 0 34px;
+      margin-left: -34px;
+      align-self: stretch;
+      pointer-events: none;
+      background: linear-gradient(90deg, rgba(8,8,15,0), rgba(8,8,15,0.95));
+      opacity: 0;
+      transition: opacity 0.18s;
+    }
+    .mobile-tabs.has-more-right::after { opacity: 1; }
     .mobile-tab {
       flex: 0 0 auto;
       padding: 12px 16px;
@@ -6697,11 +6791,19 @@
 </head>
 <body>
 
+<!-- Screen-reader live region (v1.6.3). The dashboard owns this one so
+     announcements work whether or not eChan is mounted/visible (eChan's own
+     role=status is display-only chatter). Polite: never interrupts. Written
+     only on real state changes — see announceA11y() in the module. -->
+<div id="a11y-live" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
 <div id="stage-wrap">
   <div id="stage">
 
     <!-- TOP BAR -->
-    <div class="topbar">
+    <header class="topbar">
       <div class="brand-id">
         <span class="dot" id="conn-dot" style="display:none"></span>
         <a href="https://e.cash" target="_blank" rel="noopener" class="brand-link" title="Visit e.cash">
@@ -6722,7 +6824,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.6.2">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.6.2</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.7.0">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.7.0</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -6852,9 +6954,9 @@
              show it; on mid/mobile it sits in the slot vacated by Mempool. -->
         <div class="cell" title="Visitors watching this page right now (server-side count of live WebSocket connections to the TTF feed)"><span class="k">Online now</span><span class="v"><span class="cyan" id="m-online">—</span></span></div>
         <div class="cell hide-medium" title="Token transactions seen since this session started"><span class="k">Tokens</span><span class="v amber" id="m-tokens">0</span></div>
-        <div class="cell"><span class="k">XEC / USD</span><span class="v gold" id="m-price">—</span></div>
+        <div class="cell price-cell" id="m-price-cell" role="button" tabindex="0" title="Click to switch between the raw XEC price and the price per 1,000,000 XEC" aria-label="XEC price — activate to switch price unit"><span class="k" id="m-price-k">XEC / USD</span><span class="v gold" id="m-price">—</span></div>
       </div>
-    </div>
+    </header>
 
     <div class="conn-banner" id="conn-banner"><span id="conn-banner-text">Connecting to chronik.e.cash…</span><span class="close-x" id="conn-banner-close" title="Dismiss">×</span></div>
 
@@ -6864,7 +6966,7 @@
            .mobile-tab) so the section switcher ignores it; wired by mediacenter.js.
            Icon-only + narrow, sits left of "New" which stays the default section. -->
       <button class="mc-tab mc-tab-mobile" id="mc-mtab-btn" type="button" title="Media center" aria-label="Open Media center"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>
-      <button class="mobile-tab active" data-section="col1">New<span class="badge" id="tab-badge-1">0</span></button>
+      <button class="mobile-tab active" data-section="col1" aria-current="true">New<span class="badge" id="tab-badge-1">0</span></button>
       <button class="mobile-tab" data-section="col2">Mempool<span class="badge" id="tab-badge-2">0</span></button>
       <button class="mobile-tab" data-section="messages">Msgs<span class="badge" id="tab-badge-3">0</span></button>
       <button class="mobile-tab" data-section="messages" data-subtab="chat">Chat</button>
@@ -6872,12 +6974,23 @@
       <button class="mobile-tab" data-section="watchlist">Watch</button>
     </div>
 
-    <div class="stage-inner">
+    <main class="stage-inner" id="main-content" tabindex="-1">
+
+      <!-- Page title for search engines + screen readers; the visible brand is the
+           SVG wordmark in the topbar. Out of flow (.sr-only is position:absolute)
+           and the grid locks every section to an explicit column/row, so this adds
+           no track and shifts nothing.
+           Deliberately NOT inside <header class="topbar">: setupTopbarOverflow()'s
+           isOverflowing() walks topbar.children comparing scrollWidth vs clientWidth,
+           and an .sr-only box (1px wide, nowrap text, overflow:hidden) reports
+           scrollWidth ≫ clientWidth — which pinned the topbar into permanent
+           hamburger + 2-row meta at EVERY width. -->
+      <h1 class="sr-only">eCash Live — real-time eCash (XEC) transaction and Avalanche finality monitor</h1>
 
       <!-- COL 1: NEW · POLLING -->
       <div class="col-section mobile-active" id="section-col1">
         <div class="col-head">
-          <div class="l"><span class="num">01</span>New tx · Pre-consensus polling</div>
+          <h2 class="l"><span class="num">01</span>New tx · Pre-consensus polling</h2>
           <div class="r">
             <button class="radar-reticle-btn" id="radar-open-mobile" type="button" title="Open consensus radar" aria-label="Open consensus radar">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -6916,7 +7029,7 @@
       <!-- COL 2: MEMPOOL (pre-finalized) -->
       <div class="col-section" id="section-col2">
         <div class="col-head">
-          <div class="l"><span class="num">02</span>Mempool · Finalized</div>
+          <h2 class="l"><span class="num">02</span>Mempool · Finalized</h2>
           <div class="r">
             <span id="r-mempool" class="accent">0</span> awaiting
           </div>
@@ -6929,7 +7042,7 @@
       <div class="detail col-section" id="detail">
         <button class="detail-close" id="detail-close">✕ Close</button>
         <div class="detail-head">
-          <span class="l"><span class="panel-label">Tx detail · Inputs, outputs &amp; finality</span></span>
+          <h2 class="l"><span class="panel-label">Tx detail · Inputs, outputs &amp; finality</span></h2>
           <span class="r">
             <a id="d-explorer" class="explorer-btn" href="#" target="_blank" rel="noopener" style="display:none">
               <span>explorer</span><span class="arrow">↗</span>
@@ -6954,6 +7067,7 @@
           </div>
           <div class="l1">Awaiting selection</div>
           <div class="l2">Hover a tx to preview · Click to pin · Click the reticle for radar</div>
+          <div class="l2 l2-borrowed">Select a transaction from the list</div>
         </div>
 
         <div class="detail-radar" id="detail-radar">
@@ -7191,7 +7305,7 @@
       <!-- COL 4: ONCHAIN MESSAGES + CHAT (two-tab panel) -->
       <div class="messages col-section" id="section-messages" data-tab="feed">
         <div class="col-head">
-          <div class="l"><span class="panel-label">Onchain messages · Feed &amp; chat</span></div>
+          <h2 class="l"><span class="panel-label">Onchain messages · Feed &amp; chat</span></h2>
           <div class="r">
             <span id="r-msgs">0</span> <span id="r-msgs-label">recent</span>
           </div>
@@ -7311,7 +7425,7 @@
       <!-- BLOCKCHAIN (full width row 2) -->
       <div class="blockchain" id="section-blockchain">
         <div class="bc-head">
-          <div class="l"><span class="num">03</span>Blockchain · Post-consensus avalanche</div>
+          <h2 class="l"><span class="num">03</span>Blockchain · Post-consensus avalanche</h2>
           <div class="r">mined → ava polling → ava finalized · no reorg possible</div>
         </div>
         <div class="bc-goto-row">
@@ -7324,7 +7438,7 @@
       <!-- WATCHLIST (row 2, col 3) -->
       <div class="watchlist" id="section-watchlist">
         <div class="bc-head">
-          <div class="l"><span class="panel-label">Watching list · Track addresses &amp; tokens</span></div>
+          <h2 class="l"><span class="panel-label">Watching list · Track addresses &amp; tokens</span></h2>
           <div class="r">
             <span class="watchlist-empty-hint" id="watchlist-empty-hint">add an address to highlight its txs</span>
             <button class="watchlist-add-btn" id="watchlist-add-btn" title="Add address to watchlist">+ add</button>
@@ -7333,7 +7447,7 @@
         <div class="watchlist-cards" id="watchlist-cards"></div>
       </div>
 
-    </div>
+    </main>
   </div>
 </div>
 
@@ -7345,7 +7459,7 @@
   - Cells 3/4/5/7 are session-scoped client-side and unaffected by feed state.
   - The trailing ? cell, plus a click on ANY cell, opens the stats-overview popover.
 -->
-<div class="footer" id="global-footer">
+<footer class="footer" id="global-footer">
   <!-- 1 · TTF — primary stat. Default view: 24h p50 from relay. Tap the ⇄ button
        to swap to the session avg (last 50 client samples). On WS disconnect the
        display falls back to session + eye regardless of the user's selection. -->
@@ -7441,7 +7555,7 @@
       <span class="cup" aria-hidden="true">☕</span>
     </button>
   </div>
-</div>
+</footer>
 
 <!-- ========================================================================
      GUIDE — fullscreen tour modal for first-time users
@@ -8630,8 +8744,36 @@ const STATS_FRESH_MS = 15_000;
 const $ = (id) => document.getElementById(id);
 
 // Connection status setter - handles live/sim/error states
+// ---- Screen-reader announcements (v1.6.3) --------------------------------
+// index.html previously had NO aria-live region, so screen-reader users got no
+// notice of connection loss or watchlist hits. Writes into #a11y-live, which the
+// dashboard owns (independent of eChan's mount/visibility). Text-only, capped.
+function announceA11y(text) {
+  const el = document.getElementById('a11y-live');
+  if (!el || !text) return;
+  const msg = String(text).slice(0, 200);
+  // Clear, then set on a later tick: some screen readers swallow an identical
+  // consecutive string, and an empty→text transition reliably re-announces.
+  el.textContent = '';
+  setTimeout(() => { el.textContent = msg; }, 30);
+}
+// Last status we announced. setConnStatus is also called on plain lag re-renders
+// (same status, new label), so we speak only on a real transition. Starts null:
+// the first call is page boot, which has nothing to announce.
+let _lastAnnouncedConn = null;
+
 function setConnStatus(status, text) {
   state.connected = (status === 'connected' || status === 'sim');
+  if (_lastAnnouncedConn === null) {
+    _lastAnnouncedConn = status;
+  } else if (status !== _lastAnnouncedConn) {
+    _lastAnnouncedConn = status;
+    announceA11y(
+      status === 'connected' ? 'Live feed connected'
+      : status === 'sim'     ? 'Simulation mode'
+                             : 'Live feed disconnected — reconnecting'
+    );
+  }
   const dot = $('conn-dot');
   const pill = $('conn-pill');
   const txt = $('conn-text');
@@ -11143,6 +11285,21 @@ function parseTransaction(txData) {
             } catch {}
           }
         }
+        // F5 extended to RELIST: an ALP relist re-creates the offer via a fresh
+        // OP_RETURN AgoraPartial ad, so the new asking price is recoverable inline
+        // — identical math to the LIST branch below (movedAtoms is the qty flowing
+        // to the new P2SH covenant). spendSide==='relist' guarantees ALP (SLP
+        // surfaces as 'list') and ALP partials are never oneshot, so this never
+        // collides with the SLP-NFT scriptSig price above. renderAgoraMeta then
+        // derives per-token from total÷qty once decimals load, same as LIST.
+        let relistPriceXecTotal = null;
+        if (spendSide === 'relist' && !isOneshot && op0HasPartial && movedAtoms > 0n) {
+          const nsat = agoraPartialPriceNanoSats(opRet0);
+          if (nsat != null && nsat > 0n) {
+            const rt = Number(movedAtoms) * Number(nsat) / 1e11;
+            if (Number.isFinite(rt) && rt > 0) relistPriceXecTotal = rt;
+          }
+        }
         tx.agora = {
           detected: true,
           side: spendSide,
@@ -11154,7 +11311,7 @@ function parseTransaction(txData) {
               : (isOneshot ? 'Agora Cancel (NFT)' : 'Agora Cancel (token)'),
           tokenAmountAtoms: movedAtoms.toString(),
           priceSatsPerToken: nftPriceSats,
-          priceXecTotal: nftPriceSats != null ? nftPriceSats / 100 : null,
+          priceXecTotal: nftPriceSats != null ? nftPriceSats / 100 : relistPriceXecTotal,
         };
       }
     }
@@ -11775,6 +11932,12 @@ function createTxRow(tx) {
   const row = document.createElement('div');
   row.className = 'tx-row entering';
   row.dataset.txid = tx.id;
+  // Focusable for keyboard users: Enter/Space pins the tx → opens the detail
+  // panel (see the keydown handler by wireListClickDelegation). No role=button —
+  // the row hosts real interactive children (copy/explorer/info) that AT should
+  // still reach individually; same call the .block-card makes (see buildBlockCardEl).
+  row.tabIndex = 0;
+  row.setAttribute('aria-label', `Transaction ${tx.id.substr(0, 8)}… — open details`);
   // Stamp the ordering key so addTxRow() can find the correct slot without
   // re-deriving it from the tx object (the row may outlive easy tx lookup).
   row.dataset.ts = String(txRowOrderKey(tx));
@@ -11932,6 +12095,40 @@ function attachRowEvents(row, tx) {
   row._txEvents = { enter: onEnter, leave: onLeave };
 }
 
+// Shared row activation (pin toggle → detail). Used by BOTH the delegated
+// click handler and the keyboard (Enter/Space) handler below, so mouse and
+// keyboard users get identical behaviour.
+function activateTxRow(row) {
+  const txid = row && row.dataset && row.dataset.txid;
+  if (!txid) return;
+  const tx = state.txs.get(txid);
+  if (!tx) return;
+  try {
+    if (isMobile()) {
+      document.querySelectorAll('.tx-row.pinned').forEach(r => r.classList.remove('pinned'));
+      state.pinnedTx = tx;
+      row.classList.add('pinned');
+      renderDetail(tx);
+      document.getElementById('detail').classList.add('mobile-open');
+      return;
+    }
+    // Desktop: toggle pin by id
+    const isSame = state.pinnedTx && state.pinnedTx.id === tx.id;
+    if (isSame) {
+      state.pinnedTx = null;
+      row.classList.remove('pinned');
+      renderDetail(state.hoveredTx);
+    } else {
+      document.querySelectorAll('.tx-row.pinned').forEach(r => r.classList.remove('pinned'));
+      state.pinnedTx = tx;
+      row.classList.add('pinned');
+      renderDetail(tx);
+    }
+  } catch (err) {
+    console.error('[ecash-live] row activate error:', err, tx);
+  }
+}
+
 // Delegated click handler — wired once per list, survives row re-renders.
 function wireListClickDelegation(listId) {
   const list = document.getElementById(listId);
@@ -11949,39 +12146,21 @@ function wireListClickDelegation(listId) {
         e.target.closest('button')) {
       return;
     }
-    const txid = row.dataset.txid;
-    if (!txid) return;
-    const tx = state.txs.get(txid);
-    if (!tx) return;
-    try {
-      if (isMobile()) {
-        document.querySelectorAll('.tx-row.pinned').forEach(r => r.classList.remove('pinned'));
-        state.pinnedTx = tx;
-        row.classList.add('pinned');
-        renderDetail(tx);
-        document.getElementById('detail').classList.add('mobile-open');
-        return;
-      }
-      // Desktop: toggle pin by id
-      const isSame = state.pinnedTx && state.pinnedTx.id === tx.id;
-      if (isSame) {
-        state.pinnedTx = null;
-        row.classList.remove('pinned');
-        renderDetail(state.hoveredTx);
-      } else {
-        document.querySelectorAll('.tx-row.pinned').forEach(r => r.classList.remove('pinned'));
-        state.pinnedTx = tx;
-        row.classList.add('pinned');
-        renderDetail(tx);
-      }
-    } catch (err) {
-      console.error('[ecash-live] row click error:', err, tx);
-    }
+    activateTxRow(row);
   });
 }
 // Wire both lists at startup (idempotent)
 wireListClickDelegation('col1-list');
 wireListClickDelegation('col2-list');
+// Keyboard: Enter/Space on a focused .tx-row activates it (mirrors .block-card).
+// Document-level, wired once — survives row re-renders like the click delegation.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const active = document.activeElement;
+  if (!active || !active.classList || !active.classList.contains('tx-row')) return;
+  e.preventDefault();
+  activateTxRow(active);
+});
 
 // Mark lists as .scrolling during wheel/scroll so hover-driven rebuilds pause —
 // this is what fixes the janky/laggy scroll feel.
@@ -13256,7 +13435,7 @@ function agoraBuyBtnHtml(tx) {
   const tid = tx.token && tx.token.tokenId;
   if (!tid || !/^[0-9a-f]{64}$/i.test(tid)) return '';
   const href = 'https://cashtab.com/#/token/' + tid;
-  return `<a class="cashtab-btn" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" title="Buy on Cashtab (this token's Agora market)">buy<span class="arrow">↗</span></a>`;
+  return `<a class="cashtab-btn" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" title="Trade on Cashtab (this token's Agora market)">trade<span class="arrow">↗</span></a>`;
 }
 
 function formatTokenType(t) {
@@ -13306,14 +13485,58 @@ function scheduleRenderMessages() {
   else setTimeout(run, 16);
 }
 
+// ---- Feed run-collapsing -------------------------------------------------
+// Two kinds of bot traffic bury real signal (a genuine buy, a new listing, a
+// POWR post) under a wall of near-identical cards:
+//   • Agora market-makers re-listing the same offer every ~minute (same token,
+//     same quantity — only the asking price moves).
+//   • Dice/roll bots broadcasting the same payload ("ROLL", "DICE") over and over.
+// A run of either collapses into ONE card showing the LATEST event + a ×N badge;
+// expanding the card lists the folded txids.
+//
+// msgGroupKey() is the single extension point: return a stable string for any
+// message type whose repeats are noise, and the collapsing below works for free.
+// Return null to keep every occurrence as its own card (the default).
+const MSG_GROUP_WINDOW_MS = 30 * 60 * 1000;   // 30 min
+const MSG_GROUP_TXIDS_MAX = 25;   // hard cap (§10); groupCount keeps counting past it
+// Types whose repeats are noise rather than signal. Deliberately NOT 'cashtab'/
+// 'encrypted' (person-to-person: two people sending the same text is a
+// coincidence, not spam) and NOT 'powr'/'alias'. Add future bot types here.
+const MSG_GROUP_TEXT_TYPES = new Set(['broadcast']);
+function msgGroupKey(msg) {
+  if (!msg) return null;
+  if (msg.type === 'agora-relist') {
+    // Key EXCLUDES price on purpose — the repricing is what makes it a run.
+    // Quantity IS included: a partially-filled offer relists at a new size,
+    // which is a genuinely different offer and deserves its own card.
+    const t = msg.tx && msg.tx.token;
+    const a = msg.tx && msg.tx.agora;
+    if (!t || !t.tokenId || !a) return null;
+    return 'agora-relist|' + t.tokenId + '|' + (a.tokenAmountAtoms || '0');
+  }
+  if (MSG_GROUP_TEXT_TYPES.has(msg.type)) {
+    // Identical payload = same bot spam. Case/space-normalised so "ROLL" and
+    // "roll " fold together.
+    const c = String(msg.content || '').trim().toLowerCase();
+    if (!c) return null;
+    return msg.type + '|' + c;
+  }
+  return null;
+}
+
 function addMessageCard(tx) {
   if (!tx.message) return;
   // Dedup — mirror the mempool poll's knownTxids guard. The same tx can reach
   // us from BOTH the live WS stream and the 5s poll; without this an unshift
   // would double-insert it. (processNewTx also guards upstream, but keeping the
   // guard here makes addMessageCard robust regardless of caller.)
+  // groupTxids is checked too: once a relist is absorbed into a group its txid
+  // is no longer any card's .txid, so a WS/poll race would otherwise re-absorb
+  // the same tx and double-count it.
   for (let i = 0; i < state.messages.length; i++) {
-    if (state.messages[i].txid === tx.id) return;
+    const m = state.messages[i];
+    if (m.txid === tx.id) return;
+    if (m.groupTxids && m.groupTxids.indexOf(tx.id) !== -1) return;
   }
   const msg = {
     txid: tx.id,
@@ -13340,6 +13563,25 @@ function addMessageCard(tx) {
   if (state.messages.length >= MAX_MSG_VISIBLE) {
     const oldest = state.messages[state.messages.length - 1];
     if (oldest && key < msgOrderKey(oldest)) return;
+  }
+  // Run collapse (see msgGroupKey): fold this message into its group instead of
+  // adding a row. We drop the old entry and let the sorted insert below re-place
+  // the MERGED msg — it carries the newest timestamp, so the group card bubbles
+  // back to the top showing the latest event (e.g. the newest asking price). The
+  // merged msg adopts the NEW txid, so renderMessages' existingMap (keyed by txid)
+  // misses the stale card and rebuilds it — ×N badge and content refresh for free,
+  // no update-in-place branch needed.
+  const gkey = msgGroupKey(msg);
+  if (gkey) {
+    for (let i = 0; i < state.messages.length; i++) {
+      const m = state.messages[i];
+      if (msgGroupKey(m) !== gkey) continue;
+      if (Math.abs((msg.timestamp || 0) - (m.timestamp || 0)) > MSG_GROUP_WINDOW_MS) continue;
+      msg.groupCount = (m.groupCount || 1) + 1;
+      msg.groupTxids = [msg.txid, ...(m.groupTxids || [m.txid])].slice(0, MSG_GROUP_TXIDS_MAX);
+      state.messages.splice(i, 1);
+      break;
+    }
   }
   let inserted = false;
   for (let i = 0; i < state.messages.length; i++) {
@@ -13570,6 +13812,11 @@ function renderMessages() {
     card.dataset.msgtype = m.type;
     const icon = msgTypeIcon(m.type);
     const typeLabel = msgTypeLabel(m.type);
+    // Focusable for keyboard users: Enter/Space opens the message's tx detail
+    // (same as a body click). No role=button — the card hosts interactive
+    // children (copy/explorer/chat/expand); mirrors .tx-row / .block-card.
+    card.tabIndex = 0;
+    card.setAttribute('aria-label', `${typeLabel} message — open details`);
     const isEncrypted = m.type === 'encrypted';
     const explorerUrl = explorerTx(m.txid);
     // Agora cards get a token-aware enrichment row showing icon, ticker,
@@ -13581,14 +13828,28 @@ function renderMessages() {
     // m.tx is set at msg construction (~11657) and is reference-stable for
     // the msg's lifetime, independent of state.txs eviction.
     const agoraMetaHtml = isAgora ? `<div class="agora-meta">${renderAgoraMeta(m.tx) || ''}</div>` : '';
+    // Collapsed run (see msgGroupKey): badge the count, and list the folded txids
+    // when the card is expanded. gcount is an int we computed; the txids are still
+    // re-gated on ^[0-9a-f]{64}$ before they reach innerHTML.
+    const gcount = m.groupCount | 0;
+    const groupNoun = m.type === 'agora-relist' ? 'relists of this offer' : 'identical messages';
+    const groupBadge = gcount > 1
+      ? `<span class="msg-group-badge" title="${gcount} ${groupNoun} in the last 30 min — card shows the latest; expand to list them">×${gcount}</span>`
+      : '';
+    const groupListHtml = (gcount > 1 && Array.isArray(m.groupTxids))
+      ? `<div class="msg-group-list">${m.groupTxids
+            .filter(id => /^[0-9a-f]{64}$/i.test(id))
+            .map(id => `<span class="msg-group-txid">${fmt.short(id, 6, 6)}</span>`).join('')}</div>`
+      : '';
     card.innerHTML = `
       <div class="head">
-        <span class="type">${icon} ${typeLabel}</span>
+        <span class="type">${icon} ${typeLabel}${groupBadge}</span>
         <span class="time">${fmt.time(m.timestamp)}</span>
       </div>
       <div class="from">tx <span class="em">${fmt.short(m.txid, 6, 6)}</span><span class="copy-slot" data-copy="${m.txid}"></span></div>
       ${agoraMetaHtml}
       <div class="content ${isEncrypted ? 'encrypted' : ''}">${escapeHtml(m.content || '—')}</div>
+      ${groupListHtml}
       <div class="msg-foot">
         <button class="msg-expand-btn" type="button" title="Expand full message" aria-label="Expand full message" aria-expanded="false">⤢</button>
         <span class="msg-foot-spacer"></span>
@@ -13640,10 +13901,8 @@ function renderMessages() {
     //   • Desktop → expand full message AND pin tx-detail (one action).
     //   • Mobile  → pin tx-detail only (expand is the dedicated button).
     // Both skip clicks on the copy/explorer/chat/expand controls.
-    card.addEventListener('click', (e) => {
-      if (e.target.closest('.copy-btn') || e.target.closest('.explorer-btn')
-        || e.target.closest('.msg-chat-btn') || e.target.closest('.msg-expand-btn')
-        || e.target.closest('.powr-btn') || e.target.closest('.cashtab-btn')) return;
+    // Shared activation for mouse + keyboard. Desktop: expand + pin; mobile: pin.
+    const activateMsgCard = () => {
       if (!isMobile()) toggleExpand();   // desktop: click also expands
       // v1.2.4: use m.tx directly. Without this, clicking an Agora message
       // older than 30s (state.txs cleanup window) silently failed to open
@@ -13660,6 +13919,18 @@ function renderMessages() {
           document.getElementById('detail').classList.add('mobile-open');
         }
       }
+    };
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.copy-btn') || e.target.closest('.explorer-btn')
+        || e.target.closest('.msg-chat-btn') || e.target.closest('.msg-expand-btn')
+        || e.target.closest('.powr-btn') || e.target.closest('.cashtab-btn')) return;
+      activateMsgCard();
+    });
+    // Keyboard: Enter/Space on the focused card (not a child control) opens detail.
+    card.addEventListener('keydown', (e) => {
+      if ((e.key !== 'Enter' && e.key !== ' ') || e.target !== card) return;
+      e.preventDefault();
+      activateMsgCard();
     });
     // Tipped highlight + watchlist highlight. Runs at first-render only, so
     // state.txs would normally still hold it — but v1.2.4 routes through
@@ -15019,26 +15290,44 @@ function renderChain() {
     return r;
   }
 
+  // Absolutely/fixed-positioned children are OUT OF FLOW: they cannot push the
+  // topbar's in-flow layout, so they must never count as overflow. Without this
+  // guard a visually-hidden child trips Signal 1 unconditionally — an .sr-only
+  // box is 1px wide with nowrap text and overflow:hidden, so scrollWidth (full
+  // text) ≫ clientWidth (1) at ANY window width, which pinned the topbar into
+  // permanent hamburger + 2-row meta.
+  function isOutOfFlow(cs) {
+    return cs.position === 'absolute' || cs.position === 'fixed';
+  }
+
   // Returns true when the topbar's left group can't fit alongside .meta.
   function isOverflowing(topbar, meta) {
     // Signal 1: any flex child whose content overflows its container.
     for (const child of topbar.children) {
       if (child === meta) continue;
       const cs = getComputedStyle(child);
-      if (cs.display === 'none') continue;
+      if (cs.display === 'none' || isOutOfFlow(cs)) continue;
       if (child.scrollWidth > child.clientWidth + 2) return true;
     }
-    // Signal 2: rendered-edge collision.
+    // Signal 2: rendered-edge collision between the left group and the right
+    // cluster. The hamburger is right-aligned (margin-left:auto) and deliberately
+    // hugs .meta, so it belongs to the RIGHT cluster — measuring the left group
+    // against .meta's left edge would always read ~the flex gap and fire
+    // spuriously (it 2-rowed the bar at 800px). So: exclude the toggle from the
+    // left group, and treat ITS left edge as the boundary while it's visible.
+    const toggle = topbar.querySelector('.nav-toggle');
+    const toggleVisible = !!toggle && getComputedStyle(toggle).display !== 'none';
+    const boundaryLeft = (toggleVisible ? toggle : meta).getBoundingClientRect().left;
     let leftEdgeRight = 0;
     for (const child of topbar.children) {
       if (child === meta) break;
+      if (toggleVisible && child === toggle) continue;
       const cs = getComputedStyle(child);
-      if (cs.display === 'none') continue;
+      if (cs.display === 'none' || isOutOfFlow(cs)) continue;
       const r = rightmostEdge(child);
       if (r > leftEdgeRight) leftEdgeRight = r;
     }
-    const metaLeft = meta.getBoundingClientRect().left;
-    return leftEdgeRight > 0 && (metaLeft - leftEdgeRight) < COLLAPSE_GAP;
+    return leftEdgeRight > 0 && (boundaryLeft - leftEdgeRight) < COLLAPSE_GAP;
   }
 
   function measure() {
@@ -15474,7 +15763,15 @@ function switchMobileTab(name, subtab) {
     // with no data-subtab is the "default" view of that section.
     const sameSection = t.dataset.section === name;
     const sameSubtab = (t.dataset.subtab || '') === (subtab || '');
-    t.classList.toggle('active', sameSection && sameSubtab);
+    const on = sameSection && sameSubtab;
+    t.classList.toggle('active', on);
+    // aria-current (NOT role=tab/aria-selected): this strip also holds the
+    // media-center button, so role="tablist" would have a non-tab child and be
+    // invalid; a real tablist would also owe arrow-key roving tabindex plus
+    // role="tabpanel" on sections that are always-visible columns on desktop.
+    // aria-current is valid on any element and states the same thing honestly.
+    if (on) t.setAttribute('aria-current', 'true');
+    else t.removeAttribute('aria-current');
   });
   Object.entries(sectionMap).forEach(([k, id]) => {
     const el = document.getElementById(id);
@@ -15498,6 +15795,26 @@ function switchMobileTab(name, subtab) {
 document.querySelectorAll('.mobile-tab').forEach(tab => {
   tab.addEventListener('click', () => switchMobileTab(tab.dataset.section, tab.dataset.subtab));
 });
+
+// Show the trailing fade only while the tab strip actually has more to scroll,
+// so it reads as "there's more" rather than permanent chrome. 4px slack absorbs
+// sub-pixel/fractional-DPR rounding, which would otherwise leave the fade stuck
+// on at the very end of the run.
+function updateMobileTabsFade() {
+  const el = document.getElementById('mobile-tabs');
+  if (!el) return;
+  const more = (el.scrollWidth - el.clientWidth - el.scrollLeft) > 4;
+  el.classList.toggle('has-more-right', more);
+}
+(function wireMobileTabsFade() {
+  const el = document.getElementById('mobile-tabs');
+  if (!el) return;
+  el.addEventListener('scroll', updateMobileTabsFade, { passive: true });
+  window.addEventListener('resize', updateMobileTabsFade);
+  // Fonts land after first paint and change tab widths → re-measure once ready.
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(updateMobileTabsFade).catch(() => {});
+  updateMobileTabsFade();
+})();
 
 // ============ CONSENSUS RADAR (v1.5.0) ============
 // A live radar that plots real mempool txs: radius encodes XEC amount
@@ -15873,8 +16190,15 @@ const radarCtl = {
   },
   toggleDetail(on) { this.prefOn = on; _radarSavePref(on); this.showForDetailEmpty(); },
   // ---- Popup borrow: suspend the radar while block/watchlist popups own #detail ----
-  suspendForPopup() { this.popupSuspended = true; this.hideForDetail(); },
-  resumeFromPopup() { this.popupSuspended = false; if (!state.pinnedTx) this.showForDetailEmpty(); },
+  suspendForPopup() {
+    this.popupSuspended = true; this.hideForDetail();
+    const d = document.getElementById('detail'); if (d) d.classList.add('radar-popup-borrowed');
+  },
+  resumeFromPopup() {
+    this.popupSuspended = false;
+    const d = document.getElementById('detail'); if (d) d.classList.remove('radar-popup-borrowed');
+    if (!state.pinnedTx) this.showForDetailEmpty();
+  },
 
   // ---- Mobile: radar takes over the NEW tab ----
   _setMobileLabel(txt) {
@@ -16577,12 +16901,17 @@ function applyWatchlistDecoration(row, tx) {
     // eChan (v1.3.1): watchlist hit — inside the history-dedup guard so one
     // emit per (entry, tx). Label prefers the user-assigned name; falls back
     // to a shortened address/token id. valueXec may be 0 for token-only txs.
+    const wlLabel = match.name || (match.addr ? (String(match.addr).slice(0, 14) + '…') : 'entry');
     __ecBus.emit('watchlist', {
       kind: match.kind || 'address',
-      label: match.name || (match.addr ? (String(match.addr).slice(0, 14) + '…') : 'entry'),
+      label: wlLabel,
       valueXec: tx.valueXec,
       txid: tx.id,
     });
+    // Same event to the dashboard's own live region: screen-reader users get the
+    // hit even when eChan is hidden. Inside the dedup guard → one announce per
+    // (entry, tx), so a busy watched address can't flood the region.
+    announceA11y(`Watchlist hit: ${wlLabel}`);
     // If history modal is open showing this address, refresh it live
     if (currentHistoryAddr === match.addr) renderHistoryList();
   }
@@ -16621,6 +16950,10 @@ function renderWatchlist() {
     card.className = 'wl-card wl-card-' + entry.kind;
     if (entry.enabled === false) card.classList.add('wl-card-disabled');
     card.dataset.addr = entry.addr;
+    // Focusable for keyboard users: Enter/Space opens the history modal (same as
+    // a body click). Action buttons stay individually reachable (no role=button).
+    card.tabIndex = 0;
+    card.setAttribute('aria-label', `Watchlist: ${entry.name} — open history`);
     const isToken = entry.kind === 'token';
     // For addresses: ecash:qXXX...XXXX. For tokens: first/last hex.
     let shortDisplay;
@@ -16721,6 +17054,12 @@ function renderWatchlist() {
     // card-body clicks open the modal. Cursor affordance is via the
     // .wl-card { cursor: pointer } rule.
     card.addEventListener('click', () => {
+      openHistoryModal(entry.addr);
+    });
+    // Keyboard: Enter/Space on the focused card (not a child control) opens history.
+    card.addEventListener('keydown', (e) => {
+      if ((e.key !== 'Enter' && e.key !== ' ') || e.target !== card) return;
+      e.preventDefault();
       openHistoryModal(entry.addr);
     });
     wrap.appendChild(card);
@@ -19209,6 +19548,50 @@ function makeCopyBtn(text, label = '⎘') {
 const PRICE_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=ecash&vs_currencies=usd';
 let xecUsd = 0;
 
+// XEC trades around $0.0000063 — eight decimals that nobody can compare at a
+// glance ($0.00000631 vs $0.00000628). The XEC community quotes per 1,000,000
+// XEC instead, so the same number reads as $6.31 / 1M. This toggle is
+// DISPLAY-ONLY: xecUsd stays in raw per-XEC terms, so xecToUsd() and every
+// other conversion below are untouched.
+const PRICE_PER1M_KEY = 'ecash-live:price:per1m';
+let pricePer1M = false;
+try { pricePer1M = localStorage.getItem(PRICE_PER1M_KEY) === '1'; } catch (e) {}
+
+// Single render path for both units — called by fetchPrice() and the toggle, so
+// flipping the unit never needs to re-hit the API.
+function renderPrice() {
+  const el = $('m-price');
+  const k = $('m-price-k');
+  if (!el) return;
+  if (!xecUsd) { el.textContent = '—'; return; }
+  if (pricePer1M) {
+    el.textContent = '$' + (xecUsd * 1e6).toLocaleString('en-US',
+      { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (k) k.textContent = '1M XEC / USD';
+  } else {
+    el.textContent = '$' + xecUsd.toFixed(xecUsd < 0.001 ? 8 : 6);
+    if (k) k.textContent = 'XEC / USD';
+  }
+}
+
+function togglePriceUnit() {
+  pricePer1M = !pricePer1M;
+  try { localStorage.setItem(PRICE_PER1M_KEY, pricePer1M ? '1' : '0'); } catch (e) {}
+  renderPrice();
+}
+
+(function wirePriceToggle() {
+  const cell = document.getElementById('m-price-cell');
+  if (!cell) return;
+  cell.addEventListener('click', togglePriceUnit);
+  cell.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    togglePriceUnit();
+  });
+  renderPrice();   // paint the stored unit's "—" placeholder before the first fetch
+})();
+
 async function fetchPrice() {
   try {
     const res = await fetch(PRICE_URL);
@@ -19217,8 +19600,7 @@ async function fetchPrice() {
     const p = data?.ecash?.usd;
     if (typeof p === 'number' && p > 0) {
       xecUsd = p;
-      const el = $('m-price');
-      if (el) el.textContent = '$' + p.toFixed(p < 0.001 ? 8 : 6);
+      renderPrice();
       // Update detail panel USD if active
       refreshDetailIfActive();
     }

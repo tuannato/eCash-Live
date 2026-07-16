@@ -67,7 +67,7 @@
   /* ===========================================================================
    * CONFIG
    * =========================================================================*/
-  const VERSION = '1.3.5';
+  const VERSION = '1.3.4';
   const SPRITE_PATH          = './vendor/companion/sprites/';
   const SPRITE_MANIFEST_URL  = './vendor/companion/sprites/manifest.json';
   const SEED_URL             = './vendor/companion/seed.json';
