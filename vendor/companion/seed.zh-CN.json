@@ -251,7 +251,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Avalanche 的 staker 正是那约 3 秒的魔法 🗳️ 运行一个节点、锁定 XEC，你的票就帮助终局化 tx。带着真实承诺的去中心化。"
+      "text": "Avalanche 的 staker 正是那约 3 秒的魔法 🗳️ 运行一个节点、stake 一些 XEC（币仍可花费），你的票就帮助终局化 tx。带着真实承诺的去中心化。"
     },
     {
       "id": "edu-alp-1",
@@ -332,7 +332,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Avalanche 的 staker 赚取真实的 block 奖励 💰 锁定 XEC、运行节点，因守护终局性而获得报酬。"
+      "text": "Avalanche 的 staker 赚取真实的 block 奖励 💰 stake XEC（不锁仓）、运行节点，因守护终局性而获得报酬。"
     },
     {
       "id": "edu-rebrand-1",
@@ -2167,6 +2167,16 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "想亲眼看到终局化，而不只是读到？🛰️ 打开 Consensus Radar，看每笔 tx 在约 3 秒被锁定时亮起。"
+    },
+    {
+      "id": "feat-radar-style",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "嘿 — Consensus Radar 有两种扫描样式 🎛️ 点击或轻触，就能在旋转波束和扩散的声呐环之间切换。数据一样，感觉不同。"
     }
   ]
 }

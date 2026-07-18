@@ -251,7 +251,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Os stakers do Avalanche são a mágica dos ~3 s 🗳️ Rode um nó, trave XEC, e seu voto ajuda a finalizar txs. Descentralização com a pele em jogo."
+      "text": "Os stakers do Avalanche são a mágica dos ~3 s 🗳️ Rode um nó, faça staking de XEC (as moedas continuam gastáveis), e seu voto ajuda a finalizar txs. Descentralização com a pele em jogo."
     },
     {
       "id": "edu-alp-1",
@@ -332,7 +332,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Stakers do Avalanche ganham recompensas de block de verdade 💰 Trave XEC, rode um nó, receba por garantir a finalidade."
+      "text": "Stakers do Avalanche ganham recompensas de block de verdade 💰 Faça staking de XEC (sem travar), rode um nó, receba por garantir a finalidade."
     },
     {
       "id": "edu-rebrand-1",
@@ -2167,6 +2167,16 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "Quer ver a finalidade acontecer, não só ler sobre? 🛰️ Ligue o Consensus Radar e veja cada tx acender ao ser travada em ~3s."
+    },
+    {
+      "id": "feat-radar-style",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Psst — o Consensus Radar tem dois estilos de varredura 🎛️ Clique ou toque para alternar entre o feixe giratório e o anel de sonar que se expande. Mesmos dados, outro clima."
     }
   ]
 }

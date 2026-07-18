@@ -251,7 +251,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Les stakers Avalanche, c'est la magie des ~3 s 🗳️ Fais tourner un nœud, verrouille du XEC, et ton vote aide à finaliser les txs. De la décentralisation avec un vrai engagement."
+      "text": "Les stakers Avalanche, c'est la magie des ~3 s 🗳️ Fais tourner un nœud, stake du XEC (les pièces restent dépensables), et ton vote aide à finaliser les txs. De la décentralisation avec un vrai engagement."
     },
     {
       "id": "edu-alp-1",
@@ -332,7 +332,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Les stakers Avalanche gagnent de vraies récompenses de block 💰 Verrouille du XEC, fais tourner un nœud, sois payé pour sécuriser la finalité."
+      "text": "Les stakers Avalanche gagnent de vraies récompenses de block 💰 Stake du XEC (sans blocage), fais tourner un nœud, sois payé pour sécuriser la finalité."
     },
     {
       "id": "edu-rebrand-1",
@@ -2167,6 +2167,16 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "Voir la finalité plutôt que la lire ? 🛰️ Active le Consensus Radar et regarde chaque tx s'allumer dès qu'elle est verrouillée en ~3 s."
+    },
+    {
+      "id": "feat-radar-style",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Psst — le Consensus Radar a deux styles de balayage 🎛️ Clique ou touche-le pour passer du faisceau rotatif à l'anneau sonar qui s'étend, et inversement. Mêmes données, autre ambiance."
     }
   ]
 }

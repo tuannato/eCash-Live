@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-3sZcOpAHa37vuKyofLqMjItfTh2xMFWf+tF2VCVQGWM=';
+  script-src 'self' 'sha256-rUYIS39O0qT65gdRG60OeGIC+ldfsn7eJH9TV9x+rXE=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -925,6 +925,11 @@
     scroll-behavior: auto;
     will-change: scroll-position;
   }
+  /* NOTE (v1.7.1 review F9, DELIBERATELY NOT DONE): an empty NEW-TX column is
+     left visually blank ON PURPOSE. A standby reticle / filler graphic there was
+     considered and rejected — the empty column is meant to keep attention on the
+     signal (real txs), not add a second ambient animation competing with the
+     radar + eChan for the eye. Do NOT re-add a :empty filler in future passes. */
   /* While the list is being scrolled, freeze hover-driven detail rebuilds to keep
      the wheel buttery. The .scrolling class is added by JS for ~180ms after each wheel/scroll. */
   .tx-list.scrolling .tx-row { pointer-events: none; }
@@ -1366,6 +1371,13 @@
     letter-spacing: 0.04em; color: var(--text-3); text-align: center;
   }
   .radar-legend .rl-green { color: var(--green); }
+  /* F7: discoverability cue for the click/tap-to-toggle sweep style. The canvas
+     already carries cursor:pointer + a title tooltip; this makes the affordance
+     visible. Part of the (deliberately English-only, technical) legend line, so
+     it adds no new i18n string. Neutral verb "switch" covers click and tap. */
+  .radar-legend .rl-hint { color: var(--cyan); opacity: 0.8; white-space: nowrap; cursor: pointer; transition: opacity .15s; }
+  .radar-legend .rl-hint:hover { opacity: 1; text-decoration: underline; }
+  .radar-legend .rl-hint:focus-visible { outline: 1px solid var(--cyan); outline-offset: 2px; border-radius: 2px; }
 
   /* Reticle entry button inside the NEW tab head — mobile only. */
   .radar-reticle-btn {
@@ -6278,8 +6290,14 @@
     .watchlist.mobile-active .wl-card .wl-name { font-size: 14px; }
     .watchlist.mobile-active .wl-card .wl-addr { font-size: 11px; }
     .watchlist.mobile-active .wl-card .wl-stats { font-size: 11px; }
-    .watchlist.mobile-active .wl-card .wl-act-btn { width: 32px; height: 32px; font-size: 13px; }
-    .watchlist.mobile-active .wl-card .wl-mode-btn { font-size: 10px; padding: 6px 10px; }
+    .watchlist.mobile-active .wl-card .wl-act-btn { width: 32px; height: 32px; font-size: 13px; position: relative; }
+    /* F8: grow the touch hit-area to ~44px (Apple HIG) without changing the
+       visual size — a transparent overlay on each control. Act buttons expand
+       on all sides; segmented SENT/RECV/BOTH expand only vertically so the
+       overlays never bleed into the neighbouring segment horizontally. */
+    .watchlist.mobile-active .wl-card .wl-act-btn::after { content: ''; position: absolute; inset: -6px; }
+    .watchlist.mobile-active .wl-card .wl-mode-btn { font-size: 10px; padding: 6px 10px; position: relative; }
+    .watchlist.mobile-active .wl-card .wl-mode-btn::after { content: ''; position: absolute; inset: -11px 0; }
 
     /* Section heights on mobile - take full screen below tabs */
     .col-section, .messages, .blockchain.mobile-active, .watchlist.mobile-active {
@@ -6785,8 +6803,8 @@
      update-csp-hash.sh. See /vendor/companion/echan.js header for the
      module's architecture + roadmap (Phase 1a → 1e).
      ===================================================================== -->
-<link rel="stylesheet" href="./vendor/companion/echan.css?v=mc21">
-<link rel="stylesheet" href="./vendor/mediacenter/mediacenter.css?v=mc21">
+<link rel="stylesheet" href="./vendor/companion/echan.css?v=mc22">
+<link rel="stylesheet" href="./vendor/mediacenter/mediacenter.css?v=mc22">
 
 </head>
 <body>
@@ -6824,7 +6842,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.7.0">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.7.0</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.7.1">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.7.1</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -6855,7 +6873,7 @@
             <div class="info-tile-title">What is Avalanche on eCash?</div>
             <div class="info-tile-body">
               <p>A consensus protocol that runs <strong>alongside</strong> eCash's Nakamoto Proof-of-Work, letting nodes poll each other and reach agreement on blocks and (with Pre-Consensus) individual transactions in seconds.</p>
-              <p><strong>Post-Consensus</strong> (live since Sep 2022) brings 1-block finality and 51% attack prevention. <strong>Pre-Consensus</strong> (mainnet target Nov 15, 2025) finalizes transactions in &lt;3 s before they're mined — making eCash feel like cash for both users and exchanges.</p>
+              <p><strong>Post-Consensus</strong> (live since Sep 2022) brings 1-block finality and 51% attack prevention. <strong>Pre-Consensus</strong> (live since Nov 15, 2025) finalizes transactions in &lt;3 s before they're mined — making eCash feel like cash for both users and exchanges.</p>
               <p>Think of PoW as <em>writing</em> (slow, permanent) and Avalanche as <em>speech</em> (fast, fleeting) — eCash uses both.</p>
             </div>
             <div class="info-tile-links">
@@ -7022,7 +7040,7 @@
             </span>
           </div>
           <div class="radar-stage"><canvas id="radar-canvas-mobile" title="Tap to switch sweep mode"></canvas></div>
-          <div class="radar-legend">amount → centre · colour → consensus · <span class="rl-green">●</span> finalized</div>
+          <div class="radar-legend">amount → centre · colour → consensus · <span class="rl-green">●</span> finalized · <span class="rl-hint" role="button" tabindex="0" title="Switch radar sweep style (ring ↔ beam)" aria-label="Switch radar sweep style">⇄ switch sweep style</span></div>
         </div>
       </div>
 
@@ -7085,7 +7103,7 @@
             </span>
           </div>
           <div class="radar-stage"><canvas id="radar-canvas-detail" title="Click to switch sweep mode"></canvas></div>
-          <div class="radar-legend">amount → centre · colour → consensus · <span class="rl-green">●</span> finalized</div>
+          <div class="radar-legend">amount → centre · colour → consensus · <span class="rl-green">●</span> finalized · <span class="rl-hint" role="button" tabindex="0" title="Switch radar sweep style (ring ↔ beam)" aria-label="Switch radar sweep style">⇄ switch sweep style</span></div>
         </div>
 
         <div class="detail-body">
@@ -8761,6 +8779,11 @@ function announceA11y(text) {
 // (same status, new label), so we speak only on a real transition. Starts null:
 // the first call is page boot, which has nothing to announce.
 let _lastAnnouncedConn = null;
+// F6: separate from _lastAnnouncedConn (which tracks WS status). The ping probe
+// flags a "lag · —" degraded state minutes before the WS actually closes, so SR
+// users need their own announce on entering/leaving ping-failure. One-shot guard
+// so a repeated failing probe can't flood #a11y-live.
+let _pingFailureAnnounced = false;
 
 function setConnStatus(status, text) {
   state.connected = (status === 'connected' || status === 'sim');
@@ -8877,6 +8900,10 @@ function _recordPingSample(rawMs) {
     return;
   }
   pingState.consecutiveFailures = 0;
+  if (_pingFailureAnnounced) {
+    _pingFailureAnnounced = false;
+    announceA11y('Live feed responding again');
+  }
 
   // Drop the very first sample so warm-up RTT doesn't poison the EMA.
   if (!pingState.warmupDropped) {
@@ -8971,6 +8998,10 @@ function _renderPingFailure() {
   pill.classList.add('disconnected');
   txt.textContent = `lag · —`;
   pill.title = 'Connection: Not responding';
+  if (!_pingFailureAnnounced) {
+    _pingFailureAnnounced = true;
+    announceA11y('Live feed lagging — connection not responding');
+  }
 }
 
 // One probe: time chronik.blockchainInfo() with a hard timeout.
@@ -16256,6 +16287,14 @@ const radarCtl = {
   // Click the radar canvas to switch sweep style (ring ↔ beam); choice persists.
   document.getElementById('radar-canvas-detail')?.addEventListener('click', () => radarCtl.toggleSweepStyle());
   document.getElementById('radar-canvas-mobile')?.addEventListener('click', () => radarCtl.toggleSweepStyle());
+  // The legend "⇄ switch sweep style" cue is also a real control (both the
+  // detail + mobile radar carry one): click or Enter/Space toggles the style.
+  document.querySelectorAll('.radar-legend .rl-hint').forEach(hint => {
+    hint.addEventListener('click', () => radarCtl.toggleSweepStyle());
+    hint.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); radarCtl.toggleSweepStyle(); }
+    });
+  });
   radarCtl._refreshSoundButtons();
   // Unlock Web Audio on user gestures (capture phase, so the sound toggle's own
   // click also counts). Until the first gesture no AudioContext is created → no
@@ -17804,6 +17843,11 @@ if (wlInputMode) {
 const wlHistoryOverlay = document.getElementById('wl-history-overlay');
 if (wlHistoryOverlay) wlHistoryOverlay.addEventListener('click', (e) => {
   if (e.target === wlHistoryOverlay) closeHistoryModal();
+});
+// F4: close on Escape, mirroring the block-tx-list popup (closeBlockTxList).
+// closeHistoryModal restores the borrowed #detail panel, so ESC is safe here too.
+if (wlHistoryOverlay) document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && wlHistoryOverlay.classList.contains('show')) closeHistoryModal();
 });
 const wlHistoryCloseBtn = document.getElementById('wl-history-close-btn');
 if (wlHistoryCloseBtn) wlHistoryCloseBtn.addEventListener('click', closeHistoryModal);
@@ -22525,12 +22569,12 @@ startTtfFeedModule();
      already fired when the module's IIFE runs, so init() can find
      #stage-wrap without a readyState dance. External script under 'self'
      — covered by the script-src whitelist, no CSP hash needed. -->
-<script src="./vendor/companion/echan.js?v=mc21" defer></script>
+<script src="./vendor/companion/echan.js?v=mc22" defer></script>
 
 <!-- Media center external module (sibling to eChan). External script/style under
      'self' — no CSP hash. Self-injects its DOM; opened via the play tab
      (#mc-tab-btn) or the eChan "Media center" quick-action. -->
-<script src="./vendor/mediacenter/mediacenter.js?v=mc21" defer></script>
+<script src="./vendor/mediacenter/mediacenter.js?v=mc22" defer></script>
 
 </body>
 </html>

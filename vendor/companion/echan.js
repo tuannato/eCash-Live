@@ -1,6 +1,15 @@
 /* =============================================================================
- * eChan companion — 1.3.4 controller
+ * eChan companion — 1.3.5 controller
  * =============================================================================
+ *
+ * 1.3.5 (review v1.7.1 pass): (a) F2 — sprites now lazy-load. buildDom keeps
+ *   loading:'eager' only for the opening 'neutral' emotion; every other variant
+ *   is loading:'lazy', keeping ~2.7MB of webp off the boot critical path (the
+ *   default body sits translateX(-100%) off-screen at boot, so native lazy defers
+ *   them until she is opened). Pool + error-handler unchanged. (b) F10 — the
+ *   default desk position is now viewport-aware: with NO stored preference, a
+ *   short viewport (innerHeight < 840) defaults to the footer so the perch can't
+ *   overlap column 02's top rows. Any explicit stored choice still wins.
  *
  * 1.3.4: transient Chat-tab hide API (enterChatHide/exitChatHide) — the mobile
  *   tab router collapses eChan to hide mode while the Chat tab is focused and
@@ -67,7 +76,7 @@
   /* ===========================================================================
    * CONFIG
    * =========================================================================*/
-  const VERSION = '1.3.4';
+  const VERSION = '1.3.5';
   const SPRITE_PATH          = './vendor/companion/sprites/';
   const SPRITE_MANIFEST_URL  = './vendor/companion/sprites/manifest.json';
   const SEED_URL             = './vendor/companion/seed.json';
@@ -671,7 +680,11 @@
           alt: '',
           'data-emotion': name,
           'data-variant': String(i),
-          loading: 'eager',
+          // Only the opening emotion needs to be ready at boot; every other
+          // variant is fetched lazily the first time it scrolls into / is shown,
+          // keeping ~2.7MB of sprites off the critical boot path (only 1 sprite
+          // is ever displayed at a time). Pool + error-handler below unchanged.
+          loading: name === 'neutral' ? 'eager' : 'lazy',
           decoding: 'async',
           draggable: 'false',
         });
@@ -2945,7 +2958,21 @@
 
     const savedMode = lsGet(STORAGE.mode, DEFAULT_MODE);
     state.mode = MODES[savedMode] ? savedMode : DEFAULT_MODE;
-    const savedPos = lsGet(STORAGE.deskpos, DESKPOS_PERCH);
+    /* F10: pick the default perch by viewport height, but ONLY when the user
+     * has never expressed a preference (sentinel '' ⇒ key absent). A short
+     * desktop viewport (< 840px) leaves the perched dialog overlapping the top
+     * rows of column 02, so default her to the footer there. Any explicit
+     * stored choice — or the first drag/toggle, which persists via setDeskPos —
+     * always wins; this branch is skipped from then on. */
+    const rawPos = lsGet(STORAGE.deskpos, '');
+    let savedPos;
+    if (rawPos === DESKPOS_FOOTER || rawPos === DESKPOS_PERCH) {
+      savedPos = rawPos;
+    } else {
+      const shortViewport = typeof window !== 'undefined'
+        && window.innerHeight && window.innerHeight < 840;
+      savedPos = shortViewport ? DESKPOS_FOOTER : DESKPOS_PERCH;
+    }
     state.deskpos = (savedPos === DESKPOS_FOOTER) ? DESKPOS_FOOTER : DESKPOS_PERCH;
     const savedShown = lsGet(STORAGE.shown, '1');
     state.soundEnabled = lsGet(STORAGE.sound, '0') === '1';

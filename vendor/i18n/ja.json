@@ -166,6 +166,11 @@
       "Tool": "ツール",
       "Trade now": "今すぐ取引"
     },
+    ".chat-thread-state": {
+      "Add at least one peer wallet above to load chat messages.": "チャットメッセージを読み込むには、上でピアウォレットを少なくとも1つ追加してね。",
+      "Loading messages from chronik…": "chronik からメッセージを読み込み中…",
+      "No on-chain chat messages found yet for these wallets. Send the first one — your bubble will appear here once the wallet broadcasts.": "これらのウォレットのオンチェーン・チャットはまだ見つからない。最初の1通を送ってみて — ウォレットがブロードキャストすると、ここにあなたのバブルが表示される。"
+    },
     ".chat-chip-empty": {
       "no address set — pick yours to see your own chat lines": "アドレス未設定 — 自分のメッセージを見るには自分のを選んでください",
       "add at least one peer wallet to load their messages": "相手のメッセージを読み込むには、peer walletを少なくとも一つ追加してください"

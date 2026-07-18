@@ -251,7 +251,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Avalanche-Staker sind die ~3-Sekunden-Magie 🗳️ Betreibe einen Node, sperre XEC, und deine Stimme hilft, Txs zu finalisieren. Dezentralisierung mit echtem Einsatz."
+      "text": "Avalanche-Staker sind die ~3-Sekunden-Magie 🗳️ Betreibe einen Node, stake etwas XEC (Coins bleiben ausgabefähig), und deine Stimme hilft, Txs zu finalisieren. Dezentralisierung mit echtem Einsatz."
     },
     {
       "id": "edu-alp-1",
@@ -332,7 +332,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Avalanche-Staker verdienen echte Block-Belohnungen 💰 Sperre XEC, betreibe einen Node, werde fürs Sichern der Finalität bezahlt."
+      "text": "Avalanche-Staker verdienen echte Block-Belohnungen 💰 Stake XEC (keine Sperre), betreibe einen Node, werde fürs Sichern der Finalität bezahlt."
     },
     {
       "id": "edu-rebrand-1",
@@ -2167,6 +2167,16 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "Finalität sehen statt nur lesen? 🛰️ Schalt das Consensus Radar ein und sieh jede tx aufleuchten, sobald sie in ~3 s gesperrt wird."
+    },
+    {
+      "id": "feat-radar-style",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Psst — das Consensus Radar hat zwei Sweep-Stile 🎛️ Klick oder tipp es an, um zwischen dem rotierenden Strahl und dem expandierenden Sonarring zu wechseln. Gleiche Daten, andere Stimmung."
     }
   ]
 }

@@ -251,7 +251,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Avalancheのstakerこそが約3秒の魔法 🗳️ ノードを動かしXECをロックすれば、あなたの票がtxのファイナライズを助ける。本物のコミットを伴う分散化。"
+      "text": "Avalancheのstakerこそが約3秒の魔法 🗳️ ノードを動かしXECをstakeすれば（コインは使えるまま）、あなたの票がtxのファイナライズを助ける。本物のコミットを伴う分散化。"
     },
     {
       "id": "edu-alp-1",
@@ -332,7 +332,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Avalancheのstakerは本物のblock報酬を得る 💰 XECをロックしノードを動かして、ファイナリティを守る対価をもらう。"
+      "text": "Avalancheのstakerは本物のblock報酬を得る 💰 XECをstakeしノードを動かして（ロックなし）、ファイナリティを守る対価をもらう。"
     },
     {
       "id": "edu-rebrand-1",
@@ -2167,6 +2167,16 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "確定を読むだけじゃなく、見てみたい？ 🛰️ Consensus Radarをオンにして、各txが〜3秒でロックされる瞬間に光るのを見てみて。"
+    },
+    {
+      "id": "feat-radar-style",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "ねえ — Consensus Radar には2つのスイープ表示があるよ 🎛️ クリックかタップで、回転ビームと広がるソナーリングを切り替えられる。同じデータ、違う雰囲気。"
     }
   ]
 }

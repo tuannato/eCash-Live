@@ -251,7 +251,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Staker Avalanche adalah keajaiban ~3 detik itu 🗳️ Jalankan node, kunci XEC, dan suaramu ikut memfinalisasi tx. Desentralisasi dengan komitmen nyata."
+      "text": "Staker Avalanche adalah keajaiban ~3 detik itu 🗳️ Jalankan node, stake XEC (koin tetap bisa dibelanjakan), dan suaramu ikut memfinalisasi tx. Desentralisasi dengan komitmen nyata."
     },
     {
       "id": "edu-alp-1",
@@ -332,7 +332,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Staker Avalanche mendapat imbalan block sungguhan 💰 Kunci XEC, jalankan node, dibayar untuk mengamankan finalitas."
+      "text": "Staker Avalanche mendapat imbalan block sungguhan 💰 Stake XEC (tanpa penguncian), jalankan node, dibayar untuk mengamankan finalitas."
     },
     {
       "id": "edu-rebrand-1",
@@ -2167,6 +2167,16 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "Mau lihat finalitas terjadi, bukan cuma baca? 🛰️ Nyalakan Consensus Radar dan lihat tiap tx menyala saat terkunci dalam ~3 detik."
+    },
+    {
+      "id": "feat-radar-style",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Psst — Consensus Radar punya dua gaya sapuan 🎛️ Klik atau ketuk untuk bertukar antara berkas berputar dan cincin sonar yang memuai. Data sama, nuansa beda."
     }
   ]
 }

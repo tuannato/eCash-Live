@@ -251,7 +251,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Avalanche staker가 바로 그 약 3초의 마법 🗳️ 노드를 돌리고 XEC를 잠그면, 네 표가 tx 파이널라이즈를 도와. 진짜 책임이 따르는 탈중앙화."
+      "text": "Avalanche staker가 바로 그 약 3초의 마법 🗳️ 노드를 돌리고 XEC를 stake하면(코인은 그대로 쓸 수 있어), 네 표가 tx 파이널라이즈를 도와. 진짜 책임이 따르는 탈중앙화."
     },
     {
       "id": "edu-alp-1",
@@ -332,7 +332,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Avalanche staker는 진짜 block 보상을 벌어 💰 XEC를 잠그고 노드를 돌려서, 파이널리티를 지키는 대가를 받아."
+      "text": "Avalanche staker는 진짜 block 보상을 벌어 💰 XEC를 stake하고(잠그지 않아) 노드를 돌려서, 파이널리티를 지키는 대가를 받아."
     },
     {
       "id": "edu-rebrand-1",
@@ -2167,6 +2167,16 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "확정을 읽기만 하지 말고 직접 보고 싶어? 🛰️ Consensus Radar를 켜고 각 tx가 ~3초 만에 잠기며 빛나는 걸 지켜봐."
+    },
+    {
+      "id": "feat-radar-style",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "저기 — Consensus Radar에는 두 가지 스윕 스타일이 있어 🎛️ 클릭이나 탭으로 회전하는 빔과 퍼지는 소나 링을 서로 바꿔봐. 같은 데이터, 다른 분위기."
     }
   ]
 }

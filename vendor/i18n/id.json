@@ -166,6 +166,11 @@
       "Tool": "Alat",
       "Trade now": "Trading sekarang"
     },
+    ".chat-thread-state": {
+      "Add at least one peer wallet above to load chat messages.": "Tambahkan minimal satu wallet peer di atas untuk memuat pesan chat.",
+      "Loading messages from chronik…": "Memuat pesan dari chronik…",
+      "No on-chain chat messages found yet for these wallets. Send the first one — your bubble will appear here once the wallet broadcasts.": "Belum ada pesan chat on-chain untuk wallet ini. Kirim yang pertama — gelembungmu akan muncul di sini begitu wallet menyiarkan."
+    },
     ".chat-chip-empty": {
       "no address set — pick yours to see your own chat lines": "alamat belum diatur — pilih milikmu untuk melihat pesanmu sendiri",
       "add at least one peer wallet to load their messages": "tambahkan minimal satu wallet peer untuk memuat pesan mereka"

@@ -166,6 +166,11 @@
       "Tool": "Ferramenta",
       "Trade now": "Negocie agora"
     },
+    ".chat-thread-state": {
+      "Add at least one peer wallet above to load chat messages.": "Adicione ao menos uma wallet peer acima para carregar as mensagens do chat.",
+      "Loading messages from chronik…": "Carregando mensagens do chronik…",
+      "No on-chain chat messages found yet for these wallets. Send the first one — your bubble will appear here once the wallet broadcasts.": "Ainda não há mensagens de chat on-chain para estas wallets. Envie a primeira — sua bolha vai aparecer aqui assim que a wallet transmitir."
+    },
     ".chat-chip-empty": {
       "no address set — pick yours to see your own chat lines": "nenhum endereço definido — escolha o seu para ver suas próprias mensagens",
       "add at least one peer wallet to load their messages": "adicione pelo menos uma wallet de par para carregar as mensagens dela"

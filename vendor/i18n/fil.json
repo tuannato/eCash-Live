@@ -166,6 +166,11 @@
       "Tool": "Kasangkapan",
       "Trade now": "Mag-trade na"
     },
+    ".chat-thread-state": {
+      "Add at least one peer wallet above to load chat messages.": "Magdagdag ng kahit isang peer wallet sa itaas para ma-load ang mga mensahe sa chat.",
+      "Loading messages from chronik…": "Nilo-load ang mga mensahe mula sa chronik…",
+      "No on-chain chat messages found yet for these wallets. Send the first one — your bubble will appear here once the wallet broadcasts.": "Wala pang nahanap na on-chain chat message para sa mga wallet na ito. Ipadala ang una — lalabas dito ang bubble mo kapag nag-broadcast na ang wallet."
+    },
     ".chat-chip-empty": {
       "no address set — pick yours to see your own chat lines": "walang nakatakdang address — piliin ang iyo para makita ang sarili mong mga mensahe",
       "add at least one peer wallet to load their messages": "magdagdag ng kahit isang peer wallet para ma-load ang mga mensahe nila"

@@ -166,6 +166,11 @@
       "Tool": "工具",
       "Trade now": "立即交易"
     },
+    ".chat-thread-state": {
+      "Add at least one peer wallet above to load chat messages.": "在上方至少加入一個 peer 錢包以載入聊天訊息。",
+      "Loading messages from chronik…": "正在從 chronik 載入訊息…",
+      "No on-chain chat messages found yet for these wallets. Send the first one — your bubble will appear here once the wallet broadcasts.": "尚未找到這些錢包的鏈上聊天訊息。傳送第一則吧 — 錢包廣播後，你的氣泡就會顯示在這裡。"
+    },
     ".chat-chip-empty": {
       "no address set — pick yours to see your own chat lines": "未設定位址 —— 選擇你自己的以查看你的訊息",
       "add at least one peer wallet to load their messages": "至少新增一個 peer wallet 以載入他們的訊息"

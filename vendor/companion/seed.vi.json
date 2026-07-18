@@ -251,7 +251,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Các staker Avalanche chính là phép màu ~3 giây 🗳️ Chạy node, khóa XEC, và phiếu bầu của bạn giúp hoàn tất các tx. Phi tập trung với cam kết thật."
+      "text": "Các staker Avalanche chính là phép màu ~3 giây 🗳️ Chạy node, stake một ít XEC (coin vẫn tiêu được), và phiếu bầu của bạn giúp hoàn tất các tx. Phi tập trung với cam kết thật."
     },
     {
       "id": "edu-alp-1",
@@ -332,7 +332,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Staker Avalanche nhận phần thưởng block thật 💰 Khóa XEC, chạy node, được trả công vì bảo vệ tính hoàn tất."
+      "text": "Staker Avalanche nhận phần thưởng block thật 💰 Stake XEC (không khóa coin), chạy node, được trả công vì bảo vệ tính hoàn tất."
     },
     {
       "id": "edu-rebrand-1",
@@ -2167,6 +2167,16 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "Muốn tận mắt thấy quá trình chốt, không chỉ đọc? 🛰️ Bật Consensus Radar và xem từng tx sáng lên khi được chốt trong ~3 giây."
+    },
+    {
+      "id": "feat-radar-style",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Suỵt — Consensus Radar có hai kiểu quét 🎛️ Bấm hoặc chạm để đổi giữa tia quét xoay và vòng sóng sonar lan ra, rồi đổi lại. Cùng dữ liệu, khác cảm giác."
     }
   ]
 }

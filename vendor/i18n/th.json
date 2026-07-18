@@ -166,6 +166,11 @@
       "Tool": "เครื่องมือ",
       "Trade now": "เทรดเลย"
     },
+    ".chat-thread-state": {
+      "Add at least one peer wallet above to load chat messages.": "เพิ่ม peer wallet อย่างน้อยหนึ่งอันด้านบนเพื่อโหลดข้อความแชท",
+      "Loading messages from chronik…": "กำลังโหลดข้อความจาก chronik…",
+      "No on-chain chat messages found yet for these wallets. Send the first one — your bubble will appear here once the wallet broadcasts.": "ยังไม่พบข้อความแชทออนเชนสำหรับวอลเล็ตเหล่านี้ ส่งอันแรกเลย — ฟองข้อความของคุณจะปรากฏที่นี่เมื่อวอลเล็ต broadcast"
+    },
     ".chat-chip-empty": {
       "no address set — pick yours to see your own chat lines": "ยังไม่ตั้งที่อยู่ — เลือกของเธอเพื่อดูข้อความของตัวเอง",
       "add at least one peer wallet to load their messages": "เพิ่ม wallet คู่สนทนาอย่างน้อยหนึ่งรายเพื่อโหลดข้อความของพวกเขา"

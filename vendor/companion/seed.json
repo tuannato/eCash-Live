@@ -251,7 +251,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Avalanche stakers are the ~3s magic 🗳️ Run a node, lock some XEC, and your vote helps finalize txs. Decentralization with skin in the game."
+      "text": "Avalanche stakers are the ~3s magic 🗳️ Run a node, stake some XEC (coins stay spendable), and your vote helps finalize txs. Decentralization with skin in the game."
     },
     {
       "id": "edu-alp-1",
@@ -332,7 +332,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Avalanche stakers earn real block rewards 💰 Lock XEC, run a node, get paid for securing finality."
+      "text": "Avalanche stakers earn real block rewards 💰 Stake XEC (no lock-up), run a node, get paid for securing finality."
     },
     {
       "id": "edu-rebrand-1",
@@ -2167,6 +2167,16 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "Want to see finality happen, not just read it? 🛰️ Switch on the Consensus Radar and watch each tx light up as it locks in ~3s."
+    },
+    {
+      "id": "feat-radar-style",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Psst — the Consensus Radar has two sweep styles 🎛️ Click or tap it to swap the rotating beam for an expanding sonar ring, and back. Same finality data, different vibe."
     }
   ]
 }

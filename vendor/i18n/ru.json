@@ -166,6 +166,11 @@
       "Tool": "Инструмент",
       "Trade now": "Торговать сейчас"
     },
+    ".chat-thread-state": {
+      "Add at least one peer wallet above to load chat messages.": "Добавь выше хотя бы один peer-кошелёк, чтобы загрузить сообщения чата.",
+      "Loading messages from chronik…": "Загрузка сообщений из chronik…",
+      "No on-chain chat messages found yet for these wallets. Send the first one — your bubble will appear here once the wallet broadcasts.": "Для этих кошельков пока нет ончейн-сообщений чата. Отправь первое — твой пузырёк появится здесь, как только кошелёк сделает broadcast."
+    },
     ".chat-chip-empty": {
       "no address set — pick yours to see your own chat lines": "адрес не задан — выбери свой, чтобы видеть собственные сообщения",
       "add at least one peer wallet to load their messages": "добавь хотя бы один кошелёк собеседника, чтобы загрузить его сообщения"

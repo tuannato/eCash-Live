@@ -166,6 +166,11 @@
       "Tool": "Công cụ",
       "Trade now": "Giao dịch ngay"
     },
+    ".chat-thread-state": {
+      "Add at least one peer wallet above to load chat messages.": "Thêm ít nhất một ví peer ở trên để tải tin nhắn chat.",
+      "Loading messages from chronik…": "Đang tải tin nhắn từ chronik…",
+      "No on-chain chat messages found yet for these wallets. Send the first one — your bubble will appear here once the wallet broadcasts.": "Chưa tìm thấy tin nhắn chat on-chain nào cho các ví này. Gửi tin đầu tiên — bong bóng của bạn sẽ hiện ở đây ngay khi ví broadcast."
+    },
     ".chat-chip-empty": {
       "no address set — pick yours to see your own chat lines": "chưa đặt địa chỉ — chọn địa chỉ của bạn để thấy các tin nhắn của chính mình",
       "add at least one peer wallet to load their messages": "thêm ít nhất một ví peer để tải tin nhắn của họ"

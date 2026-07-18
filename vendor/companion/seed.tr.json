@@ -251,7 +251,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Avalanche staker'ları ~3 saniyelik sihrin ta kendisi 🗳️ Bir node çalıştır, XEC kilitle; oyun tx'lerin kesinleşmesine yardım etsin. Gerçek taahhütlü merkeziyetsizlik."
+      "text": "Avalanche staker'ları ~3 saniyelik sihrin ta kendisi 🗳️ Bir node çalıştır, biraz XEC stake et (coinler harcanabilir kalır); oyun tx'lerin kesinleşmesine yardım etsin. Gerçek taahhütlü merkeziyetsizlik."
     },
     {
       "id": "edu-alp-1",
@@ -332,7 +332,7 @@
       "priority": 1,
       "weight": 1,
       "ttlOnce": false,
-      "text": "Avalanche staker'ları gerçek block ödülleri kazanır 💰 XEC kilitle, node çalıştır, kesinliği güvenceye aldığın için para al."
+      "text": "Avalanche staker'ları gerçek block ödülleri kazanır 💰 XEC stake et (kilit yok), node çalıştır, kesinliği güvenceye aldığın için para al."
     },
     {
       "id": "edu-rebrand-1",
@@ -2167,6 +2167,16 @@
       "weight": 1,
       "ttlOnce": false,
       "text": "Kesinleşmeyi okumak yerine görmek ister misin? 🛰️ Consensus Radar'ı aç ve her tx'in ~3 sn'de kilitlenirken parladığını izle."
+    },
+    {
+      "id": "feat-radar-style",
+      "category": "ambient",
+      "trigger": "random",
+      "priority": 1,
+      "emotion": "observing",
+      "weight": 1,
+      "ttlOnce": false,
+      "text": "Psst — Consensus Radar'ın iki tarama stili var 🎛️ Dönen huzme ile genişleyen sonar halkası arasında geçmek için tıkla ya da dokun. Aynı veri, farklı hava."
     }
   ]
 }

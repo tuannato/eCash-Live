@@ -166,6 +166,11 @@
       "Tool": "Araç",
       "Trade now": "Şimdi takas et"
     },
+    ".chat-thread-state": {
+      "Add at least one peer wallet above to load chat messages.": "Sohbet mesajlarını yüklemek için yukarıdan en az bir peer cüzdan ekle.",
+      "Loading messages from chronik…": "Mesajlar chronik'ten yükleniyor…",
+      "No on-chain chat messages found yet for these wallets. Send the first one — your bubble will appear here once the wallet broadcasts.": "Bu cüzdanlar için henüz zincir üstü sohbet mesajı yok. İlkini gönder — cüzdan yayınladığı anda balonun burada görünecek."
+    },
     ".chat-chip-empty": {
       "no address set — pick yours to see your own chat lines": "adres ayarlanmadı — kendi mesajlarını görmek için kendininkini seç",
       "add at least one peer wallet to load their messages": "mesajlarını yüklemek için en az bir peer wallet ekle"

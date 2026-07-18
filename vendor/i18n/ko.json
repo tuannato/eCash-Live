@@ -166,6 +166,11 @@
       "Tool": "도구",
       "Trade now": "지금 거래"
     },
+    ".chat-thread-state": {
+      "Add at least one peer wallet above to load chat messages.": "채팅 메시지를 불러오려면 위에서 피어 지갑을 하나 이상 추가해.",
+      "Loading messages from chronik…": "chronik에서 메시지를 불러오는 중…",
+      "No on-chain chat messages found yet for these wallets. Send the first one — your bubble will appear here once the wallet broadcasts.": "이 지갑들의 온체인 채팅 메시지가 아직 없어. 첫 메시지를 보내봐 — 지갑이 브로드캐스트하면 여기에 네 말풍선이 나타나."
+    },
     ".chat-chip-empty": {
       "no address set — pick yours to see your own chat lines": "주소 미설정 — 자신의 메시지를 보려면 당신 것을 선택하세요",
       "add at least one peer wallet to load their messages": "그들의 메시지를 불러오려면 peer wallet을 적어도 하나 추가하세요"
