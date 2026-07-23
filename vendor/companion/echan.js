@@ -1183,6 +1183,10 @@
     if (latest) latest.click();
   }
   function qaTip() {
+    // The dashboard's footer coffee button was replaced by the Flow gateway,
+    // so open the tip dialog directly via the opener the dashboard exposes.
+    // Legacy fallback: click the old #tip-btn if a build still has one.
+    if (typeof window.__ecOpenTip === 'function') { window.__ecOpenTip(); return; }
     const btn = document.getElementById('tip-btn');
     if (btn) btn.click();
   }
@@ -1761,8 +1765,11 @@
    * this feature; the old #btn-guide is hidden via echan.css (its modal
    * stays in code, reachable from devtools). */
   function injectLangButton() {
-    const tipBtn = document.getElementById('tip-btn');
-    const host = tipBtn && tipBtn.parentElement;
+    // Anchor on the Flow gateway button (#flow-btn, which replaced the old
+    // #tip-btn in the control panel); fall back to #tip-btn for any build that
+    // still has the coffee button.
+    const anchor = document.getElementById('flow-btn') || document.getElementById('tip-btn');
+    const host = anchor && anchor.parentElement;
     if (!host) return;
     const btn = el('button', {
       class: 'ctrl-btn echan-lang-ctrl', id: 'btn-echan-lang', type: 'button',
@@ -1771,7 +1778,7 @@
       el('span', { class: 'echan-lang-globe', text: '🌐' }),
       el('span', { class: 'echan-lang-code', text: langDisp(state.lang) }),
     );
-    host.insertBefore(btn, tipBtn);
+    host.insertBefore(btn, anchor);
     state.langBtn = btn;
   }
 

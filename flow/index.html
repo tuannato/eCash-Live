@@ -1,0 +1,3065 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<!-- Content Security Policy — mirrors index.html (neo). The inline module below
+     is pinned by SHA-256; regenerate after every module edit:
+         ./update-csp-hash.sh flow/index.html
+     Forget it and the page renders blank. -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'none';
+  script-src 'self' 'sha256-BW3+nKZu37oab/VRxyGckNG52f7hHWRKdoua1B/28+Y=';
+  style-src 'self' 'unsafe-inline';
+  font-src 'self';
+  img-src 'self' data: https://icons.etokens.cash;
+  media-src 'self';
+  connect-src 'self'
+    https://chronik.e.cash wss://chronik.e.cash
+    https://chronik-native1.fabien.cash wss://chronik-native1.fabien.cash
+    https://chronik-native2.fabien.cash wss://chronik-native2.fabien.cash
+    https://chronik-native3.fabien.cash wss://chronik-native3.fabien.cash
+    https://chronik.pay2stay.com wss://chronik.pay2stay.com
+    https://chronik1.ecashlive.net wss://chronik1.ecashlive.net
+    https://api.coingecko.com;
+  frame-ancestors 'none';
+  base-uri 'none';
+  form-action 'none';
+  manifest-src 'self';
+">
+<title>eCash Live · Flow</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0090C8" />
+<meta name="description" content="Flow — the simple view of eCash Live. Every transaction on the eCash network appears like a message and becomes irreversible in ~2 seconds." />
+<link rel="icon" href="../favicon.ico" />
+<style>
+  /* Palette = eCashLive brand DNA (retinted from Flow v2.dc.html:14-41).
+     Base + [data-theme="light"] = LIGHT; the two dark blocks = DARK. */
+  :root{
+    --bg:#EAEEF6; --bg-app:#F7F9FD; --card:#FFFFFF; --card2:#EDF1F9;
+    --ink:#10142E; --ink2:#465073; --ink3:#7B84A3; --line:#DBE2EF; --frame:#C4D4DC;
+    --accent:#0074C2; --accent-deep:#00629F; --accent-bg:#E1F2FC;
+    --final:#00975C; --final-bg:#DFF6EA;
+    --self-bg:#E1F2FC; --danger:#C4187E;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    --msg:#6A1FC4; --msg-bg:#F2EAFD; --msg-ln:#D8C6F4;
+    --token:#9C6D00; --token-bg:#FAF0D6; --token-ln:#EBD79F;
+    --accent-ln:#A5D8F3; --final-ln:#A3E5C6; --line2:#BFCADF;
+    --wash:rgba(13,18,44,.38);
+    --shadow:0 1px 2px rgba(16,26,70,.05), 0 10px 26px rgba(16,26,70,.08);
+    --final-ring:rgba(0,151,92,.38); --final-glow:rgba(0,151,92,.22);
+    --wat:#5A8A00; --wat-bg:#EFF8DC; --wat-ln:#C8E39A;
+    --glow:0 0 0 1px var(--final-ln), 0 0 22px rgba(0,151,92,.10);
+    --grad:linear-gradient(120deg,#273498 0%,#0074C2 52%,#00ABE7 100%);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#08080F; --bg-app:#0C0C18; --card:#12121F; --card2:#181828;
+      --ink:#F4F5FF; --ink2:#9EA3C4; --ink3:#616689; --line:#1E1E30; --frame:#2A4250;
+      --accent:#01A0E0; --accent-deep:#29B6F0; --accent-bg:#0B2036;
+      --final:#00E781; --final-bg:#07291B;
+      --self-bg:#0B2036; --danger:#FF21D0;
+      --msg:#B985FF; --msg-bg:#201538; --msg-ln:#3C2B63;
+      --token:#FFB800; --token-bg:#2B2209; --token-ln:#554414;
+      --accent-ln:#174766; --final-ln:#0F4C31; --line2:#2E2E4A;
+      --wash:rgba(5,6,16,.6);
+      --shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 8px 24px rgba(0,0,0,.32);
+      --final-ring:rgba(0,231,129,.45); --final-glow:rgba(0,231,129,.26);
+      --wat:#A7FF37; --wat-bg:#1C2A08; --wat-ln:#3E5A14;
+      --glow:0 0 0 1px var(--final-ln), 0 0 22px rgba(0,231,129,.10);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#08080F; --bg-app:#0C0C18; --card:#12121F; --card2:#181828;
+    --ink:#F4F5FF; --ink2:#9EA3C4; --ink3:#616689; --line:#1E1E30; --frame:#2A4250;
+    --accent:#01A0E0; --accent-deep:#29B6F0; --accent-bg:#0B2036;
+    --final:#00E781; --final-bg:#07291B;
+    --self-bg:#0B2036; --danger:#FF21D0;
+    --msg:#B985FF; --msg-bg:#201538; --msg-ln:#3C2B63;
+    --token:#FFB800; --token-bg:#2B2209; --token-ln:#554414;
+    --accent-ln:#174766; --final-ln:#0F4C31; --line2:#2E2E4A;
+    --wash:rgba(5,6,16,.6);
+    --shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 8px 24px rgba(0,0,0,.32);
+    --final-ring:rgba(0,231,129,.45); --final-glow:rgba(0,231,129,.26);
+    --wat:#A7FF37; --wat-bg:#1C2A08; --wat-ln:#3E5A14;
+    --glow:0 0 0 1px var(--final-ln), 0 0 22px rgba(0,231,129,.10);
+  }
+  :root[data-theme="light"]{
+    --bg:#EAEEF6; --bg-app:#F7F9FD; --card:#FFFFFF; --card2:#EDF1F9;
+    --ink:#10142E; --ink2:#465073; --ink3:#7B84A3; --line:#DBE2EF; --frame:#C4D4DC;
+    --accent:#0074C2; --accent-deep:#00629F; --accent-bg:#E1F2FC;
+    --final:#00975C; --final-bg:#DFF6EA;
+    --self-bg:#E1F2FC; --danger:#C4187E;
+    --msg:#6A1FC4; --msg-bg:#F2EAFD; --msg-ln:#D8C6F4;
+    --token:#9C6D00; --token-bg:#FAF0D6; --token-ln:#EBD79F;
+    --accent-ln:#A5D8F3; --final-ln:#A3E5C6; --line2:#BFCADF;
+    --wash:rgba(13,18,44,.38);
+    --shadow:0 1px 2px rgba(16,26,70,.05), 0 10px 26px rgba(16,26,70,.08);
+    --final-ring:rgba(0,151,92,.38); --final-glow:rgba(0,151,92,.22);
+    --wat:#5A8A00; --wat-bg:#EFF8DC; --wat-ln:#C8E39A;
+    --glow:0 0 0 1px var(--final-ln), 0 0 22px rgba(0,151,92,.10);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:radial-gradient(1100px 420px at 50% -180px, var(--accent-bg) 0%, transparent 62%), var(--bg);
+       color:var(--ink); font-family:var(--sans); -webkit-text-size-adjust:100%;}
+  button,select,input{font-family:inherit}
+  a{color:var(--accent-deep)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+           clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+  .skip-link{position:absolute;left:-999px;top:0;background:var(--accent);color:#fff;
+             padding:8px 14px;border-radius:0 0 8px 0;z-index:50;}
+  .skip-link:focus{left:0}
+
+  .stage{max-width:780px;margin:0 auto;min-height:100vh;min-height:100dvh;
+         display:grid;grid-template-columns:1fr;}
+  #rail-left{display:none}
+  @media (min-width:1120px){
+    .stage{grid-template-columns:270px minmax(0,1fr);gap:20px;padding:16px 18px 16px;max-width:1110px;align-items:start;}
+    #rail-left{display:flex;flex-direction:column;gap:14px;position:sticky;top:16px;}
+  }
+  /* right rail: narrator log + legend (v2 port), wide screens only */
+  #rail-right{display:none}
+  @media (min-width:1470px){
+    .stage{grid-template-columns:270px minmax(0,1fr) 300px;max-width:1450px;}
+    #rail-right{display:flex;flex-direction:column;gap:14px;position:sticky;top:16px;}
+  }
+
+  #app{display:flex;flex-direction:column;background:var(--bg-app);min-width:0;
+       height:100vh;height:100dvh;overflow:hidden;}
+  @media (min-width:1120px){
+    #app{height:calc(100dvh - 32px);
+         border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);}
+  }
+
+  /* ===== app header ===== */
+  .app-head{padding:13px 18px 0;border-bottom:1px solid var(--line);flex:none;
+            background:linear-gradient(180deg, var(--card) 0%, var(--bg-app) 100%);}
+  .ah-top{display:flex;align-items:center;gap:12px;}
+  /* brand: tall eCash "e" mark (left) + ("eCash" wordmark over Flow) stack (right).
+     "e" mark = inline gradient SVG; "eCash" = the logo's letter paths filled with
+     currentColor (auto-themes via --ink); "Flow" = wordmark img (wm-l/wm-d swap).
+     flex:none + explicit SVG widths so the header row never squeezes/overlaps it. */
+  @font-face{font-family:'Space Grotesk';font-style:normal;font-weight:700;font-display:swap;
+             src:url('../vendor/fonts/space-grotesk-latin-700.woff2') format('woff2');}
+  .brand{display:inline-flex;flex-direction:row;align-items:center;gap:8px;vertical-align:middle;flex:none;}
+  .brand-mark{height:32px;width:29px;flex:none;display:block;}
+  .brand-stack{display:inline-flex;flex-direction:column;align-items:flex-start;gap:3px;flex:none;}
+  .brand-word{height:14px;width:59px;flex:none;display:block;color:var(--ink);}
+  .brand-flow{height:13px;width:auto;flex:none;display:block;}
+  /* wordmark theme swap: purple on light, cyan/white on dark. Mirrors the
+     4-way palette convention (base = light default, media = dark, explicit
+     data-theme overrides both). */
+  .wm-d{display:none;} .wm-l{display:block;}
+  @media (prefers-color-scheme: dark){ .wm-d{display:block;} .wm-l{display:none;} }
+  :root[data-theme="light"] .wm-d{display:none;} :root[data-theme="light"] .wm-l{display:block;}
+  :root[data-theme="dark"]  .wm-d{display:block;} :root[data-theme="dark"]  .wm-l{display:none;}
+  .ah-top canvas{margin-left:auto;display:block;flex:1;min-width:0;height:36px;}
+  .ah-stats{display:flex;gap:7px;margin:10px 0 11px;flex-wrap:wrap;align-items:center;}
+  .pill{font-size:12px;padding:4px 11px;border-radius:99px;background:var(--card2);
+        color:var(--ink2);font-variant-numeric:tabular-nums;white-space:nowrap;border:1px solid transparent;}
+  .pill.final{background:var(--final-bg);color:var(--final);font-weight:650;border-color:var(--final-ln);}
+  .pill b{font-weight:700;color:inherit;font-family:'Space Grotesk',var(--sans);}
+  .pill.blockpill b{color:var(--ink);}
+  .pill.tapish{cursor:pointer;}
+  .pill.tapish:hover{border-color:var(--line2);color:var(--ink);}
+
+  /* ===== connection status ===== */
+  #conn{font-size:11px;color:var(--ink3);display:inline-flex;align-items:center;gap:5px;
+        margin-left:auto;}
+  #conn .dot{width:7px;height:7px;border-radius:50%;background:var(--ink3);}
+  #conn.live .dot{background:var(--final);animation:blink 2.4s infinite;}
+  #conn.warn .dot{background:var(--danger);}
+  #conn.paused .dot{background:var(--token);animation:none;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+
+  /* ===== filter chips ===== */
+  .chips{display:flex;gap:6px;padding:9px 14px;border-bottom:1px solid var(--line);flex:none;flex-wrap:wrap;background:var(--bg-app);}
+  .chips .chip{position:relative;font-size:12px;border:1px solid var(--line);background:var(--card);color:var(--ink2);
+               border-radius:99px;padding:5px 13px;cursor:pointer;line-height:1.3;transition:all .15s;}
+  .chips .chip:hover{border-color:var(--accent);color:var(--accent-deep);}
+  .chips .chip.on{background:var(--accent-bg);border-color:var(--accent);color:var(--accent-deep);font-weight:650;}
+  .chips .chip:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+
+  /* ===== stream ===== */
+  .stream-wrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;}
+  #stream{flex:1;overflow-y:auto;padding:12px 12px 18px;scroll-behavior:smooth;
+          overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+  #stream::-webkit-scrollbar{width:8px}
+  #stream::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+  #empty{color:var(--ink3);font-size:12.5px;text-align:center;padding:52px 16px;line-height:1.7;}
+  #empty .breathe{display:block;width:11px;height:11px;border-radius:50%;background:var(--final);
+                  margin:0 auto 14px;animation:breathe 2.2s ease-in-out infinite;}
+  @keyframes breathe{0%,100%{opacity:.45;transform:scale(1)}50%{opacity:1;transform:scale(1.14)}}
+
+  .card{display:flex;gap:12px;align-items:center;background:var(--card);
+        border:1px solid var(--line);border-radius:16px;padding:11px 14px;margin:0 0 9px;
+        max-width:100%;box-shadow:var(--shadow);transition:border-color .2s;
+        position:relative;overflow:hidden;}
+  .card:hover{border-color:var(--line2);}
+  .card.enter{animation:enter .3s cubic-bezier(.2,.9,.3,1)}
+  @keyframes enter{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
+  .card .ic{flex:none;width:38px;height:38px;border-radius:12px;background:var(--card2);
+            color:var(--ink2);display:flex;align-items:center;justify-content:center;
+            border:1px solid transparent;font-family:'Space Grotesk',var(--sans);font-weight:700;font-size:15px;}
+  .card .ic svg{width:18px;height:18px;}
+  .card .ic.ic-token{background:none;overflow:hidden;border-color:transparent;}
+  .card .ic .tok-ic{width:38px;height:38px;border-radius:12px;object-fit:cover;display:block;}
+  /* per-kind tint (v2 port) — reuses the f-pay/f-msg/f-token filter-marker
+     classes every card already carries (cardFor/foldDust/foldRun) */
+  .card.f-pay .ic{background:var(--accent-bg);color:var(--accent-deep);border-color:var(--accent-ln);}
+  .card.f-msg .ic{background:var(--msg-bg);color:var(--msg);border-color:var(--msg-ln);}
+  .card.f-token .ic{background:var(--token-bg);color:var(--token);border-color:var(--token-ln);}
+  .card .body{flex:1;min-width:0;}
+  .card .t1{font-size:13.5px;font-weight:650;line-height:1.35;overflow:hidden;
+            text-overflow:ellipsis;white-space:nowrap;color:var(--ink);}
+  /* per-kind t1 typography (mock renderVals): pay leads with a Space Grotesk
+     amount; trade amount also SG; message text in brand purple */
+  .card.k-pay .t1{font-family:'Space Grotesk',var(--sans);font-size:16px;letter-spacing:-.01em;}
+  .card.k-trade .t1{font-family:'Space Grotesk',var(--sans);}
+  .card.k-msg .t1{color:var(--msg);}
+  .card .t2{font-size:11.5px;color:var(--ink3);line-height:1.5;margin-top:2px;overflow:hidden;
+            text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums;font-family:var(--mono);}
+  .card .t2 .seal{color:var(--ink3);opacity:0;transition:opacity .6s;}
+  .card .t2 .seal.show{opacity:.9}
+  .card .st{flex:none;text-align:right;display:flex;flex-direction:column;
+            align-items:flex-end;gap:3px;}
+  .card .st svg{width:17px;height:17px;}
+  .card .ttf{font-size:11px;font-family:var(--mono);font-variant-numeric:tabular-nums;
+             color:var(--ink3);white-space:nowrap;}
+  .card.is-sending .st svg{color:var(--ink3)}
+  .card.is-sending .ttf{animation:blink 1.6s infinite}
+  .card.is-final .st svg{color:var(--final)}
+  .card.is-final .ttf{color:var(--final);font-weight:700;font-family:'Space Grotesk',var(--sans);
+                       font-size:10.5px;background:var(--final-bg);
+                       border:1px solid var(--final-ln);border-radius:99px;padding:2px 8px;}
+  .card.flash{animation:flash .9s ease-out}
+  @keyframes flash{0%{background:var(--final-bg);box-shadow:0 0 0 1px var(--final),0 0 26px var(--final-glow)}100%{background:var(--card);box-shadow:none}}
+  /* finality ritual (v2 port): checkmark draw-in + ripple ring, both gated on
+     !reduced same as .flash above; IC.checksAnimated (JS) supplies the
+     pathLength/stroke-dasharray markup that this keyframe animates */
+  @keyframes checkdraw{from{stroke-dashoffset:44}to{stroke-dashoffset:0}}
+  @keyframes finring{from{box-shadow:0 0 0 0 var(--final-ring)}to{box-shadow:0 0 0 13px transparent}}
+  .card .checks{border-radius:50%;display:inline-flex;}
+  .checks.fin-ring{animation:finring .8s ease-out 1;}
+  .card.t-group{border-style:dashed;border-color:var(--line2);color:var(--ink2);background:transparent;
+                box-shadow:none;cursor:pointer;}
+  .card.t-group:hover{border-color:var(--ink3);}
+  .card.t-group .t1{font-weight:600;font-size:12.5px;color:var(--ink2);font-family:var(--sans);}
+  .card.t-group .t2{font-family:var(--sans);font-size:11px;}
+  .card.t-group .ttf{font-size:12px;color:var(--ink3);}
+  .card.t-group:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .card.hide{display:none}
+
+  /* ===== sunk token art = faded card BACKGROUND decoration =====
+     Token/trade cards keep their CLASSIFICATION glyph in .ic; the real token art
+     is blown up and sunk into the card's empty middle-right space as a soft,
+     edge-faded background, taller than the card so its top+bottom are clipped by
+     the card's overflow:hidden (loses ~1/3 height). It sits BEHIND the text
+     (z-index) and fades out on expand, where the full art reappears at the bottom
+     of the detail. */
+  .card .ic,.card .body,.card .st{position:relative;z-index:1;}
+  /* Sits in the card's empty middle, clear of the right status column (✓✓ + final
+     pill ≈ 62px) so the badge is never covered. Blob centred in the box via mask. */
+  .tok-sink{position:absolute;top:-20%;bottom:-20%;right:84px;width:150px;
+            overflow:hidden;opacity:.72;pointer-events:none;z-index:0;transition:opacity .25s;
+            -webkit-mask-image:radial-gradient(ellipse 60% 62% at 50% 50%, #000 26%, transparent 76%);
+                    mask-image:radial-gradient(ellipse 60% 62% at 50% 50%, #000 26%, transparent 76%);}
+  /* Theme-aware clarity: brighter on the white card (light), a touch dimmer on the
+     dark card. These sit BEFORE ".card.expanded .tok-sink" so that equal-specificity
+     rule still wins the source-order tie and fades the decoration out on expand. */
+  @media (prefers-color-scheme: dark){ .tok-sink{opacity:.62;} }
+  :root[data-theme="light"] .tok-sink{opacity:.72;}
+  :root[data-theme="dark"]  .tok-sink{opacity:.62;}
+  .tok-sink img{width:100%;height:100%;object-fit:cover;display:block;}
+  .card.expanded .tok-sink{opacity:0;}
+  @media (max-width:520px){ .tok-sink{right:66px;width:104px;} }
+
+  /* ===== expand-in-place detail (replaces the popup sheet) =====
+     A sibling panel dropped right after the card (same append-only pattern as the
+     divider/dust-group details). One open at a time (accordion via state.expandedId). */
+  .card-detail{display:none;margin:-4px 2px 11px;padding:13px 16px 15px;
+               background:var(--card);border:1px solid var(--line);border-radius:0 0 16px 16px;
+               border-top:0;box-shadow:var(--shadow);}
+  .card-detail.open{display:block;animation:drop .2s ease-out;}
+  .card.expanded{border-bottom-left-radius:0;border-bottom-right-radius:0;margin-bottom:0;
+                 border-bottom-color:transparent;}
+  /* expanded reveal: token art as a centred, size-capped square (NOT full-width —
+     a full-bleed band swallowed the whole desktop column). Responsive via clamp. */
+  .cd-art{margin:13px auto 4px;width:clamp(140px,44%,220px);aspect-ratio:1/1;overflow:hidden;
+          border-radius:16px;background:var(--card2);border:1px solid var(--line);box-shadow:var(--shadow);}
+  .cd-art[data-copy]{cursor:pointer;}
+  .cd-art img{width:100%;height:100%;object-fit:cover;display:block;}
+  .cd-final{margin:0 0 9px;background:var(--final-bg);color:var(--final);border:1px solid var(--final-ln);
+            border-radius:12px;padding:10px 13px;font-size:12.5px;font-weight:650;display:flex;align-items:center;gap:8px;}
+  .cd-final svg{width:17px;height:17px;flex:none;}
+  .cd-final.pending{background:var(--card2);color:var(--ink2);border-color:var(--line);font-weight:500;}
+  /* full message text on expand (collapsed t1 is nowrap+ellipsis; here it wraps) */
+  .cd-msg{font-size:13px;color:var(--ink);line-height:1.5;margin:0 0 10px;
+          white-space:pre-wrap;overflow-wrap:anywhere;}
+  .cd-rows{font-size:12px;}
+  .cd-rows div{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--line);}
+  .cd-rows div:last-child{border-bottom:0;}
+  .cd-rows dt{color:var(--ink3);margin:0;flex:none;}
+  .cd-rows dd{margin:0;font-family:var(--mono);font-size:11px;color:var(--ink);text-align:right;
+              overflow:hidden;text-overflow:ellipsis;max-width:66%;}
+  /* copyable identifiers (addresses / token id / tx id) */
+  .cd-rows dd .cp,.cd-rows dd.cp{cursor:pointer;border-bottom:1px dotted var(--ink3);}
+  .cd-rows dd .cp:hover,.cd-rows dd.cp:hover{color:var(--accent-deep);border-bottom-color:var(--accent);}
+  .cd-btns{display:flex;gap:8px;margin-top:12px;}
+  .cd-btns button{flex:1;font-size:12.5px;font-weight:600;border-radius:11px;padding:9px;cursor:pointer;
+                  border:1px solid var(--line2);background:var(--card2);color:var(--ink);}
+  .cd-btns button.pri{background:var(--grad);border-color:transparent;color:#fff;font-weight:700;}
+  .cd-btns button:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+
+  /* block divider = two gradient hairlines flanking an accent pill (v2 mock) */
+  .divider{display:flex;align-items:center;gap:11px;margin:16px 2px 12px;cursor:pointer;
+           border:0;background:none;width:calc(100% - 4px);padding:0;color:inherit;}
+  .divider:focus-visible{outline:2px solid var(--accent);border-radius:6px;}
+  .divider .ln{flex:1;height:1px;background:linear-gradient(90deg, transparent, var(--accent-ln));}
+  .divider .ln:last-child{background:linear-gradient(90deg, var(--accent-ln), transparent);}
+  .divider .lbl{position:relative;overflow:hidden;font-size:11px;font-weight:650;color:var(--accent-deep);
+                display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-variant-numeric:tabular-nums;
+                background:var(--accent-bg);border:1px solid var(--accent-ln);border-radius:99px;padding:5px 13px;}
+  .divider .lbl svg{width:13px;height:13px;}
+  .divider .lbl::before{content:'';position:absolute;top:0;bottom:0;left:0;width:38%;
+                background:linear-gradient(105deg, transparent, rgba(255,255,255,.14), transparent);
+                animation:shim 1.5s ease-out .2s 1 both;}
+  @keyframes shim{from{transform:translateX(-130%)}to{transform:translateX(340%)}}
+  .div-detail{display:none;margin:-4px 18px 14px;padding:9px 14px;border-left:2px solid var(--accent-ln);
+              font-size:11.5px;color:var(--ink3);font-family:var(--mono);line-height:1.9;}
+  .div-detail.open{display:block;animation:drop .2s ease-out;}
+  @keyframes drop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+  .grp-detail{display:none;margin:-4px 12px 10px 42px;font-size:11.5px;color:var(--ink3);
+              font-family:var(--mono);line-height:1.8;}
+  .grp-detail.open{display:block}
+
+  #new-pill{position:absolute;left:50%;bottom:14px;transform:translateX(-50%) translateY(6px);
+            background:var(--grad);color:#fff;border:0;font-size:12px;font-weight:700;
+            border-radius:99px;padding:7px 16px;cursor:pointer;opacity:0;pointer-events:none;
+            transition:opacity .2s,transform .2s;box-shadow:0 6px 18px rgba(0,80,150,.35);}
+  #new-pill.show{opacity:1;pointer-events:auto;transform:translateX(-50%);}
+
+  /* ===== eChan narrator bubble ===== */
+  #echan{position:absolute;top:12px;left:12px;right:12px;background:var(--card);
+         border:1px solid var(--msg-ln);border-radius:16px;padding:14px 16px;display:flex;gap:13px;
+         align-items:flex-start;font-size:14px;line-height:1.62;color:var(--ink);opacity:0;
+         transform:translateY(-6px);pointer-events:none;transition:opacity .25s,transform .25s;
+         box-shadow:var(--shadow);z-index:4;max-width:640px;margin:0 auto;}
+  /* tap-to-dismiss (E5): only capture pointer events while actually shown, so the
+     invisible bubble never eats clicks/scrolls over the top of the stream. */
+  #echan.show{opacity:1;transform:none;pointer-events:auto;cursor:pointer;}
+  /* eChan avatar = the character sprite. Gradient bg shows while it loads. */
+  #echan .e-avatar{flex:none;width:46px;height:46px;border-radius:12px;object-fit:cover;display:block;
+                   background:linear-gradient(135deg, var(--msg), var(--accent));}
+  #echan .echan-body{display:flex;flex-direction:column;gap:5px;min-width:0;}
+  /* "tell me more →" (E5): opens the matching Learn topic; only shown when a line
+     has a mapped topic. A real <button> so keyboard users can reach it. */
+  .echan-more{align-self:flex-start;background:none;border:0;padding:0;color:var(--accent);
+              font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+  .echan-more[hidden]{display:none;}
+  .echan-more:hover{text-decoration:underline;}
+  .echan-more:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px;}
+  /* muted eChan (E6 footer toggle) — dimmed bell */
+  .ctrl-echan.muted{color:var(--ink3);opacity:.7;}
+
+  /* ===== toast ===== */
+  #toast{position:absolute;left:50%;bottom:70px;transform:translateX(-50%);background:var(--ink);
+         color:var(--bg-app);font-size:12px;font-weight:600;border-radius:99px;padding:8px 16px;opacity:0;
+         transition:opacity .25s;pointer-events:none;white-space:nowrap;z-index:7;
+         max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis;}
+  #toast.show{opacity:.97;}
+  /* ===== Learn — accordion, NO popup =====
+     Questions expand their answer in place (readable, stays put — unlike an
+     in-stream card that would scroll away). Rendered by renderLearn() into the
+     rail (desktop) and the "?"-toggled #learn-bar (mobile). */
+  .rl-learn h3{font-size:12px;margin:0 0 6px;color:var(--ink3);font-weight:600;text-transform:uppercase;letter-spacing:.07em;}
+  .lrn-item{border-top:1px solid var(--line);}
+  .lrn-item:first-child{border-top:0;}
+  .lrn-q{display:flex;width:100%;gap:8px;align-items:center;justify-content:space-between;text-align:left;
+         border:0;background:none;color:var(--ink);font-size:12.5px;font-weight:600;line-height:1.4;
+         padding:9px 0;cursor:pointer;font-family:inherit;}
+  .lrn-q:hover{color:var(--accent-deep);}
+  .lrn-q:focus-visible{outline:2px solid var(--accent);border-radius:4px;}
+  .lrn-q[aria-expanded="true"]{color:var(--accent-deep);}
+  .lrn-caret{flex:none;color:var(--ink3);font-size:11px;}
+  .lrn-a{display:none;padding:0 0 11px;}
+  .lrn-a.open{display:block;animation:drop .2s ease-out;}
+  .lrn-a p{font-size:12px;color:var(--ink2);margin:0 0 7px;line-height:1.6;}
+  .learn-more{font-size:11.5px;color:var(--accent-deep);text-decoration:none;}
+  .learn-more:hover{text-decoration:underline;}
+  .learn-more:focus-visible{outline:2px solid var(--accent);border-radius:6px;}
+  /* mobile Learn bar (opened by the footer "?") — in-flow, pushes content, no overlay */
+  .learn-bar,.watch-bar{flex:none;border-top:1px solid var(--line);background:var(--bg-app);
+             padding:2px 14px max(10px, env(safe-area-inset-bottom));max-height:52vh;overflow-y:auto;display:none;}
+  .learn-bar.open,.watch-bar.open{display:block;animation:drop .2s ease-out;}
+  /* desktop shows Learn + the watchlist in the rail, so the footer "?" / eye (and
+     their bars) are redundant there */
+  @media (min-width:1120px){ #btn-learn,#btn-watch{display:none;} }
+  .card{cursor:pointer;}
+  /* inset ring: the card is overflow:hidden (to clip the sunk token art), which
+     would clip a positive-offset outline — draw it inside instead. */
+  .card:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+
+  /* ===== composer (try-it + watchlist) ===== */
+  .composer{flex:none;border-top:1px solid var(--line);background:var(--bg-app);padding:9px 14px max(11px, env(safe-area-inset-bottom));}
+  .cmp-row{display:flex;gap:9px;align-items:center;}
+  .cmp-cta{flex:1;border:0;background:var(--grad);color:#fff;letter-spacing:.01em;
+           font-size:13px;font-weight:700;border-radius:13px;padding:10px;cursor:pointer;
+           box-shadow:0 4px 14px rgba(0,116,194,.30);}
+  .cmp-cta:hover{filter:brightness(1.07);}
+  .cmp-cta:focus-visible,.cmp-icon:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .cmp-icon{flex:none;position:relative;width:42px;height:40px;border:1px solid var(--line2);background:var(--card);
+            color:var(--ink2);border-radius:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .cmp-icon svg{width:18px;height:18px;}
+  .cmp-icon.on{background:var(--wat-bg);border-color:var(--wat-ln);color:var(--wat);}
+  /* count badge on the eye button — how many addresses are being watched */
+  .wat-count{position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 4px;
+             background:var(--accent);color:#fff;font-size:9px;font-weight:700;border-radius:99px;
+             display:flex;align-items:center;justify-content:center;line-height:1;border:1.5px solid var(--card);}
+  .cmp-expand{display:none;flex-direction:column;gap:8px;margin-top:9px;}
+  .cmp-expand.open{display:flex;}
+  .cmp-expand input{min-width:0;font-size:16px;border:1px solid var(--line2);border-radius:12px;
+                    padding:9px 13px;background:var(--card);color:var(--ink);}
+  .cmp-expand input:focus-visible{outline:2px solid var(--accent);outline-offset:-1px;}
+  .cmp-expand button{border:0;background:var(--grad);color:#fff;font-size:13px;font-weight:700;
+                     border-radius:12px;padding:9px 18px;cursor:pointer;white-space:nowrap;}
+  .cmp-hint{font-size:10.5px;color:var(--ink3);margin-top:7px;line-height:1.5;display:none;}
+  .cmp-hint.open{display:block;}
+  /* ===== watchlist panel (rail + #watch-bar): named entries + add row ===== */
+  .ctrl-watch{position:relative;}
+  .wl-empty{font-size:11.5px;color:var(--ink3);padding:4px 0 8px;line-height:1.5;}
+  .wl-entry{display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--line);}
+  .wl-entry:first-child{border-top:0;}
+  .wl-name{flex:1;min-width:0;font-size:12.5px;border:1px solid transparent;border-radius:8px;
+           padding:4px 7px;background:transparent;color:var(--ink);}
+  .wl-name::placeholder{color:var(--ink3);}
+  .wl-name:hover{border-color:var(--line);}
+  .wl-name:focus{border-color:var(--accent);background:var(--card);outline:none;}
+  .wl-addr{flex:none;font-size:10.5px;font-family:var(--mono);color:var(--ink3);}
+  .wl-x{flex:none;border:0;background:none;color:var(--ink3);cursor:pointer;font-size:14px;line-height:1;
+        padding:2px 4px;border-radius:6px;}
+  .wl-x:hover{color:var(--danger);}
+  .wl-x:focus-visible{outline:2px solid var(--accent);}
+  .wl-add{display:flex;gap:7px;margin-top:10px;}
+  .wl-in{flex:1;min-width:0;font-size:16px;border:1px solid var(--line2);border-radius:11px;
+         padding:8px 11px;background:var(--card);color:var(--ink);}
+  .wl-in:focus-visible{outline:2px solid var(--accent);outline-offset:-1px;}
+  .wl-add-btn{flex:none;border:0;background:var(--grad);color:#fff;font-size:12.5px;font-weight:700;
+              border-radius:11px;padding:8px 15px;cursor:pointer;white-space:nowrap;}
+  /* export / import (F7) — secondary, side by side */
+  .wl-io{display:flex;gap:7px;margin-top:8px;}
+  .wl-io-btn{flex:1;border:1px solid var(--line2);background:var(--card);color:var(--ink2);
+             font-size:11.5px;font-weight:600;border-radius:9px;padding:6px;cursor:pointer;}
+  .wl-io-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .wl-io-btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  @media (min-width:1120px){ .wl-in{font-size:13px;} }   /* rail: no iOS-zoom concern */
+  /* watched address / your-own-tx highlight */
+  /* watched = lime left-bar (Pro-view parity); mine = cyan */
+  .card.watched{border-color:var(--wat-ln);box-shadow:inset 3px 0 0 var(--wat), var(--shadow);}
+  .card.mine{border-color:var(--accent);background:var(--accent-bg);box-shadow:inset 3px 0 0 var(--accent), var(--shadow);}
+  .card .badge{flex:none;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+               color:var(--accent-deep);background:var(--accent-bg);border-radius:99px;padding:1px 6px;margin-left:6px;align-self:center;}
+
+  /* ===== footer setting bar (adapted from neo) ===== */
+  .flow-footer{flex:none;border-top:1px solid var(--line);background:var(--card);
+               display:flex;align-items:center;gap:10px;padding:8px 14px max(8px, env(safe-area-inset-bottom));min-height:46px;
+               flex-wrap:wrap;}
+  .ff-stats{display:flex;gap:15px;font-size:11px;color:var(--ink2);
+            font-variant-numeric:tabular-nums;}
+  .ff-cell{display:flex;flex-direction:column;line-height:1.3;}
+  .ff-cell .k{font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;font-weight:700;}
+  .ff-cell .v{font-family:'Space Grotesk',var(--sans);font-weight:700;color:var(--ink);}
+  .ff-spacer{flex:1 1 auto;}
+  .control-panel{display:flex;align-items:center;gap:7px;}
+  .ctrl-btn{border:1px solid var(--line);background:var(--card);color:var(--ink2);
+            font-size:12px;border-radius:9px;padding:6px 10px;cursor:pointer;
+            display:inline-flex;align-items:center;gap:5px;line-height:1;}
+  .ctrl-btn:hover{color:var(--accent-deep);border-color:var(--accent);}
+  .ctrl-btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .ctrl-btn svg{width:15px;height:15px;}
+  .ctrl-btn.active{color:var(--accent-deep);border-color:var(--accent);background:var(--accent-bg);}
+  .lang-select{border:1px solid var(--line);background:var(--card);color:var(--ink2);
+               font-size:12px;border-radius:9px;padding:6px 8px;cursor:pointer;max-width:132px;}
+  .lang-select:focus-visible{outline:2px solid var(--accent);}
+  .pro-link{border:1px solid var(--accent);background:transparent;color:var(--accent-deep);
+            font-size:12px;font-weight:600;border-radius:9px;padding:6px 11px;cursor:pointer;
+            text-decoration:none;display:inline-flex;align-items:center;gap:5px;line-height:1;}
+  .pro-link:hover{background:var(--accent-bg);}
+  @media (max-width:520px){
+    .ff-stats{display:none}
+    .ctrl-btn .lbl,.pro-link .lbl{display:none}
+    /* Chips render ~25px tall — below the 44px touch target. Vertical-only
+       overlay (not horizontal) so adjacent chips with a 6px gap don't get
+       overlapping hit-boxes — same pattern as neo's F8 fix. */
+    .chips .chip::after{content:'';position:absolute;left:0;right:0;top:50%;
+                         transform:translateY(-50%);height:44px;}
+  }
+
+  /* ===== rails (desktop progressive enhancement) ===== */
+  .rl-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px 18px;box-shadow:var(--shadow);}
+  .rl-card h3{font-size:10.5px;margin:0 0 9px;color:var(--ink3);font-weight:700;
+              text-transform:uppercase;letter-spacing:.13em;}
+  /* hero glow panel (v2 mock) */
+  .rl-hero{background:linear-gradient(160deg, var(--final-bg) 0%, var(--card) 58%);
+           border-color:var(--final-ln);box-shadow:var(--glow);padding:18px 18px 16px;}
+  .rl-hero .eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--final);}
+  .hero-row{display:flex;align-items:center;gap:10px;margin-top:8px;}
+  .hero-2s .big{font-family:'Space Grotesk',var(--sans);font-size:46px;font-weight:700;color:var(--final);
+                letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1;}
+  .hero-row svg{width:26px;height:26px;margin-top:4px;flex:none;}
+  .hero-2s p{font-size:12.5px;color:var(--ink2);margin:10px 0 0;line-height:1.6;}
+  .hero-2s p b{color:var(--ink);}
+  .rl-stats div{display:flex;justify-content:space-between;font-size:12.5px;padding:6px 0;
+                font-variant-numeric:tabular-nums;gap:12px;border-bottom:1px solid var(--line);}
+  .rl-stats div:last-child{border-bottom:0;}
+  .rl-stats dt{color:var(--ink2);margin:0;} .rl-stats dd{margin:0;font-family:'Space Grotesk',var(--sans);font-weight:700;
+                text-align:right;overflow:hidden;text-overflow:ellipsis;}
+  .rl-stats dd.fin{color:var(--final);}
+
+  /* ===== right rail: narrator log + legend (v2 port) ===== */
+  .rl-narrator{background:linear-gradient(165deg, var(--msg-bg) 0%, var(--card) 55%);border-color:var(--msg-ln);}
+  .narr-avatar{flex:none;width:42px;height:42px;border-radius:12px;object-fit:cover;display:block;
+               background:linear-gradient(135deg, var(--msg), var(--accent));}
+  .narr-head{display:flex;align-items:center;gap:11px;margin-bottom:10px;}
+  .narr-name{font-size:14px;font-weight:700;}
+  .narr-role{font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.1em;font-weight:650;}
+  /* bounded height so the log can't grow the rail unbounded — scrolls past ~3 entries */
+  #narr-log{max-height:230px;overflow-y:auto;}
+  .narr-entry{padding:8px 0;border-top:1px solid var(--line);font-size:11.5px;
+              line-height:1.55;color:var(--ink2);}
+  .narr-time{display:block;font-size:9.5px;color:var(--ink3);font-family:var(--mono);margin-bottom:2px;}
+  .narr-caption{font-size:10.5px;color:var(--ink3);margin:9px 0 0;line-height:1.5;
+                border-top:1px dashed var(--line);padding-top:9px;}
+  .legend-row{display:flex;align-items:center;gap:9px;padding:6px 0;font-size:11.5px;color:var(--ink2);}
+  .legend-dot{flex:none;width:8px;height:8px;border-radius:50%;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important;transition:none !important;}
+    #stream{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#stream" data-i18n="a11y.skip">Skip to the transaction stream</a>
+<h1 class="sr-only" data-i18n="a11y.h1">eCash Live · Flow — live transaction stream</h1>
+<div class="sr-only" id="a11y-live" role="status" aria-live="polite"></div>
+
+<div class="stage">
+  <aside id="rail-left">
+    <div class="rl-card rl-hero hero-2s">
+      <div class="eyebrow" data-i18n="hero.title">Permanently final</div>
+      <div class="hero-row"><span class="big" id="rl-p50">—</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--final)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 13l4 4L14.5 8"/><path d="M9.5 17l1.5 1.5L22 8"/></svg></div>
+      <p><span data-i18n="hero.body1">Every transaction becomes</span>
+        <b data-i18n="hero.body2">irreversible</b>
+        <span data-i18n="hero.body3">in seconds.</span></p>
+    </div>
+    <div class="rl-card rl-stats">
+      <h3 data-i18n="stats.title">Network</h3>
+      <div><dt data-i18n="stats.p50">Median final</dt><dd class="fin" id="rl-p50b">—</dd></div>
+      <div><dt data-i18n="stats.count">Transactions (session)</dt><dd id="rl-count">0</dd></div>
+      <div><dt data-i18n="stats.price">Price</dt><dd id="rl-price">—</dd></div>
+      <div><dt data-i18n="stats.block">Block</dt><dd id="rl-height">—</dd></div>
+    </div>
+    <div class="rl-card rl-learn">
+      <h3 data-i18n="learn.title">Learn</h3>
+      <div class="lrn-list" id="rail-learn-list"></div>
+    </div>
+  </aside>
+
+  <main id="app" data-version="v1.0.0">
+    <div class="app-head">
+      <div class="ah-top">
+        <span class="brand" title="eCash Flow v1.0.0"><svg class="brand-mark" viewBox="0 0 226.37 253.53" role="img" aria-label="eCash Flow"><defs><linearGradient id="ecFlowGrad" x1="40.73" y1="-42.34" x2="163.57" y2="245.29" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#273498"/><stop offset="0.53" stop-color="#0074c2"/><stop offset="1" stop-color="#00abe7"/></linearGradient></defs><path fill="url(#ecFlowGrad)" fill-rule="evenodd" d="M58.19,86.51c15.68-9.09,31.51-18.17,47.19-27.26a15,15,0,0,1,15.25,0l23.3,13.34a2.06,2.06,0,0,1,0,3.52l-57,32.83a4.68,4.68,0,0,0-2.34,4.1V140.6a4.45,4.45,0,0,0,2.34,4l23.9,13.78a4.23,4.23,0,0,0,4.54,0l98.49-56.72c16.71-9.68,16.71-37.52,0-47.2l-88.52-51a23.66,23.66,0,0,0-24.48,0l-88.53,51A24.2,24.2,0,0,0,0,75.67c0,34.15.15,68.15,0,102.15a24.22,24.22,0,0,0,12.31,21.26l88.53,51.15a24.4,24.4,0,0,0,24.48,0l88.52-51.15A23.92,23.92,0,0,0,226,177.82V133.41l-105.38,61a15,15,0,0,1-15.25,0l-47-27.27a14.91,14.91,0,0,1-7.62-13.19V99.56a15,15,0,0,1,7.48-13Z"/></svg><span class="brand-stack"><svg class="brand-word" viewBox="118.9 25 240.7 56.8" fill="currentColor" aria-hidden="true"><path d="M160.6,63.4h-29.5c0.5,2.3,1.8,4.4,3.8,5.7c2.2,1.5,4.8,2.2,7.4,2.1c1.8,0,3.7-0.3,5.4-0.9c1.6-0.6,3.1-1.6,4.4-2.9l6,6.5c-3.7,4.2-9,6.3-16.1,6.3c-4,0.1-8-0.8-11.6-2.6c-3.2-1.6-6-4.1-7.8-7.1c-1.9-3.1-2.8-6.7-2.7-10.3c-0.1-3.6,0.9-7.2,2.7-10.3c1.8-3,4.4-5.5,7.5-7.2c6.6-3.4,14.4-3.4,21-0.1c3,1.6,5.6,4.1,7.3,7.1c1.8,3.3,2.7,6.9,2.6,10.7C160.8,60.5,160.8,61.5,160.6,63.4z M134.2,50.9c-1.8,1.5-2.9,3.6-3.2,5.9h19.2c-0.3-2.3-1.4-4.4-3.2-5.9c-1.8-1.5-4-2.3-6.3-2.2C138.3,48.6,136,49.4,134.2,50.9z"/><path d="M183,77.2c-4.1-2.2-7.5-5.4-9.8-9.3c-4.8-8.4-4.8-18.6,0-27c2.4-4,5.8-7.2,9.8-9.3c4.3-2.3,9.2-3.4,14.1-3.4c4.1-0.1,8.1,0.7,11.9,2.3c3.5,1.5,6.5,3.8,8.9,6.7l-7.5,7c-3.1-3.8-7.8-6-12.7-6c-2.9-0.1-5.8,0.7-8.4,2.1c-2.4,1.3-4.4,3.3-5.8,5.8c-2.8,5.3-2.8,11.5,0,16.8c1.3,2.4,3.3,4.4,5.8,5.8c2.6,1.4,5.5,2.1,8.4,2.1c4.9,0.1,9.6-2.2,12.7-6l7.5,7c-2.4,2.9-5.5,5.2-9,6.7c-3.8,1.6-7.8,2.4-11.9,2.3C192.2,80.7,187.3,79.5,183,77.2z"/><path d="M258,44.5c3.2,2.9,4.8,7.2,4.9,13v22.2h-10.6v-4.8c-2.1,3.6-6.1,5.4-11.9,5.4c-2.7,0.1-5.3-0.5-7.8-1.5c-2-0.9-3.8-2.3-5-4.2c-1.2-1.8-1.8-3.9-1.7-6.1c-0.1-3.3,1.4-6.5,4.1-8.5c2.7-2.1,6.9-3.1,12.6-3.1h9c0.1-2.1-0.7-4.2-2.2-5.7c-1.5-1.3-3.7-2-6.7-2c-2.1,0-4.1,0.3-6.1,1c-1.8,0.6-3.6,1.5-5.1,2.7l-4.1-7.9c2.3-1.6,4.9-2.8,7.6-3.5c3-0.8,6.1-1.2,9.2-1.2C250.1,40.1,254.8,41.6,258,44.5z M248.4,71.3c1.5-0.9,2.6-2.3,3.2-3.9v-4h-7.7c-4.6,0-7,1.5-7,4.6c0,1.4,0.6,2.6,1.7,3.4c1.4,0.9,3,1.4,4.7,1.3C245,72.7,246.8,72.2,248.4,71.3z"/><path d="M280.3,79.1c-2.6-0.6-5.1-1.6-7.4-3l3.8-8.1c2,1.2,4.1,2.1,6.3,2.7c2.4,0.7,4.8,1,7.2,1c4.8,0,7.2-1.2,7.2-3.5c0-1.2-0.9-2.2-2-2.4c-2-0.6-4-1-6-1.2c-2.7-0.4-5.3-0.9-7.9-1.7c-2.1-0.6-3.9-1.8-5.4-3.3c-1.5-1.6-2.3-3.9-2.3-6.8c0-2.3,0.7-4.6,2.1-6.5c1.6-2,3.8-3.6,6.2-4.5c3.1-1.1,6.4-1.7,9.7-1.6c2.8,0,5.5,0.3,8.2,0.9c2.4,0.5,4.7,1.3,6.8,2.5l-3.8,8c-3.4-1.9-7.3-2.9-11.2-2.9c-1.9-0.1-3.7,0.2-5.4,1c-1,0.5-1.8,1.5-1.8,2.6c0,1.2,0.8,2.2,2,2.5c2,0.7,4.1,1.1,6.2,1.4c2.6,0.4,5.2,1,7.8,1.7c2,0.6,3.9,1.7,5.3,3.3c1.6,1.8,2.4,4.2,2.2,6.7c0,2.3-0.7,4.6-2.2,6.4c-1.7,2-3.9,3.5-6.3,4.4c-3.2,1.1-6.5,1.6-9.9,1.6C286.6,80.3,283.4,79.9,280.3,79.1z"/><path d="M354.1,44.5c3,2.9,4.5,7.2,4.5,12.9v22.3h-11.3V59.1c0-3.1-0.7-5.4-2-6.9c-1.5-1.6-3.7-2.4-5.9-2.3c-2.5-0.1-5,0.8-6.8,2.7c-1.7,1.8-2.5,4.4-2.5,7.8v19.3h-11.3V26H330v18.8c1.5-1.5,3.4-2.7,5.4-3.4c2.2-0.8,4.6-1.2,7-1.2C347.2,40.2,351.1,41.6,354.1,44.5z"/></svg><img class="brand-flow wm-l" src="../vendor/flow-wordmark-purple.png" alt="" aria-hidden="true" /><img class="brand-flow wm-d" src="../vendor/flow-wordmark.png" alt="" aria-hidden="true" /></span></span>
+        <canvas id="hb" height="36" data-i18n-aria="a11y.heartbeat"
+                aria-label="Network heartbeat — beats on each finalized transaction"></canvas>
+        <span id="conn"><span class="dot"></span><span id="conn-text" data-i18n="conn.connecting">connecting…</span></span>
+      </div>
+      <div class="ah-stats">
+        <span class="pill final"><span data-i18n="head.final">final</span> <b id="p50">—</b></span>
+        <span class="pill tapish" id="price-pill" role="button" tabindex="0"
+              data-i18n-title="head.priceToggle" title="Tap to switch XEC / 1M XEC">—</span>
+        <span class="pill blockpill"><span data-i18n="pill.block">block</span> <b id="height">—</b></span>
+        <span class="pill"><span data-i18n="head.online">online</span> <b id="f-online">—</b></span>
+      </div>
+    </div>
+
+    <div class="chips" role="group" data-i18n-aria="chips.aria" aria-label="Filter transactions">
+      <button class="chip on" data-f="all" type="button" data-i18n="chip.all">All</button>
+      <button class="chip" data-f="pay" type="button" data-i18n="chip.pay">Payments</button>
+      <button class="chip" data-f="msg" type="button" data-i18n="chip.msg">Messages</button>
+      <button class="chip" data-f="token" type="button" data-i18n="chip.token">Token</button>
+    </div>
+
+    <div class="stream-wrap">
+      <div id="stream" aria-live="off" tabindex="-1">
+        <div id="empty"><span class="breathe" aria-hidden="true"></span><span data-i18n="stream.empty">Waiting for the next transaction on the eCash network…</span></div>
+      </div>
+      <button id="new-pill" type="button" hidden></button>
+      <div id="echan"><img id="echan-avatar" class="e-avatar" src="../vendor/companion/sprites/echan_neutral.webp" alt="eChan" decoding="async" /><div class="echan-body"><span id="echan-text"></span><button id="echan-more" class="echan-more" type="button" hidden></button></div></div>
+      <div id="toast" role="status" aria-live="polite"></div>
+    </div>
+
+    <div class="composer">
+      <div class="cmp-row">
+        <button id="cta-try" class="cmp-cta" type="button" data-i18n="try.cta">Try sending a message on-chain →</button>
+      </div>
+      <div id="compose" class="cmp-expand" hidden>
+        <input id="compose-addr" type="text" inputmode="text" autocapitalize="none" autocorrect="off" spellcheck="false" data-i18n-ph="try.addr" placeholder="Your eCash address (send to yourself)" aria-label="Your eCash address" />
+        <input id="compose-in" type="text" maxlength="215" data-i18n-ph="try.ph" placeholder="Write something onto the blockchain…" aria-label="Message to send on-chain" />
+        <button id="compose-send" type="button" data-i18n="try.send">Send</button>
+      </div>
+      <div id="cmp-hint" class="cmp-hint"></div>
+    </div>
+
+    <div id="learn-bar" class="learn-bar" role="region" data-i18n-aria="learn.aria" aria-label="Learn about eCash">
+      <div class="lrn-list" id="bar-learn-list"></div>
+    </div>
+
+    <div id="watch-bar" class="watch-bar" role="region" data-i18n-aria="watch.title" aria-label="Watch addresses">
+      <div class="wl-list" id="bar-watch-list"></div>
+    </div>
+
+    <div class="flow-footer">
+      <div class="ff-stats">
+        <div class="ff-cell"><span class="k" data-i18n="footer.tps">TPS · 24h</span><span class="v" id="f-tps">—</span></div>
+        <div class="ff-cell"><span class="k" data-i18n="footer.tx24">Tx · 24h</span><span class="v" id="f-tx24">—</span></div>
+      </div>
+      <div class="ff-spacer"></div>
+      <div class="control-panel">
+        <button class="ctrl-btn ctrl-watch" id="btn-watch" type="button"
+                data-i18n-title="watch.title" data-i18n-aria="watch.title" title="Watch addresses" aria-label="Watch addresses" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span class="wat-count" id="wat-count" aria-hidden="true" hidden></span>
+        </button>
+        <button class="ctrl-btn" id="btn-learn" type="button"
+                data-i18n-title="learn.title" data-i18n-aria="learn.aria" title="Learn" aria-label="Learn about eCash">
+          <span aria-hidden="true">?</span>
+        </button>
+        <button class="ctrl-btn" id="btn-pause" type="button" aria-pressed="false"
+                data-i18n-title="ctrl.pause.title" title="Pause the stream">
+          <span aria-hidden="true">❙❙</span><span class="lbl" data-i18n="ctrl.pause">Pause</span>
+        </button>
+        <button class="ctrl-btn" id="btn-theme" type="button"
+                data-i18n-title="ctrl.theme.title" title="Switch light / dark">
+          <span aria-hidden="true" id="theme-glyph">◐</span><span class="lbl" data-i18n="ctrl.theme">Theme</span>
+        </button>
+        <button class="ctrl-btn ctrl-echan" id="btn-echan" type="button" aria-pressed="false"
+                title="Mute eChan" aria-label="eChan">
+          <span class="echan-glyph" aria-hidden="true"></span>
+        </button>
+        <select class="lang-select" id="lang-select" data-i18n-aria="ctrl.lang" aria-label="Language"></select>
+        <a class="pro-link" id="pro-link" href="../">
+          <span class="lbl" data-i18n="ctrl.pro">Pro view</span><span aria-hidden="true">→</span>
+        </a>
+      </div>
+    </div>
+  </main>
+  <aside id="rail-right">
+    <div class="rl-card rl-narrator">
+      <div class="narr-head"><img class="narr-avatar" src="../vendor/companion/sprites/echan_neutral.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+        <div><div class="narr-name">eChan</div><div class="narr-role" data-i18n="narrator.role">narrator</div></div></div>
+      <div id="narr-log"></div>
+      <p class="narr-caption" data-i18n="narrator.caption">explains each thing the first time you see it happen</p>
+    </div>
+    <div class="rl-card rl-watch">
+      <h3 data-i18n="watch.title">Watch addresses</h3>
+      <div class="wl-list" id="rail-watch-list"></div>
+    </div>
+  </aside>
+</div>
+
+<script type="module">
+import { parseTransactionCore, encodeOutputScript, validateCashAddress } from '../vendor/txparse.js?v=p3';
+import { isCashtabExtension, requestAddress as ctRequestAddress, sendBip21 as ctSendBip21 } from '../vendor/cashtab-connect.js?v=1';
+"use strict";
+const $ = (id) => document.getElementById(id);
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ------------------------------------------------------------------ config */
+// Public Chronik REST endpoints (fallback chain) — SAME list + order as neo.
+// chronik.e.cash first (official, CORS-enabled for browsers); chronik1.ecashlive.net
+// LAST — it is the relay/ttf-feed node and does NOT serve general Chronik HTTP with
+// CORS, so it must only be a last resort here (and is used on its own for TTF_FEED_URL).
+const CHRONIK_URLS = [
+  'https://chronik.e.cash',
+  'https://chronik-native1.fabien.cash',
+  'https://chronik-native2.fabien.cash',
+  'https://chronik-native3.fabien.cash',
+  'https://chronik.pay2stay.com/xec',
+  'https://chronik1.ecashlive.net',
+];
+const TTF_FEED_URL = 'wss://chronik1.ecashlive.net/ttf-feed';
+const PRICE_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=ecash&vs_currencies=usd';
+const STATS_FRESH_MS = 15_000;
+const POLL_MS = 5_000;
+const RENDER_CAP = 120;          // hard cap of DOM cards in the stream
+const DUST_XEC = 5.46;           // payments below this fold into the bot/dust group
+const TTF_SANITY_MAX_MS = 3_600_000;
+
+/* ------------------------------------------------------------------ i18n
+   Same 16-language set + same localStorage key ('ecashlive.lang') as the neo
+   dashboard (echan.js I18N_LANGS) so the choice carries across neo <-> Flow.
+   KEEP THIS LIST IN SYNC with vendor/companion/echan.js I18N_LANGS. */
+const I18N_LANGS = [
+  { code:'en',    native:'English' },
+  { code:'de',    native:'Deutsch' },
+  { code:'es',    native:'Español' },
+  { code:'fil',   native:'Filipino' },
+  { code:'fr',    native:'Français' },
+  { code:'id',    native:'Bahasa Indonesia' },
+  { code:'ja',    native:'日本語' },
+  { code:'ko',    native:'한국어' },
+  { code:'pt-BR', native:'Português (BR)' },
+  { code:'ru',    native:'Русский' },
+  { code:'th',    native:'ไทย' },
+  { code:'tr',    native:'Türkçe' },
+  { code:'uk',    native:'Українська' },
+  { code:'vi',    native:'Tiếng Việt' },
+  { code:'zh-CN', native:'简体中文' },
+  { code:'zh-TW', native:'繁體中文' },
+];
+// English base — source of truth + fallback for every missing key. Other
+// languages live in vendor/i18n/flow.<lang>.json (fetched on demand).
+const FLOW_STRINGS_EN = {
+  'a11y.skip':'Skip to the transaction stream',
+  'a11y.h1':'eCash Live · Flow — live transaction stream',
+  'a11y.heartbeat':'Network heartbeat — beats on each finalized transaction',
+  'hero.title':'Permanently final',
+  'hero.body1':'Every transaction becomes',
+  'hero.body2':'irreversible',
+  'hero.body3':'in seconds.',
+  'stats.title':'Network',
+  'stats.p50':'Median final',
+  'stats.count':'Transactions (session)',
+  'stats.price':'Price',
+  'stats.block':'Block',
+  'head.final':'final',
+  'head.priceToggle':'Tap to switch XEC / 1M XEC',
+  'pill.block':'block',
+  'conn.connecting':'connecting…',
+  'conn.live':'live',
+  'conn.reconnecting':'reconnecting…',
+  'conn.offline':'offline',
+  'conn.paused':'paused',
+  'stream.empty':'Waiting for the next transaction on the eCash network…',
+  'card.pay':'Payment',
+  'card.sending':'sending…',
+  'card.final':'final',
+  'card.route':'{from} → {to}',
+  'group.small':'+{n} small transactions',
+  'group.run':'{label} · ×{n}',
+  'group.hint':'bot & dust — tap to view',
+  'divider.block':'block {h} · sealed {n} tx',
+  'divider.blockNoCount':'block {h}',
+  'divider.more':'… and {n} more',
+  'newpill':'↓ {n} new',
+  'footer.tps':'TPS · 24h',
+  'footer.tx24':'Tx · 24h',
+  'head.online':'online',
+  'ctrl.pause':'Pause',
+  'ctrl.pause.title':'Pause the stream',
+  'ctrl.resume':'Resume',
+  'ctrl.resume.title':'Resume the stream',
+  'ctrl.theme':'Theme',
+  'ctrl.theme.title':'Switch light / dark',
+  'ctrl.lang':'Language',
+  'ctrl.echan.mute':'Mute eChan',
+  'ctrl.echan.unmute':'Unmute eChan',
+  'ctrl.pro':'Dashboard',
+  'a11y.final':'{label} {amount}, permanently final after {sec}',
+  'a11y.finalNoTime':'{label} {amount}, permanently final',
+  'a11y.sending':'{label} {amount}, sending',
+  'chips.aria':'Filter transactions',
+  'chip.all':'All',
+  'chip.pay':'Payments',
+  'chip.msg':'Messages',
+  'chip.token':'Token',
+  'trade.buy':'Buy',
+  'trade.list':'List',
+  'trade.relist':'Relist',
+  'trade.cancel':'Cancel',
+  'trade.market':'Agora market',
+  'token.transfer':'token transfer',
+  't2.mine':'your message · ',
+  't2.watched':'watched · ',
+  'msg.sub':'on-chain message',
+  'msg.encrypted':'Encrypted message',
+  'msg.generic':'Message',
+  'powr.title':'Proof of Writing',
+  'powr.sub':'on-chain content',
+  'sh.time':'Time',
+  'sh.route':'From → to',
+  'sh.block':'Block',
+  'sh.blockPending':'awaiting a block',
+  'sh.txid':'Transaction ID',
+  'sh.tokenId':'Token ID',
+  'sh.explorer':'View on explorer',
+  'sh.share':'Share',
+  'sh.final':'Permanently final after {sec} — irreversible',
+  'sh.finalNoTime':'Permanently final — irreversible',
+  'sh.pending':'Sending into the network…',
+  'sh.hero':'Bitcoin needs ~60 minutes for comparable assurance.',
+  'share.notFound':'Transaction not found',
+  'toast.copied':'Link copied',
+  'copy.done':'Copied',
+  'echan.more':'Tell me more →',
+  'echan.greet':'Hi! I am eChan — I will point out what is happening on the network.',
+  'echan.firstFinal':'See the ✓✓? The whole network just agreed to seal that payment — permanently, irreversibly — in seconds. Bitcoin needs ~60 minutes for comparable assurance.',
+  'echan.firstBlock':'That divider is a block — it just packages transactions that were ALREADY final. On eCash, finality comes first, the block after.',
+  'echan.firstTrade':'That is an Agora trade — the on-chain token marketplace on eCash.',
+  'echan.firstMsg':'That is an on-chain message — written straight onto the blockchain, forever.',
+  'echan.firstMine':'Done! Your message is now on the blockchain — permanently, in seconds. Bitcoin needs ~60 minutes for comparable assurance.',
+  'try.cta':'Try sending a message on-chain →',
+  'try.ph':'Write something onto the blockchain…',
+  'try.addr':'Your eCash address (send to yourself)',
+  'try.send':'Send',
+  'try.hint':'Cashtab opens for you to pick a recipient and sign — Flow highlights your transaction when it lands here.',
+  'try.hintExt':'Cashtab is connected — Flow will send from your wallet and highlight your transaction here.',
+  'try.sent':'Opened Cashtab. Flow will highlight your message when it appears.',
+  'try.sentExt':'Sent! Flow will highlight your transaction when it lands.',
+  'try.confirm':'Confirm in Cashtab…',
+  'try.needAddr':'Enter your eCash address to send to yourself.',
+  'try.badAddr':'That eCash address isn’t valid.',
+  'try.denied':'Send cancelled.',
+  'try.timeout':'Cashtab didn’t respond — try again.',
+  'try.toolong':'Message too long (max 215 bytes).',
+  'watch.title':'Watch addresses',
+  'watch.ph':'Paste an eCash address',
+  'watch.set':'Watch',
+  'watch.add':'Add',
+  'watch.remove':'Remove',
+  'watch.full':'You can watch up to {n} addresses.',
+  'watch.namePh':'Name (optional)',
+  'watch.empty':'No addresses yet — add one to highlight its transactions.',
+  'watch.on':'Watching {addr} — its transactions are highlighted.',
+  'watch.invalid':"That doesn't look like an eCash address.",
+  'watch.cleared':'Watch cleared.',
+  'watch.export':'Export',
+  'watch.import':'Import',
+  'watch.imported':'{added} added · {dup} duplicate · {skipped} skipped',
+  'watch.importBad':"Couldn't read that file.",
+  'learn.title':'Learn',
+  'learn.aria':'Learn about eCash',
+  'learn.more':'Learn more ↗',
+  'learn.q1':'Why does a payment finalize in ~2 seconds?',
+  'learn.a1':'The moment you send, eCash nodes vote on your transaction in real time and quickly agree it is valid — this is Avalanche pre-consensus. That makes the payment final and irreversible in about two seconds, before any block is mined.',
+  'learn.q2':'What is Avalanche?',
+  'learn.a2':'Avalanche is a consensus method where each node repeatedly asks a small random sample of other nodes what they think, and the whole network converges on the same answer within seconds. eCash uses it to finalize every transaction ahead of blocks.',
+  'learn.q3':'What is a block for, if it is already final?',
+  'learn.a3':'A block is the permanent record. Avalanche makes a payment final in seconds, and the next block simply writes it into the long-term chain history — so on eCash finality comes first, and the block is the durable archive that follows.',
+  'learn.q4':'Final vs 6 confirmations?',
+  'learn.a4':'On Bitcoin you wait about six blocks (~60 minutes) before a payment is considered safe. eCash is different: Avalanche finality means the network has already agreed the payment is irreversible in seconds, with no confirmations to wait for.',
+  'learn.q5':'What is XEC, and what are the fees?',
+  'learn.a5':'XEC is the coin of the eCash network — you send and receive it like digital cash. Fees are tiny, usually a small fraction of a cent, so even very small payments make sense.',
+  'learn.q6':'What are tokens and Agora trades?',
+  'learn.a6':'Anyone can create a token on eCash — a coin, a collectible, or an NFT. Agora is the on-chain marketplace where those tokens are listed and traded directly between wallets, which is why you see List and Buy cards in the stream.',
+  'legend.title':'Reading the stream',
+  'legend.pay':'payments — USD first, route below',
+  'legend.msg':'messages — written on-chain, forever',
+  'legend.token':'tokens & Agora trades',
+  'legend.fin':'green is reserved for finality — ✓✓',
+  'narrator.caption':'explains each thing the first time you see it happen',
+  'narrator.role':'narrator',
+};
+let lang = 'en';
+let pack = null;                 // current non-EN pack (object of key->string) or null
+function t(key){ return (pack && pack[key] != null ? pack[key] : FLOW_STRINGS_EN[key]) ?? key; }
+function tf(key, vars){
+  return String(t(key)).replace(/\{(\w+)\}/g, (_, k) => (vars && vars[k] != null ? vars[k] : ''));
+}
+function localeFor(code){ try { new Intl.NumberFormat(code); return code; } catch { return 'en'; } }
+async function loadPack(code){
+  if (code === 'en'){ pack = null; return; }
+  try {
+    const r = await fetch(`../vendor/i18n/flow.${code}.json`, { cache:'no-cache' });
+    if (r.ok){ const j = await r.json(); pack = j.strings || j; }
+    else pack = null;
+  } catch { pack = null; }  // fall back to EN, never break
+}
+function applyStatic(){
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = t(el.dataset.i18nTitle); });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => { el.setAttribute('aria-label', t(el.dataset.i18nAria)); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  document.documentElement.lang = lang;
+}
+async function setLang(code){
+  if (!I18N_LANGS.some(l => l.code === code)) return;
+  lang = code;
+  const sel = $('lang-select'); if (sel && sel.value !== code) sel.value = code; // keep the picker in sync
+  try { localStorage.setItem('ecashlive.lang', code); } catch {}
+  await loadPack(code);
+  applyStatic();
+  relabelDynamic();
+  updateStatsUI();
+  // applyStatic() just reset these two stateful nodes to their default-key
+  // text — re-assert the REAL runtime state in the new language (B3). Guard
+  // against the (unreachable in practice, but defensive) case where setLang()
+  // somehow runs before setConn() has ever been called once (paintConn()'s
+  // paused branch is always safe; only the non-paused branch needs a key).
+  if (state.paused || lastConnKey !== null) paintConn();
+  renderPauseLabel();
+  if (typeof renderEchanToggle === 'function') renderEchanToggle();   // stateful title (mute/unmute) in the new language
+  if (typeof renderAllLearn === 'function') renderAllLearn();   // JS-built accordion, re-render in the new language
+  if (typeof renderAllWatch === 'function') renderAllWatch();   // re-render the watchlist panel (labels/placeholders)
+  if (typeof loadEchanSeed === 'function') loadEchanSeed();     // reload eChan dialog pool in the new language
+}
+function pickInitialLang(){
+  let saved = null;
+  try { saved = localStorage.getItem('ecashlive.lang'); } catch {}
+  if (saved && I18N_LANGS.some(l => l.code === saved)) return saved;
+  const nav = (navigator.language || 'en');
+  const exact = I18N_LANGS.find(l => l.code.toLowerCase() === nav.toLowerCase());
+  if (exact) return exact.code;
+  const base = nav.split('-')[0].toLowerCase();
+  const partial = I18N_LANGS.find(l => l.code.split('-')[0].toLowerCase() === base);
+  return partial ? partial.code : 'en';
+}
+
+/* ------------------------------------------------------------------ theme
+   Flow-only key (deliberately NOT shared with neo — neo's theme system is a
+   separate work-in-progress). Default = follow the system preference. */
+const THEME_KEY = 'ecashlive:flow:theme';
+function currentTheme(){
+  const attr = document.documentElement.getAttribute('data-theme');
+  if (attr) return attr;
+  return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+function applyThemeGlyph(){
+  const th = document.documentElement.getAttribute('data-theme');
+  $('theme-glyph').textContent = th === 'light' ? '☀' : th === 'dark' ? '☾' : '◐';
+}
+function initTheme(){
+  let s = null; try { s = localStorage.getItem(THEME_KEY); } catch {}
+  if (s === 'light' || s === 'dark') document.documentElement.setAttribute('data-theme', s);
+  applyThemeGlyph();
+}
+function toggleTheme(){
+  const next = currentTheme() === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  try { localStorage.setItem(THEME_KEY, next); } catch {}
+  applyThemeGlyph();
+  hbReadCols();
+}
+
+/* ------------------------------------------------------------------ icons */
+function svg(inner){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+inner+'</svg>'; }
+const IC = {
+  check:  svg('<path d="M4 12.5l5 5L20 7"/>'),
+  checks: svg('<path d="M2 13l4 4L14.5 8"/><path d="M9.5 17l1.5 1.5L22 8"/>'),
+  // finality draw-in (v2 port) — used ONLY at the real finalize transition
+  // (finalize(), never setCardText/relabelDynamic), so it fires exactly once.
+  checksAnimated: svg(
+    '<path d="M2 13l4 4L14.5 8" pathLength="44" style="stroke-dasharray:44;animation:checkdraw .32s ease-out both"/>' +
+    '<path d="M9.5 17l1.5 1.5L22 8" pathLength="44" style="stroke-dasharray:44;animation:checkdraw .32s ease-out .14s both"/>'
+  ),
+  coin:   svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9M9.5 9.8c0-1 1.1-1.8 2.5-1.8s2.5.8 2.5 1.8-1 1.6-2.5 2c-1.5.4-2.5 1-2.5 2s1.1 1.8 2.5 1.8 2.5-.8 2.5-1.8"/>'),
+  cube:   svg('<path d="M12 2.8l8.2 4.6v9.2L12 21.2l-8.2-4.6V7.4z"/><path d="M12 21.2V12M3.8 7.4L12 12l8.2-4.6"/>'),
+  stack:  svg('<path d="M12 3.5l9 4.5-9 4.5-9-4.5z"/><path d="M3 13l9 4.5L21 13"/>'),
+  msg:    svg('<path d="M4 5.5h16v10.5H10l-5.5 4v-4H4z"/>'),
+  swap:   svg('<path d="M17 3.5l3.5 3.5L17 10.5M20.5 7H5M7 13.5L3.5 17 7 20.5M3.5 17H19"/>'),
+  pen:    svg('<path d="M4.5 19.5l3.8-.9L19.5 7.4l-2.9-2.9L5.4 15.7z"/><path d="M13.7 7.4l2.9 2.9"/>'),
+  bell:    svg('<path d="M18 8.5a6 6 0 10-12 0c0 6-2.4 7.5-2.4 7.5h16.8S18 14.5 18 8.5z"/><path d="M10.4 19.5a1.8 1.8 0 003.2 0"/>'),
+  bellOff: svg('<path d="M18 8.5a6 6 0 10-12 0c0 6-2.4 7.5-2.4 7.5h16.8S18 14.5 18 8.5z"/><path d="M10.4 19.5a1.8 1.8 0 003.2 0"/><path d="M4 4l16 16"/>'),
+};
+
+/* ------------------------------------------------------------------ helpers */
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtInt(n){ try { return Number(n).toLocaleString(localeFor(lang)); } catch { return String(n); } }
+// Magnitude-aware TPS (matches neo/echan.js fmtTps): eCash's real finalized-tx
+// rate is a fraction of 1 TPS, so plain rounding shows a misleading "0" — keep
+// enough decimals to stay truthful for small values, drop noise for large ones.
+function fmtTps(v){
+  if (typeof v !== 'number' || !isFinite(v)) return '—';
+  if (v >= 10)  return String(Math.round(v));
+  if (v >= 1)   return v.toFixed(1).replace(/\.0$/, '');
+  if (v >= 0.1) return v.toFixed(2);
+  if (v >= 0.001) return v.toFixed(v >= 0.01 ? 2 : 3);
+  if (v > 0)    return '< 0.001';
+  return '0';
+}
+function fmtSec(ms){
+  try { return (ms/1000).toLocaleString(localeFor(lang), {minimumFractionDigits:1, maximumFractionDigits:1}) + 's'; }
+  catch { return (ms/1000).toFixed(1) + 's'; }
+}
+function fmtUsd(n){
+  if (n == null || !isFinite(n)) return '—';
+  const digits = n >= 100 ? 2 : n >= 1 ? 2 : n >= 0.01 ? 4 : 6;
+  try { return '$' + n.toLocaleString(localeFor(lang), {minimumFractionDigits:2, maximumFractionDigits:digits}); }
+  catch { return '$' + n.toFixed(digits); }
+}
+function shortAddr(a){
+  if (!a) return '';
+  const s = a.replace(/^ecash:/, '');
+  return s.length > 12 ? s.slice(0,6) + '…' + s.slice(-4) : s;
+}
+
+/* ------------------------------------------------------------------ state */
+const state = {
+  txs: new Map(),          // txid -> tx object (with .el)
+  finals: [],              // recent final {id, ttf} for the session p50
+  sinceBlock: [],          // txs finalized since the last block divider (for stamping)
+  count: 0,                // session finalized count
+  height: 0,               // latest known tip height (display only)
+  lastSealedHeight: 0,     // last height a divider was actually sealed for (B5 guard)
+  atBottom: true,
+  unseen: 0,
+  paused: false,
+  filter: 'all',           // active filter chip: all | pay | msg | token
+  expandedId: null,        // txid of the card whose inline detail is open (accordion)
+  lastGroup: null,         // active bot/dust group card
+  groups: new Map(),       // gkey -> run-collapse group (Agora relists, token/broadcast repeats)
+  sendingSet: new Set(),   // txids with a live "sending" stopwatch (v2 port)
+  narratorLog: [],         // in-memory-only narrator history, capped at 5 (v2 port, right rail)
+  tokenInfo: new Map(),    // tokenId -> {ticker,name,decimals} lazy cache, cap 200 (B15)
+  hiddenAt: 0,             // last time the tab went hidden (wake guard)
+  xecUsd: 0,               // per-XEC USD
+  per1m: false,            // price-pill display mode
+  relayStats: null,
+  relayStatsAt: 0,
+  chronik: null,
+  ws: null,
+  ttfWs: null,
+  subscribed: new Set(),
+};
+try { state.per1m = localStorage.getItem('ecashlive:flow:price:per1m') === '1'; } catch {}
+
+/* ------------------------------------------------------------------ heartbeat
+   A taut blue "string" drawn as a soft audio waveform. At rest it's a flat
+   glowing line. Each real event PLUCKS the centre, sending a smooth (velvet)
+   Gaussian swell that travels outward and bounces off the ends, decaying:
+   • tx / finalize displace the string to ONE side, ALTERNATING up/down each
+     event (asymmetric) — tx small/quick, finalize medium.
+   • block opens a TOP-BOTTOM SYMMETRIC band around the string — big/slow, and
+     the strongest colour.
+   The whole line's colour is a PRIORITY-weighted blend (block > finalize > tx;
+   calm = blue). Glow is theme-aware: full neon in dark (incl. the idle line),
+   minimal in light (glow muddies a light bg — a crisp saturated stroke reads
+   better). DPR-aware, rAF-driven. Honest: swells come only from real events. */
+const hb = $('hb'), hbx = hb.getContext('2d');
+const HBH = 36, HB_BASE = HBH/2;
+// Per-kind pluck spec: A0 = peak displacement (px), sigma/speedFrac scale with
+// width, tau = decay time-constant (ms) (block > final > tx), prio = colour
+// weight (block > final > tx), sym = top-bottom-symmetric band (block only).
+const HB_KINDS = {
+  tx:    { A0: 9,  sigmaFrac: 0.045, speedFrac: 1.00, tau: 600,  col: 'acc', prio: 1, sym: false },
+  final: { A0: 14, sigmaFrac: 0.055, speedFrac: 0.80, tau: 1000, col: 'fin', prio: 2, sym: false },
+  block: { A0: 16, sigmaFrac: 0.075, speedFrac: 0.55, tau: 1600, col: 'tok', prio: 4, sym: true  },
+};
+const HB_ATTACK = 110;   // ms ease-out "bloom" so a pluck never pops in at full height
+const HB_LOBE = 0.28;    // Ricker side-lobe strength (slight undershoot = wave, not blob)
+const HB_DISP = 0.9;     // dispersion: pulses widen + flatten per width travelled
+let hbPlucks = [];   // active {t0,A0,sigmaFrac,speedFrac,tau,col,prio,sym,dir}; cap 16 (§10)
+let hbDir = 1;       // flips each asymmetric (tx/final) pluck → alternating up/down
+let hbW = 0, hbLight = false;
+let hbRGB = { acc:[1,160,224], fin:[0,231,129], tok:[255,184,0] };
+function hbRgb(hex){
+  let h = String(hex).replace('#',''); if (h.length===3) h = h.split('').map(c=>c+c).join('');
+  const n = parseInt(h,16); if (!isFinite(n)) return [120,120,140];
+  return [(n>>16)&255,(n>>8)&255,n&255];
+}
+function hbReadCols(){
+  const cs = getComputedStyle(document.documentElement);
+  const g = (n, fb) => (cs.getPropertyValue(n).trim() || fb);
+  hbRGB = { acc:hbRgb(g('--accent','#01A0E0')), fin:hbRgb(g('--final','#00E781')), tok:hbRgb(g('--token','#FFB800')) };
+  hbLight = currentTheme() === 'light';
+}
+hbReadCols();
+function hbResize(){
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const w = Math.max(60, hb.clientWidth | 0);
+  const bw = Math.round(w*dpr), bh = Math.round(HBH*dpr);
+  if (hb.width !== bw || hb.height !== bh){ hb.width = bw; hb.height = bh; }
+  hbx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  hbW = w;
+  return w;
+}
+// Triangle-fold a travelling hump centre into [0,w] so it bounces off the ends.
+function hbFold(p, w){ const per = 2*w; let m = ((p % per) + per) % per; return m <= w ? m : 2*w - m; }
+// Theme-aware string style: dark = neon glow (incl. at rest); light = crisp
+// stroke + a soft 1px drop shadow (glow muddies a light bg, shadow gives depth).
+function hbLineStyle(col, sumEnv){
+  hbx.lineJoin = 'round'; hbx.lineCap = 'round';
+  hbx.lineWidth = hbLight ? 2.1 : 1.8;
+  hbx.strokeStyle = col;
+  if (hbLight){
+    hbx.shadowColor = 'rgba(16,26,70,.30)'; hbx.shadowBlur = 2; hbx.shadowOffsetY = 1;
+  } else {
+    hbx.shadowColor = col; hbx.shadowBlur = Math.max(6, Math.min(12, 4 + sumEnv*0.5)); hbx.shadowOffsetY = 0;
+  }
+}
+function hbResetShadow(){ hbx.shadowBlur = 0; hbx.shadowOffsetY = 0; }
+function hbFlat(w){   // resting / reduced-motion — SAME style the active path decays into
+  hbx.clearRect(0, 0, w, HBH);
+  const c = hbRGB.acc;
+  hbLineStyle('rgb('+c[0]+','+c[1]+','+c[2]+')', 0);
+  hbx.beginPath(); hbx.moveTo(0, HB_BASE); hbx.lineTo(w, HB_BASE); hbx.stroke();
+  hbResetShadow();
+}
+// Smooth "velvet" stroke through sample points (quadratic midpoints, no facets).
+function hbStrokeSmooth(xs, ys){
+  hbx.beginPath(); hbx.moveTo(xs[0], ys[0]);
+  for (let i=1;i<xs.length-1;i++){
+    hbx.quadraticCurveTo(xs[i], ys[i], (xs[i]+xs[i+1])/2, (ys[i]+ys[i+1])/2);
+  }
+  hbx.lineTo(xs[xs.length-1], ys[xs.length-1]);
+  hbx.stroke();
+}
+function hbDraw(w, t){
+  const active = []; let sumEnv = 0;
+  for (const p of hbPlucks){
+    const age = t - p.t0;
+    let env = p.A0 * Math.exp(-age / p.tau);
+    const atk = Math.min(1, age / HB_ATTACK);
+    env *= atk * (2 - atk);                       // ease-out bloom (no pop-in)
+    if (env < 0.15 && age > HB_ATTACK) continue;  // fully decayed
+    const travelFrac = p.speedFrac * (age/1000);  // distance in canvas-widths
+    const spread = 1 + HB_DISP * travelFrac;      // dispersion: wider + flatter
+    active.push({ p, travel: travelFrac * w, env: env / Math.sqrt(spread),
+                  sig: p.sigmaFrac * w * spread });
+    sumEnv += env / Math.sqrt(spread);
+  }
+  hbPlucks = active.map(a => a.p);   // prune fully-decayed
+  if (!active.length){ hbFlat(w); return; }
+  // priority-weighted colour blend (block > finalize > tx; base blue when calm)
+  const baseW = 2.0, base = hbRGB.acc;
+  let r = baseW*base[0], g = baseW*base[1], b = baseW*base[2], tw = baseW;
+  for (const a of active){ const c = hbRGB[a.p.col], wgt = a.env*a.p.prio; r += wgt*c[0]; g += wgt*c[1]; b += wgt*c[2]; tw += wgt; }
+  r = Math.round(r/tw); g = Math.round(g/tw); b = Math.round(b/tw);
+  const col = 'rgb('+r+','+g+','+b+')';
+  // per-column: signed centre line (tx/final, alternating) + symmetric block band.
+  // Each hump is a Ricker-ish shape: (1 − rk·d²)·e^(−d²/2σ²) — the slight
+  // undershoot on both flanks makes it read as a wave on a string, not a blob.
+  const cx = w/2, step = 3, xs = [], ly = [], half = [], TOP = 1, BOT = HBH-1;
+  for (let x = 0; x <= w; x += step){
+    let line = 0, band = 0;
+    for (const a of active){
+      const twoSig = 2*a.sig*a.sig, rk = HB_LOBE/(a.sig*a.sig);
+      const xL = hbFold(cx - a.travel, w), xR = hbFold(cx + a.travel, w);
+      const dl = x - xL, dr = x - xR;
+      const gv = a.env * ((1 - rk*dl*dl)*Math.exp(-(dl*dl)/twoSig) + (1 - rk*dr*dr)*Math.exp(-(dr*dr)/twoSig));
+      if (a.p.sym) band += gv; else line += a.p.dir * gv;
+    }
+    let y = HB_BASE - line; if (y < TOP) y = TOP; if (y > BOT) y = BOT;
+    let h = band; if (h < 0) h = 0;
+    const room = Math.min(y - TOP, BOT - y); if (h > room) h = room;
+    xs.push(x); ly.push(y); half.push(h);
+  }
+  hbx.clearRect(0, 0, w, HBH);
+  hbx.lineJoin = 'round'; hbx.lineCap = 'round';
+  // area fill between the string and its rest position (waveform "energy")
+  hbx.beginPath(); hbx.moveTo(xs[0], ly[0]);
+  for (let i=1;i<xs.length;i++) hbx.lineTo(xs[i], ly[i]);
+  hbx.lineTo(xs[xs.length-1], HB_BASE); hbx.lineTo(xs[0], HB_BASE); hbx.closePath();
+  hbx.fillStyle = 'rgba('+r+','+g+','+b+','+(hbLight?0.16:0.12)+')'; hbx.fill();
+  // symmetric block band fill (velvet); zero-area when no block active
+  hbx.beginPath(); hbx.moveTo(xs[0], ly[0]-half[0]);
+  for (let i=1;i<xs.length;i++) hbx.lineTo(xs[i], ly[i]-half[i]);
+  for (let i=xs.length-1;i>=0;i--) hbx.lineTo(xs[i], ly[i]+half[i]);
+  hbx.closePath();
+  hbx.fillStyle = 'rgba('+r+','+g+','+b+','+(hbLight?0.22:0.16)+')'; hbx.fill();
+  // the string itself
+  hbLineStyle(col, sumEnv);
+  hbStrokeSmooth(xs, ly);
+  hbResetShadow();
+}
+function hbLoop(ts){ const w = hbResize(); hbDraw(w, ts); requestAnimationFrame(hbLoop); }
+// Real network-event hooks. beat() keeps its name (called from finalize()).
+// Reduced motion → no plucks accumulate (strip stays a static flat line).
+function hbSignal(kind){
+  if (reduced) return;
+  const spec = HB_KINDS[kind] || HB_KINDS.tx;
+  let dir = 0;
+  if (!spec.sym){ hbDir = -hbDir; dir = hbDir; }   // alternate up/down each tx/final
+  hbPlucks.push({ t0: performance.now(), A0: spec.A0, sigmaFrac: spec.sigmaFrac,
+                  speedFrac: spec.speedFrac, tau: spec.tau, col: spec.col, prio: spec.prio, sym: spec.sym, dir });
+  if (hbPlucks.length > 16) hbPlucks.shift();   // hard cap (§10)
+}
+function beat(){ hbSignal('final'); }
+if (reduced){ hbFlat(hbResize()); } else { requestAnimationFrame(hbLoop); }
+setInterval(hbReadCols, 1500);   // retint with the theme
+
+/* ------------------------------------------------------------------ pacing */
+const stream = $('stream'), newPill = $('new-pill');
+stream.addEventListener('scroll', () => {
+  state.atBottom = stream.scrollTop + stream.clientHeight >= stream.scrollHeight - 48;
+  if (state.atBottom){ state.unseen = 0; newPill.hidden = true; newPill.classList.remove('show'); }
+});
+newPill.addEventListener('click', () => { stream.scrollTop = stream.scrollHeight; });
+function appended(){
+  if (state.atBottom){ stream.scrollTop = stream.scrollHeight; }
+  else {
+    state.unseen++;
+    newPill.hidden = false;
+    newPill.textContent = tf('newpill', { n: fmtInt(state.unseen) });
+    newPill.classList.add('show');
+  }
+  // Burst cap: evict the oldest DOM nodes — cards, dividers, dust/run groups —
+  // so the stream never grows unbounded (CLAUDE.md §10). Node type doesn't
+  // matter: whatever has been in the stream longest goes first.
+  while (stream.children.length > RENDER_CAP){
+    const node = stream.firstElementChild;
+    if (!node) break;
+    // If the oldest node is the currently-expanded card (scrolled to the very top
+    // under a long burst), close it first so its detail isn't stranded.
+    const expTx = state.expandedId ? state.txs.get(state.expandedId) : null;
+    if (expTx && (node === expTx.el || node === expTx._detail)){
+      collapseCard(expTx); state.expandedId = null;
+      if (expTx._detail && expTx._detail.parentNode) expTx._detail.remove();
+      expTx._detail = null;
+    }
+    // Evict the node together with any inline detail trailing it (card-detail /
+    // grp-detail / div-detail) so a detail panel is never orphaned above the stream.
+    const sib = node.nextElementSibling;
+    node.remove();
+    if (sib && (sib.classList.contains('card-detail') || sib.classList.contains('grp-detail') || sib.classList.contains('div-detail'))) sib.remove();
+  }
+}
+function announce(msg){ const el = $('a11y-live'); if (!el) return; el.textContent = ''; setTimeout(() => { el.textContent = msg; }, 30); }
+
+/* ------------------------------------------------------------------ card render */
+function hideEmpty(){ const e = $('empty'); if (e) e.remove(); }
+function labelPay(tx){
+  const usd = tx.valueXec != null && state.xecUsd ? fmtUsd(tx.valueXec * state.xecUsd) : (tx.valueXec != null ? fmtInt(Math.round(tx.valueXec)) + ' XEC' : '');
+  return usd;
+}
+function shortId(id){ return id ? (id.slice(0,6) + '…' + id.slice(-4)) : ''; }
+// ---- token/NFT icon (icons.etokens.cash), CSP-safe fallback ----
+const TOKEN_ICON_BASE = 'https://icons.etokens.cash';
+function tokenFallbackSvg(letter, bg){
+  const l = (letter || '◆').slice(0, 2);
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="16" fill="' + bg +
+    '"/><text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-family="ui-monospace,monospace" font-size="14" font-weight="700" fill="rgba(255,255,255,.9)">' + l + '</text></svg>';
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+// Returns an <img> string or null. tokenId is hex-gated; on CDN miss a delegated
+// capture-phase 'error' listener (below) swaps to the inline SVG letter badge —
+// no inline onerror (would break the CSP).
+function tokenIconImg(tokenId, isNft, size){
+  if (!tokenId || !/^[0-9a-f]{64}$/i.test(tokenId)) return null;
+  const id = tokenId.toLowerCase();
+  const px = size || 64;   // CDN size bucket: 128 for the sunk decoration, 512 for the expanded band
+  const src = TOKEN_ICON_BASE + '/' + px + '/' + id + '.png';
+  const fb = tokenFallbackSvg(isNft ? '★' : '◆', isNft ? '#5E0EAE' : '#0074c2').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+  return '<img class="tok-ic" src="' + src + '" alt="" loading="lazy" decoding="async" data-token-icon="1" data-fallback="' + fb + '" />';
+}
+document.addEventListener('error', (ev) => {
+  const t = ev.target;
+  if (!t || t.tagName !== 'IMG' || t.dataset.tokenIcon !== '1') return;
+  const fb = t.dataset.fallback; if (!fb) return;
+  t.dataset.tokenIcon = ''; t.src = fb;   // one swap; the fallback data-URI never errors
+}, true);
+// Classify a tx into a card kind (icon + filter category). STABLE (no i18n),
+// computed once at admit — kind='pay' payment, 'msg' message, 'powr' Proof of
+// Writing, 'trade' Agora, 'token' plain token transfer. filter f ∈ pay|msg|token.
+function txKind(tx){
+  if (tx.agora && tx.agora.detected) return { kind:'trade', f:'token', icon:IC.swap };
+  if (tx.token)                      return { kind:'token', f:'token', icon:IC.coin };
+  if (tx.message){
+    if (tx.message.type === 'powr')  return { kind:'powr',  f:'msg',   icon:IC.pen };
+    return { kind:'msg', f:'msg', icon:IC.msg };
+  }
+  return { kind:'pay', f:'pay', icon:IC.coin };
+}
+// Token display name: hardcoded override ticker → fetched ticker/name → short
+// tokenId. Never invented — a token with no genesisInfo shows its short id.
+function tokenName(tx){
+  const tk = tx.token || {};
+  return tk.ticker || tk.name || shortId(tk.tokenId);
+}
+// Token quantity from real atoms ÷ 10^decimals. Returns null until decimals is
+// known (fetchTokenTicker resolved) — we never show a raw-atoms figure that
+// would read wrong, so a not-yet-resolved token card shows just its name/id.
+function tokenQty(tx){
+  const tk = tx.token || {};
+  if (tk.amount == null || tk.decimals == null) return null;
+  let atoms; try { atoms = BigInt(tk.amount); } catch { return null; }
+  const dec = tk.decimals || 0;
+  const v = dec > 0 ? Number(atoms) / Math.pow(10, dec) : Number(atoms);
+  if (!isFinite(v)) return null;
+  try { return v.toLocaleString(localeFor(lang), { maximumFractionDigits: Math.min(dec, 4) }); }
+  catch { return String(v); }
+}
+// Lazy token ticker/name/decimals cache (B15, pulled forward). One
+// chronik.token() per tokenId, deduped by the stored promise, result cached
+// (cap 200 — CLAUDE.md §10). On resolve, re-render every visible card of that
+// token so the real name fills in. Failures cache an empty record (no retry
+// storm). Honesty: never fabricates — an unresolved token shows its short id.
+function applyTokenInfo(tx, rec){
+  if (!tx.token || !rec) return;
+  if (rec.ticker && !tx.token.ticker) tx.token.ticker = rec.ticker;
+  if (rec.name && !tx.token.name) tx.token.name = rec.name;
+  tx.token.decimals = rec.decimals || 0;
+}
+// A resolved-good record is a plain object with ok:true; an in-flight fetch is
+// a Promise (thenable); a failure caches ok:false + retryAfter so the next tx of
+// that token retries after a short cool-down instead of being stuck on the short
+// id for the whole session (mirrors neo's tokenInfoRetryAfter — the "v1.x bug"
+// was caching an empty record permanently on one transient failure). F2.
+const TOKEN_INFO_FAIL_TTL_MS = 3000;
+function resolvedTokenRec(tokenId){
+  const c = state.tokenInfo.get(tokenId);
+  return (c && typeof c.then !== 'function' && c.ok) ? c : null;
+}
+function fetchTokenTicker(tokenId){
+  if (!tokenId || !/^[0-9a-f]{64}$/i.test(tokenId) || !state.chronik) return;
+  const cached = state.tokenInfo.get(tokenId);
+  if (cached){
+    if (typeof cached.then === 'function') return;                    // in-flight
+    if (cached.ok) return;                                            // resolved good
+    if (cached.retryAfter && Date.now() < cached.retryAfter) return;  // failure, cooling down
+    // else: prior failure, cool-down elapsed → fall through and retry
+  }
+  const p = state.chronik.token(tokenId).then(info => {
+    const gi = (info && info.genesisInfo) || {};
+    const rec = { ok:true, ticker: gi.tokenTicker || '', name: gi.tokenName || '', decimals: gi.decimals || 0 };
+    state.tokenInfo.set(tokenId, rec);
+    if (state.tokenInfo.size > 200){ const k = state.tokenInfo.keys().next().value; if (k && k !== tokenId) state.tokenInfo.delete(k); }
+    // Apply to every tracked tx of this token AND re-render its card / run-group.
+    for (const tx of state.txs.values()){
+      if (tx.token && tx.token.tokenId === tokenId){ applyTokenInfo(tx, rec); if (tx.el) setCardText(tx); }
+    }
+    for (const g of state.groups.values()){
+      if (g.lastTx && g.lastTx.token && g.lastTx.token.tokenId === tokenId && g.el){
+        g.el.querySelector('.t1').textContent = tf('group.run', { n: fmtInt(g.n), label: cardStrings(g.lastTx).t1 });
+      }
+    }
+    // If an expanded card detail is open on this token, refresh it in place (F10).
+    if (state.expandedId){ const et = state.txs.get(state.expandedId); if (et && et.token && et.token.tokenId === tokenId) refreshExpandedDetail(et); }
+    return rec;
+  }).catch(() => {
+    const rec = { ok:false, retryAfter: Date.now() + TOKEN_INFO_FAIL_TTL_MS, ticker:'', name:'', decimals:0 };
+    state.tokenInfo.set(tokenId, rec);
+    return rec;
+  });
+  state.tokenInfo.set(tokenId, p);   // in-flight dedupe (replaced by the record on resolve)
+}
+// Per-kind card strings (i18n, recomputed each render so language switches
+// apply). Mirrors the mock's _t1/_t2: payments lead with the amount, tokens
+// show "qty ticker", trades "side ticker · usd", messages the quoted text.
+function cardStrings(tx){
+  switch (tx.kind){
+    case 'trade': {
+      const usd = (tx.agora.priceXecTotal != null && state.xecUsd) ? fmtUsd(tx.agora.priceXecTotal * state.xecUsd) : null;
+      const side = t('trade.' + tx.agora.side) || t('trade.buy');
+      const nm = tokenName(tx);
+      return { t1: side + (nm ? ' ' + nm : '') + (usd ? (' · ' + usd) : ''), t2: t('trade.market') };
+    }
+    case 'token': {
+      const q = tokenQty(tx), nm = tokenName(tx);
+      return { t1: q != null ? (q + ' ' + nm) : nm, t2: t('token.transfer') };
+    }
+    case 'powr':  return { t1: t('powr.title'), t2: t('powr.sub') };
+    case 'msg': {
+      if (tx.message && tx.message.type === 'encrypted') return { t1: t('msg.encrypted'), t2: t('msg.sub') };
+      const c = (tx.message && tx.message.content) || t('msg.generic');
+      return { t1: '“' + c + '”', t2: t('msg.sub') };
+    }
+    default: return { t1: labelPay(tx), t2: (tx.from && tx.to) ? (shortAddr(tx.from) + ' → ' + shortAddr(tx.to)) : t('card.pay') };
+  }
+}
+function kindLabel(tx){
+  return (tx.kind === 'msg' || tx.kind === 'powr') ? t('chip.msg')
+       : (tx.kind === 'trade' || tx.kind === 'token') ? t('chip.token')
+       : t('card.pay');
+}
+/* ---- sending stopwatch (v2 port) ----
+   ONE shared interval, running only while >=1 card is pending — never a
+   per-card timer. Each tick touches only the .ttf text node of pending
+   cards (never a full setCardText() re-render — the mock's own documented
+   anti-pattern to avoid). Honesty: never show a fabricated 0.0s — falls
+   back to the static "sending…" string until a real anchor exists. */
+const SENDING_TICK_MS = 120;
+let sendingTimer = null;
+function sendingElapsedText(tx){
+  const anchor = tx.wsObservedAt || tx.firstSeenLocal;
+  return anchor ? fmtSec(Date.now() - anchor) : t('card.sending');
+}
+function tickSending(){
+  for (const id of state.sendingSet){
+    const tx = state.txs.get(id);
+    // Drop entries whose tx or card is gone (RENDER_CAP-evicted, removed from
+    // mempool, or already final) so the set can't grow unbounded (F3).
+    if (!tx || tx.final || !tx.el || !tx.el.isConnected){ stopTicking(id); continue; }
+    const ttfEl = tx.el.querySelector('.ttf');
+    if (ttfEl) ttfEl.textContent = sendingElapsedText(tx);
+  }
+}
+function startTicking(txid){
+  state.sendingSet.add(txid);
+  if (!sendingTimer && !document.hidden) sendingTimer = setInterval(tickSending, SENDING_TICK_MS);
+}
+function stopTicking(txid){
+  state.sendingSet.delete(txid);
+  if (state.sendingSet.size === 0 && sendingTimer){ clearInterval(sendingTimer); sendingTimer = null; }
+}
+function setCardText(tx){
+  const el = tx.el; if (!el) return;
+  const cs = cardStrings(tx);         // {t1, t2} per kind, in the current language
+  const label = kindLabel(tx);
+  el.querySelector('.t1').textContent = cs.t1;
+  // watched/mine prefix on the mono route line (mock _t2), block stays on .seal
+  let pfx = '';
+  if (tx._mine) pfx = t('t2.mine');
+  else if (txTouchesWatch(tx)){ const nm = watchNameFor(tx); pfx = nm ? (nm + ' · ') : t('t2.watched'); }
+  el.querySelector('.route').textContent = pfx + (cs.t2 || '');
+  const ttfEl = el.querySelector('.ttf');
+  if (tx.final){
+    // tx.ttf may be null (pre-session final, or the anchor spanned a sleep and
+    // the wake guard discarded the number) — show just "final", never "· 0.0s".
+    const secTxt = (tx.ttf != null && isFinite(tx.ttf)) ? fmtSec(tx.ttf) : null;
+    ttfEl.textContent = secTxt != null ? (t('card.final') + ' · ' + secTxt) : t('card.final');
+    el.setAttribute('aria-label', secTxt != null
+      ? tf('a11y.final', { label, amount: cs.t1, sec: secTxt })
+      : tf('a11y.finalNoTime', { label, amount: cs.t1 }));
+  } else {
+    ttfEl.textContent = sendingElapsedText(tx);
+    el.setAttribute('aria-label', tf('a11y.sending', { label, amount: cs.t1 }));
+  }
+  const seal = el.querySelector('.seal');
+  if (tx.block){ seal.textContent = '· ' + t('pill.block') + ' ' + fmtInt(tx.block); seal.classList.add('show'); }
+}
+function cardFor(tx){
+  const el = document.createElement('article');
+  el.className = 'card enter is-sending f-' + (tx.f || 'pay') + ' k-' + (tx.kind || 'pay');
+  // The CLASSIFICATION glyph stays in .ic. For token/trade the real token/NFT art
+  // is blown up and SUNK into the card as a faded background decoration (behind the
+  // text, edges masked, top/bottom clipped) — a part of the card, not a separate
+  // icon — and is revealed in full at the bottom of the expanded detail.
+  let sinkHtml = '';
+  if ((tx.kind === 'token' || tx.kind === 'trade') && tx.token && tx.token.tokenId){
+    const isNft = !!(tx.agora && tx.agora.kind === 'oneshot') || /NFT/i.test(tx.token.type || '');
+    const img = tokenIconImg(tx.token.tokenId, isNft, 128);
+    if (img) sinkHtml = '<span class="tok-sink" aria-hidden="true">' + img + '</span>';
+  }
+  el.innerHTML = '<span class="ic">' + (tx.icon || IC.coin) + '</span>' +
+    '<div class="body"><div class="t1"></div><div class="t2"><span class="route"></span> <span class="seal"></span></div></div>' +
+    '<div class="st"><span class="checks">' + IC.check + '</span><span class="ttf"></span></div>' + sinkHtml;
+  tx.el = el;
+  setCardText(tx);
+  // honor the active filter for cards added while a chip is selected
+  if (state.filter !== 'all' && state.filter !== tx.f) el.classList.add('hide');
+  // tap → expand the detail in place (no popup)
+  el.tabIndex = 0;
+  el.setAttribute('role', 'button');
+  el.setAttribute('aria-expanded', 'false');
+  el.addEventListener('click', () => toggleCardExpand(tx));
+  el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggleCardExpand(tx); } });
+  applyHighlights(tx);
+  return el;
+}
+function pushTx(tx){
+  hideEmpty();
+  stream.appendChild(cardFor(tx));
+  if (!tx.final) startTicking(tx.id);
+  appended();
+}
+function finalize(tx, ttfMs, source){
+  if (tx.final && tx.ttfSource === 'node-precise') return; // never downgrade
+  const first = !tx.final;
+  tx.final = true;
+  if (source === 'node-precise' || tx.ttf == null || source === 'perceived') {
+    if (!(tx.ttfSource === 'node-precise' && source !== 'node-precise')) {
+      tx.ttf = ttfMs; tx.ttfSource = source;
+    }
+  }
+  if (first){
+    // Don't count the boot-time mempool backlog toward "Transactions (session)"
+    // — those existed before the page opened. A live presession race (rare: a
+    // tx finalizes between the WS "add" event and the async tx fetch) still
+    // counts, since bootPollDone is true by then.
+    bumpSessionCount(tx, source);
+    if (tx.ttf != null && tx.ttf > 0 && tx.ttf < TTF_SANITY_MAX_MS){
+      state.finals.push({ id: tx.id, ttf: tx.ttf });
+      if (state.finals.length > 60) state.finals.shift();
+      updateSessionP50();
+    }
+    state.sinceBlock.push(tx);
+    stopTicking(tx.id);   // sending stopwatch (v2 port): this tx is no longer pending
+    const el = tx.el;
+    if (el){
+      el.classList.remove('is-sending'); el.classList.add('is-final');
+      const checksEl = el.querySelector('.checks');
+      if (!reduced){
+        el.classList.add('flash');
+        checksEl.classList.add('fin-ring');
+        checksEl.innerHTML = IC.checksAnimated;
+      } else {
+        checksEl.innerHTML = IC.checks;
+      }
+    }
+    beat();
+    if (tx._mine) setTimeout(() => enqueueSay(t('echan.firstMine'), 'celebrate'), 400);   // personalized hero
+    else firstTime('final', 'echan.firstFinal', 'celebrate', 0);        // hero touchpoint #2 (first ✓✓) → Learn "why ~2s"
+  }
+  if (tx.el) setCardText(tx);
+}
+// Single owner of the p50 displays: the relay 24h p50 wins WHEN it is present,
+// non-warmup, and fresh; otherwise the session median owns #p50 / #rl-p50. This
+// removes the warmup flicker where updateStatsUI wrote "—" every 5s while
+// updateSessionP50 wrote "~x.xs" on every finalize (F8). #rl-p50b ("Median
+// final" in the rail) always reflects the session, labelled as such.
+function sessionP50Ms(){
+  if (!state.finals.length) return null;
+  const a = state.finals.map(f => f.ttf).sort((x, y) => x - y);
+  return a[Math.floor(a.length / 2)];
+}
+function authoritativeRelayP50Ms(){
+  const s = state.relayStats;
+  return (s && !s.warmup && isFresh() && s.ttfP50Ms != null) ? s.ttfP50Ms : null;
+}
+function renderP50(){
+  const relay = authoritativeRelayP50Ms();
+  const sess = sessionP50Ms();
+  const ms = relay != null ? relay : sess;
+  const txt = ms != null ? ('~' + fmtSec(ms)) : '—';
+  $('p50').textContent = txt;
+  $('rl-p50').textContent = txt;
+  $('rl-p50b').textContent = sess != null ? fmtSec(sess) : '—';
+}
+function updateSessionP50(){ renderP50(); }
+// Count a finalized tx toward "Transactions (session)" exactly once, excluding
+// the boot-time mempool backlog (presession finalizes before the first poll
+// completes — B7). Used by every finalize path incl. dust/folded so the number
+// reflects ALL finalizations Flow observed, not just surfaced cards (F7).
+function bumpSessionCount(tx, source){
+  if (tx._counted) return;
+  if (source === 'presession' && !bootPollDone) return;
+  tx._counted = true;
+  state.count++;
+  $('rl-count').textContent = fmtInt(state.count);
+}
+
+/* ---- bot/dust grouping ---- */
+function foldDust(tx){
+  const g = state.lastGroup;
+  if (g && g.el && g.el.parentNode){
+    g.n++;
+    g.items.push((tx.valueXec != null ? labelPay(tx) : '') + ' · ' + tx.id.slice(0,8) + '…');
+    if (g.items.length > 12) g.items.shift();
+    g.el.querySelector('.t1').textContent = tf('group.small', { n: fmtInt(g.n) });
+    if (g.det) g.det.innerHTML = g.items.map(esc).join('<br>');
+    // move the group to the bottom so it stays visible as it grows
+    stream.appendChild(g.el); if (g.det) stream.appendChild(g.det);
+    appended();
+    return;
+  }
+  const grp = { n:1, items:[ (tx.valueXec != null ? labelPay(tx) : '') + ' · ' + tx.id.slice(0,8) + '…' ] };
+  const el = document.createElement('article');
+  el.className = 'card t-group enter f-pay'; el.tabIndex = 0;
+  el.innerHTML = '<span class="ic">' + IC.stack + '</span>' +
+    '<div class="body"><div class="t1">' + esc(tf('group.small', { n:'1' })) + '</div>' +
+    '<div class="t2">' + esc(t('group.hint')) + '</div></div>' +
+    '<div class="st"><span class="ttf">▾</span></div>';
+  const det = document.createElement('div');
+  det.className = 'grp-detail'; det.innerHTML = esc(grp.items[0]);
+  const caretEl = el.querySelector('.ttf');
+  const tog = () => { const open = det.classList.toggle('open'); caretEl.textContent = open ? '▴' : '▾'; };
+  el.addEventListener('click', tog);
+  el.addEventListener('keydown', (e) => { if (e.key==='Enter'||e.key===' '){ e.preventDefault(); tog(); } });
+  grp.el = el; grp.det = det;
+  state.lastGroup = grp;
+  hideEmpty();
+  stream.appendChild(el); stream.appendChild(det);
+  appended();
+}
+
+/* ---- run-collapse (repeated bot/market-maker activity) ----
+   Deliberate parallel port of neo's msgGroupKey/MSG_GROUP_* (index.html
+   ~13560-13654) — same constant names, same key logic, so a change to one is
+   easy to mirror into the other. Flow's stream is append-only DOM (not neo's
+   sorted-array re-render), so the fold MECHANISM below follows foldDust()
+   above (move the existing card to the bottom + update text + badge) instead
+   of neo's splice-and-resort; only msgGroupKey() itself is a faithful port. */
+const MSG_GROUP_WINDOW_MS = 30 * 60 * 1000;   // 30 min
+const MSG_GROUP_TXIDS_MAX = 25;               // hard cap (§10); groupCount keeps counting past it
+const MSG_GROUP_TEXT_TYPES = new Set(['broadcast']);   // bot-spam text types only — NOT cashtab/encrypted/powr
+// Stable string for any tx whose repeats are noise, or null to keep it as its
+// own card. Single extension point, same role as neo's msgGroupKey().
+function msgGroupKey(tx){
+  if (tx.kind === 'trade' && tx.agora && tx.agora.side === 'relist' && tx.token && tx.token.tokenId){
+    // Key EXCLUDES price on purpose — repricing is what makes it a run.
+    return 'agora-relist|' + tx.token.tokenId + '|' + (tx.agora.tokenAmountAtoms || '0');
+  }
+  if (tx.kind === 'token' && tx.token && tx.token.tokenId){
+    return 'token|' + tx.token.tokenId;
+  }
+  if (tx.kind === 'msg' && tx.message && MSG_GROUP_TEXT_TYPES.has(tx.message.type)){
+    const c = String(tx.message.content || '').trim().toLowerCase();
+    if (!c) return null;
+    return tx.message.type + '|' + c;
+  }
+  return null;
+}
+function foldRun(tx, gkey){
+  const cs = cardStrings(tx);
+  const now = tx.firstSeenLocal || Date.now();
+  const line = (cs.t1 || '') + ' · ' + tx.id.slice(0,8) + '…';
+  let g = state.groups.get(gkey);
+  if (g && g.el && g.el.parentNode && (now - g.lastTs) <= MSG_GROUP_WINDOW_MS){
+    g.n++; g.lastTs = now; g.lastTx = tx;
+    g.items.push(line); if (g.items.length > 12) g.items.shift();
+    g.txids.push(tx.id); if (g.txids.length > MSG_GROUP_TXIDS_MAX) g.txids.shift();
+    g.el.querySelector('.t1').textContent = tf('group.run', { n: fmtInt(g.n), label: cs.t1 });
+    if (g.det) g.det.innerHTML = g.items.map(esc).join('<br>');
+    stream.appendChild(g.el); if (g.det) stream.appendChild(g.det);
+    appended();
+  } else {
+    g = { n:1, lastTs: now, lastTx: tx, items:[line], txids:[tx.id] };
+    const el = document.createElement('article');
+    el.className = 'card t-group enter f-' + (tx.f || 'token'); el.tabIndex = 0;
+    el.innerHTML = '<span class="ic">' + (tx.icon || IC.stack) + '</span>' +
+      '<div class="body"><div class="t1">' + esc(tf('group.run', { n:'1', label: cs.t1 })) + '</div>' +
+      '<div class="t2">' + esc(t('group.hint')) + '</div></div>' +
+      '<div class="st"><span class="ttf">▾</span></div>';
+    const det = document.createElement('div');
+    det.className = 'grp-detail'; det.innerHTML = esc(line);
+    const caretEl = el.querySelector('.ttf');
+    const tog = () => { const open = det.classList.toggle('open'); caretEl.textContent = open ? '▴' : '▾'; };
+    el.addEventListener('click', tog);
+    el.addEventListener('keydown', (e) => { if (e.key==='Enter'||e.key===' '){ e.preventDefault(); tog(); } });
+    g.el = el; g.det = det;
+    state.groups.set(gkey, g);
+    hideEmpty();
+    stream.appendChild(el); stream.appendChild(det);
+    appended();
+  }
+  // Bounded map (§10): distinct group keys accumulate over a long session
+  // (many different tokens/messages) even though each key's own DOM node is
+  // already capped via RENDER_CAP — evict the stalest key once past 200.
+  if (state.groups.size > 200){
+    let oldestKey = null, oldestTs = Infinity;
+    for (const [k, v] of state.groups){ if (v.lastTs < oldestTs){ oldestTs = v.lastTs; oldestKey = k; } }
+    if (oldestKey && oldestKey !== gkey) state.groups.delete(oldestKey);
+  }
+}
+
+/* ---- block divider ---- */
+function sealBlock(height, realTxCount){
+  state.height = height;
+  state.lastSealedHeight = height;
+  hbSignal('block');   // heartbeat: a block sealed → tall amber column
+  $('height').textContent = fmtInt(height);
+  $('rl-height').textContent = fmtInt(height);
+  // We deliberately do NOT stamp tx.block = height for these here. A tx
+  // finalized since the last divider is NOT necessarily in THIS block — the
+  // miner picks a subset, and a just-finalized tx usually lands in the NEXT
+  // block (neo proved this; see index.html "BLOCK ARRIVAL" note). The real
+  // per-card block number comes from TX_CONFIRMED (confirmTx). This list is
+  // only a "recently finalized" preview for the divider's expand (F1).
+  const sealed = state.sinceBlock.splice(0);
+  // Honesty (A5): only show a tx count when chronik.block() actually returned
+  // numTxs. On fetch failure, OMIT the count rather than mislabel sealed.length
+  // (the "finalized since last divider" preview set) as the block's real tx count.
+  const n = realTxCount != null ? realTxCount : null;
+  const lbl = n != null ? tf('divider.block', { h: fmtInt(height), n: fmtInt(n) })
+                        : tf('divider.blockNoCount', { h: fmtInt(height) });
+  const div = document.createElement('button');
+  div.className = 'divider'; div.type = 'button';
+  div.innerHTML = '<span class="ln"></span><span class="lbl">' + IC.cube + ' ' +
+    esc(lbl) + '</span><span class="ln"></span>';
+  const det = document.createElement('div');
+  det.className = 'div-detail';
+  det.innerHTML = sealed.slice(0,6).map(tx => esc((cardStrings(tx).t1 || '') + ' · ' + tx.id.slice(0,10) + '…')).join('<br>') +
+    (sealed.length > 6 ? '<br>' + esc(tf('divider.more', { n: fmtInt(sealed.length-6) })) : '');
+  div.addEventListener('click', () => det.classList.toggle('open'));
+  div._blockData = { height, n };
+  hideEmpty();
+  stream.appendChild(div); stream.appendChild(det);
+  state.lastGroup = null;  // start a fresh dust group after a block
+  appended();
+  firstTime('block', 'echan.firstBlock', 'observing', 2);   // → Learn "what a block is for"
+  echanEvent('block', { height, txCount: realTxCount });    // E1: block commentary (stale once a newer block seals)
+}
+
+/* ---- relabel dynamic text on language change ---- */
+function relabelDynamic(){
+  for (const tx of state.txs.values()) if (tx.el) setCardText(tx);
+  if (state.lastGroup && state.lastGroup.el){
+    state.lastGroup.el.querySelector('.t1').textContent = tf('group.small', { n: fmtInt(state.lastGroup.n) });
+    state.lastGroup.el.querySelector('.t2').textContent = t('group.hint');
+  }
+  for (const g of state.groups.values()){
+    if (!g.el || !g.lastTx) continue;
+    g.el.querySelector('.t1').textContent = tf('group.run', { n: fmtInt(g.n), label: cardStrings(g.lastTx).t1 });
+    g.el.querySelector('.t2').textContent = t('group.hint');
+  }
+  stream.querySelectorAll('.divider').forEach(div => {
+    const d = div._blockData; if (!d) return;
+    const lbl = d.n != null ? tf('divider.block', { h: fmtInt(d.height), n: fmtInt(d.n) })
+                            : tf('divider.blockNoCount', { h: fmtInt(d.height) });
+    div.querySelector('.lbl').innerHTML = IC.cube + ' ' + esc(lbl);
+  });
+  if (!newPill.hidden) newPill.textContent = tf('newpill', { n: fmtInt(state.unseen) });
+}
+
+/* ------------------------------------------------------------------ tx admission */
+// Derive sender → recipient addresses for the card subtitle (like the concept
+// mockup's "q3f…a9c → q7b…2e1"). from = first input address; to = first output
+// address that is NOT change (not an input address) and not OP_RETURN.
+function deriveRoute(txData){
+  let from = null, to = null;
+  const inSet = new Set();
+  const allAddrs = new Set();   // every input+output address (B10: watchlist matching)
+  for (const inp of (txData.inputs || [])){
+    const s = inp.outputScript || (inp.prevOut && inp.prevOut.outputScript);
+    if (!s) continue;
+    let a = null; try { a = encodeOutputScript(s); } catch {}
+    if (a){ inSet.add(a); allAddrs.add(a); if (!from) from = a; }
+  }
+  for (const o of (txData.outputs || [])){
+    const s = o.outputScript || '';
+    if (s.startsWith('6a')) continue;
+    let a = null; try { a = encodeOutputScript(s); } catch {}
+    if (a){ allAddrs.add(a); if (!inSet.has(a) && !to) to = a; }
+  }
+  return { from, to, allAddrs };
+}
+/* ---- node-precise TTF pending buffer (F4) ----
+   A relay ttf frame can arrive before its tx is admitted (fetch-concurrency cap
+   full, or at boot). Instead of dropping the node-precise number, buffer it
+   briefly and apply the moment the tx lands. Bounded FIFO + TTL (mirrors neo's
+   pendingBuffer / checkTtfBufferForTx). */
+const ttfPending = new Map();       // txid -> { ttfMs, at }
+const TTF_PENDING_MAX = 300;
+const TTF_PENDING_TTL_MS = 30_000;
+function bufferPendingTtf(txid, ttfMs){
+  ttfPending.set(txid, { ttfMs, at: Date.now() });
+  while (ttfPending.size > TTF_PENDING_MAX){ const k = ttfPending.keys().next().value; ttfPending.delete(k); }
+}
+function drainPendingTtf(txid){
+  const e = ttfPending.get(txid);
+  if (!e) return;
+  ttfPending.delete(txid);
+  if (Date.now() - e.at <= TTF_PENDING_TTL_MS) upgradeTtf(txid, e.ttfMs);
+}
+// Track a tx with a hard memory cap (CLAUDE.md §10: every structure is bounded).
+// Evicts the oldest tracked tx — its card is already gone via RENDER_CAP.
+function trackTx(tx){
+  state.txs.set(tx.id, tx);
+  if (state.txs.size > 2500){
+    const oldest = state.txs.keys().next().value;
+    if (oldest && oldest !== tx.id){ state.txs.delete(oldest); state.subscribed.delete(oldest); }
+  }
+}
+function admit(txData){
+  if (state.txs.has(txData.txid)) return;
+  let tx;
+  try { tx = parseTransactionCore(txData); } catch { return; }
+  try { const r = deriveRoute(txData); tx.from = r.from; tx.to = r.to; tx._addrSet = r.allAddrs; } catch {}
+  // already in a block when first seen → not part of the live sending→final
+  // stream (block height is maintained by the block subscription); skip.
+  if (txData.block && txData.block.height) return;
+  hbSignal('tx');   // heartbeat: real mempool inflow
+  const k = txKind(tx); tx.kind = k.kind; tx.f = k.f; tx.icon = k.icon;
+  // token/trade: apply an already-resolved ticker/decimals record immediately so
+  // the 2nd+ tx of a known token shows its real name, not the short id (F2), then
+  // kick off the lazy fetch (deduped + cached) for the first-seen case.
+  if ((tx.kind === 'token' || tx.kind === 'trade') && tx.token && tx.token.tokenId){
+    const rec = resolvedTokenRec(tx.token.tokenId);
+    if (rec) applyTokenInfo(tx, rec);
+    fetchTokenTicker(tx.token.tokenId);
+  }
+  // "yours" detection, strongest signal first: (1) a txid we broadcast via the
+  // Cashtab extension (exact), (2) any tx touching your saved wallet address (F2),
+  // (3) the "try it" content-match fallback for the URL send path.
+  if (mineTxids.has(tx.id)){ tx._mine = true; mineTxids.delete(tx.id); }
+  else if (txTouchesMine(tx)){ tx._mine = true; }
+  else if (tryMsg && tx.message && tx.message.type === 'cashtab' && (tx.message.content || '').toLowerCase() === tryMsg){
+    tx._mine = true; tryMsg = null;
+  }
+  // E1: whale / shark reaction (thresholds mirror neo, §0.9).
+  if (typeof tx.valueXec === 'number' && tx.valueXec >= SHARK_XEC){
+    echanEvent(tx.valueXec >= WHALE_XEC ? 'bigtx' : 'sharktx', { valueXec: tx.valueXec });
+  }
+  trackTx(tx);
+  // Run-collapse: repeated bot/market-maker noise (Agora relists, repeated
+  // token transfers, repeated broadcast text) folds into one card instead of
+  // flooding the stream — checked before the dust fold.
+  const gkey = msgGroupKey(tx);
+  if (gkey){ tx._folded = true; foldRun(tx, gkey); }
+  // Fold dust PAYMENTS only (tiny XEC sends are noise); messages / tokens /
+  // trades / POWR always surface as their own card.
+  else if (tx.kind === 'pay' && tx.valueXec != null && tx.valueXec < DUST_XEC){ tx._dust = true; foldDust(tx); }
+  else pushTx(tx);
+  if (tx.kind === 'trade') firstTime('trade', 'echan.firstTrade', 'happy', 5);   // → Learn "tokens + Agora trades"
+  else if (tx.kind === 'msg' || tx.kind === 'powr') firstTime('msg', 'echan.firstMsg', 'neutral');
+  // already pre-consensus final at first sight → finalize immediately (no ttf ref)
+  if (txData.isFinal === true && !tx._dust && !tx._folded){
+    finalize(tx, null, 'presession');
+    if (tx.el){ tx.el.querySelector('.ttf').textContent = t('card.final'); }
+  }
+  drainPendingTtf(tx.id);   // apply any node-precise ttf that arrived before admit (F4)
+}
+function markFinal(txid, refMs){
+  const tx = state.txs.get(txid);
+  if (!tx || tx.final) return;
+  if (tx._dust || tx._folded){
+    // Folded/dust cards have no finalize UI, but their finalization still counts
+    // toward "Transactions (session)" so the number reflects reality, not just
+    // surfaced cards (F7). Mark final so a WS+poll replay can't double-count.
+    tx.final = true;
+    // Exclude the boot-time dust backlog like normal backlog txs: before the
+    // first poll finishes, an already-final dust tx is presession, not a live
+    // finalize (A3 — B7 only filtered 'presession', so dust boot txs were counted).
+    bumpSessionCount(tx, bootPollDone ? 'perceived' : 'presession');
+    stopTicking(txid);
+    return;
+  }
+  const now = Date.now();
+  let ttf = null;
+  const anchor = tx.wsObservedAt || tx.firstSeenLocal;
+  if (anchor && !(state.hiddenAt && anchor < state.hiddenAt)){   // wake guard: discard, don't inflate
+    const cand = now - anchor;
+    if (cand > 0 && cand < TTF_SANITY_MAX_MS) ttf = cand;
+  }
+  finalize(tx, ttf, 'perceived');
+  if (tx.final && ttf == null && tx.el){
+    // anchor spanned a sleep — show final without a fabricated number
+    tx.el.querySelector('.ttf').textContent = t('card.final');
+  }
+  // SR announce is deliberately scoped to mine/watched tx only (not every
+  // finalize — that would spam screen-reader users during bot bursts); general
+  // connection-state changes are announced separately from setConn().
+  if (tx._mine || txTouchesWatch(tx)){
+    const label = kindLabel(tx);
+    const amount = cardStrings(tx).t1 || '';
+    announce(ttf != null
+      ? tf('a11y.final', { label, amount, sec: fmtSec(ttf) })
+      : tf('a11y.finalNoTime', { label, amount }));
+  }
+}
+// node-precise upgrade from the relay ttf-feed (skip-or-upgrade; wins over perceived)
+function upgradeTtf(txid, ttfMs){
+  if (!(ttfMs > 0 && ttfMs < TTF_SANITY_MAX_MS)) return;
+  const tx = state.txs.get(txid);
+  if (!tx){ bufferPendingTtf(txid, ttfMs); return; }   // tx not admitted yet — apply on arrival (F4)
+  if (tx._dust || tx._folded) return;
+  echanTtfEvent(ttfMs);   // E1: honest node-precise value → fast-brag / slow-grumble
+  if (!tx.final){ finalize(tx, ttfMs, 'node-precise'); return; }
+  if (tx.ttfSource === 'node-precise') return;
+  tx.ttf = ttfMs; tx.ttfSource = 'node-precise';
+  // adjust the session p50 sample set: correct this tx's entry in place
+  const entry = state.finals.find(f => f.id === txid);
+  if (entry){ entry.ttf = ttfMs; updateSessionP50(); }
+  if (tx.el) setCardText(tx);
+}
+// A tx we tracked has been bundled into a block (TX_CONFIRMED). This is the ONLY
+// honest source of a per-card block number (see the sealBlock note / F1). A tx
+// mined without a prior TX_FINALIZED (rare) is finalized now with NO fabricated
+// ttf, which also unsticks its "sending" stopwatch (F3).
+function confirmTx(txid, height){
+  const tx = state.txs.get(txid);
+  if (!tx || tx._dust || tx._folded) return;
+  if (!tx.final) finalize(tx, null, 'perceived');   // in a block ⇒ final; ttf unknown → null
+  stopTicking(txid);
+  if (height != null){
+    tx.block = height;
+    if (tx.el){ const sl = tx.el.querySelector('.seal'); if (sl){ sl.textContent = '· ' + t('pill.block') + ' ' + fmtInt(height); sl.classList.add('show'); } }
+    refreshExpandedDetail(tx);   // if this card's detail is open, show the real block
+  }
+}
+// A tx left the mempool without confirming (replaced / orphaned). If it never
+// finalized, drop its card + tracking so it can't sit on "sending…" forever
+// (F3). An already-final tx is left as-is — final is final.
+function removeTx(txid){
+  const tx = state.txs.get(txid);
+  if (!tx || tx.final) return;
+  stopTicking(txid);
+  if (tx.el && tx.el.parentNode) tx.el.remove();
+  state.txs.delete(txid);
+  state.subscribed.delete(txid);
+}
+
+// ---- reconcile-lite (A1/A2): the ONLY honest source of a per-card block ----
+// chronik WS `Tx` messages carry NO blockHeight, so confirmTx() driven off the
+// WS path can never stamp a block (F1's replacement was dead code). On block
+// arrival, tab resume, and WS reconnect, fetch the tracked-but-unconfirmed cards
+// via chronik.tx() — the same honest source neo uses in _runReconcile
+// (index.html) — and stamp the REAL block / finalize. A tx finalized-then-mined
+// shows its true block; a tx mined without a seen TX_FINALIZED is unstuck from
+// "sending…" (A2). Bounded: cap RECONCILE_CAP fetches, batches of 8.
+const RECONCILE_CAP = 60;          // visible stream is <= RENDER_CAP 120; 60 covers the unconfirmed tail
+const RECONCILE_BATCH = 8;
+let reconcileTimer = null, reconcileRunning = false;
+function scheduleReconcile(){
+  if (state.paused || !state.chronik || typeof state.chronik.tx !== 'function') return;
+  if (reconcileTimer) return;      // coalesce a burst of triggers into a single run
+  reconcileTimer = setTimeout(() => { reconcileTimer = null; runReconcile(); }, 1500);
+}
+async function runReconcile(){
+  if (reconcileRunning || !state.chronik || typeof state.chronik.tx !== 'function') return;
+  reconcileRunning = true;
+  try {
+    const ids = [];
+    for (const [id, tx] of state.txs){
+      if (tx._dust || tx._folded || tx.block != null) continue;   // dust/folded have no block UI; skip already-stamped
+      ids.push(id);
+      if (ids.length >= RECONCILE_CAP) break;
+    }
+    for (let i = 0; i < ids.length; i += RECONCILE_BATCH){
+      const batch = ids.slice(i, i + RECONCILE_BATCH);
+      const results = await Promise.allSettled(batch.map(id => state.chronik.tx(id).then(t => ({ id, t }))));
+      for (const r of results){
+        if (r.status !== 'fulfilled') continue;
+        const { id, t } = r.value;
+        const height = (t && t.block && (t.block.height ?? (t.block.blockInfo && t.block.blockInfo.height))) ?? null;
+        if (height != null) confirmTx(id, height);           // real per-card block (+ finalize if not already)
+        else if (t && t.isFinal === true) markFinal(id);     // avalanche-final but not yet mined
+      }
+    }
+  } catch {}
+  finally { reconcileRunning = false; }
+}
+
+/* ------------------------------------------------------------------ price */
+async function fetchPrice(){
+  try {
+    const r = await fetch(PRICE_URL, { cache:'no-store' });
+    if (r.ok){ const j = await r.json(); const p = j?.ecash?.usd; if (typeof p === 'number' && p > 0){ state.xecUsd = p; } }
+  } catch {}
+  renderPrice();
+}
+function renderPrice(){
+  const el = $('price-pill'), rl = $('rl-price');
+  if (!state.xecUsd){ el.textContent = '—'; rl.textContent = '—'; return; }
+  if (state.per1m){
+    const v = state.xecUsd * 1e6;
+    el.textContent = '$' + v.toLocaleString(localeFor(lang), {minimumFractionDigits:2, maximumFractionDigits:2}) + ' / 1M XEC';
+  } else {
+    el.textContent = '$' + state.xecUsd.toFixed(state.xecUsd < 0.001 ? 8 : 6) + ' / XEC';
+  }
+  rl.textContent = state.xecUsd ? ('$' + (state.xecUsd*1e6).toLocaleString(localeFor(lang), {minimumFractionDigits:2, maximumFractionDigits:2}) + ' / 1M') : '—';
+}
+$('price-pill').addEventListener('click', () => { state.per1m = !state.per1m; try { localStorage.setItem('ecashlive:flow:price:per1m', state.per1m ? '1':'0'); } catch {}; renderPrice(); });
+$('price-pill').addEventListener('keydown', (e) => { if (e.key==='Enter'||e.key===' '){ e.preventDefault(); $('price-pill').click(); } });
+
+/* ------------------------------------------------------------------ conn status */
+// lastConnKey starts null so page-boot never announces (mirrors neo's
+// _lastAnnouncedConn guard, CLAUDE.md §4); also re-used by setLang() to
+// re-render this stateful node after applyStatic() resets it (B3).
+let lastConnKey = null, lastConnCls = '';
+// paintConn() separates "what the network is doing" (lastConnKey/lastConnCls,
+// recorded by setConn) from "what's painted" — while state.paused is true the
+// dot/text show a "paused" overlay (v2 port: more honest than the old build,
+// which kept showing "live" even while the stream was paused) without losing
+// track of the real underlying connection state for when pause is lifted.
+function paintConn(){
+  const c = $('conn');
+  if (state.paused){ c.className = 'paused'; $('conn-text').textContent = t('conn.paused'); }
+  else { c.className = lastConnCls; $('conn-text').textContent = t(lastConnKey); }
+}
+function setConn(kindKey, cls){
+  const changed = lastConnKey !== null && lastConnKey !== kindKey;
+  lastConnKey = kindKey; lastConnCls = cls || '';
+  paintConn();
+  if (changed) announce(t(kindKey));   // SR: connection state transitions only
+}
+
+/* ------------------------------------------------------------------ relay stats WS */
+function isFresh(){ return state.relayStats && (Date.now() - state.relayStatsAt) < STATS_FRESH_MS; }
+function updateStatsUI(){
+  const s = state.relayStats;
+  renderP50();   // single owner: relay-if-authoritative-else-session (kills warmup flicker, F8)
+  // "Online now" (workplan F8): currentClients rides both warmup + normal frames,
+  // so show it whenever the frame is fresh; blank when stale/absent.
+  $('f-online').textContent = (s && isFresh() && typeof s.currentClients === 'number') ? fmtInt(s.currentClients) : '—';
+  if (s && !s.warmup && isFresh()){
+    if (s.tps != null) $('f-tps').textContent = fmtTps(s.tps);   // magnitude-aware — small real TPS isn't shown as "0"
+    if (s.sampleCount != null) $('f-tx24').textContent = fmtInt(s.sampleCount);
+  } else if (s && s.warmup){
+    $('f-tps').textContent = '—'; $('f-tx24').textContent = '—';
+  } else if (s && !isFresh()){
+    // relay WS went silently idle — don't leave frozen 24h numbers on screen
+    // forever (B11). p50 is left alone: updateSessionP50() already drives an
+    // honest session-based fallback for it on every finalize.
+    $('f-tps').textContent = '—'; $('f-tx24').textContent = '—';
+  }
+}
+function connectStats(){
+  let ws, reconnectMs = 1000, closed = false;
+  const open = () => {
+    try { ws = new WebSocket(TTF_FEED_URL); } catch { schedule(); return; }
+    state.ttfWs = ws;
+    ws.onmessage = (ev) => {
+      let d; try { d = JSON.parse(ev.data); } catch { return; }
+      if (d.type === 'stats'){
+        if (d.warmup === true){ state.relayStats = { warmup:true, currentClients: d.currentClients }; state.relayStatsAt = Date.now(); updateStatsUI(); return; }
+        state.relayStats = d; state.relayStatsAt = Date.now(); updateStatsUI();
+      } else if (d.type === 'ttf' && d.txid && typeof d.ttfMs === 'number'){
+        upgradeTtf(d.txid, d.ttfMs);
+      }
+    };
+    ws.onopen = () => { reconnectMs = 1000; };
+    ws.onclose = () => { state.ttfWs = null; if (!closed) schedule(); };
+    ws.onerror = () => { try { ws.close(); } catch {} };
+  };
+  const schedule = () => { setTimeout(open, reconnectMs); reconnectMs = Math.min(reconnectMs*1.7, 30000); };
+  open();
+}
+
+/* ------------------------------------------------------------------ chronik */
+async function connectChronik(){
+  let ChronikClient;
+  try { ({ ChronikClient } = await import('../vendor/chronik-client.js')); }
+  catch (e){ setConn('conn.offline', 'warn'); console.warn('[flow] chronik-client load failed', e); return; }
+
+  try { state.chronik = new ChronikClient(CHRONIK_URLS); }
+  catch (e){ setConn('conn.offline', 'warn'); console.warn('[flow] chronik init failed', e); return; }
+
+  // initial tip
+  try { const info = await state.chronik.blockchainInfo(); if (info?.tipHeight){ state.height = info.tipHeight; state.lastSealedHeight = info.tipHeight; $('height').textContent = fmtInt(info.tipHeight); $('rl-height').textContent = fmtInt(info.tipHeight); } } catch {}
+
+  const openWs = () => {
+    let ws;
+    try {
+      ws = state.chronik.ws({
+        onMessage: (msg) => handleWs(ws, msg),
+        onReconnect: () => setConn('conn.reconnecting', 'warn'),
+        onConnect: () => { setConn('conn.live', 'live'); scheduleReconcile(); },   // reconnect → catch blocks/confirms missed while dropped (A2)
+        onError: () => setConn('conn.reconnecting', 'warn'),
+      });
+    } catch (e){ setConn('conn.offline', 'warn'); return; }
+    state.ws = ws;
+    ws.waitForOpen().then(() => {
+      setConn('conn.live', 'live');
+      try { ws.subscribeToBlocks(); } catch {}
+      try { if (typeof ws.subscribeToTxs === 'function') ws.subscribeToTxs(); } catch {}
+    }).catch(() => setConn('conn.reconnecting', 'warn'));
+  };
+  openWs();
+  pollMempool();
+  maybeOpenSharedTx();   // if the page was opened with ?tx=<txid>, show its receipt
+}
+function subscribeTxid(txid){
+  if (!state.ws || state.subscribed.has(txid)) return;
+  try { state.ws.subscribeToTxid(txid); state.subscribed.add(txid); }
+  catch {}
+  if (state.subscribed.size > 1500){ const first = state.subscribed.values().next().value; try { state.ws.unsubscribeFromTxid(first); } catch {}; state.subscribed.delete(first); }
+}
+let wsFetchInFlight = 0;
+function handleWs(ws, msg){
+  let kind = null, txid = msg.txid;
+  if (msg.msgType === 'TX_ADDED_TO_MEMPOOL' || (msg.type === 'Tx' && msg.msgType === 'AddedToMempool')) kind = 'add';
+  else if (msg.msgType === 'TX_FINALIZED' || (msg.type === 'Tx' && msg.msgType === 'Finalized')) kind = 'final';
+  else if (msg.msgType === 'TX_CONFIRMED' || (msg.type === 'Tx' && msg.msgType === 'Confirmed')) kind = 'confirmed';
+  else if (msg.msgType === 'TX_REMOVED_FROM_MEMPOOL' || (msg.type === 'Tx' && msg.msgType === 'RemovedFromMempool')) kind = 'removed';
+  else if (msg.msgType === 'BLK_FINALIZED' || (msg.type === 'Block' && msg.msgType === 'Finalized')) kind = 'block';
+  else if (msg.msgType === 'BLK_CONNECTED' || (msg.type === 'Block' && msg.msgType === 'Connected')) kind = 'block';
+  if (kind === 'add' && txid){
+    const seenAt = Date.now();   // WS ADDED arrival = the honest perceived-TTF anchor (F5)
+    const existing = state.txs.get(txid);
+    if (existing && !existing.wsObservedAt) existing.wsObservedAt = seenAt;
+    subscribeTxid(txid);
+    if (!state.txs.has(txid) && wsFetchInFlight < 8 && !state.paused){
+      wsFetchInFlight++;
+      state.chronik.tx(txid).then(txData => {
+        admit(txData);
+        const tx = state.txs.get(txid); if (tx && !tx.wsObservedAt) tx.wsObservedAt = seenAt;
+      }).catch(() => {}).finally(() => { wsFetchInFlight--; });
+    }
+  } else if (kind === 'final' && txid){
+    markFinal(txid);
+  } else if (kind === 'confirmed' && txid){
+    confirmTx(txid, msg.blockHeight || (msg.block && msg.block.blockInfo && msg.block.blockInfo.height) || null);
+  } else if (kind === 'removed' && txid){
+    removeTx(txid);
+  } else if (kind === 'block'){
+    onBlock(msg);
+    scheduleReconcile();   // a block arrived → tracked txs may now be mined; stamp real blocks (A1)
+  }
+}
+async function onBlock(msg){
+  // Resolve height + real tx count for an honest divider label.
+  let height = msg.blockHeight || (msg.block && msg.block.blockInfo && msg.block.blockInfo.height) || null;
+  let numTxs = null;
+  const hashOrHeight = msg.blockHash || (msg.block && msg.block.blockInfo && msg.block.blockInfo.hash) || height;
+  try {
+    if (hashOrHeight != null && state.chronik){
+      const b = await state.chronik.block(hashOrHeight);
+      const bi = b?.blockInfo || {};
+      height = bi.height ?? height; numTxs = bi.numTxs ?? null;
+    }
+  } catch {}
+  if (height == null){ try { const info = await state.chronik.blockchainInfo(); height = info.tipHeight; } catch {} }
+  if (height == null) return;
+  // Guard on lastSealedHeight, NOT state.height/sinceBlock — a tx finalizing
+  // between BLK_CONNECTED and BLK_FINALIZED for the SAME height must not
+  // trigger a second seal (B5: previously produced a duplicate divider and
+  // mis-stamped the tx into the wrong block).
+  if (height <= state.lastSealedHeight){
+    if (height > state.height){ state.height = height; $('height').textContent = fmtInt(height); }
+    return;
+  }
+  if (state.paused){
+    // Stream is frozen — advance the height display + sealed marker so we don't
+    // later back-fill a divider for a block whose txs were never shown, but skip
+    // the in-stream divider itself (keeps "paused" honest).
+    state.height = height; state.lastSealedHeight = height;
+    $('height').textContent = fmtInt(height); $('rl-height').textContent = fmtInt(height);
+    return;
+  }
+  sealBlock(height, numTxs != null ? numTxs : undefined);
+}
+// Set once the FIRST pollMempool() pass finishes — distinguishes the boot-time
+// mempool backlog (B7: must not inflate "Transactions (session)") from a
+// genuinely live presession finalize discovered on a later poll.
+let bootPollDone = false;
+let pollTimer = null;
+async function pollMempool(){
+  // Single-timer: a manual call (e.g. on tab resume, F6) cancels the pending
+  // scheduled run and reschedules — never spawns a second parallel loop.
+  if (pollTimer){ clearTimeout(pollTimer); pollTimer = null; }
+  if (state.paused){ pollTimer = setTimeout(pollMempool, POLL_MS); return; }
+  try {
+    const mp = await state.chronik.unconfirmedTxs();
+    const txs = mp?.txs || [];
+    for (const txData of txs){
+      if (!state.txs.has(txData.txid)) admit(txData);
+      if (txData.isFinal){ markFinal(txData.txid); }
+    }
+  } catch {}
+  bootPollDone = true;
+  pollTimer = setTimeout(pollMempool, POLL_MS);
+}
+
+/* ------------------------------------------------------------------ controls */
+// Re-renders the pause/resume label+title from state.paused — shared by the
+// click handler and setLang() (a language switch must not silently reset a
+// paused stream's button back to "Pause", B3).
+function renderPauseLabel(){
+  const b = $('btn-pause');
+  b.querySelector('.lbl').textContent = state.paused ? t('ctrl.resume') : t('ctrl.pause');
+  b.title = state.paused ? t('ctrl.resume.title') : t('ctrl.pause.title');
+}
+$('btn-pause').addEventListener('click', () => {
+  state.paused = !state.paused;
+  const b = $('btn-pause');
+  b.classList.toggle('active', state.paused);
+  b.setAttribute('aria-pressed', String(state.paused));
+  renderPauseLabel();
+  paintConn();   // v2 port: conn dot/text show "paused" while stopped
+});
+$('btn-theme').addEventListener('click', toggleTheme);
+$('lang-select').addEventListener('change', (e) => setLang(e.target.value));
+// "Pro view →" records the choice so neo (mobile) stops redirecting here (h tier-2)
+$('pro-link').addEventListener('click', () => { try { localStorage.setItem('ecashlive:pref', 'pro'); } catch {} });
+
+// rAF never fires in a backgrounded tab, so a dialog opened right before the
+// tab loses visibility can sit "open" (hidden=false, focus already moved) but
+// never visually shown until the tab regains focus. Skip the animation frame
+// entirely when already hidden — the dialog just appears in its final state.
+function showAnimated(el, cls){
+  if (document.hidden){ el.classList.add(cls); return; }
+  requestAnimationFrame(() => el.classList.add(cls));
+}
+
+// ---- Learn (accordion, NO popup) ----
+// Six topics. Clicking a question expands its answer in place (rail on desktop,
+// the "?"-toggled #learn-bar on mobile) — readable, stays put, no modal.
+const LEARN_TOPICS = [
+  { q:'learn.q1', a:'learn.a1', url:'https://avalanche.cash' },
+  { q:'learn.q2', a:'learn.a2', url:'https://avalanche.cash' },
+  { q:'learn.q3', a:'learn.a3', url:'https://avalanche.cash' },
+  { q:'learn.q4', a:'learn.a4', url:'https://avalanche.cash' },
+  { q:'learn.q5', a:'learn.a5', url:'https://e.cash' },
+  { q:'learn.q6', a:'learn.a6', url:'https://e.cash' },
+];
+function renderLearn(container){
+  if (!container) return;
+  container.innerHTML = LEARN_TOPICS.map(tp =>
+    '<div class="lrn-item">' +
+      '<button class="lrn-q" type="button" aria-expanded="false"><span>' + esc(t(tp.q)) +
+      '</span><span class="lrn-caret" aria-hidden="true">▾</span></button>' +
+      '<div class="lrn-a"><p>' + esc(t(tp.a)) + '</p>' +
+      '<a class="learn-more" href="' + tp.url + '" target="_blank" rel="noopener noreferrer">' + esc(t('learn.more')) + '</a></div>' +
+    '</div>'
+  ).join('');
+  container.querySelectorAll('.lrn-q').forEach(btn => btn.addEventListener('click', () => {
+    const ans = btn.nextElementSibling;
+    const open = ans.classList.toggle('open');
+    btn.setAttribute('aria-expanded', String(open));
+    btn.querySelector('.lrn-caret').textContent = open ? '▴' : '▾';
+  }));
+}
+// Re-rendered on language change (JS-built, so applyStatic() can't reach it).
+function renderAllLearn(){ renderLearn($('rail-learn-list')); renderLearn($('bar-learn-list')); }
+$('btn-learn').addEventListener('click', () => {
+  const bar = $('learn-bar'), btn = $('btn-learn');
+  const open = !bar.classList.contains('open');
+  const wb = $('watch-bar'); if (wb){ wb.classList.remove('open'); $('btn-watch').classList.remove('active'); }
+  bar.classList.toggle('open', open);
+  btn.classList.toggle('active', open);
+  btn.setAttribute('aria-expanded', String(open));
+  if (open) requestAnimationFrame(() => { try { bar.scrollIntoView({ block:'nearest' }); } catch {} });
+});
+
+// ---- filter chips (All / Payments / Messages / Token) ----
+// Every card — including the dust group and run-collapse groups — carries an
+// f-<kind> class now, so one uniform check covers all of them.
+function applyFilter(){
+  const f = state.filter;
+  stream.querySelectorAll('.card').forEach(c => {
+    const ok = f === 'all' || c.classList.contains('f-' + f);
+    c.classList.toggle('hide', !ok);
+  });
+  // If the currently-expanded card was just filtered out, collapse it so its
+  // inline detail panel doesn't linger as an orphan below a hidden card.
+  if (state.expandedId){
+    const tx = state.txs.get(state.expandedId);
+    if (tx && tx.el && tx.el.classList.contains('hide')){ collapseCard(tx); state.expandedId = null; }
+  }
+}
+document.querySelectorAll('.chips .chip').forEach(b => {
+  b.setAttribute('aria-pressed', b.classList.contains('on') ? 'true' : 'false');
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.chips .chip').forEach(x => { x.classList.remove('on'); x.setAttribute('aria-pressed', 'false'); });
+    b.classList.add('on'); b.setAttribute('aria-pressed', 'true');
+    state.filter = b.dataset.f;
+    applyFilter();
+    if (state.atBottom) stream.scrollTop = stream.scrollHeight;
+  });
+});
+
+/* wake guard: record when the tab is hidden so a finalize replayed on resume
+   whose anchor predates the sleep is discarded, not inflated. Also pauses the
+   sending-stopwatch interval while hidden (v2 port) and repaints immediately
+   on resume instead of catching up a backlog of stale ticks. */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden){
+    state.hiddenAt = Date.now();
+    if (sendingTimer){ clearInterval(sendingTimer); sendingTimer = null; }
+  } else {
+    if (state.sendingSet.size){
+      tickSending();
+      if (!sendingTimer) sendingTimer = setInterval(tickSending, SENDING_TICK_MS);
+    }
+    // Background poll timers are throttled while hidden — reconcile now so a
+    // finalize/confirm/block that happened during sleep shows up immediately (F6).
+    // pollMempool only scans the mempool; scheduleReconcile catches txs already
+    // mined out of it (stuck on "sending…" otherwise) — A2.
+    if (!state.paused){ pollMempool(); scheduleReconcile(); }
+  }
+});
+
+/* ------------------------------------------------------------------ expand-in-place detail
+   Replaces the popup sheet: tapping a card drops an inline detail panel right
+   after it (accordion — one open at a time). A ?tx= shared receipt renders as an
+   auto-expanded card in the stream, not a modal. ONE detail builder keeps the
+   card, the detail, and a shared receipt telling the same truth (core value #6). */
+function fmtClock(tx){
+  try { return new Date(tx.firstSeen || tx.firstSeenLocal || Date.now())
+    .toLocaleTimeString(localeFor(lang), { hour: '2-digit', minute: '2-digit' }); }
+  catch { return ''; }
+}
+// Full (un-clipped) token/NFT art for the expanded detail — the reveal of the
+// sunk peek on the collapsed card. Reuses the same hex-gated img + SVG fallback.
+function detailTokenArt(tx){
+  if (!(tx.kind === 'token' || tx.kind === 'trade') || !tx.token || !tx.token.tokenId) return '';
+  const isNft = !!(tx.agora && tx.agora.kind === 'oneshot') || /NFT/i.test(tx.token.type || '');
+  const img = tokenIconImg(tx.token.tokenId, isNft, 512);   // large source for the portrait
+  return img ? '<div class="cd-art" data-copy="' + esc(tx.token.tokenId) + '">' + img + '</div>' : '';
+}
+function buildDetailHtml(tx){
+  const secTxt = (tx.final && tx.ttf != null && isFinite(tx.ttf)) ? fmtSec(tx.ttf) : null;
+  let finHtml;
+  if (tx.final){
+    finHtml = '<div class="cd-final">' + IC.checks + '<span>' +
+      esc(secTxt != null ? tf('sh.final', { sec: secTxt }) : t('sh.finalNoTime')) + '</span></div>';
+  } else {
+    finHtml = '<div class="cd-final pending">' + IC.check + '<span>' + esc(t('sh.pending')) + '</span></div>';
+  }
+  // full message text — the collapsed t1 is nowrap+ellipsis, so a long message
+  // was cut off; here it wraps in full (messages only).
+  let msgHtml = '';
+  if (tx.kind === 'msg' && tx.message && tx.message.content){
+    msgHtml = '<div class="cd-msg">“' + esc(tx.message.content) + '”</div>';
+  }
+  // copyable identifier span: shows the shortened form, copies the FULL value.
+  const cp = (full, disp) => '<span class="cp" data-copy="' + esc(full) + '">' + esc(disp) + '</span>';
+  const rows = [];
+  rows.push('<div><dt>' + esc(t('sh.time')) + '</dt><dd>' + esc(fmtClock(tx)) + '</dd></div>');
+  if (tx.from && tx.to){
+    rows.push('<div><dt>' + esc(t('sh.route')) + '</dt><dd>' + cp(tx.from, shortAddr(tx.from)) + ' → ' + cp(tx.to, shortAddr(tx.to)) + '</dd></div>');
+  }
+  rows.push('<div><dt>' + esc(t('sh.block')) + '</dt><dd>' + esc(tx.block ? fmtInt(tx.block) : t('sh.blockPending')) + '</dd></div>');
+  if ((tx.kind === 'token' || tx.kind === 'trade') && tx.token && tx.token.tokenId){
+    rows.push('<div><dt>' + esc(t('sh.tokenId')) + '</dt><dd class="cp" data-copy="' + esc(tx.token.tokenId) + '">' + esc(shortId(tx.token.tokenId)) + '</dd></div>');
+  }
+  rows.push('<div><dt>' + esc(t('sh.txid')) + '</dt><dd class="cp" data-copy="' + esc(tx.id) + '">' + esc(shortId(tx.id)) + '</dd></div>');
+  const rowsHtml = '<div class="cd-rows">' + rows.join('') + '</div>';
+  const btns = '<div class="cd-btns"><button type="button" class="pri" data-act="share">' + esc(t('sh.share')) +
+    '</button><button type="button" data-act="explorer">' + esc(t('sh.explorer')) + '</button></div>';
+  // info on top → token art (size-capped) → Share/Explorer below it
+  return finHtml + msgHtml + rowsHtml + detailTokenArt(tx) + btns;
+}
+function fillDetail(tx){
+  const d = tx._detail; if (!d) return;
+  d.innerHTML = buildDetailHtml(tx);
+  const sb = d.querySelector('[data-act="share"]'); if (sb) sb.addEventListener('click', (e) => { e.stopPropagation(); shareTx(tx); });
+  const eb = d.querySelector('[data-act="explorer"]'); if (eb) eb.addEventListener('click', (e) => { e.stopPropagation(); window.open('https://explorer.e.cash/tx/' + tx.id, '_blank', 'noopener'); });
+  d.querySelectorAll('[data-copy]').forEach(el => el.addEventListener('click', (e) => { e.stopPropagation(); copyText(el.getAttribute('data-copy')); }));
+}
+function expandCard(tx){
+  const card = tx.el; if (!card || !card.parentNode) return;
+  let d = tx._detail;
+  if (!d){ d = document.createElement('div'); d.className = 'card-detail'; tx._detail = d; }
+  if (card.nextSibling !== d) card.parentNode.insertBefore(d, card.nextSibling);
+  fillDetail(tx);
+  card.classList.add('expanded');
+  card.setAttribute('aria-expanded', 'true');
+  showAnimated(d, 'open');
+  requestAnimationFrame(() => { try { d.scrollIntoView({ block:'nearest', behavior: reduced ? 'auto' : 'smooth' }); } catch {} });
+}
+function collapseCard(tx){
+  const card = tx.el; if (card){ card.classList.remove('expanded'); card.setAttribute('aria-expanded', 'false'); }
+  if (tx._detail) tx._detail.classList.remove('open');
+}
+function toggleCardExpand(tx){
+  if (!tx || !tx.el) return;
+  const isOpen = tx.el.classList.contains('expanded');
+  // accordion: close whatever else is open first
+  if (state.expandedId && state.expandedId !== tx.id){
+    const prev = state.txs.get(state.expandedId);
+    if (prev) collapseCard(prev);
+  }
+  if (isOpen){ collapseCard(tx); state.expandedId = null; return; }
+  expandCard(tx); state.expandedId = tx.id;
+}
+// Refresh an already-open detail in place (real block arrived via confirmTx, or
+// the token ticker resolved) without toggling it.
+function refreshExpandedDetail(tx){
+  if (state.expandedId === tx.id && tx._detail && tx._detail.classList.contains('open')) fillDetail(tx);
+}
+async function shareTx(tx){
+  const url = location.origin + location.pathname + '?tx=' + tx.id;   // shareable Flow receipt
+  try { if (navigator.share){ await navigator.share({ title: 'eCash · Flow', url }); return; } } catch {}
+  try { await navigator.clipboard.writeText(url); toast(t('toast.copied')); } catch { toast(url); }
+}
+// Copy a full identifier (address / token id / tx id) from the detail rows.
+async function copyText(str){
+  if (!str) return;
+  try { await navigator.clipboard.writeText(str); toast(t('copy.done')); } catch { toast(str); }
+}
+function toast(msg){ const el = $('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 2200); }
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && state.expandedId){
+    const tx = state.txs.get(state.expandedId); if (tx) collapseCard(tx);
+    state.expandedId = null;
+  }
+});
+
+/* ------------------------------------------------------------------ eChan narrator (first-time-seen) */
+const echanEl = $('echan'), echanText = $('echan-text');
+let echanTimer = null;
+const echanAvatar = $('echan-avatar');
+const echanMore = $('echan-more');
+let echanMoreIdx = null;                       // Learn-topic index for the shown line (E5), or null
+// E6 off-switch: persisted mute. Default ON; 'off' silences bubble + ambient + events.
+const ECHAN_ON_KEY = 'ecashlive:flow:echan';
+let echanOn = true;
+try { echanOn = localStorage.getItem(ECHAN_ON_KEY) !== 'off'; } catch {}
+// Expression sprites (lazy — only the ones actually used get fetched). Any emotion
+// outside this set falls back to neutral.
+const ECHAN_SPRITE_BASE = '../vendor/companion/sprites/echan_';
+const ECHAN_EMOTIONS = new Set(['neutral','happy','celebrate','observing','studying','thinking']);
+function echanFace(emotion){
+  const e = ECHAN_EMOTIONS.has(emotion) ? emotion : 'neutral';
+  if (echanAvatar && !echanAvatar.getAttribute('src').endsWith('echan_' + e + '.webp')){
+    echanAvatar.src = ECHAN_SPRITE_BASE + e + '.webp';
+  }
+}
+function say(msg, emotion, opts){
+  if (!msg) return;
+  opts = opts || {};
+  // EB1: mark a first-time key seen at ACTUAL display time (not when queued), so a
+  // bounded-queue drop can never leave an explanation "seen but never shown".
+  if (opts.seenKey && !seen[opts.seenKey]){
+    seen[opts.seenKey] = 1;
+    try { localStorage.setItem(SEEN_KEY, JSON.stringify(seen)); } catch {}
+  }
+  echanText.textContent = msg;
+  echanFace(emotion);
+  // E5: "tell me more →" link when the line maps to a Learn topic.
+  echanMoreIdx = (opts.learnIdx != null) ? opts.learnIdx : null;
+  if (echanMore){ echanMore.textContent = echanMoreIdx != null ? t('echan.more') : ''; echanMore.hidden = echanMoreIdx == null; }
+  echanEl.classList.add('show');
+  clearTimeout(echanTimer);
+  // E4: display duration scales with reading time (long RU/TH lines need longer),
+  // clamped 6s–16s. Tap-to-dismiss can end it sooner.
+  const dur = Math.min(16000, Math.max(6000, msg.length * 55));
+  echanTimer = setTimeout(() => echanEl.classList.remove('show'), dur);
+  echanLastShownAt = Date.now();
+  // right-rail narrator log — in-memory history, capped, a persistent companion to
+  // the floating bubble above.
+  state.narratorLog.unshift({ time: new Date().toLocaleTimeString(localeFor(lang), { hour:'2-digit', minute:'2-digit' }), text: msg });
+  if (state.narratorLog.length > 4) state.narratorLog.length = 4;
+  renderNarratorLog();
+}
+// eChan MUST NOT spam: all lines (events + ambient) go through a queue that
+// spaces them out (a burst of first-time lines on the first visit used to stack
+// 4 at once). Never show a new line within ECHAN_GAP_MS of the last, nor over a
+// visible one; queue is bounded so a backlog can't build.
+const ECHAN_GAP_MS = 12000;
+const echanQueue = [];
+let echanLastShownAt = 0, echanDrainTimer = null;
+function enqueueSay(msg, emotion, opts){
+  if (!msg || !echanOn) return;                              // E6: muted → say nothing
+  if (echanText.textContent === msg) return;                 // already showing it
+  if (echanQueue.some(q => q.msg === msg)) return;            // already queued
+  opts = opts || {};
+  echanQueue.push({ msg, emotion, seenKey: opts.seenKey || null, learnIdx: opts.learnIdx != null ? opts.learnIdx : null,
+                    staleAt: opts.staleAt || null, staleBlock: opts.staleBlock != null ? opts.staleBlock : null });
+  // EB1: keep the queue bounded, but prefer dropping a NON-first-time (ambient)
+  // line — never silently discard a one-shot explanation while an ambient tidbit
+  // survives. If every slot is a first-time line, drop the oldest (still bounded);
+  // its seenKey stays unmarked so the same event can re-enqueue it later.
+  while (echanQueue.length > 4){
+    let i = echanQueue.findIndex(q => !q.seenKey);
+    if (i < 0) i = 0;
+    echanQueue.splice(i, 1);
+  }
+  drainEchan();
+}
+// E2 staleness: an event line outdated by the time its slot comes up (past its
+// deadline, or a block line whose height was already superseded) is dropped, never
+// shown late. First-time/ambient lines have no deadline and are never stale.
+function isStaleEchan(item){
+  if (!item) return false;
+  if (item.staleAt && Date.now() > item.staleAt) return true;
+  if (item.staleBlock != null && state.lastSealedHeight > item.staleBlock) return true;
+  return false;
+}
+function drainEchan(){
+  if (echanDrainTimer) return;                                // a drain is already scheduled
+  while (echanQueue.length && isStaleEchan(echanQueue[0])) echanQueue.shift();
+  if (!echanQueue.length) return;
+  const sinceLast = Date.now() - echanLastShownAt;
+  const showing = echanEl.classList.contains('show');
+  const wait = Math.max(showing ? 4000 : 0, ECHAN_GAP_MS - sinceLast);
+  if (wait > 0){ echanDrainTimer = setTimeout(() => { echanDrainTimer = null; drainEchan(); }, wait); return; }
+  while (echanQueue.length && isStaleEchan(echanQueue[0])) echanQueue.shift();   // re-check after the wait
+  if (!echanQueue.length) return;
+  const next = echanQueue.shift();
+  say(next.msg, next.emotion, next);   // next carries seenKey + learnIdx (EB1/E5)
+  if (echanQueue.length) echanDrainTimer = setTimeout(() => { echanDrainTimer = null; drainEchan(); }, ECHAN_GAP_MS);
+}
+function renderNarratorLog(){
+  const el = $('narr-log'); if (!el) return;
+  el.innerHTML = state.narratorLog.map(n =>
+    '<div class="narr-entry"><span class="narr-time">' + esc(n.time) + '</span>' + esc(n.text) + '</div>'
+  ).join('');
+}
+const SEEN_KEY = 'ecashlive:flow:seen';
+let seen = {};
+try { seen = JSON.parse(localStorage.getItem(SEEN_KEY) || '{}') || {}; } catch {}
+// Explain the thing the user just saw for the FIRST time (one-shot, persisted).
+// EB1: seen is marked at real display time inside say(), NOT here — so a bounded-
+// queue drop can't lose the line forever. enqueueSay dedupes by text, so a repeat
+// event before the line shows won't double it. learnIdx (optional) adds a
+// "tell me more →" to the matching Learn topic (E5).
+function firstTime(key, msgKey, emotion, learnIdx){
+  if (seen[key]) return;
+  setTimeout(() => enqueueSay(t(msgKey), emotion, { seenKey: key, learnIdx }), 500);
+}
+
+/* ------------------------------------------------------------------ eChan ambient
+   Reuse the SAME translated dialog library as neo (vendor/companion/seed.<lang>.json,
+   16 languages already localized) — WITHOUT embedding echan.js (3k lines, coupled to
+   neo's DOM). A curated whitelist of newcomer-friendly education + live-stat lines is
+   loaded for the current language, {vars} filled from the relay stats (a line whose
+   vars can't fill is dropped), and ONE is spoken on a slow cadence, never while the
+   tab is hidden / the stream is paused / a line is already showing. */
+const ECHAN_WHITELIST = new Set([
+  'edu-preconsensus-1','edu-preconsensus-2','edu-preconsensus-3','edu-preconsensus-4',
+  'edu-postconsensus-1','edu-postconsensus-2','edu-ttf-1','edu-ttf-2','edu-tps-1','edu-tps-2',
+  'edu-mempool-1','edu-mempool-2','edu-agora-1','edu-agora-2','edu-agora-3','edu-agora-4',
+  'edu-onchainmsg-1','edu-onchainmsg-2','edu-xec-unit-1','edu-xec-unit-2','edu-decimals-1','edu-decimals-2',
+  'edu-cashtab-1','edu-cashtab-2','edu-address-1','edu-address-2','edu-supply-1','edu-supply-2',
+  'edu-twolayer-1','edu-twolayer-2','edu-livettf-1','edu-livettf-2','edu-utxo-1','edu-utxo-2',
+  'edu-stats-1','edu-stats-2','edu-stats-3','edu-stats-4',
+  'amb-live-1','amb-live-2','amb-stats-1','net-stats-1','net-stats-2',
+]);
+const ECHAN_TICK_MS = 150_000;   // slow ambient cadence — eChan is a helper, not a chatterbox
+let echanPool = [];            // [{id,text,emotion,learnIdx}] for the loaded language
+let echanLoadedLang = null;
+// E3: persisted said-ring so ambient lines don't repeat across reloads. Cap 40;
+// echanTick falls back to allowing a repeat rather than going silent if the whole
+// fillable pool is recently-said (small pool + big ring would otherwise starve).
+const ECHAN_SEEN_KEY = 'ecashlive:flow:echan-seen';
+const ECHAN_SAID_MAX = 40;
+let echanSaid = [];
+try { const a = JSON.parse(localStorage.getItem(ECHAN_SEEN_KEY) || '[]'); if (Array.isArray(a)) echanSaid = a.filter(x => typeof x === 'string').slice(-ECHAN_SAID_MAX); } catch {}
+function pushSaid(id){
+  echanSaid.push(id);
+  while (echanSaid.length > ECHAN_SAID_MAX) echanSaid.shift();
+  try { localStorage.setItem(ECHAN_SEEN_KEY, JSON.stringify(echanSaid)); } catch {}
+}
+// E7: deterministic emotion by line category (the 43 whitelist lines carry none).
+function seedEmotion(id){
+  if (id.startsWith('edu-')) return (id.charCodeAt(id.length - 1) % 2) ? 'studying' : 'thinking';
+  if (id.startsWith('amb-') || id.startsWith('net-')) return 'observing';
+  return 'neutral';
+}
+// E5: map an ambient line to the closest Learn topic (0..5); null = no "tell me more".
+function seedLearnIdx(id){
+  if (/^edu-(preconsensus|ttf|livettf|postconsensus)/.test(id)) return 0;   // why ~2s / final
+  if (/^edu-agora/.test(id)) return 5;                                       // tokens + Agora
+  if (/^edu-(xec-unit|decimals|supply)/.test(id)) return 4;                  // what is XEC
+  return null;
+}
+// ---- E1/E2: event-driven reactions (whale/shark/block/fast·slow-TTF) ----
+// Reuse neo's TRANSLATED seed event lines (evt-*, present in all 16 packs) — no new
+// translation debt. Thresholds mirror neo's echan.js exactly (§0.9). Each kind has a
+// cooldown (a burst of whales can't spam) and a staleness deadline (E2): a queued
+// event line that's outdated by the time its 12s slot comes up is dropped, never
+// shown late. A block line also dies once a newer block seals.
+const WHALE_XEC = 1e9, SHARK_XEC = 1e8;          // 🐋 ≥1B, 🦈 100M–1B
+const FAST_TTF_MAX_MS = 300, SLOW_TTF_MIN_MS = 4000;
+const EVENT_TRIGGERS = { 'event:bigtx':'bigtx', 'event:sharktx':'sharktx', 'event:fastttf':'fastttf', 'event:slowttf':'slowttf', 'event:block':'block' };
+const EVENT_COOLDOWN_MS = { bigtx: 5*60e3, sharktx: 5*60e3, fastttf: 15*60e3, slowttf: 15*60e3, block: 10*60e3 };
+const EVENT_STALE_MS    = { bigtx: 120e3, sharktx: 120e3, fastttf: 120e3, slowttf: 120e3, block: 120e3 };
+const EVENT_CHANCE      = { block: 0.3 };        // don't narrate every block; others always
+const EVENT_EMOTION     = { bigtx:'celebrate', sharktx:'happy', fastttf:'celebrate', slowttf:'thinking', block:'observing' };
+const EVENT_LEARN       = { bigtx:4, sharktx:4, fastttf:0, slowttf:0, block:2 };
+const EVENT_BOOT_GRACE_MS = 10000;               // no events in the first 10s (skip boot backlog)
+const bootAt = Date.now();
+let echanEventPool = {};                          // kind -> [{id,text,emotion}]
+const lastEventAt = {};
+// compact XEC (1.2B / 350M / 5K) + TTF seconds — match echan.js fmtCompact/fmtTtfSec.
+function fmtCompactXec(v){
+  if (v >= 1e9) return (v/1e9).toFixed(1).replace(/\.0$/,'') + 'B';
+  if (v >= 1e6) return (v/1e6).toFixed(1).replace(/\.0$/,'') + 'M';
+  if (v >= 1e3) return (v/1e3).toFixed(0) + 'K';
+  return String(Math.round(v));
+}
+function fmtTtfSecEv(ms){ const s = ms/1000; return s >= 10 ? String(Math.round(s)) : s.toFixed(1).replace(/\.0$/,''); }
+function applyEchanSeed(j){
+  const lines = (j && j.lines) || [];
+  echanPool = lines.filter(l => l && ECHAN_WHITELIST.has(l.id) && l.text)
+                   .map(l => ({ id: l.id, text: l.text, emotion: l.emotion || seedEmotion(l.id), learnIdx: seedLearnIdx(l.id) }));
+  const ev = {};
+  for (const l of lines){
+    const kind = l && l.text && EVENT_TRIGGERS[l.trigger];
+    if (kind){ (ev[kind] || (ev[kind] = [])).push({ id: l.id, text: l.text, emotion: l.emotion || '' }); }
+  }
+  echanEventPool = ev;
+}
+async function loadEchanSeed(){
+  if (echanLoadedLang === lang && echanPool.length) return;
+  const want = lang;
+  const file = want === 'en' ? 'seed.json' : ('seed.' + want + '.json');
+  try {
+    let r = await fetch('../vendor/companion/' + file, { cache:'no-cache' });
+    if (!r.ok && want !== 'en') r = await fetch('../vendor/companion/seed.json', { cache:'no-cache' });   // EN fallback
+    if (r.ok){ applyEchanSeed(await r.json()); echanLoadedLang = want; }
+  } catch {}
+}
+// Same var mapping + formatting as echan.js liveVars() (undefined when not fresh).
+function echanVars(){
+  const s = state.relayStats, fresh = isFresh();
+  const fTps = v => (typeof v!=='number'||!isFinite(v)) ? undefined
+    : v>=10 ? String(Math.round(v)) : v>=1 ? v.toFixed(1).replace(/\.0$/,'') : v>=0.1 ? v.toFixed(2)
+    : v>=0.001 ? v.toFixed(v>=0.01?2:3) : v>0 ? '< 0.001' : '0';
+  const fTtf = ms => (typeof ms!=='number'||!isFinite(ms)) ? undefined
+    : (ms/1000>=10 ? String(Math.round(ms/1000)) : (ms/1000).toFixed(1).replace(/\.0$/,''));
+  const g = (cond, val) => (fresh && s && cond) ? val : undefined;
+  return {
+    liveTps:        g(typeof s?.tps==='number', s && fTps(s.tps)),
+    liveTtf:        g(typeof s?.ttfP50Ms==='number', s && fTtf(s.ttfP50Ms)),
+    livePeak:       g(typeof s?.tpsPeak24h==='number', s && fTps(s.tpsPeak24h)),
+    liveTxCount:    g(typeof s?.sampleCount==='number' && s?.sampleCount>0, s && s.sampleCount.toLocaleString(localeFor(lang))),
+    livePctUnder3s: g(typeof s?.pctFinalUnder3s==='number', s && (Math.round(s.pctFinalUnder3s*100)+'%')),
+    liveTtfSpread:  g(typeof s?.ttfP90Ms==='number' && typeof s?.ttfP10Ms==='number', s && fTtf(s.ttfP90Ms - s.ttfP10Ms)),
+    tipHeight:      state.height>0 ? String(state.height) : undefined,
+  };
+}
+function fillEchan(text, vars){
+  let ok = true;
+  const out = String(text).replace(/\{(\w+)\}/g, (_, k) => { const v = vars[k]; if (v==null){ ok=false; return ''; } return v; });
+  return ok ? out : null;
+}
+function echanTick(){
+  if (!echanOn || document.hidden || state.paused) return;   // E6: muted → no ambient
+  if (!echanPool.length){ loadEchanSeed(); return; }         // EB2: retry a failed/pending seed load
+  if (echanEl.classList.contains('show')) return;            // don't talk over a visible line
+  const vars = echanVars();
+  const fillable = [];
+  for (const l of echanPool){
+    const filled = fillEchan(l.text, vars);
+    if (filled != null) fillable.push({ l, filled });
+  }
+  if (!fillable.length) return;                              // no line's vars can fill right now
+  // Prefer a not-recently-said line; if the whole fillable pool is said, allow a
+  // repeat rather than go silent (E3 no-starve fallback).
+  let cand = fillable.filter(c => !echanSaid.includes(c.l.id));
+  if (!cand.length) cand = fillable;
+  const pick = cand[Math.floor(Math.random() * cand.length)];
+  pushSaid(pick.l.id);                                       // E3: persisted, capped
+  enqueueSay(pick.filled, pick.l.emotion, { learnIdx: pick.l.learnIdx });
+}
+// Event-line vars (merged with live stats vars so a line may use either).
+function eventVars(d){
+  d = d || {};
+  return {
+    valueXec: (d.valueXec != null) ? fmtCompactXec(d.valueXec) : undefined,
+    ttfSec:   (d.ms != null) ? fmtTtfSecEv(d.ms) : undefined,
+    ttfMs:    (d.ms != null) ? String(Math.round(d.ms)) : undefined,
+    height:   (d.height != null) ? String(d.height) : undefined,
+    txCount:  (d.txCount != null) ? Number(d.txCount).toLocaleString(localeFor(lang)) : undefined,
+  };
+}
+// E1 router: a live network event → an eChan reaction, gated by mute/hidden/paused,
+// a boot grace window, a per-kind cooldown, and (block only) a keep-chance. The
+// enqueued line carries a staleness deadline (E2) enforced in drainEchan.
+function echanEvent(kind, data){
+  if (!echanOn || document.hidden || state.paused) return;
+  if (Date.now() - bootAt < EVENT_BOOT_GRACE_MS) return;     // skip the boot mempool backlog
+  const now = Date.now();
+  const cd = EVENT_COOLDOWN_MS[kind] || 0;
+  if (lastEventAt[kind] && now - lastEventAt[kind] < cd) return;
+  const chance = EVENT_CHANCE[kind];
+  if (chance != null && Math.random() > chance) return;
+  const pool = echanEventPool[kind];
+  if (!pool || !pool.length) return;
+  const vars = Object.assign({}, echanVars(), eventVars(data));
+  const cand = [];
+  for (const l of pool){ const f = fillEchan(l.text, vars); if (f != null) cand.push({ l, filled: f }); }
+  if (!cand.length) return;                                  // no line's vars can fill (e.g. block with unknown txCount)
+  const pick = cand[Math.floor(Math.random() * cand.length)];
+  lastEventAt[kind] = now;
+  enqueueSay(pick.filled, pick.l.emotion || EVENT_EMOTION[kind] || 'neutral', {
+    learnIdx: EVENT_LEARN[kind],
+    staleAt: now + (EVENT_STALE_MS[kind] || 120e3),
+    staleBlock: kind === 'block' ? data.height : null,
+  });
+}
+// node-precise TTF is the honest value (perceived carries latency) — brag on a very
+// fast finalize, grumble on a slow one. Called only from the node-precise path.
+function echanTtfEvent(ttfMs){
+  if (!(ttfMs > 0)) return;
+  if (ttfMs <= FAST_TTF_MAX_MS) echanEvent('fastttf', { ms: ttfMs });
+  else if (ttfMs >= SLOW_TTF_MIN_MS) echanEvent('slowttf', { ms: ttfMs });
+}
+
+/* ---- eChan interactivity (E5) + off-switch (E6) ---- */
+// Open a specific Learn topic (0..5): the rail on desktop, the "?"-bar on mobile.
+function openLearnTopic(idx){
+  const desktop = window.matchMedia('(min-width:1120px)').matches;
+  let list;
+  if (desktop){ list = $('rail-learn-list'); }
+  else {
+    const bar = $('learn-bar'), btn = $('btn-learn');
+    if (bar) bar.classList.add('open');
+    if (btn){ btn.classList.add('active'); btn.setAttribute('aria-expanded', 'true'); }
+    const wb = $('watch-bar'), bw = $('btn-watch');
+    if (wb) wb.classList.remove('open');
+    if (bw) bw.classList.remove('active');
+    list = $('bar-learn-list');
+  }
+  if (!list) return;
+  const item = list.querySelectorAll('.lrn-item')[idx];
+  if (!item) return;
+  const ans = item.querySelector('.lrn-a'), q = item.querySelector('.lrn-q');
+  if (ans && !ans.classList.contains('open')){
+    ans.classList.add('open');
+    if (q){ q.setAttribute('aria-expanded', 'true'); const c = q.querySelector('.lrn-caret'); if (c) c.textContent = '▴'; }
+  }
+  requestAnimationFrame(() => { try { item.scrollIntoView({ block:'nearest', behavior:'smooth' }); } catch {} });
+}
+function hideEchan(){ echanEl.classList.remove('show'); clearTimeout(echanTimer); }
+// Tap the bubble body to dismiss (E5); the "tell me more →" button opens the topic.
+echanEl.addEventListener('click', (e) => { if (e.target.closest('#echan-more')) return; hideEchan(); });
+if (echanMore) echanMore.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const idx = echanMoreIdx;
+  hideEchan();
+  if (idx != null) openLearnTopic(idx);
+});
+// E6 footer toggle: mute/unmute (persisted). Muting hides the bubble + clears the
+// pending queue; ambient + events stay silent (enqueueSay/echanTick gate on echanOn).
+function renderEchanToggle(){
+  const b = $('btn-echan'); if (!b) return;
+  b.classList.toggle('muted', !echanOn);
+  b.setAttribute('aria-pressed', String(!echanOn));
+  b.title = echanOn ? t('ctrl.echan.mute') : t('ctrl.echan.unmute');
+  const g = b.querySelector('.echan-glyph'); if (g) g.innerHTML = echanOn ? IC.bell : IC.bellOff;
+}
+{
+  const be = $('btn-echan');
+  if (be) be.addEventListener('click', () => {
+    echanOn = !echanOn;
+    try { localStorage.setItem(ECHAN_ON_KEY, echanOn ? 'on' : 'off'); } catch {}
+    if (!echanOn){ hideEchan(); echanQueue.length = 0; clearTimeout(echanDrainTimer); echanDrainTimer = null; }
+    renderEchanToggle();
+  });
+}
+
+/* ------------------------------------------------------------------ watchlist + try-it */
+const CASHTAB_WEB = 'https://cashtab.com/';
+const WATCH_MAX = 20;                 // hard cap of watched addresses (§10; raised from 10 for the neo merge, F2)
+state.watchSet = new Set();           // normalized ecash: addresses (for matching)
+state.watchNames = new Map();         // addr -> user label (name it like the dashboard)
+let tryMsg = null;   // lowercase content the user typed for "try it" (one-shot match)
+function normAddr(a){ if (!a) return null; a = String(a).trim().toLowerCase(); if (!a) return null; return a.startsWith('ecash:') ? a : ('ecash:' + a); }
+
+// "your wallet" address (for self-send + marking your own txs _mine). Saved under
+// a Flow key; if unset, seeded ONE-WAY from neo's chat key (same origin) so a user
+// who already set their address in the neo dashboard doesn't retype it (F2).
+const MY_ADDR_KEY = 'ecashlive:flow:myaddr';
+let myAddr = null;
+function loadMyAddr(){
+  let a = null;
+  try { a = localStorage.getItem(MY_ADDR_KEY); } catch {}
+  if (!a){ try { const chat = JSON.parse(localStorage.getItem('ecash-live-chat-v1') || 'null'); if (chat && chat.myAddr) a = chat.myAddr; } catch {} }
+  a = normAddr(a);
+  if (a && validateCashAddress(a)) myAddr = a;
+}
+function saveMyAddr(input){
+  const a = normAddr(input);
+  if (!a || !validateCashAddress(a)) return false;
+  myAddr = a;
+  try { localStorage.setItem(MY_ADDR_KEY, a); } catch {}
+  return true;
+}
+function txTouchesMine(tx){ return !!(myAddr && tx._addrSet && tx._addrSet.has(myAddr)); }
+// txids we broadcast via the extension — mark them _mine on arrival (exact, beats
+// content-matching). Bounded (§10).
+const mineTxids = new Set();
+function noteMineTxid(txid){ if (!txid) return; mineTxids.add(txid); while (mineTxids.size > 40){ const f = mineTxids.values().next().value; mineTxids.delete(f); } }
+function saveWatch(){
+  try {
+    if (state.watchSet.size) localStorage.setItem('ecashlive:flow:watchlist',
+      JSON.stringify([...state.watchSet].map(a => ({ a, n: state.watchNames.get(a) || '' }))));
+    else localStorage.removeItem('ecashlive:flow:watchlist');
+  } catch {}
+}
+// Load the list — new {a,n} shape OR the Phase-3 plain-string array; migrate the
+// pre-Phase-3 single-address key once.
+(function loadWatch(){
+  try {
+    const raw = localStorage.getItem('ecashlive:flow:watchlist');
+    if (raw){
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) for (const e of arr){
+        const addr = normAddr(typeof e === 'string' ? e : (e && e.a));
+        if (addr && state.watchSet.size < WATCH_MAX){
+          state.watchSet.add(addr);
+          const nm = (e && typeof e === 'object' && e.n) ? String(e.n).slice(0, 40) : '';
+          if (nm) state.watchNames.set(addr, nm);
+        }
+      }
+    } else {
+      const n = normAddr(localStorage.getItem('ecashlive:flow:watch'));   // pre-Phase-3 single addr
+      if (n){ state.watchSet.add(n); saveWatch(); }
+    }
+    localStorage.removeItem('ecashlive:flow:watch');
+    // F2: first-time seed from neo's watchlist (ONE-WAY read — neo is the source of
+    // truth, Flow never writes neo's key). Only when Flow has no list yet, so it
+    // won't fight a curated Flow list or resurrect entries removed in Flow. Address
+    // entries only (Flow has no token watching), enabled only.
+    if (state.watchSet.size === 0){
+      const neo = JSON.parse(localStorage.getItem('ecash-live:watchlist:v3') || 'null');
+      if (Array.isArray(neo)){
+        for (const e of neo){
+          if (!e || e.kind === 'token' || e.enabled === false) continue;
+          const addr = normAddr(e.addr);
+          if (!addr || !validateCashAddress(addr) || state.watchSet.has(addr)) continue;
+          if (state.watchSet.size >= WATCH_MAX) break;
+          state.watchSet.add(addr);
+          const nm = (typeof e.name === 'string' && e.name.trim()) ? e.name.trim().slice(0, 40) : '';
+          if (nm) state.watchNames.set(addr, nm);
+        }
+        if (state.watchSet.size) saveWatch();   // persist the seed as Flow's own
+      }
+    }
+  } catch {}
+})();
+// Matches ANY input or output address on the tx against ANY watched address (B10).
+function txTouchesWatch(tx){
+  if (!tx._addrSet || !state.watchSet.size) return false;
+  for (const a of state.watchSet){ if (tx._addrSet.has(a)) return true; }
+  return false;
+}
+// Label of the first watched address the tx touches ('' if unnamed) — shown on the card.
+function watchNameFor(tx){
+  if (!tx._addrSet || !state.watchSet.size) return '';
+  for (const a of state.watchSet){ if (tx._addrSet.has(a)) return state.watchNames.get(a) || ''; }
+  return '';
+}
+// applied at card creation: your-own-tx (mine) or watched-address highlight
+function applyHighlights(tx){
+  if (!tx.el) return;
+  if (tx._mine) tx.el.classList.add('mine');
+  else if (txTouchesWatch(tx)) tx.el.classList.add('watched');
+}
+function rehighlightAll(){
+  for (const tx of state.txs.values()){
+    if (!tx.el) continue;
+    if (!tx._mine) tx.el.classList.toggle('watched', txTouchesWatch(tx));
+    setCardText(tx);   // refresh the route prefix (a watched-address name may have changed)
+  }
+}
+/* ---- watchlist panel: named entries + add + remove, rendered into BOTH the
+   right-rail card (desktop) and the "#watch-bar" (mobile, opened from the footer).
+   Feedback goes to toast() (the panel has no inline hint). ---- */
+// F7: export / import the watchlist as a portable JSON file (interops with neo's
+// export via the shared schema). No network — Blob download + a file-picker read,
+// so no connect-src change. Flow imports address entries only.
+function watchlistExportData(){
+  return {
+    format: 'ecashlive-watchlist', version: 1, source: 'flow',
+    entries: [...state.watchSet].map(a => ({ addr: a, kind: 'address', name: state.watchNames.get(a) || '' })),
+  };
+}
+function exportWatchlist(){
+  if (!state.watchSet.size){ toast(t('watch.empty')); return; }
+  try {
+    const blob = new Blob([JSON.stringify(watchlistExportData(), null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'ecashlive-watchlist.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => { try { URL.revokeObjectURL(url); } catch {} }, 1000);
+  } catch { toast(t('watch.importBad')); }
+}
+function pickImportFile(){
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'application/json,.json';
+  inp.addEventListener('change', () => { const f = inp.files && inp.files[0]; if (f) importWatchlist(f); });
+  inp.click();
+}
+function importWatchlist(file){
+  const reader = new FileReader();
+  reader.onerror = () => toast(t('watch.importBad'));
+  reader.onload = () => {
+    let added = 0, dup = 0, skipped = 0;
+    try {
+      const data = JSON.parse(reader.result);
+      const entries = Array.isArray(data) ? data : (data && Array.isArray(data.entries) ? data.entries : null);
+      if (!entries){ toast(t('watch.importBad')); return; }
+      for (const e of entries){
+        if (e && e.kind === 'token'){ skipped++; continue; }                 // Flow watches addresses only
+        const addr = normAddr(typeof e === 'string' ? e : (e && e.addr));
+        if (!addr || !validateCashAddress(addr)){ skipped++; continue; }
+        if (state.watchSet.has(addr)){ dup++; continue; }
+        if (state.watchSet.size >= WATCH_MAX){ skipped++; continue; }
+        state.watchSet.add(addr);
+        const nm = (e && typeof e === 'object' && typeof e.name === 'string' && e.name.trim()) ? e.name.trim().slice(0, 40) : '';
+        if (nm) state.watchNames.set(addr, nm);
+        added++;
+      }
+      if (added) saveWatch();
+      renderAllWatch(); updateWatchBadge(); rehighlightAll();
+      toast(tf('watch.imported', { added, dup, skipped }));
+    } catch { toast(t('watch.importBad')); }
+  };
+  reader.readAsText(file);
+}
+function renderWatchlist(container){
+  if (!container) return;
+  const addrs = [...state.watchSet];
+  const empty = addrs.length ? '' : '<div class="wl-empty">' + esc(t('watch.empty')) + '</div>';
+  const rows = addrs.map(a =>
+    '<div class="wl-entry">' +
+      '<input class="wl-name" type="text" maxlength="40" value="' + esc(state.watchNames.get(a) || '') + '" ' +
+        'data-addr="' + esc(a) + '" placeholder="' + esc(t('watch.namePh')) + '" aria-label="' + esc(t('watch.namePh')) + '" />' +
+      '<span class="wl-addr">' + esc(shortAddr(a)) + '</span>' +
+      '<button type="button" class="wl-x" data-addr="' + esc(a) + '" aria-label="' + esc(t('watch.remove')) + '">✕</button>' +
+    '</div>'
+  ).join('');
+  container.innerHTML = empty + rows +
+    '<div class="wl-add">' +
+      '<input class="wl-in" type="text" placeholder="' + esc(t('watch.ph')) + '" aria-label="' + esc(t('watch.ph')) + '" />' +
+      '<button type="button" class="wl-add-btn">' + esc(t('watch.add')) + '</button>' +
+    '</div>' +
+    '<div class="wl-io">' +
+      '<button type="button" class="wl-io-btn wl-export">' + esc(t('watch.export')) + '</button>' +
+      '<button type="button" class="wl-io-btn wl-import">' + esc(t('watch.import')) + '</button>' +
+    '</div>';
+  const exp = container.querySelector('.wl-export'), imp = container.querySelector('.wl-import');
+  if (exp) exp.addEventListener('click', exportWatchlist);
+  if (imp) imp.addEventListener('click', pickImportFile);
+  container.querySelectorAll('.wl-x').forEach(b => b.addEventListener('click', () => removeWatch(b.getAttribute('data-addr'))));
+  container.querySelectorAll('.wl-name').forEach(inp => {
+    inp.addEventListener('change', () => renameWatch(inp.getAttribute('data-addr'), inp.value));
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+  });
+  const addInp = container.querySelector('.wl-in'), addBtn = container.querySelector('.wl-add-btn');
+  const doAdd = () => addWatch(addInp.value, container);
+  if (addBtn) addBtn.addEventListener('click', doAdd);
+  if (addInp) addInp.addEventListener('keydown', e => { if (e.key === 'Enter') doAdd(); });
+}
+function renderAllWatch(){ renderWatchlist($('rail-watch-list')); renderWatchlist($('bar-watch-list')); }
+function updateWatchBadge(){
+  const b = $('wat-count'); if (!b) return;
+  const n = state.watchSet.size;
+  b.textContent = n ? String(n) : '';
+  b.hidden = n === 0;
+}
+function addWatch(input, container){
+  const a = normAddr(input);
+  if (!a) return;
+  if (!validateCashAddress(a)){ toast(t('watch.invalid')); return; }        // real checksum check
+  if (state.watchSet.has(a)) return;                                        // dedup (silent)
+  if (state.watchSet.size >= WATCH_MAX){ toast(tf('watch.full', { n: WATCH_MAX })); return; }
+  state.watchSet.add(a); saveWatch();
+  renderAllWatch(); updateWatchBadge(); rehighlightAll();
+  if (container){ const ni = container.querySelector('.wl-in'); if (ni) try { ni.focus(); } catch {} }
+}
+function removeWatch(a){
+  state.watchSet.delete(a); state.watchNames.delete(a); saveWatch();
+  renderAllWatch(); updateWatchBadge(); rehighlightAll();
+}
+function renameWatch(a, name){
+  const nm = String(name || '').trim().slice(0, 40);
+  if (nm) state.watchNames.set(a, nm); else state.watchNames.delete(a);
+  saveWatch(); rehighlightAll();   // don't re-render the list (would drop input focus)
+}
+// Cashtab Msg op_return_raw: 04 00746162 <pushLen> <utf8 hex>, no leading 6a,
+// ≤215 utf-8 bytes (proven format, see index.html chatbox notes).
+function encodeCashtabMsgOpReturn(msg){
+  const bytes = new TextEncoder().encode(msg);
+  if (bytes.length === 0 || bytes.length > 215) return null;
+  let hex = ''; for (const b of bytes) hex += b.toString(16).padStart(2, '0');
+  const pl = bytes.length <= 75 ? bytes.length.toString(16).padStart(2, '0')
+           : '4c' + bytes.length.toString(16).padStart(2, '0');
+  return '04' + '00746162' + pl + hex;
+}
+const cmpCompose = $('compose'), cmpHint = $('cmp-hint');
+function hint(txt, show){ cmpHint.textContent = txt || ''; cmpHint.classList.toggle('open', !!show && !!txt); }
+$('cta-try').addEventListener('click', () => {
+  const open = !cmpCompose.classList.contains('open');
+  cmpCompose.classList.toggle('open', open); cmpCompose.hidden = !open;
+  hint(t(isCashtabExtension() ? 'try.hintExt' : 'try.hint'), open);
+  if (open){ const ai = $('compose-addr'); if (ai && !ai.value && myAddr) ai.value = myAddr; $('compose-in').focus(); }
+});
+// Persist a valid address as it's entered (saveMyAddr no-ops on an invalid one).
+$('compose-addr').addEventListener('blur', e => { const a = e.target.value.trim(); if (a) saveMyAddr(a); });
+// footer eye → toggle the mobile watch-bar (desktop uses the rail; #btn-watch is
+// display:none ≥1120px). One footer bar open at a time.
+$('btn-watch').addEventListener('click', () => {
+  const bar = $('watch-bar'), btn = $('btn-watch');
+  const open = !bar.classList.contains('open');
+  $('learn-bar').classList.remove('open'); $('btn-learn').classList.remove('active');
+  bar.classList.toggle('open', open);
+  btn.classList.toggle('active', open);
+  btn.setAttribute('aria-expanded', String(open));
+  if (open){ renderWatchlist($('bar-watch-list')); requestAnimationFrame(() => { try { bar.scrollIntoView({ block:'nearest' }); } catch {} }); }
+});
+// Hybrid send (D3 gate FAILED: Cashtab rejects an empty-address bip21). With the
+// Cashtab extension we requestAddress()+sendBip21() and get the exact txid; without
+// it we fall back to the cashtab.com URL (which now needs a REAL recipient — the
+// user's own address, for a self-send) and match the returning tx by content.
+async function sendTry(){
+  const v = $('compose-in').value.trim(); if (!v) return;
+  const opret = encodeCashtabMsgOpReturn(v);
+  if (!opret){ toast(t('try.toolong')); return; }
+  const addrInput = $('compose-addr');
+  let addr = normAddr(addrInput.value);
+  const hasExt = isCashtabExtension();
+  if (!addr && hasExt){
+    // No address typed — ask the extension for the user's own (self-send).
+    hint(t('try.confirm'), true);
+    try { const got = await ctRequestAddress(); if (saveMyAddr(got)){ addr = myAddr; addrInput.value = myAddr; } }
+    catch (e){ hint('', false); toast(t(e && e.message === 'timeout' ? 'try.timeout' : 'try.denied')); return; }
+  }
+  if (!addr){ hint(t('try.needAddr'), true); try { addrInput.focus(); } catch {}; return; }
+  if (!validateCashAddress(addr)){ toast(t('try.badAddr')); return; }
+  saveMyAddr(addr);
+  const bip21 = 'ecash:' + addr + '?op_return_raw=' + opret;
+  if (hasExt){
+    hint(t('try.confirm'), true);
+    try {
+      const txid = await ctSendBip21(bip21);
+      noteMineTxid(txid);                    // exact _mine match when it arrives (no content guess)
+      try { subscribeTxid(txid); } catch {}
+      $('compose-in').value = '';
+      hint(t('try.sentExt'), true);
+    } catch (e){
+      hint('', false);
+      toast(t(e && e.message === 'timeout' ? 'try.timeout' : 'try.denied'));
+    }
+  } else {
+    tryMsg = v.toLowerCase();                // content-match the returning tx (URL path only)
+    window.open(CASHTAB_WEB + '#/send?bip21=' + bip21, '_blank', 'noopener');
+    $('compose-in').value = '';
+    hint(t('try.sent'), true);
+  }
+}
+$('compose-send').addEventListener('click', sendTry);
+$('compose-in').addEventListener('keydown', e => { if (e.key === 'Enter') sendTry(); });
+
+/* ------------------------------------------------------------------ shared ?tx= receipt */
+async function maybeOpenSharedTx(){
+  let q = null; try { q = new URLSearchParams(location.search).get('tx'); } catch {}
+  if (!q || !/^[0-9a-f]{64}$/.test(q) || !state.chronik) return;
+  try {
+    const d = await state.chronik.tx(q);
+    const tx = parseTransactionCore(d);
+    try { const r = deriveRoute(d); tx.from = r.from; tx.to = r.to; } catch {}
+    const k = txKind(tx); tx.kind = k.kind; tx.f = k.f; tx.icon = k.icon;
+    if ((tx.kind === 'token' || tx.kind === 'trade') && tx.token && tx.token.tokenId){
+      const rec = resolvedTokenRec(tx.token.tokenId);
+      if (rec) applyTokenInfo(tx, rec);
+      fetchTokenTicker(tx.token.tokenId);
+    }
+    // Honesty: a shared receipt was NOT witnessed live → no TTF number, only the
+    // on-chain truth (final state + block).
+    tx.final = !!(d.isFinal || (d.block && d.block.height));
+    tx.ttf = null;
+    tx.block = (d.block && d.block.height) || null;
+    if (tx.id && state.txs.has(tx.id)){ const ex = state.txs.get(tx.id); if (ex.el){ toggleCardExpand(ex); return; } }
+    // Append the shared tx as an auto-expanded card at the bottom of the stream
+    // (visible, no popup). It carries on-chain truth only — no fabricated TTF.
+    hideEmpty();
+    trackTx(tx);
+    const card = cardFor(tx);
+    if (tx.final){ card.classList.remove('is-sending'); card.classList.add('is-final'); const c = card.querySelector('.checks'); if (c) c.innerHTML = IC.checks; }
+    stream.appendChild(card);
+    setCardText(tx);
+    state.atBottom = true; stream.scrollTop = stream.scrollHeight;
+    toggleCardExpand(tx);
+  } catch { toast(t('share.notFound')); }   // A5: a bad/expired ?tx= link showed nothing before
+}
+
+/* ------------------------------------------------------------------ boot */
+function buildLangSelect(){
+  const sel = $('lang-select');
+  sel.innerHTML = '';
+  for (const L of I18N_LANGS){
+    const o = document.createElement('option');
+    o.value = L.code; o.textContent = L.native;
+    if (L.code === lang) o.selected = true;
+    sel.appendChild(o);
+  }
+}
+async function boot(){
+  initTheme();
+  lang = pickInitialLang();
+  await loadPack(lang);
+  applyStatic();
+  renderAllLearn();
+  renderAllWatch();
+  updateWatchBadge();
+  loadMyAddr();          // your wallet address (Flow key, else seeded from neo) → _mine + self-send
+  renderEchanToggle();   // E6: paint the footer bell in its saved on/off state
+  buildLangSelect();
+  renderPrice();
+  fetchPrice(); setInterval(fetchPrice, 120000);
+  connectStats();
+  setInterval(updateStatsUI, 5000);   // re-check staleness even with no new frames (B11)
+  connectChronik();
+  setTimeout(() => firstTime('greet', 'echan.greet', 'happy'), 1200);
+  // eChan ambient: load the shared dialog library (deferred, off the boot path) and
+  // start a slow narration cadence that reuses neo's translated content.
+  setTimeout(loadEchanSeed, 3000);
+  setInterval(echanTick, ECHAN_TICK_MS);
+  setTimeout(echanTick, 28000);   // first ambient tidbit once stats are likely fresh
+}
+boot();
+</script>
+</body>
+</html>

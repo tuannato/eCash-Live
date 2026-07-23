@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-rUYIS39O0qT65gdRG60OeGIC+ldfsn7eJH9TV9x+rXE=';
+  script-src 'self' 'sha256-hN5ZmHzzOL1Gs71bigqsjAP1aIWw1cubsJSGQPSXOUs=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -680,6 +680,28 @@
     /* Pull the glyph baseline slightly so it sits centered in the button */
     transform: translateY(-1px);
   }
+  /* Flow gateway button — replaces the coffee button in the footer control
+     panel. Entry point to the /flow/ "Flow" interface. (Tipping now lives in
+     the eChan quick-action menu — see echan.js qaTip.) Cyan accent so it reads
+     as an invitation to try the simpler view, not a mere setting. */
+  .control-panel .ctrl-flow {
+    color: var(--cyan);
+    background: rgba(1,160,224,0.06);
+    border: 1px solid rgba(1,160,224,0.28);
+    padding: 4px 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .control-panel .ctrl-flow:hover {
+    color: var(--cyan);
+    background: rgba(1,160,224,0.16);
+    border-color: var(--cyan);
+    box-shadow: 0 0 14px rgba(1,160,224,0.22);
+  }
+  .control-panel .ctrl-flow .flow-spark { font-size: 13px; line-height: 1; }
   .topbar .meta { margin-left: auto; display: flex; gap: 22px; flex: 0 0 auto; }
   .meta .cell { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
   /* Price cell doubles as the unit toggle (raw ↔ per-1M XEC). */
@@ -6803,8 +6825,8 @@
      update-csp-hash.sh. See /vendor/companion/echan.js header for the
      module's architecture + roadmap (Phase 1a → 1e).
      ===================================================================== -->
-<link rel="stylesheet" href="./vendor/companion/echan.css?v=mc22">
-<link rel="stylesheet" href="./vendor/mediacenter/mediacenter.css?v=mc22">
+<link rel="stylesheet" href="./vendor/companion/echan.css?v=mc23">
+<link rel="stylesheet" href="./vendor/mediacenter/mediacenter.css?v=mc23">
 
 </head>
 <body>
@@ -6842,7 +6864,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v1.7.1">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v1.7.1</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v2.0.0">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v2.0.0</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -7569,9 +7591,9 @@
     <button class="ctrl-btn" id="btn-pause" title="Pause incoming transactions">
       ❙❙
     </button>
-    <button class="ctrl-btn ctrl-tip" id="tip-btn" title="Buy me a coffee — your tx will be highlighted on the stream" aria-label="Send a tip">
-      <span class="cup" aria-hidden="true">☕</span>
-    </button>
+    <a class="ctrl-btn ctrl-flow" id="flow-btn" href="./flow/" title="Open Flow — the simple, beginner-friendly view of eCash Live" aria-label="Open Flow, the simple view">
+      <span class="flow-spark" aria-hidden="true">✦</span>Flow
+    </a>
   </div>
 </footer>
 
@@ -7897,6 +7919,22 @@
 </div>
 
 <script type="module">
+// P3 (FLOW_DESIGN.md h, tier-2): honor an explicit "I chose Flow" preference,
+// MOBILE ONLY. It is set when the user taps the Flow gateway (#flow-btn, below);
+// "Pro view →" inside Flow clears it back to 'pro'. Desktop neo is never
+// redirected, and a ?endpoint= dev override is always honored.
+try {
+  if (localStorage.getItem('ecashlive:pref') === 'flow'
+      && matchMedia('(max-width: 820px)').matches
+      && !new URLSearchParams(location.search).has('endpoint')) {
+    location.replace('./flow/');
+  }
+} catch {}
+try {
+  document.getElementById('flow-btn')?.addEventListener('click', () => {
+    try { localStorage.setItem('ecashlive:pref', 'flow'); } catch {}
+  });
+} catch {}
 // ============ ECHAN EVENT BUS (v1.3.1) ============
 // Minimal pub/sub bridging live network events from this module to the
 // external eChan companion (vendor/companion/echan.js). Fire-and-forget:
@@ -19826,7 +19864,10 @@ function closeTipDialog() {
   const ov = $('tip-overlay');
   if (ov) ov.classList.remove('show');
 }
-$('tip-btn').addEventListener('click', openTipDialog);
+// The footer coffee button was replaced by the Flow gateway (see #flow-btn).
+// Expose the tip-dialog opener so the eChan quick-action ("Tip the project")
+// can still open it directly — echan.js qaTip() calls window.__ecOpenTip.
+window.__ecOpenTip = openTipDialog;
 $('tip-close-btn').addEventListener('click', closeTipDialog);
 $('tip-overlay').addEventListener('click', (e) => {
   if (e.target.id === 'tip-overlay') closeTipDialog();
@@ -22569,12 +22610,12 @@ startTtfFeedModule();
      already fired when the module's IIFE runs, so init() can find
      #stage-wrap without a readyState dance. External script under 'self'
      — covered by the script-src whitelist, no CSP hash needed. -->
-<script src="./vendor/companion/echan.js?v=mc22" defer></script>
+<script src="./vendor/companion/echan.js?v=mc23" defer></script>
 
 <!-- Media center external module (sibling to eChan). External script/style under
      'self' — no CSP hash. Self-injects its DOM; opened via the play tab
      (#mc-tab-btn) or the eChan "Media center" quick-action. -->
-<script src="./vendor/mediacenter/mediacenter.js?v=mc22" defer></script>
+<script src="./vendor/mediacenter/mediacenter.js?v=mc23" defer></script>
 
 </body>
 </html>

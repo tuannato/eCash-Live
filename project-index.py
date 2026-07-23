@@ -3,8 +3,9 @@
 project-index.py — eCash Live repository indexer.
 
 Regenerates PROJECT_INDEX.md: a current, machine-built navigation map of the
-whole project, with special depth on the large files (index.html ~21.5k lines,
-ttf-relay.py, ecash_bot.py, echan.js, mediacenter.js).
+whole project, with special depth on the large files (index.html ~22k lines,
+flow/index.html, ttf-relay.py, ecash_bot.py, echan.js, mediacenter.js,
+vendor/txparse.js).
 
 WHY THIS EXISTS
   Line numbers in index.html's inline module drift on EVERY web edit, so the
@@ -38,9 +39,10 @@ OUT_NAME = "PROJECT_INDEX.md"
 # ---------------------------------------------------------------------------
 PURPOSE = {
     "index.html": "The entire web app: HTML + pinned inline <style> + inline ES module. GitHub Pages.",
+    "flow/index.html": "Flow — the newcomer interface (messenger-style stream). Own CSP hash; reads the SAME live data as neo via vendor/txparse.js + chronik + relay ttf-feed.",
     "ttf-relay.py": "VPS asyncio relay. Tails bitcoind debug.log, pairs mempool+finalize, computes µs TTF, WS broadcast + 24h stats ring.",
     "ecash_bot.py": "Telegram node-ops bot. Status + password-gated restart/stop/start/update. Reads relay's ttf-stats.json (not the WS).",
-    "update-csp-hash.sh": "Rewrites the CSP sha256- token for index.html's inline module. Run after ANY module edit.",
+    "update-csp-hash.sh": "Rewrites the CSP sha256- token for a page's inline module (index.html AND flow/index.html). Run after ANY module edit.",
     "CLAUDE.md": "Operating manual for AI-assisted work. Auto-loads at session start.",
     "README.md": "Repository layout + overview.",
     "ECASH_TECHNICAL.md": "eCash protocol concepts + how this repo consumes them.",
@@ -49,6 +51,9 @@ PURPOSE = {
     "CNAME": "GitHub Pages custom domain (ecashlive.net).",
     "site.webmanifest": "PWA manifest.",
     "vendor/chronik-client.js": "Self-hosted Chronik client (tx/block/msg feeds over HTTP+WS).",
+    "vendor/txparse.js": "Shared ESM: corpus-verified OP_RETURN + Agora + price-recovery parsing. Flow consumes it; neo still keeps its inline copy UNTOUCHED.",
+    "vendor/flow-wordmark.png": "Flow brand wordmark (header/rails of flow/index.html).",
+    "vendor/flow-wordmark-cyan.png": "Cyan palette-matched Flow wordmark variant (kept ready to swap).",
     "vendor/qrcode.js": "Self-hosted QR renderer.",
     "vendor/qrcode-generator.js": "Self-hosted QR data generator.",
     "vendor/fonts.css": "@font-face declarations for self-hosted Space Grotesk / Fira Code woff2.",
@@ -72,14 +77,21 @@ PURPOSE = {
     "internal/fetch-yt.js": "Helper to fetch YouTube card metadata/thumbnails.",
     "internal/test_hourly_3days.py": "Offline test harness for hourly rollups over 3 days.",
     "internal/test_ttf_distribution.py": "Offline test harness for TTF percentile distribution.",
+    "internal/flow.eCashLive/FLOW_DESIGN.md": "Approved Flow design doc (concept, directions a–h, P0–P3 plan).",
+    "internal/flow.eCashLive/README.md": "Flow sub-project overview.",
+    "internal/flow.eCashLive/SESSION_PLAN_2026-07-18.md": "Flow build session plan (P0 ship + follow-ups).",
+    "internal/flow.eCashLive/flow-lite-concept.html": "Original lite/Flow concept mockup (historical).",
+    "internal/flow.eCashLive/flow logo.jpg": "Flow logo art source (purple brush).",
 }
 
-# Directories never worth walking into file-by-file (summarized instead).
+# Directories never worth walking into file-by-file (summarized instead;
+# counts are recursive).
 BULK_DIRS = {
     "vendor/fonts": "self-hosted woff2 (Space Grotesk + Fira Code)",
-    "vendor/i18n": "UI strings, one JSON per language",
+    "vendor/i18n": "UI strings — <lang>.json (neo) + flow.<lang>.json (Flow), one per language",
     "vendor/companion/sprites": "eChan sprite frames (.webp)",
     "vendor/mediacenter/cards": "media-center thumbnails (.webp/.jpg)",
+    "internal/flow.eCashLive/Flow mode v2": "Flow v2 visual mock (dc-runtime, MOCK-ONLY — never ship) + before/ snapshot",
 }
 SKIP_DIRS = {".git", ".claude", "__pycache__", "node_modules", ".idea", ".vscode"}
 SKIP_FILE_RE = re.compile(r"\.(bak|bak\..*|pyc|swp)$|\.bak\.\d", re.IGNORECASE)
@@ -145,9 +157,20 @@ def _is_divider_text(s):
     return not s.strip("=-_ ·•").strip()
 
 
-def scan_js_banners(lines, start, end):
+# Flow-module banner styles (extended=True only, so neo output stays identical):
+#   /* ------------------ TITLE */        (single line, long dash run, then title)
+#   /* ------------------ TITLE          (multiline-open variant of the same)
+#   /* ---- TITLE ---- */                (short dashes both sides)
+#   // ---- TITLE ----
+JS_BLOCK_BANNER_RE = re.compile(r"^\s*/\*\s*-{4,}\s*(\S[^*]*?)\s*(?:-{4,}\s*)?(?:\*/)?\s*$")
+JS_DASH_INLINE_RE = re.compile(r"^\s*//\s*-{2,}\s*(\S.*?)\s*-{2,}\s*$")
+
+
+def scan_js_banners(lines, start, end, extended=False):
     """Section banners within [start,end) (1-based inclusive). Handles two styles:
-       inline `// ==== TITLE ====` and 3-line box `// ====\n// TITLE\n// ====`."""
+       inline `// ==== TITLE ====` and 3-line box `// ====\n// TITLE\n// ====`.
+       extended=True additionally recognizes the dash styles used by the Flow
+       module (see JS_BLOCK_BANNER_RE / JS_DASH_INLINE_RE above)."""
     out = []
     n = min(end, len(lines))
     i = start - 1
@@ -163,6 +186,12 @@ def scan_js_banners(lines, start, end):
         m = JS_INLINE_BANNER_RE.match(line)
         if m and not _is_divider_text(m.group(1)):
             out.append((m.group(1).strip(), i + 1))
+        elif extended:
+            for rx in (JS_BLOCK_BANNER_RE, JS_DASH_INLINE_RE):
+                me = rx.match(line)
+                if me and not _is_divider_text(me.group(1)):
+                    out.append((me.group(1).strip(), i + 1))
+                    break
         i += 1
     return out
 
@@ -218,9 +247,12 @@ def build_tree():
         rp = rel(dirpath)
         if rp == ".":
             rp = ""
-        # bulk-summarize known asset dirs
+        # bulk-summarize known asset dirs (recursive file count)
         if rp in BULK_DIRS:
-            count = len([f for f in filenames if not SKIP_FILE_RE.search(f)])
+            count = 0
+            for dp, dn, fn in os.walk(dirpath):
+                dn[:] = [d for d in dn if d not in SKIP_DIRS]
+                count += len([f for f in fn if not SKIP_FILE_RE.search(f)])
             bulk_summaries.append((rp, count, BULK_DIRS[rp]))
             dirnames[:] = []  # don't descend
             continue
@@ -257,19 +289,28 @@ def md_anchor(path, line=None):
     return f"[{path}]({path})"
 
 
-def section_index_html(buf):
-    path = "index.html"
+INTRO_INDEX_HTML = (
+    "The whole web app in one file: HTML, a CSP-pinned inline `<style>`, and a "
+    "large inline `<script type=\"module\">`. **Line numbers below are live as of "
+    "the timestamp at the top — rerun `project-index.py` after any edit.**"
+)
+INTRO_FLOW_HTML = (
+    "Flow — the newcomer interface at `/flow/`. Same one-file pattern (HTML + "
+    "pinned inline `<style>` + inline `<script type=\"module\">`) with its **own** "
+    "CSP hash: regen with `./update-csp-hash.sh flow/index.html` after any module "
+    "edit. Reads the SAME live data as neo (chronik + relay ttf-feed + "
+    "`vendor/txparse.js`)."
+)
+
+
+def section_html_app(buf, path, intro, extended_banners=False):
     full = os.path.join(ROOT, path)
     if not os.path.exists(full):
         return
     lines = read_lines(full)
     total = len(lines)
-    buf.append(f"## index.html — {total:,} lines\n")
-    buf.append(
-        "The whole web app in one file: HTML, a CSP-pinned inline `<style>`, and a "
-        "large inline `<script type=\"module\">`. **Line numbers below are live as of "
-        "the timestamp at the top — rerun `project-index.py` after any edit.**\n"
-    )
+    buf.append(f"## {path} — {total:,} lines\n")
+    buf.append(intro + "\n")
 
     # Structural spans
     spans = index_html_structure(lines)
@@ -298,7 +339,7 @@ def section_index_html(buf):
     buf.append("")
 
     # Module banners
-    mbanners = scan_js_banners(lines, mod_start, mod_end)
+    mbanners = scan_js_banners(lines, mod_start, mod_end, extended=extended_banners)
     buf.append(
         f"### Inline module sections  (`<script type=\"module\">` {mod_start}–{mod_end}, "
         f"{len(mbanners)} banners)\n"
@@ -393,8 +434,9 @@ def build_report():
     buf.append("")
 
     # quick line-count summary up top
-    big = ["index.html", "ttf-relay.py", "ecash_bot.py",
-           "vendor/companion/echan.js", "vendor/mediacenter/mediacenter.js"]
+    big = ["index.html", "flow/index.html", "ttf-relay.py", "ecash_bot.py",
+           "vendor/companion/echan.js", "vendor/mediacenter/mediacenter.js",
+           "vendor/txparse.js"]
     buf.append("## At-a-glance line counts\n")
     for p in big:
         fp = os.path.join(ROOT, p)
@@ -403,11 +445,13 @@ def build_report():
             buf.append(f"- {md_anchor(p)} — {n:,} lines")
     buf.append("")
 
-    section_index_html(buf)
+    section_html_app(buf, "index.html", INTRO_INDEX_HTML)
+    section_html_app(buf, "flow/index.html", INTRO_FLOW_HTML, extended_banners=True)
     section_python(buf, "ttf-relay.py")
     section_python(buf, "ecash_bot.py")
     section_js_file(buf, "vendor/companion/echan.js")
     section_js_file(buf, "vendor/mediacenter/mediacenter.js")
+    section_js_file(buf, "vendor/txparse.js")
     section_tree(buf)
 
     buf.append("---")
