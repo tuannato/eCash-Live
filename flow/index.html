@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-BW3+nKZu37oab/VRxyGckNG52f7hHWRKdoua1B/28+Y=';
+  script-src 'self' 'sha256-4qyA6bXVF1pcaU8lWNJPcT0gW8mMSRJsID07JkIxHjk=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -30,6 +30,38 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#0090C8" />
 <meta name="description" content="Flow — the simple view of eCash Live. Every transaction on the eCash network appears like a message and becomes irreversible in ~2 seconds." />
+
+<!-- Open Graph / Twitter share card (F14). Mirrors neo's block:
+     WHY absolute URLs: LinkedIn/Slack unfurlers silently drop relative og:image.
+     WHY two og:image entries: 1200×630 landscape is canonical for Twitter/FB/
+     LinkedIn; the 512 square is the fallback some clients (Telegram, iMessage)
+     crop to. First og:image wins on the major platforms.
+     WHY no CSP regen: og:* is scraped by external crawlers, never fetched under
+     this page's CSP — img-src does not apply.
+     HARD LIMIT — per-transaction unfurls are impossible here: GitHub Pages serves
+     the SAME static HTML for every ?tx=<txid> and crawlers do not run JS, so a
+     per-tx og:title/og:image would need a rendering backend or edge worker, which
+     core value #2 (100% static, no backend) forbids. These tags are therefore
+     generic for /flow/ — a shared receipt link unfurls as Flow, not as that tx. -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="eCash Live" />
+<meta property="og:url" content="https://ecashlive.net/flow/" />
+<meta property="og:title" content="eCash Flow — watch money become final in seconds." />
+<meta property="og:description" content="The simple view of the eCash network: every transaction arrives like a message and turns permanently final in about two seconds. No account, no install." />
+<meta property="og:image" content="https://ecashlive.net/icon-1200x630.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="eCash Flow — a live stream of eCash transactions becoming final in seconds." />
+<meta property="og:image" content="https://ecashlive.net/icon-512.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="512" />
+<meta property="og:image:height" content="512" />
+<meta property="og:image:alt" content="eCash Live logo." />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="eCash Flow — watch money become final in seconds." />
+<meta name="twitter:description" content="Every eCash transaction, arriving like a message and final in ~2 seconds." />
+<meta name="twitter:image" content="https://ecashlive.net/icon-1200x630.png" />
 <link rel="icon" href="../favicon.ico" />
 <style>
   /* Palette = eCashLive brand DNA (retinted from Flow v2.dc.html:14-41).
@@ -101,6 +133,10 @@
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
+  /* An explicit `display` rule (e.g. #cmp-panel{display:flex}) otherwise beats the
+     UA [hidden] rule, leaving a "hidden" element laid out + click-catching. Force
+     the attribute to win everywhere so `el.hidden = true` truly hides. */
+  [hidden]{display:none!important}
   body{background:radial-gradient(1100px 420px at 50% -180px, var(--accent-bg) 0%, transparent 62%), var(--bg);
        color:var(--ink); font-family:var(--sans); -webkit-text-size-adjust:100%;}
   button,select,input{font-family:inherit}
@@ -142,7 +178,17 @@
      flex:none + explicit SVG widths so the header row never squeezes/overlaps it. */
   @font-face{font-family:'Space Grotesk';font-style:normal;font-weight:700;font-display:swap;
              src:url('../vendor/fonts/space-grotesk-latin-700.woff2') format('woff2');}
-  .brand{display:inline-flex;flex-direction:row;align-items:center;gap:8px;vertical-align:middle;flex:none;}
+  .brand{display:inline-flex;flex-direction:row;align-items:center;gap:8px;vertical-align:middle;flex:none;
+         position:relative;cursor:help;}
+  /* Version hides in the logo (same idea as neo hiding it in "transaction"):
+     it appears on a deliberate hover, never in the chrome. */
+  .brand-ver{position:absolute;left:0;top:calc(100% + 6px);background:var(--card);
+             border:1px solid var(--accent);border-radius:7px;padding:4px 9px;color:var(--accent-deep);
+             font-size:9.5px;letter-spacing:.14em;font-variant-numeric:tabular-nums;white-space:nowrap;
+             pointer-events:none;opacity:0;visibility:hidden;transform:translateY(-3px);
+             transition:opacity .18s,visibility .18s,transform .18s;transition-delay:0s;
+             box-shadow:var(--shadow);z-index:9;}
+  .brand:hover .brand-ver{opacity:1;visibility:visible;transform:none;transition-delay:.9s;}
   .brand-mark{height:32px;width:29px;flex:none;display:block;}
   .brand-stack{display:inline-flex;flex-direction:column;align-items:flex-start;gap:3px;flex:none;}
   .brand-word{height:14px;width:59px;flex:none;display:block;color:var(--ink);}
@@ -183,8 +229,10 @@
 
   /* ===== stream ===== */
   .stream-wrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;}
-  #stream{flex:1;overflow-y:auto;padding:12px 12px 18px;scroll-behavior:smooth;
-          overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+  /* bottom padding clears the floating "+" FAB so the last card — and its
+     "final · 1.9s" pill — is never sitting underneath it. */
+  #stream{flex:1;overflow-y:auto;padding:12px 12px calc(84px + env(safe-area-inset-bottom));
+          scroll-behavior:smooth;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
   #stream::-webkit-scrollbar{width:8px}
   #stream::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
   #empty{color:var(--ink3);font-size:12.5px;text-align:center;padding:52px 16px;line-height:1.7;}
@@ -297,20 +345,31 @@
   /* full message text on expand (collapsed t1 is nowrap+ellipsis; here it wraps) */
   .cd-msg{font-size:13px;color:var(--ink);line-height:1.5;margin:0 0 10px;
           white-space:pre-wrap;overflow-wrap:anywhere;}
+  /* per-kind hero (F13): leads the panel with the number that matters —
+     amount / token qty / Agora price. Omitted when the value isn't known. */
+  .cd-hero{margin:0 0 10px;}
+  .cd-hero .h1{font-family:'Space Grotesk',var(--sans);font-size:24px;font-weight:700;color:var(--ink);
+                line-height:1.15;letter-spacing:-.01em;word-break:break-word;}
+  .cd-hero .h2{font-size:11.5px;color:var(--ink3);margin-top:3px;}
   .cd-rows{font-size:12px;}
   .cd-rows div{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--line);}
   .cd-rows div:last-child{border-bottom:0;}
   .cd-rows dt{color:var(--ink3);margin:0;flex:none;}
   .cd-rows dd{margin:0;font-family:var(--mono);font-size:11px;color:var(--ink);text-align:right;
               overflow:hidden;text-overflow:ellipsis;max-width:66%;}
-  /* copyable identifiers (addresses / token id / tx id) */
-  .cd-rows dd .cp,.cd-rows dd.cp{cursor:pointer;border-bottom:1px dotted var(--ink3);}
-  .cd-rows dd .cp:hover,.cd-rows dd.cp:hover{color:var(--accent-deep);border-bottom-color:var(--accent);}
-  .cd-btns{display:flex;gap:8px;margin-top:12px;}
-  .cd-btns button{flex:1;font-size:12.5px;font-weight:600;border-radius:11px;padding:9px;cursor:pointer;
-                  border:1px solid var(--line2);background:var(--card2);color:var(--ink);}
+  /* copyable identifiers (addresses / token id / tx id) — real <button>s so
+     keyboard users can copy too (A8); styled to read as inline text. */
+  .cd-rows dd .cp{font:inherit;color:inherit;background:none;border:0;padding:0;
+                  cursor:pointer;border-bottom:1px dotted var(--ink3);}
+  .cd-rows dd .cp:hover{color:var(--accent-deep);border-bottom-color:var(--accent);}
+  .cd-rows dd .cp:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px;}
+  .cd-art:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .cd-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+  .cd-btns button,.cd-btns a{flex:1;min-width:96px;font-size:12.5px;font-weight:600;border-radius:11px;padding:9px;cursor:pointer;
+                  border:1px solid var(--line2);background:var(--card2);color:var(--ink);
+                  text-align:center;text-decoration:none;font-family:inherit;}
   .cd-btns button.pri{background:var(--grad);border-color:transparent;color:#fff;font-weight:700;}
-  .cd-btns button:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .cd-btns button:focus-visible,.cd-btns a:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
 
   /* block divider = two gradient hairlines flanking an accent pill (v2 mock) */
   .divider{display:flex;align-items:center;gap:11px;margin:16px 2px 12px;cursor:pointer;
@@ -339,6 +398,20 @@
             border-radius:99px;padding:7px 16px;cursor:pointer;opacity:0;pointer-events:none;
             transition:opacity .2s,transform .2s;box-shadow:0 6px 18px rgba(0,80,150,.35);}
   #new-pill.show{opacity:1;pointer-events:auto;transform:translateX(-50%);}
+  /* F11: history backfill pill — mirrors #new-pill at the TOP, appears only when
+     the user has scrolled up to the start of the stream. Muted, not gradient:
+     history is a secondary action, live is the main event. */
+  #load-older{position:absolute;left:50%;top:12px;transform:translateX(-50%) translateY(-6px);z-index:5;
+              background:var(--card);color:var(--ink2);border:1px solid var(--line2);font-size:11.5px;
+              font-weight:600;border-radius:99px;padding:6px 15px;cursor:pointer;opacity:0;
+              pointer-events:none;transition:opacity .2s,transform .2s;box-shadow:var(--shadow);}
+  #load-older.show{opacity:1;pointer-events:auto;transform:translateX(-50%);}
+  #load-older:hover{border-color:var(--accent);color:var(--accent);}
+  #load-older:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  #load-older[disabled]{cursor:default;opacity:.65;}
+  /* historical cards: no enter animation, muted, and they NEVER show a TTF —
+     we did not witness them live, so the only honest time is the block. */
+  .card.hist{animation:none;opacity:.94;}
 
   /* ===== eChan narrator bubble ===== */
   #echan{position:absolute;top:12px;left:12px;right:12px;background:var(--card);
@@ -369,6 +442,30 @@
          transition:opacity .25s;pointer-events:none;white-space:nowrap;z-index:7;
          max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis;}
   #toast.show{opacity:.97;}
+  /* ===== pinned shared receipt (F14) =====
+     A ?tx= link opens a receipt STATE over the stream — it can't scroll away
+     like the old appended card. Covers the FAB (z-index 6) and the composer
+     panel (7) on purpose: you read the receipt, then enter the live stream. */
+  #receipt{position:absolute;inset:0;z-index:8;background:var(--bg-app);overflow-y:auto;
+           padding:16px 14px calc(16px + env(safe-area-inset-bottom));
+           opacity:0;transition:opacity .2s;}
+  #receipt.show{opacity:1;}
+  .rc-inner{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:12px;}
+  .rc-head{display:flex;align-items:center;justify-content:space-between;}
+  .rc-title{font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;}
+  #rc-close{border:0;background:none;color:var(--ink3);font-size:16px;cursor:pointer;line-height:1;padding:3px 6px;border-radius:6px;}
+  #rc-close:hover{color:var(--ink);}
+  #rc-close:focus-visible,.rc-enter:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .rc-body{background:var(--card);border:1px solid var(--line);border-radius:16px;
+           padding:14px;box-shadow:var(--shadow);}
+  /* the receipt reuses buildDetailHtml, so it always agrees with the card (#6) */
+  .rc-body .cd-btns{margin-top:14px;}
+  .rc-none{font-size:13px;color:var(--ink2);line-height:1.6;}
+  .rc-none .rc-id{font-family:var(--mono);font-size:11px;color:var(--ink3);
+                  word-break:break-all;display:block;margin-top:8px;}
+  .rc-enter{border:0;background:var(--grad);color:#fff;font-size:14px;font-weight:700;
+            border-radius:13px;padding:12px;cursor:pointer;box-shadow:0 4px 14px rgba(0,116,194,.30);}
+  .rc-enter:hover{filter:brightness(1.07);}
   /* ===== Learn — accordion, NO popup =====
      Questions expand their answer in place (readable, stays put — unlike an
      in-stream card that would scroll away). Rendered by renderLearn() into the
@@ -402,29 +499,66 @@
   .card:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
 
   /* ===== composer (try-it + watchlist) ===== */
-  .composer{flex:none;border-top:1px solid var(--line);background:var(--bg-app);padding:9px 14px max(11px, env(safe-area-inset-bottom));}
-  .cmp-row{display:flex;gap:9px;align-items:center;}
-  .cmp-cta{flex:1;border:0;background:var(--grad);color:#fff;letter-spacing:.01em;
-           font-size:13px;font-weight:700;border-radius:13px;padding:10px;cursor:pointer;
-           box-shadow:0 4px 14px rgba(0,116,194,.30);}
-  .cmp-cta:hover{filter:brightness(1.07);}
-  .cmp-cta:focus-visible,.cmp-icon:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
-  .cmp-icon{flex:none;position:relative;width:42px;height:40px;border:1px solid var(--line2);background:var(--card);
-            color:var(--ink2);border-radius:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-  .cmp-icon svg{width:18px;height:18px;}
-  .cmp-icon.on{background:var(--wat-bg);border-color:var(--wat-ln);color:var(--wat);}
-  /* count badge on the eye button — how many addresses are being watched */
+  /* ===== FAB composer (F3/F4/F6) — round "+" opens a floating send panel ===== */
+  #fab{position:absolute;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:6;
+       width:52px;height:52px;border:0;border-radius:50%;background:var(--grad);color:#fff;cursor:pointer;
+       display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,116,194,.42);
+       transition:transform .18s;}
+  #fab svg{width:24px;height:24px;}
+  #fab:hover{transform:scale(1.06);}
+  #fab:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
+  #fab.pulse{animation:fabpulse 1.8s ease-out 3;}
+  @keyframes fabpulse{0%{box-shadow:0 6px 18px rgba(0,116,194,.42),0 0 0 0 rgba(0,167,224,.5)}
+                      70%,100%{box-shadow:0 6px 18px rgba(0,116,194,.42),0 0 0 15px rgba(0,167,224,0)}}
+  #cmp-backdrop{position:absolute;inset:0;z-index:6;background:rgba(0,0,0,.28);opacity:0;transition:opacity .2s;}
+  #cmp-backdrop.show{opacity:1;}
+  #cmp-panel{position:absolute;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:7;
+             width:min(370px, calc(100% - 32px));max-height:calc(100% - 32px);overflow-y:auto;
+             background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
+             overflow-x:hidden;
+             padding:14px;display:flex;flex-direction:column;gap:9px;opacity:0;transform:translateY(10px) scale(.98);
+             transform-origin:bottom right;transition:opacity .18s, transform .18s;}
+  #cmp-panel.show{opacity:1;transform:none;}
+  .cmp-head{display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:700;color:var(--ink);}
+  #cmp-close{border:0;background:none;color:var(--ink3);font-size:16px;cursor:pointer;line-height:1;padding:2px 5px;border-radius:6px;}
+  #cmp-close:hover{color:var(--ink);}
+  #cmp-close:focus-visible,.cmp-amt-toggle:focus-visible,.cmp-send:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  /* The number input must NOT inherit width:100% — it lives in a flex row next to
+     the slider, and a 100%-wide box there overflowed the panel and produced a
+     horizontal scrollbar. Same specificity, declared after, so it simply wins. */
+  #cmp-panel input[type=text],#cmp-panel input[type=number]{min-width:0;font-size:16px;
+       border:1px solid var(--line2);border-radius:12px;padding:9px 13px;background:var(--bg-app);color:var(--ink);}
+  #cmp-panel input[type=text]{width:100%;}
+  #cmp-panel input[type=number]{width:92px;flex:none;text-align:right;padding:9px 10px;}
+  #cmp-panel input:focus-visible{outline:2px solid var(--accent);outline-offset:-1px;}
+  .cmp-chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .cmp-chip{border:1px solid var(--line2);background:var(--bg-app);color:var(--ink2);font-size:12px;
+            border-radius:99px;padding:4px 11px;cursor:pointer;}
+  .cmp-chip:hover{border-color:var(--accent);color:var(--accent);}
+  .cmp-chip:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  /* one-tap recipients: your own wallet + watched addresses (no typing) */
+  .cmp-picks{display:flex;flex-wrap:wrap;gap:6px;margin-top:-2px;}
+  .cmp-picks:empty{display:none;}
+  .cmp-pick{border:1px solid var(--line2);background:var(--bg-app);color:var(--ink2);font-size:11.5px;
+            border-radius:99px;padding:4px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;
+            max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .cmp-pick:hover{border-color:var(--accent);color:var(--accent);}
+  .cmp-pick:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .cmp-pick.mine{border-color:var(--accent);color:var(--accent-deep);background:var(--accent-bg);}
+  .cmp-pick .dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex:none;opacity:.75;}
+  .cmp-amt-toggle{align-self:flex-start;border:0;background:none;color:var(--accent);font-size:12.5px;
+                  font-weight:600;cursor:pointer;padding:0;}
+  .cmp-amt-toggle:hover{text-decoration:underline;}
+  .cmp-amt{display:flex;align-items:center;gap:10px;min-width:0;}
+  .cmp-amt #cmp-amt-range{flex:1;min-width:0;accent-color:var(--accent);}
+  .cmp-preview{font-size:11.5px;color:var(--ink2);line-height:1.5;min-height:1em;}
+  .cmp-send{border:0;background:var(--grad);color:#fff;font-size:14px;font-weight:700;border-radius:12px;padding:10px;cursor:pointer;}
+  .cmp-send:hover{filter:brightness(1.07);}
+  /* count badge on the footer eye — how many addresses are being watched */
   .wat-count{position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 4px;
              background:var(--accent);color:#fff;font-size:9px;font-weight:700;border-radius:99px;
              display:flex;align-items:center;justify-content:center;line-height:1;border:1.5px solid var(--card);}
-  .cmp-expand{display:none;flex-direction:column;gap:8px;margin-top:9px;}
-  .cmp-expand.open{display:flex;}
-  .cmp-expand input{min-width:0;font-size:16px;border:1px solid var(--line2);border-radius:12px;
-                    padding:9px 13px;background:var(--card);color:var(--ink);}
-  .cmp-expand input:focus-visible{outline:2px solid var(--accent);outline-offset:-1px;}
-  .cmp-expand button{border:0;background:var(--grad);color:#fff;font-size:13px;font-weight:700;
-                     border-radius:12px;padding:9px 18px;cursor:pointer;white-space:nowrap;}
-  .cmp-hint{font-size:10.5px;color:var(--ink3);margin-top:7px;line-height:1.5;display:none;}
+  .cmp-hint{font-size:10.5px;color:var(--ink3);margin-top:2px;line-height:1.5;display:none;}
   .cmp-hint.open{display:block;}
   /* ===== watchlist panel (rail + #watch-bar): named entries + add row ===== */
   .ctrl-watch{position:relative;}
@@ -471,24 +605,53 @@
   .ff-cell .k{font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;font-weight:700;}
   .ff-cell .v{font-family:'Space Grotesk',var(--sans);font-weight:700;color:var(--ink);}
   .ff-spacer{flex:1 1 auto;}
-  .control-panel{display:flex;align-items:center;gap:7px;}
-  .ctrl-btn{border:1px solid var(--line);background:var(--card);color:var(--ink2);
-            font-size:12px;border-radius:9px;padding:6px 10px;cursor:pointer;
-            display:inline-flex;align-items:center;gap:5px;line-height:1;}
-  .ctrl-btn:hover{color:var(--accent-deep);border-color:var(--accent);}
-  .ctrl-btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  /* F10: the actions read as ONE segmented control instead of six loose pills —
+     shared tray, borderless buttons inside, hairline separators. */
+  .control-panel{display:flex;align-items:center;gap:0;background:var(--card2);
+                 border:1px solid var(--line);border-radius:12px;padding:3px;}
+  .ctrl-btn{border:0;background:transparent;color:var(--ink2);
+            font-size:12px;border-radius:9px;padding:7px 10px;cursor:pointer;
+            display:inline-flex;align-items:center;gap:6px;line-height:1;position:relative;}
+  .ctrl-btn + .ctrl-btn::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+                                width:1px;height:15px;background:var(--line);}
+  .ctrl-btn:hover{color:var(--accent-deep);background:var(--bg-app);}
+  .ctrl-btn:hover::before,.ctrl-btn.active::before,.ctrl-btn.on::before{opacity:0;}
+  .ctrl-btn:focus-visible{outline:2px solid var(--accent);outline-offset:-1px;}
   .ctrl-btn svg{width:15px;height:15px;}
-  .ctrl-btn.active{color:var(--accent-deep);border-color:var(--accent);background:var(--accent-bg);}
-  .lang-select{border:1px solid var(--line);background:var(--card);color:var(--ink2);
-               font-size:12px;border-radius:9px;padding:6px 8px;cursor:pointer;max-width:132px;}
-  .lang-select:focus-visible{outline:2px solid var(--accent);}
-  .pro-link{border:1px solid var(--accent);background:transparent;color:var(--accent-deep);
-            font-size:12px;font-weight:600;border-radius:9px;padding:6px 11px;cursor:pointer;
-            text-decoration:none;display:inline-flex;align-items:center;gap:5px;line-height:1;}
-  .pro-link:hover{background:var(--accent-bg);}
+  .ctrl-btn.active{color:var(--accent-deep);background:var(--accent-bg);}
+  /* eChan is a NAME, not a bell: it lights up when it's talking, goes quiet when muted */
+  .ctrl-echan{font-weight:700;letter-spacing:.01em;}
+  .ctrl-echan.on{color:var(--accent-deep);background:var(--accent-bg);
+                 text-shadow:0 0 12px rgba(0,167,224,.55);}
+  .ctrl-echan.muted{color:var(--ink3);opacity:.75;text-shadow:none;}
+  /* language: globe + 2-letter code, with the NATIVE picker invisible on top
+     (best mobile UX + free a11y — the OS list still shows full names). */
+  .lang-wrap{position:relative;display:inline-flex;align-items:center;}
+  .lang-face{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--ink2);
+             padding:7px 10px;border-radius:9px;line-height:1;pointer-events:none;}
+  .lang-face .code{font-weight:700;letter-spacing:.04em;}
+  .lang-wrap:hover .lang-face{color:var(--accent-deep);background:var(--bg-app);}
+  .lang-select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;
+               border:0;padding:0;-webkit-appearance:none;appearance:none;}
+  .lang-select:focus-visible + .lang-face{outline:2px solid var(--accent);outline-offset:-1px;}
+  /* F10: "Dashboard" is the primary way back to the pro view — brand gradient,
+     label always visible (it used to collapse to a bare "→" under 520px). */
+  .pro-link{border:0;background:var(--grad);color:#fff;
+            font-size:12px;font-weight:700;border-radius:10px;padding:8px 13px;cursor:pointer;
+            text-decoration:none;display:inline-flex;align-items:center;gap:6px;line-height:1;
+            box-shadow:0 3px 10px rgba(0,116,194,.28);white-space:nowrap;}
+  .pro-link:hover{filter:brightness(1.07);}
+  .pro-link:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .ff-end{display:flex;align-items:center;gap:9px;flex:none;}
   @media (max-width:520px){
     .ff-stats{display:none}
-    .ctrl-btn .lbl,.pro-link .lbl{display:none}
+    .ctrl-btn .lbl{display:none}
+    /* 44px touch targets on the footer controls (vertical-only overlay so
+       neighbouring buttons don't get overlapping hit-boxes — same pattern as
+       the filter chips). */
+    .control-panel .ctrl-btn{position:relative;}
+    .control-panel .ctrl-btn::after{content:'';position:absolute;left:0;right:0;top:50%;
+                                    transform:translateY(-50%);height:44px;}
     /* Chips render ~25px tall — below the 44px touch target. Vertical-only
        overlay (not horizontal) so adjacent chips with a 6px gap don't get
        overlapping hit-boxes — same pattern as neo's F8 fix. */
@@ -568,10 +731,10 @@
     </div>
   </aside>
 
-  <main id="app" data-version="v1.0.0">
+  <main id="app" data-version="v1.5.0">
     <div class="app-head">
       <div class="ah-top">
-        <span class="brand" title="eCash Flow v1.0.0"><svg class="brand-mark" viewBox="0 0 226.37 253.53" role="img" aria-label="eCash Flow"><defs><linearGradient id="ecFlowGrad" x1="40.73" y1="-42.34" x2="163.57" y2="245.29" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#273498"/><stop offset="0.53" stop-color="#0074c2"/><stop offset="1" stop-color="#00abe7"/></linearGradient></defs><path fill="url(#ecFlowGrad)" fill-rule="evenodd" d="M58.19,86.51c15.68-9.09,31.51-18.17,47.19-27.26a15,15,0,0,1,15.25,0l23.3,13.34a2.06,2.06,0,0,1,0,3.52l-57,32.83a4.68,4.68,0,0,0-2.34,4.1V140.6a4.45,4.45,0,0,0,2.34,4l23.9,13.78a4.23,4.23,0,0,0,4.54,0l98.49-56.72c16.71-9.68,16.71-37.52,0-47.2l-88.52-51a23.66,23.66,0,0,0-24.48,0l-88.53,51A24.2,24.2,0,0,0,0,75.67c0,34.15.15,68.15,0,102.15a24.22,24.22,0,0,0,12.31,21.26l88.53,51.15a24.4,24.4,0,0,0,24.48,0l88.52-51.15A23.92,23.92,0,0,0,226,177.82V133.41l-105.38,61a15,15,0,0,1-15.25,0l-47-27.27a14.91,14.91,0,0,1-7.62-13.19V99.56a15,15,0,0,1,7.48-13Z"/></svg><span class="brand-stack"><svg class="brand-word" viewBox="118.9 25 240.7 56.8" fill="currentColor" aria-hidden="true"><path d="M160.6,63.4h-29.5c0.5,2.3,1.8,4.4,3.8,5.7c2.2,1.5,4.8,2.2,7.4,2.1c1.8,0,3.7-0.3,5.4-0.9c1.6-0.6,3.1-1.6,4.4-2.9l6,6.5c-3.7,4.2-9,6.3-16.1,6.3c-4,0.1-8-0.8-11.6-2.6c-3.2-1.6-6-4.1-7.8-7.1c-1.9-3.1-2.8-6.7-2.7-10.3c-0.1-3.6,0.9-7.2,2.7-10.3c1.8-3,4.4-5.5,7.5-7.2c6.6-3.4,14.4-3.4,21-0.1c3,1.6,5.6,4.1,7.3,7.1c1.8,3.3,2.7,6.9,2.6,10.7C160.8,60.5,160.8,61.5,160.6,63.4z M134.2,50.9c-1.8,1.5-2.9,3.6-3.2,5.9h19.2c-0.3-2.3-1.4-4.4-3.2-5.9c-1.8-1.5-4-2.3-6.3-2.2C138.3,48.6,136,49.4,134.2,50.9z"/><path d="M183,77.2c-4.1-2.2-7.5-5.4-9.8-9.3c-4.8-8.4-4.8-18.6,0-27c2.4-4,5.8-7.2,9.8-9.3c4.3-2.3,9.2-3.4,14.1-3.4c4.1-0.1,8.1,0.7,11.9,2.3c3.5,1.5,6.5,3.8,8.9,6.7l-7.5,7c-3.1-3.8-7.8-6-12.7-6c-2.9-0.1-5.8,0.7-8.4,2.1c-2.4,1.3-4.4,3.3-5.8,5.8c-2.8,5.3-2.8,11.5,0,16.8c1.3,2.4,3.3,4.4,5.8,5.8c2.6,1.4,5.5,2.1,8.4,2.1c4.9,0.1,9.6-2.2,12.7-6l7.5,7c-2.4,2.9-5.5,5.2-9,6.7c-3.8,1.6-7.8,2.4-11.9,2.3C192.2,80.7,187.3,79.5,183,77.2z"/><path d="M258,44.5c3.2,2.9,4.8,7.2,4.9,13v22.2h-10.6v-4.8c-2.1,3.6-6.1,5.4-11.9,5.4c-2.7,0.1-5.3-0.5-7.8-1.5c-2-0.9-3.8-2.3-5-4.2c-1.2-1.8-1.8-3.9-1.7-6.1c-0.1-3.3,1.4-6.5,4.1-8.5c2.7-2.1,6.9-3.1,12.6-3.1h9c0.1-2.1-0.7-4.2-2.2-5.7c-1.5-1.3-3.7-2-6.7-2c-2.1,0-4.1,0.3-6.1,1c-1.8,0.6-3.6,1.5-5.1,2.7l-4.1-7.9c2.3-1.6,4.9-2.8,7.6-3.5c3-0.8,6.1-1.2,9.2-1.2C250.1,40.1,254.8,41.6,258,44.5z M248.4,71.3c1.5-0.9,2.6-2.3,3.2-3.9v-4h-7.7c-4.6,0-7,1.5-7,4.6c0,1.4,0.6,2.6,1.7,3.4c1.4,0.9,3,1.4,4.7,1.3C245,72.7,246.8,72.2,248.4,71.3z"/><path d="M280.3,79.1c-2.6-0.6-5.1-1.6-7.4-3l3.8-8.1c2,1.2,4.1,2.1,6.3,2.7c2.4,0.7,4.8,1,7.2,1c4.8,0,7.2-1.2,7.2-3.5c0-1.2-0.9-2.2-2-2.4c-2-0.6-4-1-6-1.2c-2.7-0.4-5.3-0.9-7.9-1.7c-2.1-0.6-3.9-1.8-5.4-3.3c-1.5-1.6-2.3-3.9-2.3-6.8c0-2.3,0.7-4.6,2.1-6.5c1.6-2,3.8-3.6,6.2-4.5c3.1-1.1,6.4-1.7,9.7-1.6c2.8,0,5.5,0.3,8.2,0.9c2.4,0.5,4.7,1.3,6.8,2.5l-3.8,8c-3.4-1.9-7.3-2.9-11.2-2.9c-1.9-0.1-3.7,0.2-5.4,1c-1,0.5-1.8,1.5-1.8,2.6c0,1.2,0.8,2.2,2,2.5c2,0.7,4.1,1.1,6.2,1.4c2.6,0.4,5.2,1,7.8,1.7c2,0.6,3.9,1.7,5.3,3.3c1.6,1.8,2.4,4.2,2.2,6.7c0,2.3-0.7,4.6-2.2,6.4c-1.7,2-3.9,3.5-6.3,4.4c-3.2,1.1-6.5,1.6-9.9,1.6C286.6,80.3,283.4,79.9,280.3,79.1z"/><path d="M354.1,44.5c3,2.9,4.5,7.2,4.5,12.9v22.3h-11.3V59.1c0-3.1-0.7-5.4-2-6.9c-1.5-1.6-3.7-2.4-5.9-2.3c-2.5-0.1-5,0.8-6.8,2.7c-1.7,1.8-2.5,4.4-2.5,7.8v19.3h-11.3V26H330v18.8c1.5-1.5,3.4-2.7,5.4-3.4c2.2-0.8,4.6-1.2,7-1.2C347.2,40.2,351.1,41.6,354.1,44.5z"/></svg><img class="brand-flow wm-l" src="../vendor/flow-wordmark-purple.png" alt="" aria-hidden="true" /><img class="brand-flow wm-d" src="../vendor/flow-wordmark.png" alt="" aria-hidden="true" /></span></span>
+        <span class="brand"><span class="brand-ver" id="brand-ver" aria-hidden="true"></span><svg class="brand-mark" viewBox="0 0 226.37 253.53" role="img" aria-label="eCash Flow"><defs><linearGradient id="ecFlowGrad" x1="40.73" y1="-42.34" x2="163.57" y2="245.29" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#273498"/><stop offset="0.53" stop-color="#0074c2"/><stop offset="1" stop-color="#00abe7"/></linearGradient></defs><path fill="url(#ecFlowGrad)" fill-rule="evenodd" d="M58.19,86.51c15.68-9.09,31.51-18.17,47.19-27.26a15,15,0,0,1,15.25,0l23.3,13.34a2.06,2.06,0,0,1,0,3.52l-57,32.83a4.68,4.68,0,0,0-2.34,4.1V140.6a4.45,4.45,0,0,0,2.34,4l23.9,13.78a4.23,4.23,0,0,0,4.54,0l98.49-56.72c16.71-9.68,16.71-37.52,0-47.2l-88.52-51a23.66,23.66,0,0,0-24.48,0l-88.53,51A24.2,24.2,0,0,0,0,75.67c0,34.15.15,68.15,0,102.15a24.22,24.22,0,0,0,12.31,21.26l88.53,51.15a24.4,24.4,0,0,0,24.48,0l88.52-51.15A23.92,23.92,0,0,0,226,177.82V133.41l-105.38,61a15,15,0,0,1-15.25,0l-47-27.27a14.91,14.91,0,0,1-7.62-13.19V99.56a15,15,0,0,1,7.48-13Z"/></svg><span class="brand-stack"><svg class="brand-word" viewBox="118.9 25 240.7 56.8" fill="currentColor" aria-hidden="true"><path d="M160.6,63.4h-29.5c0.5,2.3,1.8,4.4,3.8,5.7c2.2,1.5,4.8,2.2,7.4,2.1c1.8,0,3.7-0.3,5.4-0.9c1.6-0.6,3.1-1.6,4.4-2.9l6,6.5c-3.7,4.2-9,6.3-16.1,6.3c-4,0.1-8-0.8-11.6-2.6c-3.2-1.6-6-4.1-7.8-7.1c-1.9-3.1-2.8-6.7-2.7-10.3c-0.1-3.6,0.9-7.2,2.7-10.3c1.8-3,4.4-5.5,7.5-7.2c6.6-3.4,14.4-3.4,21-0.1c3,1.6,5.6,4.1,7.3,7.1c1.8,3.3,2.7,6.9,2.6,10.7C160.8,60.5,160.8,61.5,160.6,63.4z M134.2,50.9c-1.8,1.5-2.9,3.6-3.2,5.9h19.2c-0.3-2.3-1.4-4.4-3.2-5.9c-1.8-1.5-4-2.3-6.3-2.2C138.3,48.6,136,49.4,134.2,50.9z"/><path d="M183,77.2c-4.1-2.2-7.5-5.4-9.8-9.3c-4.8-8.4-4.8-18.6,0-27c2.4-4,5.8-7.2,9.8-9.3c4.3-2.3,9.2-3.4,14.1-3.4c4.1-0.1,8.1,0.7,11.9,2.3c3.5,1.5,6.5,3.8,8.9,6.7l-7.5,7c-3.1-3.8-7.8-6-12.7-6c-2.9-0.1-5.8,0.7-8.4,2.1c-2.4,1.3-4.4,3.3-5.8,5.8c-2.8,5.3-2.8,11.5,0,16.8c1.3,2.4,3.3,4.4,5.8,5.8c2.6,1.4,5.5,2.1,8.4,2.1c4.9,0.1,9.6-2.2,12.7-6l7.5,7c-2.4,2.9-5.5,5.2-9,6.7c-3.8,1.6-7.8,2.4-11.9,2.3C192.2,80.7,187.3,79.5,183,77.2z"/><path d="M258,44.5c3.2,2.9,4.8,7.2,4.9,13v22.2h-10.6v-4.8c-2.1,3.6-6.1,5.4-11.9,5.4c-2.7,0.1-5.3-0.5-7.8-1.5c-2-0.9-3.8-2.3-5-4.2c-1.2-1.8-1.8-3.9-1.7-6.1c-0.1-3.3,1.4-6.5,4.1-8.5c2.7-2.1,6.9-3.1,12.6-3.1h9c0.1-2.1-0.7-4.2-2.2-5.7c-1.5-1.3-3.7-2-6.7-2c-2.1,0-4.1,0.3-6.1,1c-1.8,0.6-3.6,1.5-5.1,2.7l-4.1-7.9c2.3-1.6,4.9-2.8,7.6-3.5c3-0.8,6.1-1.2,9.2-1.2C250.1,40.1,254.8,41.6,258,44.5z M248.4,71.3c1.5-0.9,2.6-2.3,3.2-3.9v-4h-7.7c-4.6,0-7,1.5-7,4.6c0,1.4,0.6,2.6,1.7,3.4c1.4,0.9,3,1.4,4.7,1.3C245,72.7,246.8,72.2,248.4,71.3z"/><path d="M280.3,79.1c-2.6-0.6-5.1-1.6-7.4-3l3.8-8.1c2,1.2,4.1,2.1,6.3,2.7c2.4,0.7,4.8,1,7.2,1c4.8,0,7.2-1.2,7.2-3.5c0-1.2-0.9-2.2-2-2.4c-2-0.6-4-1-6-1.2c-2.7-0.4-5.3-0.9-7.9-1.7c-2.1-0.6-3.9-1.8-5.4-3.3c-1.5-1.6-2.3-3.9-2.3-6.8c0-2.3,0.7-4.6,2.1-6.5c1.6-2,3.8-3.6,6.2-4.5c3.1-1.1,6.4-1.7,9.7-1.6c2.8,0,5.5,0.3,8.2,0.9c2.4,0.5,4.7,1.3,6.8,2.5l-3.8,8c-3.4-1.9-7.3-2.9-11.2-2.9c-1.9-0.1-3.7,0.2-5.4,1c-1,0.5-1.8,1.5-1.8,2.6c0,1.2,0.8,2.2,2,2.5c2,0.7,4.1,1.1,6.2,1.4c2.6,0.4,5.2,1,7.8,1.7c2,0.6,3.9,1.7,5.3,3.3c1.6,1.8,2.4,4.2,2.2,6.7c0,2.3-0.7,4.6-2.2,6.4c-1.7,2-3.9,3.5-6.3,4.4c-3.2,1.1-6.5,1.6-9.9,1.6C286.6,80.3,283.4,79.9,280.3,79.1z"/><path d="M354.1,44.5c3,2.9,4.5,7.2,4.5,12.9v22.3h-11.3V59.1c0-3.1-0.7-5.4-2-6.9c-1.5-1.6-3.7-2.4-5.9-2.3c-2.5-0.1-5,0.8-6.8,2.7c-1.7,1.8-2.5,4.4-2.5,7.8v19.3h-11.3V26H330v18.8c1.5-1.5,3.4-2.7,5.4-3.4c2.2-0.8,4.6-1.2,7-1.2C347.2,40.2,351.1,41.6,354.1,44.5z"/></svg><img class="brand-flow wm-l" src="../vendor/flow-wordmark-purple.png" alt="" aria-hidden="true" /><img class="brand-flow wm-d" src="../vendor/flow-wordmark.png" alt="" aria-hidden="true" /></span></span>
         <canvas id="hb" height="36" data-i18n-aria="a11y.heartbeat"
                 aria-label="Network heartbeat — beats on each finalized transaction"></canvas>
         <span id="conn"><span class="dot"></span><span id="conn-text" data-i18n="conn.connecting">connecting…</span></span>
@@ -597,20 +760,50 @@
         <div id="empty"><span class="breathe" aria-hidden="true"></span><span data-i18n="stream.empty">Waiting for the next transaction on the eCash network…</span></div>
       </div>
       <button id="new-pill" type="button" hidden></button>
+      <!-- F11: history backfill. Floating pill mirroring "↓ N new", shown only
+           when the user has scrolled to the top of the stream. -->
+      <button id="load-older" type="button" hidden></button>
       <div id="echan"><img id="echan-avatar" class="e-avatar" src="../vendor/companion/sprites/echan_neutral.webp" alt="eChan" decoding="async" /><div class="echan-body"><span id="echan-text"></span><button id="echan-more" class="echan-more" type="button" hidden></button></div></div>
       <div id="toast" role="status" aria-live="polite"></div>
-    </div>
-
-    <div class="composer">
-      <div class="cmp-row">
-        <button id="cta-try" class="cmp-cta" type="button" data-i18n="try.cta">Try sending a message on-chain →</button>
+      <!-- Shared-receipt state (F14): a ?tx= link opens a PINNED receipt over the
+           stream instead of appending a card that scrolls away. Dismissing it
+           drops ?tx= from the URL and reveals the live stream underneath. -->
+      <div id="receipt" role="region" data-i18n-aria="rc.title" aria-label="Shared receipt" hidden>
+        <div class="rc-inner">
+          <div class="rc-head">
+            <span class="rc-title" data-i18n="rc.title">Shared receipt</span>
+            <button id="rc-close" type="button" data-i18n-aria="cmp.close" aria-label="Close">✕</button>
+          </div>
+          <div class="rc-body" id="rc-body"></div>
+          <button id="rc-enter" class="rc-enter" type="button" data-i18n="rc.enter">▶ Watch the live network</button>
+        </div>
       </div>
-      <div id="compose" class="cmp-expand" hidden>
-        <input id="compose-addr" type="text" inputmode="text" autocapitalize="none" autocorrect="off" spellcheck="false" data-i18n-ph="try.addr" placeholder="Your eCash address (send to yourself)" aria-label="Your eCash address" />
-        <input id="compose-in" type="text" maxlength="215" data-i18n-ph="try.ph" placeholder="Write something onto the blockchain…" aria-label="Message to send on-chain" />
-        <button id="compose-send" type="button" data-i18n="try.send">Send</button>
+      <!-- FAB composer (F3/F4/F6): a round "+" opens the send panel (message and/or
+           pure-XEC). Recipient required; your own txs are matched via myAddr. -->
+      <div id="cmp-backdrop" hidden></div>
+      <button id="fab" type="button" aria-haspopup="dialog" aria-expanded="false"
+              data-i18n-aria="cmp.title" aria-label="Send on-chain">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <div id="cmp-panel" role="dialog" aria-modal="true" aria-labelledby="cmp-title" hidden>
+        <div class="cmp-head">
+          <span id="cmp-title" data-i18n="cmp.title">Send on-chain</span>
+          <button id="cmp-close" type="button" data-i18n-aria="cmp.close" aria-label="Close">✕</button>
+        </div>
+        <input id="compose-addr" type="text" inputmode="text" autocapitalize="none" autocorrect="off" spellcheck="false"
+               data-i18n-ph="cmp.toPh" placeholder="Recipient address" data-i18n-aria="cmp.to" aria-label="Recipient" />
+        <div class="cmp-picks" id="cmp-picks"></div>
+        <input id="compose-in" type="text" maxlength="215" data-i18n-ph="cmp.msgPh" placeholder="Message (optional)" aria-label="Message to send on-chain" />
+        <div class="cmp-chips" id="cmp-chips" aria-hidden="false"></div>
+        <button id="cmp-amt-toggle" type="button" class="cmp-amt-toggle" aria-expanded="false" aria-controls="cmp-amt" data-i18n="cmp.amtToggle">+ XEC amount</button>
+        <div id="cmp-amt" class="cmp-amt" hidden>
+          <input id="cmp-amt-range" type="range" min="5.46" max="1000" step="0.01" value="5.46" data-i18n-aria="cmp.amount" aria-label="Amount in XEC" />
+          <input id="cmp-amt-num" type="number" min="5.46" step="0.01" value="5.46" inputmode="decimal" data-i18n-aria="cmp.amount" aria-label="Amount in XEC" />
+        </div>
+        <div id="cmp-preview" class="cmp-preview" aria-live="polite"></div>
+        <button id="compose-send" type="button" class="cmp-send" data-i18n="try.send">Send</button>
+        <div id="cmp-hint" class="cmp-hint"></div>
       </div>
-      <div id="cmp-hint" class="cmp-hint"></div>
     </div>
 
     <div id="learn-bar" class="learn-bar" role="region" data-i18n-aria="learn.aria" aria-label="Learn about eCash">
@@ -646,12 +839,18 @@
           <span aria-hidden="true" id="theme-glyph">◐</span><span class="lbl" data-i18n="ctrl.theme">Theme</span>
         </button>
         <button class="ctrl-btn ctrl-echan" id="btn-echan" type="button" aria-pressed="false"
-                title="Mute eChan" aria-label="eChan">
-          <span class="echan-glyph" aria-hidden="true"></span>
-        </button>
-        <select class="lang-select" id="lang-select" data-i18n-aria="ctrl.lang" aria-label="Language"></select>
+                title="Mute eChan" aria-label="eChan">eChan</button>
+        <span class="lang-wrap">
+          <select class="lang-select" id="lang-select" data-i18n-aria="ctrl.lang" aria-label="Language"></select>
+          <span class="lang-face" aria-hidden="true">🌐<span class="code" id="lang-code">EN</span></span>
+        </span>
+      </div>
+      <!-- F10: the way back to the pro dashboard is a first-class action — brand
+           gradient, label ALWAYS visible (it used to collapse to a bare "→" on
+           phones). The version hides in the logo instead of cluttering the bar. -->
+      <div class="ff-end">
         <a class="pro-link" id="pro-link" href="../">
-          <span class="lbl" data-i18n="ctrl.pro">Pro view</span><span aria-hidden="true">→</span>
+          <span class="lbl" data-i18n="ctrl.pro">Dashboard</span><span aria-hidden="true">→</span>
         </a>
       </div>
     </div>
@@ -755,6 +954,10 @@ const FLOW_STRINGS_EN = {
   'divider.blockNoCount':'block {h}',
   'divider.more':'… and {n} more',
   'newpill':'↓ {n} new',
+  'hist.load':'↑ Load older',
+  'hist.loading':'Loading…',
+  'hist.end':'That is as far back as Flow goes',
+  'hist.failed':'Could not load older transactions.',
   'footer.tps':'TPS · 24h',
   'footer.tx24':'Tx · 24h',
   'head.online':'online',
@@ -790,6 +993,13 @@ const FLOW_STRINGS_EN = {
   'powr.title':'Proof of Writing',
   'powr.sub':'on-chain content',
   'sh.time':'Time',
+  'sh.amount':'Amount',
+  'sh.fee':'Network fee',
+  'sh.tokenQty':'Quantity',
+  'sh.price':'Price',
+  'sh.pricePer':'Price per token',
+  'sh.protocol':'Protocol',
+  'sh.powrRead':'Read ↗',
   'sh.route':'From → to',
   'sh.block':'Block',
   'sh.blockPending':'awaiting a block',
@@ -802,10 +1012,14 @@ const FLOW_STRINGS_EN = {
   'sh.pending':'Sending into the network…',
   'sh.hero':'Bitcoin needs ~60 minutes for comparable assurance.',
   'share.notFound':'Transaction not found',
+  'rc.title':'Shared receipt',
+  'rc.enter':'▶ Watch the live network',
+  'rc.notFoundBody':'The link may be wrong, or this node no longer keeps that transaction.',
   'toast.copied':'Link copied',
   'copy.done':'Copied',
   'echan.more':'Tell me more →',
   'echan.greet':'Hi! I am eChan — I will point out what is happening on the network.',
+  'echan.fabNudge':'See the + button? Tap it to send a message or some XEC on-chain — Flow highlights your transaction here.',
   'echan.firstFinal':'See the ✓✓? The whole network just agreed to seal that payment — permanently, irreversibly — in seconds. Bitcoin needs ~60 minutes for comparable assurance.',
   'echan.firstBlock':'That divider is a block — it just packages transactions that were ALREADY final. On eCash, finality comes first, the block after.',
   'echan.firstTrade':'That is an Agora trade — the on-chain token marketplace on eCash.',
@@ -820,11 +1034,22 @@ const FLOW_STRINGS_EN = {
   'try.sent':'Opened Cashtab. Flow will highlight your message when it appears.',
   'try.sentExt':'Sent! Flow will highlight your transaction when it lands.',
   'try.confirm':'Confirm in Cashtab…',
-  'try.needAddr':'Enter your eCash address to send to yourself.',
+  'try.needAddr':'Choose or paste a recipient address.',
   'try.badAddr':'That eCash address isn’t valid.',
   'try.denied':'Send cancelled.',
   'try.timeout':'Cashtab didn’t respond — try again.',
   'try.toolong':'Message too long (max 215 bytes).',
+  'cmp.title':'Send on-chain',
+  'cmp.close':'Close',
+  'cmp.to':'Recipient',
+  'cmp.toPh':'Recipient address',
+  'cmp.myWallet':'My wallet',
+  'cmp.msgPh':'Message (optional)',
+  'cmp.amtToggle':'+ XEC amount',
+  'cmp.amount':'Amount in XEC',
+  'cmp.previewXec':'Send {xec} XEC',
+  'cmp.previewMsg':'message',
+  'cmp.needAmtOrMsg':'Add a message or an amount to send.',
   'watch.title':'Watch addresses',
   'watch.ph':'Paste an eCash address',
   'watch.set':'Watch',
@@ -902,6 +1127,8 @@ async function setLang(code){
   if (state.paused || lastConnKey !== null) paintConn();
   renderPauseLabel();
   if (typeof renderEchanToggle === 'function') renderEchanToggle();   // stateful title (mute/unmute) in the new language
+  if (typeof updateLoadOlder === 'function') updateLoadOlder();       // JS-set text (load/loading/end) — applyStatic can't reach it
+  if (typeof renderLangFace === 'function') renderLangFace();         // 🌐 + 2-letter code follows the new language
   if (typeof renderAllLearn === 'function') renderAllLearn();   // JS-built accordion, re-render in the new language
   if (typeof renderAllWatch === 'function') renderAllWatch();   // re-render the watchlist panel (labels/placeholders)
   if (typeof loadEchanSeed === 'function') loadEchanSeed();     // reload eChan dialog pool in the new language
@@ -961,8 +1188,6 @@ const IC = {
   msg:    svg('<path d="M4 5.5h16v10.5H10l-5.5 4v-4H4z"/>'),
   swap:   svg('<path d="M17 3.5l3.5 3.5L17 10.5M20.5 7H5M7 13.5L3.5 17 7 20.5M3.5 17H19"/>'),
   pen:    svg('<path d="M4.5 19.5l3.8-.9L19.5 7.4l-2.9-2.9L5.4 15.7z"/><path d="M13.7 7.4l2.9 2.9"/>'),
-  bell:    svg('<path d="M18 8.5a6 6 0 10-12 0c0 6-2.4 7.5-2.4 7.5h16.8S18 14.5 18 8.5z"/><path d="M10.4 19.5a1.8 1.8 0 003.2 0"/>'),
-  bellOff: svg('<path d="M18 8.5a6 6 0 10-12 0c0 6-2.4 7.5-2.4 7.5h16.8S18 14.5 18 8.5z"/><path d="M10.4 19.5a1.8 1.8 0 003.2 0"/><path d="M4 4l16 16"/>'),
 };
 
 /* ------------------------------------------------------------------ helpers */
@@ -1186,6 +1411,7 @@ const stream = $('stream'), newPill = $('new-pill');
 stream.addEventListener('scroll', () => {
   state.atBottom = stream.scrollTop + stream.clientHeight >= stream.scrollHeight - 48;
   if (state.atBottom){ state.unseen = 0; newPill.hidden = true; newPill.classList.remove('show'); }
+  updateLoadOlder();   // F11: the history pill lives at the top of the stream
 });
 newPill.addEventListener('click', () => { stream.scrollTop = stream.scrollHeight; });
 function appended(){
@@ -1199,7 +1425,11 @@ function appended(){
   // Burst cap: evict the oldest DOM nodes — cards, dividers, dust/run groups —
   // so the stream never grows unbounded (CLAUDE.md §10). Node type doesn't
   // matter: whatever has been in the stream longest goes first.
-  while (stream.children.length > RENDER_CAP){
+  // Evict only while the user is following live (A7/F11): trimming from the TOP
+  // while they've scrolled up yanks the content they're reading — and would eat
+  // F11's prepended history immediately. A hard ceiling keeps it bounded anyway.
+  const cap = state.atBottom ? RENDER_CAP : RENDER_CAP * 3;
+  while (stream.children.length > cap){
     const node = stream.firstElementChild;
     if (!node) break;
     // If the oldest node is the currently-expanded card (scrolled to the very top
@@ -1328,6 +1558,8 @@ function fetchTokenTicker(tokenId){
     }
     // If an expanded card detail is open on this token, refresh it in place (F10).
     if (state.expandedId){ const et = state.txs.get(state.expandedId); if (et && et.token && et.token.tokenId === tokenId) refreshExpandedDetail(et); }
+    // …same for an open shared receipt (F14).
+    try { refreshReceipt(tokenId); } catch {}
     return rec;
   }).catch(() => {
     const rec = { ok:false, retryAfter: Date.now() + TOKEN_INFO_FAIL_TTL_MS, ticker:'', name:'', decimals:0 };
@@ -1406,7 +1638,13 @@ function setCardText(tx){
   else if (txTouchesWatch(tx)){ const nm = watchNameFor(tx); pfx = nm ? (nm + ' · ') : t('t2.watched'); }
   el.querySelector('.route').textContent = pfx + (cs.t2 || '');
   const ttfEl = el.querySelector('.ttf');
-  if (tx.final){
+  if (tx._hist){
+    // History (F11): mined ⇒ genuinely final, so it reads "final" exactly like a
+    // live card — but NEVER with seconds, because we did not witness it. Its block
+    // shows on the .seal line and in the divider below the batch, same as live.
+    ttfEl.textContent = t('card.final');
+    el.setAttribute('aria-label', tf('a11y.finalNoTime', { label, amount: cs.t1 }));
+  } else if (tx.final){
     // tx.ttf may be null (pre-session final, or the anchor spanned a sleep and
     // the wake guard discarded the number) — show just "final", never "· 0.0s".
     const secTxt = (tx.ttf != null && isFinite(tx.ttf)) ? fmtSec(tx.ttf) : null;
@@ -1914,6 +2152,118 @@ async function runReconcile(){
   finally { reconcileRunning = false; }
 }
 
+/* ------------------------------------------------------------------ history (F11)
+   "Load older" walks BACKWARDS through real blocks via chronik.blockTxs and
+   prepends the results. Historical cards are deliberately different from live
+   ones: no enter animation, no session counting, and NEVER a time-to-finality —
+   we did not witness them, so the block is the only honest timestamp (core
+   value #1). Everything is bounded: one page per click, a hard card cap, and
+   eviction is deferred while the user is scrolled up (see appended()). */
+const HIST_MAX = 150;        // hard cap of historical cards (§10)
+const HIST_PAGE = 25;        // txs per click (chronik blockTxs page size)
+let histHeight = null, histCount = 0, histBusy = false, histDone = false;
+function updateLoadOlder(){
+  const b = $('load-older'); if (!b) return;
+  b.textContent = histBusy ? t('hist.loading') : (histDone ? t('hist.end') : t('hist.load'));
+  b.disabled = histBusy || histDone;
+  // only offered at the top of the stream (mirrors the bottom "N new" pill)
+  const atTop = stream.scrollTop < 40;
+  b.hidden = !atTop;
+  b.classList.toggle('show', atTop);
+}
+// Build one historical card from an already-parsed tx. Returns the element or null.
+function histCard(tx, d, height){
+  if (!tx || !tx.id || state.txs.has(tx.id)) return null;      // already on screen (live)
+  try { const r = deriveRoute(d); tx.from = r.from; tx.to = r.to; tx._addrSet = r.allAddrs; } catch {}
+  tx._hist = true;
+  tx.final = true;                                             // it is in a block
+  tx.ttf = null;                                               // never fabricated
+  tx.block = (d.block && d.block.height) || height || null;
+  if ((tx.kind === 'token' || tx.kind === 'trade') && tx.token && tx.token.tokenId){
+    const rec = resolvedTokenRec(tx.token.tokenId);
+    if (rec) applyTokenInfo(tx, rec);
+    fetchTokenTicker(tx.token.tokenId);
+  }
+  trackTx(tx);                                                 // so the card can expand its detail
+  const el = cardFor(tx);
+  el.classList.remove('enter', 'is-sending');
+  el.classList.add('hist', 'is-final');
+  const c = el.querySelector('.checks'); if (c) c.innerHTML = IC.checks;
+  const sl = el.querySelector('.seal');
+  if (sl && tx.block){ sl.textContent = '· ' + t('pill.block') + ' ' + fmtInt(tx.block); sl.classList.add('show'); }
+  setCardText(tx);
+  return el;
+}
+// Prepend a batch above everything, preserving the user's scroll position.
+function prependHistory(txDatas, height, realTxCount){
+  const frag = document.createDocumentFragment();
+  let dust = 0, added = 0;
+  for (const d of txDatas){
+    if (histCount + added >= HIST_MAX) break;
+    let tx; try { tx = parseTransactionCore(d); } catch { continue; }
+    if (!tx || !tx.id) continue;
+    const k = txKind(tx); tx.kind = k.kind; tx.f = k.f; tx.icon = k.icon;
+    // fold small payments into one summary card, exactly like the live stream
+    if (tx.kind === 'pay' && tx.valueXec != null && tx.valueXec < DUST_XEC){ dust++; continue; }
+    const el = histCard(tx, d, height);
+    if (!el) continue;
+    frag.appendChild(el);
+    added++;
+  }
+  if (dust > 0){
+    const g = document.createElement('article');
+    g.className = 'card t-group hist f-pay';
+    g.innerHTML = '<span class="ic">' + IC.stack + '</span>' +
+      '<div class="body"><div class="t1">' + esc(tf('group.small', { n: fmtInt(dust) })) + '</div>' +
+      '<div class="t2">' + esc(t('group.hint')) + '</div></div>' +
+      '<div class="st"><span class="ttf">▾</span></div>';
+    frag.insertBefore(g, frag.firstChild);
+  }
+  // Same block boundary marker as the live stream (sealBlock): the divider sits
+  // BELOW the transactions it contains, and only states a count when chronik
+  // actually gave us one.
+  if (frag.childNodes.length){
+    const div = document.createElement('button');
+    div.className = 'divider'; div.type = 'button';
+    const n = (realTxCount != null) ? realTxCount : null;
+    const lbl = n != null ? tf('divider.block', { h: fmtInt(height), n: fmtInt(n) })
+                          : tf('divider.blockNoCount', { h: fmtInt(height) });
+    div.innerHTML = '<span class="ln"></span><span class="lbl">' + IC.cube + ' ' + esc(lbl) +
+      '</span><span class="ln"></span>';
+    div._blockData = { height, n };   // so relabelDynamic re-renders it on a language switch
+    frag.appendChild(div);
+  }
+  if (!frag.childNodes.length) return 0;
+  hideEmpty();
+  const prevH = stream.scrollHeight, prevTop = stream.scrollTop;
+  stream.insertBefore(frag, stream.firstChild);
+  // prepending shifts everything down — keep the viewport where the user left it
+  stream.scrollTop = prevTop + (stream.scrollHeight - prevH);
+  histCount += added;
+  return added;
+}
+async function loadOlder(){
+  if (histBusy || histDone || !state.chronik || typeof state.chronik.blockTxs !== 'function') return;
+  histBusy = true; updateLoadOlder();
+  try {
+    if (histHeight == null) histHeight = state.lastSealedHeight || state.height || null;
+    if (!histHeight){ histDone = true; return; }
+    // ONE block per click, first page only. Walking pages within a block would
+    // prepend them in reverse order (each prepend goes on top), and a big block
+    // would bury the UI anyway — the divider states the block's REAL tx count,
+    // so showing a subset stays honest (the live stream does exactly the same).
+    const res = await state.chronik.blockTxs(histHeight, 0, HIST_PAGE);
+    const txs = (res && res.txs) || [];
+    let numTxs = null;
+    if (res && res.numTxs != null){ try { numTxs = Number(res.numTxs); } catch {} }
+    prependHistory(txs, histHeight, isFinite(numTxs) ? numTxs : null);
+    histHeight--;
+    if (histCount >= HIST_MAX || histHeight <= 0) histDone = true;
+  } catch { toast(t('hist.failed')); }
+  finally { histBusy = false; updateLoadOlder(); }
+}
+$('load-older').addEventListener('click', loadOlder);
+
 /* ------------------------------------------------------------------ price */
 async function fetchPrice(){
   try {
@@ -2260,7 +2610,84 @@ function detailTokenArt(tx){
   if (!(tx.kind === 'token' || tx.kind === 'trade') || !tx.token || !tx.token.tokenId) return '';
   const isNft = !!(tx.agora && tx.agora.kind === 'oneshot') || /NFT/i.test(tx.token.type || '');
   const img = tokenIconImg(tx.token.tokenId, isNft, 512);   // large source for the portrait
-  return img ? '<div class="cd-art" data-copy="' + esc(tx.token.tokenId) + '">' + img + '</div>' : '';
+  // role/tabindex so the copy-the-tokenId affordance is keyboard-reachable (A8)
+  return img ? '<div class="cd-art" role="button" tabindex="0" aria-label="' + esc(t('sh.tokenId')) +
+               '" data-copy="' + esc(tx.token.tokenId) + '">' + img + '</div>' : '';
+}
+/* ---- F13 detail helpers ----
+   Every one of these returns null/'' when the value isn't actually known, so a
+   row is OMITTED rather than filled with a guess (core value #1). */
+// Numeric token qty (null when decimals aren't resolved yet — never raw atoms).
+// NOTE: still Number()-based like tokenQty (known F9 limit for atoms > 2^53).
+function tokenQtyNum(tx){
+  const tk = tx.token || {};
+  if (tk.amount == null || tk.decimals == null) return null;
+  let atoms; try { atoms = BigInt(tk.amount); } catch { return null; }
+  const dec = tk.decimals || 0;
+  const v = dec > 0 ? Number(atoms) / Math.pow(10, dec) : Number(atoms);
+  return isFinite(v) ? v : null;
+}
+// "1,234.56 XEC" (+ " · ~$0.08" when a price is known).
+function fmtXecAmt(xec, withUsd){
+  if (xec == null || !isFinite(xec)) return null;
+  let s;
+  try { s = xec.toLocaleString(localeFor(lang), { maximumFractionDigits: 2 }); } catch { s = String(xec); }
+  s += ' XEC';
+  if (withUsd && state.xecUsd) s += ' · ~' + fmtUsd(xec * state.xecUsd);
+  return s;
+}
+// Localized "2 minutes ago" via Intl (no new i18n keys); '' if unavailable.
+function fmtAgo(ms){
+  if (!ms) return '';
+  const sec = Math.round((Date.now() - ms) / 1000);
+  if (!isFinite(sec) || sec < 0) return '';
+  try {
+    const rtf = new Intl.RelativeTimeFormat(localeFor(lang), { numeric: 'auto' });
+    if (sec < 60) return rtf.format(-sec, 'second');
+    if (sec < 3600) return rtf.format(-Math.round(sec/60), 'minute');
+    if (sec < 86400) return rtf.format(-Math.round(sec/3600), 'hour');
+    return rtf.format(-Math.round(sec/86400), 'day');
+  } catch { return ''; }
+}
+// Protocol name behind a message card. Protocol names (Cashtab Msg, Alias,
+// Airdrop, Broadcast) are proper names and stay untranslated, like "Agora".
+const MSG_PROTO_NAMES = { cashtab:'Cashtab Msg', alias:'Alias', airdrop:'Airdrop', broadcast:'Broadcast' };
+function msgProtoLabel(tx){
+  const m = tx.message; if (!m) return null;
+  if (m.type === 'encrypted') return t('msg.encrypted');
+  if (m.type === 'powr') return t('powr.title') + (m.powr && m.powr.action ? (' · ' + m.powr.action) : '');
+  return MSG_PROTO_NAMES[m.type] || null;
+}
+// POWR deep-link — port of neo's powrReadHref (v1.5.9): read the tx's OWN feed
+// item for every content action, but a bare like has no content of its own so it
+// points at the liked post; unlock/auth/handle have nothing to read.
+const POWR_FEED_BASE = 'https://www.proofofwriting.com/feed/';
+function powrReadHref(tx){
+  const p = tx && tx.message && tx.message.powr;
+  if (!p) return null;
+  if (p.action === 'like') return /^[0-9a-f]{64}$/i.test(p.targetTxid || '') ? POWR_FEED_BASE + p.targetTxid : null;
+  if (p.action === 'unlock' || p.action === 'auth' || p.action === 'handle') return null;
+  return /^[0-9a-f]{64}$/i.test(tx.id || '') ? POWR_FEED_BASE + tx.id : null;
+}
+// Per-kind hero: the number that matters, big, at the top (F13). Messages lead
+// with their text (.cd-msg) instead, so they get no numeric hero.
+function detailHero(tx){
+  let h1 = null, h2 = null;
+  if (tx.kind === 'trade' && tx.agora){
+    h1 = fmtXecAmt(tx.agora.priceXecTotal, true);
+    h2 = (t('trade.' + tx.agora.side) || '') + ' · ' + t('trade.market');
+    if (h1 == null){ h1 = t('trade.' + tx.agora.side) || t('trade.market'); h2 = t('trade.market'); }
+  } else if (tx.kind === 'token'){
+    const q = tokenQty(tx), nm = tokenName(tx);
+    h1 = q != null ? (q + ' ' + nm) : nm;
+    h2 = t('token.transfer');
+  } else if (tx.kind === 'pay'){
+    h1 = fmtXecAmt(tx.valueXec, false);
+    h2 = state.xecUsd && tx.valueXec != null ? ('~' + fmtUsd(tx.valueXec * state.xecUsd)) : null;
+  }
+  if (!h1) return '';
+  return '<div class="cd-hero"><div class="h1">' + esc(h1) + '</div>' +
+         (h2 ? '<div class="h2">' + esc(h2) + '</div>' : '') + '</div>';
 }
 function buildDetailHtml(tx){
   const secTxt = (tx.final && tx.ttf != null && isFinite(tx.ttf)) ? fmtSec(tx.ttf) : null;
@@ -2277,30 +2704,80 @@ function buildDetailHtml(tx){
   if (tx.kind === 'msg' && tx.message && tx.message.content){
     msgHtml = '<div class="cd-msg">“' + esc(tx.message.content) + '”</div>';
   }
-  // copyable identifier span: shows the shortened form, copies the FULL value.
-  const cp = (full, disp) => '<span class="cp" data-copy="' + esc(full) + '">' + esc(disp) + '</span>';
+  // copyable identifier: shows the shortened form, copies the FULL value. A real
+  // <button> so keyboard users can reach it (A8).
+  const cp = (full, disp) => '<button type="button" class="cp" data-copy="' + esc(full) + '">' + esc(disp) + '</button>';
+  const row = (label, valueHtml) => '<div><dt>' + esc(label) + '</dt><dd>' + valueHtml + '</dd></div>';
   const rows = [];
-  rows.push('<div><dt>' + esc(t('sh.time')) + '</dt><dd>' + esc(fmtClock(tx)) + '</dd></div>');
+  // amount — payments and message carriers (a message rides on a dust payment)
+  if (tx.kind !== 'trade'){
+    const amt = fmtXecAmt(tx.valueXec, true);
+    if (amt) rows.push(row(t('sh.amount'), esc(amt)));
+  }
+  // token quantity — only once decimals are known (never raw atoms)
+  if (tx.token && tx.token.tokenId){
+    const q = tokenQty(tx);
+    if (q != null) rows.push(row(t('sh.tokenQty'), esc(q + ' ' + tokenName(tx))));
+  }
+  // Agora price: total, plus per-token when the quantity is known and > 1
+  if (tx.kind === 'trade' && tx.agora && tx.agora.priceXecTotal != null){
+    const total = fmtXecAmt(tx.agora.priceXecTotal, true);
+    if (total) rows.push(row(t('sh.price'), esc(total)));
+    const qn = tokenQtyNum(tx);
+    if (qn != null && qn > 1){
+      const per = fmtXecAmt(tx.agora.priceXecTotal / qn, false);
+      if (per) rows.push(row(t('sh.pricePer'), esc(per)));
+    }
+  }
+  // fee (sats → XEC); null on coinbase / unknown inputs
+  if (tx.fee != null && isFinite(tx.fee) && tx.fee >= 0){
+    const f = fmtXecAmt(tx.fee / 100, false);
+    if (f) rows.push(row(t('sh.fee'), esc(f)));
+  }
+  // which on-chain message protocol this is
+  const proto = (tx.kind === 'msg' || tx.kind === 'powr') ? msgProtoLabel(tx) : null;
+  if (proto) rows.push(row(t('sh.protocol'), esc(proto)));
+  // time: absolute clock + localized relative ("2 minutes ago")
+  const ago = fmtAgo(tx.firstSeen || tx.firstSeenLocal);
+  rows.push(row(t('sh.time'), esc(fmtClock(tx) + (ago ? ' · ' + ago : ''))));
   if (tx.from && tx.to){
-    rows.push('<div><dt>' + esc(t('sh.route')) + '</dt><dd>' + cp(tx.from, shortAddr(tx.from)) + ' → ' + cp(tx.to, shortAddr(tx.to)) + '</dd></div>');
+    rows.push(row(t('sh.route'), cp(tx.from, shortAddr(tx.from)) + ' → ' + cp(tx.to, shortAddr(tx.to))));
   }
-  rows.push('<div><dt>' + esc(t('sh.block')) + '</dt><dd>' + esc(tx.block ? fmtInt(tx.block) : t('sh.blockPending')) + '</dd></div>');
+  rows.push(row(t('sh.block'), esc(tx.block ? fmtInt(tx.block) : t('sh.blockPending'))));
   if ((tx.kind === 'token' || tx.kind === 'trade') && tx.token && tx.token.tokenId){
-    rows.push('<div><dt>' + esc(t('sh.tokenId')) + '</dt><dd class="cp" data-copy="' + esc(tx.token.tokenId) + '">' + esc(shortId(tx.token.tokenId)) + '</dd></div>');
+    rows.push(row(t('sh.tokenId'), cp(tx.token.tokenId, shortId(tx.token.tokenId))));
   }
-  rows.push('<div><dt>' + esc(t('sh.txid')) + '</dt><dd class="cp" data-copy="' + esc(tx.id) + '">' + esc(shortId(tx.id)) + '</dd></div>');
+  rows.push(row(t('sh.txid'), cp(tx.id, shortId(tx.id))));
   const rowsHtml = '<div class="cd-rows">' + rows.join('') + '</div>';
+  // POWR content lives off-chain — link out to the readable item when there is one
+  const powrHref = powrReadHref(tx);
+  const powrBtn = powrHref ? '<a href="' + esc(powrHref) + '" target="_blank" rel="noopener noreferrer">' + esc(t('sh.powrRead')) + '</a>' : '';
   const btns = '<div class="cd-btns"><button type="button" class="pri" data-act="share">' + esc(t('sh.share')) +
-    '</button><button type="button" data-act="explorer">' + esc(t('sh.explorer')) + '</button></div>';
-  // info on top → token art (size-capped) → Share/Explorer below it
-  return finHtml + msgHtml + rowsHtml + detailTokenArt(tx) + btns;
+    '</button><button type="button" data-act="explorer">' + esc(t('sh.explorer')) + '</button>' + powrBtn + '</div>';
+  // hero → final banner → full message → rows → token art (size-capped) → buttons
+  return detailHero(tx) + finHtml + msgHtml + rowsHtml + detailTokenArt(tx) + btns;
+}
+// Wire the interactive bits of a rendered detail block. Shared by the inline card
+// detail and the pinned ?tx= receipt so both behave identically (core value #6).
+function wireDetail(d, tx){
+  if (!d) return;
+  const sb = d.querySelector('[data-act="share"]'); if (sb) sb.addEventListener('click', (e) => { e.stopPropagation(); shareTx(tx); });
+  const eb = d.querySelector('[data-act="explorer"]'); if (eb) eb.addEventListener('click', (e) => { e.stopPropagation(); window.open('https://explorer.e.cash/tx/' + tx.id, '_blank', 'noopener'); });
+  d.querySelectorAll('[data-copy]').forEach(el => {
+    el.addEventListener('click', (e) => { e.stopPropagation(); copyText(el.getAttribute('data-copy')); });
+    // .cp are real <button>s (Enter/Space fire click natively); .cd-art is a
+    // role=button div, so it needs the keys wired explicitly (A8).
+    if (el.tagName !== 'BUTTON') el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); e.stopPropagation(); copyText(el.getAttribute('data-copy')); }
+    });
+  });
+  // an external link inside the detail must not also toggle the card
+  d.querySelectorAll('a[href]').forEach(a => a.addEventListener('click', (e) => e.stopPropagation()));
 }
 function fillDetail(tx){
   const d = tx._detail; if (!d) return;
   d.innerHTML = buildDetailHtml(tx);
-  const sb = d.querySelector('[data-act="share"]'); if (sb) sb.addEventListener('click', (e) => { e.stopPropagation(); shareTx(tx); });
-  const eb = d.querySelector('[data-act="explorer"]'); if (eb) eb.addEventListener('click', (e) => { e.stopPropagation(); window.open('https://explorer.e.cash/tx/' + tx.id, '_blank', 'noopener'); });
-  d.querySelectorAll('[data-copy]').forEach(el => el.addEventListener('click', (e) => { e.stopPropagation(); copyText(el.getAttribute('data-copy')); }));
+  wireDetail(d, tx);
 }
 function expandCard(tx){
   const card = tx.el; if (!card || !card.parentNode) return;
@@ -2345,7 +2822,11 @@ async function copyText(str){
 }
 function toast(msg){ const el = $('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 2200); }
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && state.expandedId){
+  if (e.key !== 'Escape') return;
+  // the pinned receipt sits over everything — dismiss it first (F14)
+  const rc = $('receipt');
+  if (rc && !rc.hidden){ closeReceipt(); return; }
+  if (state.expandedId){
     const tx = state.txs.get(state.expandedId); if (tx) collapseCard(tx);
     state.expandedId = null;
   }
@@ -2685,7 +3166,7 @@ function renderEchanToggle(){
   b.classList.toggle('muted', !echanOn);
   b.setAttribute('aria-pressed', String(!echanOn));
   b.title = echanOn ? t('ctrl.echan.mute') : t('ctrl.echan.unmute');
-  const g = b.querySelector('.echan-glyph'); if (g) g.innerHTML = echanOn ? IC.bell : IC.bellOff;
+  b.classList.toggle('on', echanOn);   // lit while eChan talks, quiet when muted
 }
 {
   const be = $('btn-echan');
@@ -2928,14 +3409,123 @@ function encodeCashtabMsgOpReturn(msg){
            : '4c' + bytes.length.toString(16).padStart(2, '0');
   return '04' + '00746162' + pl + hex;
 }
-const cmpCompose = $('compose'), cmpHint = $('cmp-hint');
+const cmpHint = $('cmp-hint');
 function hint(txt, show){ cmpHint.textContent = txt || ''; cmpHint.classList.toggle('open', !!show && !!txt); }
-$('cta-try').addEventListener('click', () => {
-  const open = !cmpCompose.classList.contains('open');
-  cmpCompose.classList.toggle('open', open); cmpCompose.hidden = !open;
-  hint(t(isCashtabExtension() ? 'try.hintExt' : 'try.hint'), open);
-  if (open){ const ai = $('compose-addr'); if (ai && !ai.value && myAddr) ai.value = myAddr; $('compose-in').focus(); }
+
+// ---- FAB composer (F3/F4/F6) ----
+// DUST_XEC (5.46) is already defined for the dust-fold threshold — reused here as
+// the Cashtab minimum-send floor.
+const CMP_CHIPS = ['gm 🌅', 'thanks 🙏', '🎉', '❤️', '🚀'];   // one-tap message starters (emoji — language-neutral)
+const fabEl = $('fab'), cmpPanel = $('cmp-panel'), cmpBackdrop = $('cmp-backdrop');
+// persisted composer prefs: last amount + whether the amount control is open (F4)
+const TRY_KEY = 'ecashlive:flow:try';
+let tryPrefs = { amountXec: DUST_XEC, amountOpen: false };
+try { const p = JSON.parse(localStorage.getItem(TRY_KEY) || 'null'); if (p && typeof p === 'object'){ if (typeof p.amountXec === 'number' && p.amountXec >= DUST_XEC) tryPrefs.amountXec = p.amountXec; tryPrefs.amountOpen = !!p.amountOpen; } } catch {}
+function saveTryPrefs(){ try { localStorage.setItem(TRY_KEY, JSON.stringify(tryPrefs)); } catch {} }
+
+function renderCmpChips(){
+  const c = $('cmp-chips');
+  c.innerHTML = CMP_CHIPS.map(m => '<button type="button" class="cmp-chip">' + esc(m) + '</button>').join('');
+  c.querySelectorAll('.cmp-chip').forEach(b => b.addEventListener('click', () => { $('compose-in').value = b.textContent; updateCmpPreview(); $('compose-in').focus(); }));
+}
+// One-tap recipients so nobody has to paste an address: your own wallet (known
+// from the neo sync, or fetched from the Cashtab extension on demand) and the
+// addresses already on the watchlist, by their names.
+function renderCmpPicks(){
+  const c = $('cmp-picks'); if (!c) return;
+  const parts = [];
+  if (myAddr || isCashtabExtension()){
+    parts.push('<button type="button" class="cmp-pick mine" data-pick="me"><span class="dot"></span>' + esc(t('cmp.myWallet')) + '</button>');
+  }
+  let n = 0;
+  for (const a of state.watchSet){
+    if (n++ >= 4) break;
+    const nm = state.watchNames.get(a) || shortAddr(a);
+    parts.push('<button type="button" class="cmp-pick" data-pick="' + esc(a) + '">' + esc(nm) + '</button>');
+  }
+  c.innerHTML = parts.join('');
+  c.querySelectorAll('.cmp-pick').forEach(b => b.addEventListener('click', async () => {
+    const v = b.getAttribute('data-pick');
+    const inp = $('compose-addr');
+    if (v === 'me'){
+      if (myAddr){ inp.value = myAddr; }
+      else {
+        hint(t('try.confirm'), true);
+        try { const got = await ctRequestAddress(); if (saveMyAddr(got)) inp.value = myAddr; hint('', false); }
+        catch (e){ hint('', false); toast(t(e && e.message === 'timeout' ? 'try.timeout' : 'try.denied')); return; }
+      }
+    } else { inp.value = v; }
+    updateCmpPreview();
+    try { $('compose-in').focus(); } catch {}
+  }));
+}
+function clampAmt(v){ let n = parseFloat(v); if (!isFinite(n)) n = DUST_XEC; if (n < DUST_XEC) n = DUST_XEC; return Math.round(n * 100) / 100; }
+function setAmount(v, from){
+  const n = clampAmt(v);
+  tryPrefs.amountXec = n;
+  if (from !== 'range') $('cmp-amt-range').value = Math.min(n, 1000);
+  if (from !== 'num') $('cmp-amt-num').value = n.toFixed(2);
+  updateCmpPreview();
+}
+function updateCmpPreview(){
+  const msg = ($('compose-in').value || '').trim();
+  const amt = tryPrefs.amountOpen ? tryPrefs.amountXec : (msg ? DUST_XEC : 0);
+  const parts = [];
+  if (amt >= DUST_XEC){
+    let s = tf('cmp.previewXec', { xec: amt.toLocaleString(localeFor(lang)) });
+    const usd = state.xecUsd ? amt * state.xecUsd : 0;
+    if (usd) s += ' (~$' + (usd < 0.01 ? usd.toFixed(4) : usd.toFixed(2)) + ')';
+    parts.push(s);
+  }
+  if (msg) parts.push(t('cmp.previewMsg'));
+  $('cmp-preview').textContent = parts.join(' + ');
+}
+function setAmountOpen(open){
+  tryPrefs.amountOpen = open;
+  $('cmp-amt').hidden = !open;
+  $('cmp-amt-toggle').setAttribute('aria-expanded', String(open));
+  updateCmpPreview();
+}
+let cmpKeydownBound = null;
+function openComposer(){
+  renderCmpChips();
+  renderCmpPicks();
+  setAmount(tryPrefs.amountXec);
+  setAmountOpen(tryPrefs.amountOpen);
+  hint('', false);   // no lecture on open — the panel explains itself; hints are for actions
+  cmpBackdrop.hidden = false; cmpPanel.hidden = false; fabEl.hidden = true;
+  fabEl.setAttribute('aria-expanded', 'true');
+  showAnimated(cmpBackdrop, 'show'); showAnimated(cmpPanel, 'show');
+  requestAnimationFrame(() => { try { const a = $('compose-addr'); (a.value ? $('compose-in') : a).focus(); } catch {} });
+  cmpKeydownBound = (e) => {                 // focus trap + Escape
+    if (e.key === 'Escape'){ e.preventDefault(); closeComposer(); return; }
+    if (e.key !== 'Tab') return;
+    const vis = [...cmpPanel.querySelectorAll('button,input,[tabindex]:not([tabindex="-1"])')].filter(el => !el.hidden && el.offsetParent !== null);
+    if (!vis.length) return;
+    const first = vis[0], last = vis[vis.length - 1];
+    if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  };
+  document.addEventListener('keydown', cmpKeydownBound, true);
+}
+function closeComposer(){
+  cmpPanel.classList.remove('show'); cmpBackdrop.classList.remove('show');
+  fabEl.setAttribute('aria-expanded', 'false');
+  if (cmpKeydownBound){ document.removeEventListener('keydown', cmpKeydownBound, true); cmpKeydownBound = null; }
+  setTimeout(() => { cmpPanel.hidden = true; cmpBackdrop.hidden = true; fabEl.hidden = false; try { fabEl.focus(); } catch {} }, 180);
+}
+fabEl.addEventListener('click', () => {
+  fabEl.classList.remove('pulse');
+  if (!seen['fabUsed']){ seen['fabUsed'] = 1; try { localStorage.setItem(SEEN_KEY, JSON.stringify(seen)); } catch {} }
+  openComposer();
 });
+$('cmp-close').addEventListener('click', closeComposer);
+cmpBackdrop.addEventListener('click', closeComposer);
+$('cmp-amt-toggle').addEventListener('click', () => { setAmountOpen(!tryPrefs.amountOpen); saveTryPrefs(); if (tryPrefs.amountOpen) $('cmp-amt-num').focus(); });
+$('cmp-amt-range').addEventListener('input', e => setAmount(e.target.value, 'range'));
+$('cmp-amt-num').addEventListener('input', e => setAmount(e.target.value, 'num'));
+$('cmp-amt-num').addEventListener('blur', saveTryPrefs);
+$('compose-in').addEventListener('input', updateCmpPreview);
 // Persist a valid address as it's entered (saveMyAddr no-ops on an invalid one).
 $('compose-addr').addEventListener('blur', e => { const a = e.target.value.trim(); if (a) saveMyAddr(a); });
 // footer eye → toggle the mobile watch-bar (desktop uses the rail; #btn-watch is
@@ -2949,14 +3539,17 @@ $('btn-watch').addEventListener('click', () => {
   btn.setAttribute('aria-expanded', String(open));
   if (open){ renderWatchlist($('bar-watch-list')); requestAnimationFrame(() => { try { bar.scrollIntoView({ block:'nearest' }); } catch {} }); }
 });
-// Hybrid send (D3 gate FAILED: Cashtab rejects an empty-address bip21). With the
-// Cashtab extension we requestAddress()+sendBip21() and get the exact txid; without
-// it we fall back to the cashtab.com URL (which now needs a REAL recipient — the
-// user's own address, for a self-send) and match the returning tx by content.
+// Unified hybrid send (F3/F4/F6): a message and/or a pure-XEC amount. Recipient is
+// REQUIRED (Cashtab rejects an empty-address bip21 — D3 gate). With the Cashtab
+// extension → sendBip21() (exact txid); else the cashtab.com URL. A pure-XEC send
+// (no message) has no content to match, so it's identified via your wallet address
+// (myAddr, synced one-way from neo) — a tx touching it is marked _mine.
 async function sendTry(){
-  const v = $('compose-in').value.trim(); if (!v) return;
-  const opret = encodeCashtabMsgOpReturn(v);
-  if (!opret){ toast(t('try.toolong')); return; }
+  const msg = ($('compose-in').value || '').trim();
+  const explicitAmt = tryPrefs.amountOpen ? clampAmt(tryPrefs.amountXec) : 0;
+  if (!msg && !(explicitAmt >= DUST_XEC)){ hint(t('cmp.needAmtOrMsg'), true); return; }
+  let opret = null;
+  if (msg){ opret = encodeCashtabMsgOpReturn(msg); if (!opret){ toast(t('try.toolong')); return; } }
   const addrInput = $('compose-addr');
   let addr = normAddr(addrInput.value);
   const hasExt = isCashtabExtension();
@@ -2969,23 +3562,32 @@ async function sendTry(){
   if (!addr){ hint(t('try.needAddr'), true); try { addrInput.focus(); } catch {}; return; }
   if (!validateCashAddress(addr)){ toast(t('try.badAddr')); return; }
   saveMyAddr(addr);
-  const bip21 = 'ecash:' + addr + '?op_return_raw=' + opret;
+  // amount: the explicit value, or the dust floor when a message rides along (matches neo)
+  const amountXec = explicitAmt >= DUST_XEC ? explicitAmt : (msg ? DUST_XEC : 0);
+  const params = [];
+  if (amountXec >= DUST_XEC) params.push('amount=' + amountXec.toFixed(2));
+  if (opret) params.push('op_return_raw=' + opret);
+  // addr already carries the "ecash:" prefix (normAddr adds it) — prefixing again
+  // produced "ecash:ecash:q…", which Cashtab rejects.
+  const bip21 = addr + '?' + params.join('&');
+  if (tryPrefs.amountOpen) saveTryPrefs();
   if (hasExt){
     hint(t('try.confirm'), true);
     try {
       const txid = await ctSendBip21(bip21);
-      noteMineTxid(txid);                    // exact _mine match when it arrives (no content guess)
+      noteMineTxid(txid);                    // exact _mine match when it arrives
       try { subscribeTxid(txid); } catch {}
-      $('compose-in').value = '';
+      $('compose-in').value = ''; updateCmpPreview();
       hint(t('try.sentExt'), true);
+      setTimeout(closeComposer, 900);
     } catch (e){
       hint('', false);
       toast(t(e && e.message === 'timeout' ? 'try.timeout' : 'try.denied'));
     }
   } else {
-    tryMsg = v.toLowerCase();                // content-match the returning tx (URL path only)
+    if (msg) tryMsg = msg.toLowerCase();     // content match (URL path); myAddr covers pure-XEC
     window.open(CASHTAB_WEB + '#/send?bip21=' + bip21, '_blank', 'noopener');
-    $('compose-in').value = '';
+    $('compose-in').value = ''; updateCmpPreview();
     hint(t('try.sent'), true);
   }
 }
@@ -2993,6 +3595,46 @@ $('compose-send').addEventListener('click', sendTry);
 $('compose-in').addEventListener('keydown', e => { if (e.key === 'Enter') sendTry(); });
 
 /* ------------------------------------------------------------------ shared ?tx= receipt */
+// ---- pinned receipt state (F14) ----
+// Opening a ?tx= link shows the receipt PINNED over the stream (it used to be
+// appended to the live feed, where it scrolled away within seconds). Dismissing
+// strips ?tx= from the URL so a refresh doesn't reopen it.
+let receiptTx = null;
+function openReceipt(tx, notFoundId){
+  const el = $('receipt'), body = $('rc-body');
+  receiptTx = tx || null;
+  if (tx){
+    body.innerHTML = buildDetailHtml(tx);
+    wireDetail(body, tx);
+  } else {
+    // Honest not-found state (A5 upgrade): say what we know, link the explorer.
+    body.innerHTML = '<div class="rc-none">' + esc(t('share.notFound')) + '<br>' + esc(t('rc.notFoundBody')) +
+      '<span class="rc-id">' + esc(notFoundId || '') + '</span></div>' +
+      (notFoundId ? '<div class="cd-btns"><a href="https://explorer.e.cash/tx/' + esc(notFoundId) +
+        '" target="_blank" rel="noopener noreferrer">' + esc(t('sh.explorer')) + '</a></div>' : '');
+  }
+  el.hidden = false;
+  showAnimated(el, 'show');
+  requestAnimationFrame(() => { try { $('rc-enter').focus(); } catch {} });
+}
+function closeReceipt(){
+  const el = $('receipt');
+  el.classList.remove('show');
+  setTimeout(() => { el.hidden = true; $('rc-body').innerHTML = ''; receiptTx = null; }, 200);
+  // drop ?tx= so a reload lands on the live stream
+  try { const u = new URL(location.href); u.searchParams.delete('tx'); history.replaceState(null, '', u.pathname + u.search + u.hash); } catch {}
+}
+$('rc-close').addEventListener('click', closeReceipt);
+$('rc-enter').addEventListener('click', closeReceipt);
+// Refresh the open receipt when its token ticker resolves (same idea as
+// refreshExpandedDetail for cards).
+function refreshReceipt(tokenId){
+  if (receiptTx && receiptTx.token && receiptTx.token.tokenId === tokenId){
+    const body = $('rc-body');
+    body.innerHTML = buildDetailHtml(receiptTx);
+    wireDetail(body, receiptTx);
+  }
+}
 async function maybeOpenSharedTx(){
   let q = null; try { q = new URLSearchParams(location.search).get('tx'); } catch {}
   if (!q || !/^[0-9a-f]{64}$/.test(q) || !state.chronik) return;
@@ -3011,18 +3653,8 @@ async function maybeOpenSharedTx(){
     tx.final = !!(d.isFinal || (d.block && d.block.height));
     tx.ttf = null;
     tx.block = (d.block && d.block.height) || null;
-    if (tx.id && state.txs.has(tx.id)){ const ex = state.txs.get(tx.id); if (ex.el){ toggleCardExpand(ex); return; } }
-    // Append the shared tx as an auto-expanded card at the bottom of the stream
-    // (visible, no popup). It carries on-chain truth only — no fabricated TTF.
-    hideEmpty();
-    trackTx(tx);
-    const card = cardFor(tx);
-    if (tx.final){ card.classList.remove('is-sending'); card.classList.add('is-final'); const c = card.querySelector('.checks'); if (c) c.innerHTML = IC.checks; }
-    stream.appendChild(card);
-    setCardText(tx);
-    state.atBottom = true; stream.scrollTop = stream.scrollHeight;
-    toggleCardExpand(tx);
-  } catch { toast(t('share.notFound')); }   // A5: a bad/expired ?tx= link showed nothing before
+    openReceipt(tx);
+  } catch { openReceipt(null, q); }
 }
 
 /* ------------------------------------------------------------------ boot */
@@ -3031,10 +3663,20 @@ function buildLangSelect(){
   sel.innerHTML = '';
   for (const L of I18N_LANGS){
     const o = document.createElement('option');
-    o.value = L.code; o.textContent = L.native;
+    o.value = L.code; o.textContent = L.native;   // the native picker still shows full names
     if (L.code === lang) o.selected = true;
     sel.appendChild(o);
   }
+  renderLangFace();
+}
+// The footer shows only 🌐 + a 2-letter code; the full list lives in the OS picker.
+// Regional variants use their region so they stay distinguishable (a plain
+// 2-letter truncation would print "ZH" for BOTH Chinese packs).
+const LANG_CODE_2 = { 'zh-CN':'CN', 'zh-TW':'TW', 'pt-BR':'BR', 'fil':'PH' };
+function renderLangFace(){
+  const el = $('lang-code'); if (!el) return;
+  const c = lang || 'en';
+  el.textContent = LANG_CODE_2[c] || c.split('-')[0].slice(0, 2).toUpperCase();
 }
 async function boot(){
   initTheme();
@@ -3046,6 +3688,9 @@ async function boot(){
   updateWatchBadge();
   loadMyAddr();          // your wallet address (Flow key, else seeded from neo) → _mine + self-send
   renderEchanToggle();   // E6: paint the footer bell in its saved on/off state
+  updateLoadOlder();     // F11: history pill (hidden until the stream is scrolled to the top)
+  // Version hides in the logo (hover to reveal) — single source of truth is #app
+  try { const v = $('app').getAttribute('data-version'); if (v) $('brand-ver').textContent = v; } catch {}
   buildLangSelect();
   renderPrice();
   fetchPrice(); setInterval(fetchPrice, 120000);
@@ -3053,6 +3698,12 @@ async function boot(){
   setInterval(updateStatsUI, 5000);   // re-check staleness even with no new frames (B11)
   connectChronik();
   setTimeout(() => firstTime('greet', 'echan.greet', 'happy'), 1200);
+  // F3: draw attention to the "+" FAB the first time (one-time pulse + one eChan
+  // nudge). Both stop once the composer has been opened (seen['fabUsed']).
+  if (!seen['fabUsed']){
+    fabEl.classList.add('pulse');
+    setTimeout(() => firstTime('fabNudge', 'echan.fabNudge', 'happy'), 9000);
+  }
   // eChan ambient: load the shared dialog library (deferred, off the boot path) and
   // start a slow narration cadence that reuses neo's translated content.
   setTimeout(loadEchanSeed, 3000);
