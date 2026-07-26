@@ -6,6 +6,8 @@
     "packVersion": 1
   },
   "strings": {
+    "a11y.scrollRow": "แถวเลื่อนได้ — ปัดหรือเลื่อนไปด้านข้างเพื่อดูเพิ่ม",
+    "brand.aria": "eCash Flow — เปิด e.cash",
     "a11y.skip": "ข้ามไปที่สตรีมธุรกรรม",
     "a11y.h1": "eCash Live · Flow — สตรีมธุรกรรมสด",
     "a11y.heartbeat": "จังหวะหัวใจเครือข่าย — เต้นทุกครั้งที่ธุรกรรมเสร็จสิ้น",
@@ -42,8 +44,8 @@
     "hist.loading": "กำลังโหลด…",
     "hist.end": "Flow ย้อนได้เท่านี้",
     "hist.failed": "โหลดธุรกรรมเก่าไม่สำเร็จ",
-    "footer.tps": "TPS · 24h",
-    "footer.tx24": "ธุรกรรม · 24h",
+    "head.tps": "TPS",
+    "head.tx24": "24 ชม.",
     "head.online": "ออนไลน์",
     "ctrl.pause": "หยุดชั่วคราว",
     "ctrl.pause.title": "หยุดสตรีมชั่วคราว",
@@ -91,6 +93,7 @@
     "sh.tokenId": "รหัสโทเคน",
     "sh.explorer": "ดูใน explorer",
     "sh.share": "แชร์",
+    "sh.chat": "แชท ↔",
     "sh.final": "เสร็จสิ้นถาวรหลังจาก {sec} — ย้อนกลับไม่ได้",
     "sh.finalNoTime": "เสร็จสิ้นถาวร — ย้อนกลับไม่ได้",
     "sh.pending": "กำลังส่งเข้าสู่เครือข่าย…",

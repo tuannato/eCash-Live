@@ -6,6 +6,8 @@
     "packVersion": 1
   },
   "strings": {
+    "a11y.scrollRow": "가로 스크롤 행 — 옆으로 스와이프하거나 스크롤하면 더 보입니다",
+    "brand.aria": "eCash Flow — e.cash 열기",
     "a11y.skip": "거래 스트림으로 이동",
     "a11y.h1": "eCash Live · Flow — 실시간 거래 스트림",
     "a11y.heartbeat": "네트워크 심박 — 거래가 확정될 때마다 뜁니다",
@@ -42,8 +44,8 @@
     "hist.loading": "불러오는 중…",
     "hist.end": "Flow에서 볼 수 있는 마지막입니다",
     "hist.failed": "이전 거래를 불러오지 못했습니다.",
-    "footer.tps": "TPS · 24h",
-    "footer.tx24": "거래 · 24h",
+    "head.tps": "TPS",
+    "head.tx24": "24시간",
     "head.online": "접속자",
     "ctrl.pause": "일시정지",
     "ctrl.pause.title": "스트림 일시정지",
@@ -91,6 +93,7 @@
     "sh.tokenId": "토큰 ID",
     "sh.explorer": "익스플로러에서 보기",
     "sh.share": "공유",
+    "sh.chat": "채팅 ↔",
     "sh.final": "{sec} 후 영구 확정 — 되돌릴 수 없음",
     "sh.finalNoTime": "영구 확정 — 되돌릴 수 없음",
     "sh.pending": "네트워크로 전송 중…",

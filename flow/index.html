@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-4qyA6bXVF1pcaU8lWNJPcT0gW8mMSRJsID07JkIxHjk=';
+  script-src 'self' 'sha256-Yb9Q+yLdwUOX0n/hbw/u2YQxDH8xTCgn/MY4KwERApI=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -178,8 +178,10 @@
      flex:none + explicit SVG widths so the header row never squeezes/overlaps it. */
   @font-face{font-family:'Space Grotesk';font-style:normal;font-weight:700;font-display:swap;
              src:url('../vendor/fonts/space-grotesk-latin-700.woff2') format('woff2');}
+  /* the brand is a link to e.cash; the version still hides inside it (on hover) */
   .brand{display:inline-flex;flex-direction:row;align-items:center;gap:8px;vertical-align:middle;flex:none;
-         position:relative;cursor:help;}
+         position:relative;cursor:pointer;text-decoration:none;color:inherit;}
+  .brand:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px;}
   /* Version hides in the logo (same idea as neo hiding it in "transaction"):
      it appears on a deliberate hover, never in the chrome. */
   .brand-ver{position:absolute;left:0;top:calc(100% + 6px);background:var(--card);
@@ -201,11 +203,44 @@
   :root[data-theme="light"] .wm-d{display:none;} :root[data-theme="light"] .wm-l{display:block;}
   :root[data-theme="dark"]  .wm-d{display:block;} :root[data-theme="dark"]  .wm-l{display:none;}
   .ah-top canvas{margin-left:auto;display:block;flex:1;min-width:0;height:36px;}
-  .ah-stats{display:flex;gap:7px;margin:10px 0 11px;flex-wrap:wrap;align-items:center;}
+  /* ONE row, always: the stat pills scroll sideways rather than wrapping the
+     header onto a third line (brand row + stats row is the whole budget). */
+  .ah-stats{--fade-to:var(--bg-app);display:flex;gap:7px;margin:10px 0 11px;flex-wrap:nowrap;align-items:center;
+            overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;}
+  .ah-stats::-webkit-scrollbar{display:none;}
+  .ah-stats > *{flex:none;}
+  /* ===== horizontal-scroll affordance =====
+     A scrollable row gives no hint that it scrolls, so we fade its edges — but
+     only on the side that actually has more content. The fade is a STICKY flex
+     item pulled back by a negative margin: an absolutely-positioned one would
+     scroll away with the content, and this adds no width. --fade-to is the
+     colour to fade INTO (each scroller sits on a different background).
+     .hscroll-hint (JS-set, one-shot) nudges it once so touch users notice. */
+  .hscroll::after,.hscroll::before{flex:none;align-self:stretch;width:34px;
+        opacity:0;transition:opacity .22s;pointer-events:none;position:sticky;z-index:2;
+        display:flex;align-items:center;color:var(--accent);
+        font-size:17px;font-weight:700;line-height:1;}
+  .hscroll::before{content:'‹';left:0;order:-1;margin-right:-34px;justify-content:flex-start;
+        background:linear-gradient(to left, transparent, var(--fade-to) 62%);}
+  .hscroll::after{content:'›';right:0;margin-left:-34px;justify-content:flex-end;
+        background:linear-gradient(to right, transparent, var(--fade-to) 62%);}
+  .hscroll.can-l::before,.hscroll.can-r::after{opacity:1;}
+  /* Keep nudging until the row has actually been scrolled once — a single pulse at
+     boot is easy to miss. The chevron slides a little; motion reads as "swipe me". */
+  .hscroll.hint-on.can-r::after{animation:edgenudge 1.6s ease-in-out infinite;}
+  .hscroll.hint-on.can-l::before{animation:edgenudge-l 1.6s ease-in-out infinite;}
+  @keyframes edgenudge{0%,100%{opacity:1;transform:translateX(0)}50%{opacity:.55;transform:translateX(3px)}}
+  @keyframes edgenudge-l{0%,100%{opacity:1;transform:translateX(0)}50%{opacity:.55;transform:translateX(-3px)}}
+  @media (prefers-reduced-motion:reduce){
+    .hscroll.hint-on.can-r::after,.hscroll.hint-on.can-l::before{animation:none;}
+  }
   .pill{font-size:12px;padding:4px 11px;border-radius:99px;background:var(--card2);
         color:var(--ink2);font-variant-numeric:tabular-nums;white-space:nowrap;border:1px solid transparent;}
   .pill.final{background:var(--final-bg);color:var(--final);font-weight:650;border-color:var(--final-ln);}
   .pill b{font-weight:700;color:inherit;font-family:'Space Grotesk',var(--sans);}
+  /* how long ago the tip block landed — blank until we actually know it */
+  .pill .age{color:var(--ink3);font-weight:500;}
+  .pill .age:not(:empty)::before{content:' · ';}
   .pill.blockpill b{color:var(--ink);}
   .pill.tapish{cursor:pointer;}
   .pill.tapish:hover{border-color:var(--line2);color:var(--ink);}
@@ -393,7 +428,9 @@
               font-family:var(--mono);line-height:1.8;}
   .grp-detail.open{display:block}
 
-  #new-pill{position:absolute;left:50%;bottom:14px;transform:translateX(-50%) translateY(6px);
+  /* z-index is REQUIRED: card contents (.ic/.body/.st) sit at z-index:1 for the
+     sunk token art, so a z-index:auto pill gets painted UNDER the card text. */
+  #new-pill{position:absolute;left:50%;bottom:14px;transform:translateX(-50%) translateY(6px);z-index:5;
             background:var(--grad);color:#fff;border:0;font-size:12px;font-weight:700;
             border-radius:99px;padding:7px 16px;cursor:pointer;opacity:0;pointer-events:none;
             transition:opacity .2s,transform .2s;box-shadow:0 6px 18px rgba(0,80,150,.35);}
@@ -508,6 +545,10 @@
   #fab:hover{transform:scale(1.06);}
   #fab:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
   #fab.pulse{animation:fabpulse 1.8s ease-out 3;}
+  /* While the user has scrolled up (reading, or with the "N new" pill showing) the
+     FAB steps aside: it stops covering mid-stream cards and never competes with
+     the pill. It returns as soon as they are following live again. */
+  #fab.away{opacity:0;pointer-events:none;transform:translateY(10px) scale(.9);}
   @keyframes fabpulse{0%{box-shadow:0 6px 18px rgba(0,116,194,.42),0 0 0 0 rgba(0,167,224,.5)}
                       70%,100%{box-shadow:0 6px 18px rgba(0,116,194,.42),0 0 0 15px rgba(0,167,224,0)}}
   #cmp-backdrop{position:absolute;inset:0;z-index:6;background:rgba(0,0,0,.28);opacity:0;transition:opacity .2s;}
@@ -596,19 +637,20 @@
                color:var(--accent-deep);background:var(--accent-bg);border-radius:99px;padding:1px 6px;margin-left:6px;align-self:center;}
 
   /* ===== footer setting bar (adapted from neo) ===== */
+  /* ONE row at every width: the bar never wraps. If the controls can't fit they
+     scroll horizontally inside their own tray instead of pushing to a 2nd line
+     (the stats live in the top bar now, so there is little left to squeeze). */
   .flow-footer{flex:none;border-top:1px solid var(--line);background:var(--card);
                display:flex;align-items:center;gap:10px;padding:8px 14px max(8px, env(safe-area-inset-bottom));min-height:46px;
-               flex-wrap:wrap;}
-  .ff-stats{display:flex;gap:15px;font-size:11px;color:var(--ink2);
-            font-variant-numeric:tabular-nums;}
-  .ff-cell{display:flex;flex-direction:column;line-height:1.3;}
-  .ff-cell .k{font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;font-weight:700;}
-  .ff-cell .v{font-family:'Space Grotesk',var(--sans);font-weight:700;color:var(--ink);}
-  .ff-spacer{flex:1 1 auto;}
+               flex-wrap:nowrap;overflow:hidden;}
+  .ff-spacer{flex:1 1 auto;min-width:0;}
   /* F10: the actions read as ONE segmented control instead of six loose pills —
      shared tray, borderless buttons inside, hairline separators. */
-  .control-panel{display:flex;align-items:center;gap:0;background:var(--card2);
-                 border:1px solid var(--line);border-radius:12px;padding:3px;}
+  .control-panel{--fade-to:var(--card2);display:flex;align-items:center;gap:0;background:var(--card2);
+                 border:1px solid var(--line);border-radius:12px;padding:3px;
+                 min-width:0;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;}
+  .control-panel::-webkit-scrollbar{display:none;}
+  .control-panel > *{flex:none;}
   .ctrl-btn{border:0;background:transparent;color:var(--ink2);
             font-size:12px;border-radius:9px;padding:7px 10px;cursor:pointer;
             display:inline-flex;align-items:center;gap:6px;line-height:1;position:relative;}
@@ -644,7 +686,6 @@
   .pro-link:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   .ff-end{display:flex;align-items:center;gap:9px;flex:none;}
   @media (max-width:520px){
-    .ff-stats{display:none}
     .ctrl-btn .lbl{display:none}
     /* 44px touch targets on the footer controls (vertical-only overlay so
        neighbouring buttons don't get overlapping hit-boxes — same pattern as
@@ -731,19 +772,22 @@
     </div>
   </aside>
 
-  <main id="app" data-version="v1.5.0">
+  <main id="app" data-version="v1.6.0">
     <div class="app-head">
       <div class="ah-top">
-        <span class="brand"><span class="brand-ver" id="brand-ver" aria-hidden="true"></span><svg class="brand-mark" viewBox="0 0 226.37 253.53" role="img" aria-label="eCash Flow"><defs><linearGradient id="ecFlowGrad" x1="40.73" y1="-42.34" x2="163.57" y2="245.29" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#273498"/><stop offset="0.53" stop-color="#0074c2"/><stop offset="1" stop-color="#00abe7"/></linearGradient></defs><path fill="url(#ecFlowGrad)" fill-rule="evenodd" d="M58.19,86.51c15.68-9.09,31.51-18.17,47.19-27.26a15,15,0,0,1,15.25,0l23.3,13.34a2.06,2.06,0,0,1,0,3.52l-57,32.83a4.68,4.68,0,0,0-2.34,4.1V140.6a4.45,4.45,0,0,0,2.34,4l23.9,13.78a4.23,4.23,0,0,0,4.54,0l98.49-56.72c16.71-9.68,16.71-37.52,0-47.2l-88.52-51a23.66,23.66,0,0,0-24.48,0l-88.53,51A24.2,24.2,0,0,0,0,75.67c0,34.15.15,68.15,0,102.15a24.22,24.22,0,0,0,12.31,21.26l88.53,51.15a24.4,24.4,0,0,0,24.48,0l88.52-51.15A23.92,23.92,0,0,0,226,177.82V133.41l-105.38,61a15,15,0,0,1-15.25,0l-47-27.27a14.91,14.91,0,0,1-7.62-13.19V99.56a15,15,0,0,1,7.48-13Z"/></svg><span class="brand-stack"><svg class="brand-word" viewBox="118.9 25 240.7 56.8" fill="currentColor" aria-hidden="true"><path d="M160.6,63.4h-29.5c0.5,2.3,1.8,4.4,3.8,5.7c2.2,1.5,4.8,2.2,7.4,2.1c1.8,0,3.7-0.3,5.4-0.9c1.6-0.6,3.1-1.6,4.4-2.9l6,6.5c-3.7,4.2-9,6.3-16.1,6.3c-4,0.1-8-0.8-11.6-2.6c-3.2-1.6-6-4.1-7.8-7.1c-1.9-3.1-2.8-6.7-2.7-10.3c-0.1-3.6,0.9-7.2,2.7-10.3c1.8-3,4.4-5.5,7.5-7.2c6.6-3.4,14.4-3.4,21-0.1c3,1.6,5.6,4.1,7.3,7.1c1.8,3.3,2.7,6.9,2.6,10.7C160.8,60.5,160.8,61.5,160.6,63.4z M134.2,50.9c-1.8,1.5-2.9,3.6-3.2,5.9h19.2c-0.3-2.3-1.4-4.4-3.2-5.9c-1.8-1.5-4-2.3-6.3-2.2C138.3,48.6,136,49.4,134.2,50.9z"/><path d="M183,77.2c-4.1-2.2-7.5-5.4-9.8-9.3c-4.8-8.4-4.8-18.6,0-27c2.4-4,5.8-7.2,9.8-9.3c4.3-2.3,9.2-3.4,14.1-3.4c4.1-0.1,8.1,0.7,11.9,2.3c3.5,1.5,6.5,3.8,8.9,6.7l-7.5,7c-3.1-3.8-7.8-6-12.7-6c-2.9-0.1-5.8,0.7-8.4,2.1c-2.4,1.3-4.4,3.3-5.8,5.8c-2.8,5.3-2.8,11.5,0,16.8c1.3,2.4,3.3,4.4,5.8,5.8c2.6,1.4,5.5,2.1,8.4,2.1c4.9,0.1,9.6-2.2,12.7-6l7.5,7c-2.4,2.9-5.5,5.2-9,6.7c-3.8,1.6-7.8,2.4-11.9,2.3C192.2,80.7,187.3,79.5,183,77.2z"/><path d="M258,44.5c3.2,2.9,4.8,7.2,4.9,13v22.2h-10.6v-4.8c-2.1,3.6-6.1,5.4-11.9,5.4c-2.7,0.1-5.3-0.5-7.8-1.5c-2-0.9-3.8-2.3-5-4.2c-1.2-1.8-1.8-3.9-1.7-6.1c-0.1-3.3,1.4-6.5,4.1-8.5c2.7-2.1,6.9-3.1,12.6-3.1h9c0.1-2.1-0.7-4.2-2.2-5.7c-1.5-1.3-3.7-2-6.7-2c-2.1,0-4.1,0.3-6.1,1c-1.8,0.6-3.6,1.5-5.1,2.7l-4.1-7.9c2.3-1.6,4.9-2.8,7.6-3.5c3-0.8,6.1-1.2,9.2-1.2C250.1,40.1,254.8,41.6,258,44.5z M248.4,71.3c1.5-0.9,2.6-2.3,3.2-3.9v-4h-7.7c-4.6,0-7,1.5-7,4.6c0,1.4,0.6,2.6,1.7,3.4c1.4,0.9,3,1.4,4.7,1.3C245,72.7,246.8,72.2,248.4,71.3z"/><path d="M280.3,79.1c-2.6-0.6-5.1-1.6-7.4-3l3.8-8.1c2,1.2,4.1,2.1,6.3,2.7c2.4,0.7,4.8,1,7.2,1c4.8,0,7.2-1.2,7.2-3.5c0-1.2-0.9-2.2-2-2.4c-2-0.6-4-1-6-1.2c-2.7-0.4-5.3-0.9-7.9-1.7c-2.1-0.6-3.9-1.8-5.4-3.3c-1.5-1.6-2.3-3.9-2.3-6.8c0-2.3,0.7-4.6,2.1-6.5c1.6-2,3.8-3.6,6.2-4.5c3.1-1.1,6.4-1.7,9.7-1.6c2.8,0,5.5,0.3,8.2,0.9c2.4,0.5,4.7,1.3,6.8,2.5l-3.8,8c-3.4-1.9-7.3-2.9-11.2-2.9c-1.9-0.1-3.7,0.2-5.4,1c-1,0.5-1.8,1.5-1.8,2.6c0,1.2,0.8,2.2,2,2.5c2,0.7,4.1,1.1,6.2,1.4c2.6,0.4,5.2,1,7.8,1.7c2,0.6,3.9,1.7,5.3,3.3c1.6,1.8,2.4,4.2,2.2,6.7c0,2.3-0.7,4.6-2.2,6.4c-1.7,2-3.9,3.5-6.3,4.4c-3.2,1.1-6.5,1.6-9.9,1.6C286.6,80.3,283.4,79.9,280.3,79.1z"/><path d="M354.1,44.5c3,2.9,4.5,7.2,4.5,12.9v22.3h-11.3V59.1c0-3.1-0.7-5.4-2-6.9c-1.5-1.6-3.7-2.4-5.9-2.3c-2.5-0.1-5,0.8-6.8,2.7c-1.7,1.8-2.5,4.4-2.5,7.8v19.3h-11.3V26H330v18.8c1.5-1.5,3.4-2.7,5.4-3.4c2.2-0.8,4.6-1.2,7-1.2C347.2,40.2,351.1,41.6,354.1,44.5z"/></svg><img class="brand-flow wm-l" src="../vendor/flow-wordmark-purple.png" alt="" aria-hidden="true" /><img class="brand-flow wm-d" src="../vendor/flow-wordmark.png" alt="" aria-hidden="true" /></span></span>
+        <a class="brand" href="https://e.cash" target="_blank" rel="noopener noreferrer"
+           data-i18n-aria="brand.aria" aria-label="eCash Flow — open e.cash"><span class="brand-ver" id="brand-ver" aria-hidden="true"></span><svg class="brand-mark" viewBox="0 0 226.37 253.53" role="img" aria-label="eCash Flow"><defs><linearGradient id="ecFlowGrad" x1="40.73" y1="-42.34" x2="163.57" y2="245.29" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#273498"/><stop offset="0.53" stop-color="#0074c2"/><stop offset="1" stop-color="#00abe7"/></linearGradient></defs><path fill="url(#ecFlowGrad)" fill-rule="evenodd" d="M58.19,86.51c15.68-9.09,31.51-18.17,47.19-27.26a15,15,0,0,1,15.25,0l23.3,13.34a2.06,2.06,0,0,1,0,3.52l-57,32.83a4.68,4.68,0,0,0-2.34,4.1V140.6a4.45,4.45,0,0,0,2.34,4l23.9,13.78a4.23,4.23,0,0,0,4.54,0l98.49-56.72c16.71-9.68,16.71-37.52,0-47.2l-88.52-51a23.66,23.66,0,0,0-24.48,0l-88.53,51A24.2,24.2,0,0,0,0,75.67c0,34.15.15,68.15,0,102.15a24.22,24.22,0,0,0,12.31,21.26l88.53,51.15a24.4,24.4,0,0,0,24.48,0l88.52-51.15A23.92,23.92,0,0,0,226,177.82V133.41l-105.38,61a15,15,0,0,1-15.25,0l-47-27.27a14.91,14.91,0,0,1-7.62-13.19V99.56a15,15,0,0,1,7.48-13Z"/></svg><span class="brand-stack"><svg class="brand-word" viewBox="118.9 25 240.7 56.8" fill="currentColor" aria-hidden="true"><path d="M160.6,63.4h-29.5c0.5,2.3,1.8,4.4,3.8,5.7c2.2,1.5,4.8,2.2,7.4,2.1c1.8,0,3.7-0.3,5.4-0.9c1.6-0.6,3.1-1.6,4.4-2.9l6,6.5c-3.7,4.2-9,6.3-16.1,6.3c-4,0.1-8-0.8-11.6-2.6c-3.2-1.6-6-4.1-7.8-7.1c-1.9-3.1-2.8-6.7-2.7-10.3c-0.1-3.6,0.9-7.2,2.7-10.3c1.8-3,4.4-5.5,7.5-7.2c6.6-3.4,14.4-3.4,21-0.1c3,1.6,5.6,4.1,7.3,7.1c1.8,3.3,2.7,6.9,2.6,10.7C160.8,60.5,160.8,61.5,160.6,63.4z M134.2,50.9c-1.8,1.5-2.9,3.6-3.2,5.9h19.2c-0.3-2.3-1.4-4.4-3.2-5.9c-1.8-1.5-4-2.3-6.3-2.2C138.3,48.6,136,49.4,134.2,50.9z"/><path d="M183,77.2c-4.1-2.2-7.5-5.4-9.8-9.3c-4.8-8.4-4.8-18.6,0-27c2.4-4,5.8-7.2,9.8-9.3c4.3-2.3,9.2-3.4,14.1-3.4c4.1-0.1,8.1,0.7,11.9,2.3c3.5,1.5,6.5,3.8,8.9,6.7l-7.5,7c-3.1-3.8-7.8-6-12.7-6c-2.9-0.1-5.8,0.7-8.4,2.1c-2.4,1.3-4.4,3.3-5.8,5.8c-2.8,5.3-2.8,11.5,0,16.8c1.3,2.4,3.3,4.4,5.8,5.8c2.6,1.4,5.5,2.1,8.4,2.1c4.9,0.1,9.6-2.2,12.7-6l7.5,7c-2.4,2.9-5.5,5.2-9,6.7c-3.8,1.6-7.8,2.4-11.9,2.3C192.2,80.7,187.3,79.5,183,77.2z"/><path d="M258,44.5c3.2,2.9,4.8,7.2,4.9,13v22.2h-10.6v-4.8c-2.1,3.6-6.1,5.4-11.9,5.4c-2.7,0.1-5.3-0.5-7.8-1.5c-2-0.9-3.8-2.3-5-4.2c-1.2-1.8-1.8-3.9-1.7-6.1c-0.1-3.3,1.4-6.5,4.1-8.5c2.7-2.1,6.9-3.1,12.6-3.1h9c0.1-2.1-0.7-4.2-2.2-5.7c-1.5-1.3-3.7-2-6.7-2c-2.1,0-4.1,0.3-6.1,1c-1.8,0.6-3.6,1.5-5.1,2.7l-4.1-7.9c2.3-1.6,4.9-2.8,7.6-3.5c3-0.8,6.1-1.2,9.2-1.2C250.1,40.1,254.8,41.6,258,44.5z M248.4,71.3c1.5-0.9,2.6-2.3,3.2-3.9v-4h-7.7c-4.6,0-7,1.5-7,4.6c0,1.4,0.6,2.6,1.7,3.4c1.4,0.9,3,1.4,4.7,1.3C245,72.7,246.8,72.2,248.4,71.3z"/><path d="M280.3,79.1c-2.6-0.6-5.1-1.6-7.4-3l3.8-8.1c2,1.2,4.1,2.1,6.3,2.7c2.4,0.7,4.8,1,7.2,1c4.8,0,7.2-1.2,7.2-3.5c0-1.2-0.9-2.2-2-2.4c-2-0.6-4-1-6-1.2c-2.7-0.4-5.3-0.9-7.9-1.7c-2.1-0.6-3.9-1.8-5.4-3.3c-1.5-1.6-2.3-3.9-2.3-6.8c0-2.3,0.7-4.6,2.1-6.5c1.6-2,3.8-3.6,6.2-4.5c3.1-1.1,6.4-1.7,9.7-1.6c2.8,0,5.5,0.3,8.2,0.9c2.4,0.5,4.7,1.3,6.8,2.5l-3.8,8c-3.4-1.9-7.3-2.9-11.2-2.9c-1.9-0.1-3.7,0.2-5.4,1c-1,0.5-1.8,1.5-1.8,2.6c0,1.2,0.8,2.2,2,2.5c2,0.7,4.1,1.1,6.2,1.4c2.6,0.4,5.2,1,7.8,1.7c2,0.6,3.9,1.7,5.3,3.3c1.6,1.8,2.4,4.2,2.2,6.7c0,2.3-0.7,4.6-2.2,6.4c-1.7,2-3.9,3.5-6.3,4.4c-3.2,1.1-6.5,1.6-9.9,1.6C286.6,80.3,283.4,79.9,280.3,79.1z"/><path d="M354.1,44.5c3,2.9,4.5,7.2,4.5,12.9v22.3h-11.3V59.1c0-3.1-0.7-5.4-2-6.9c-1.5-1.6-3.7-2.4-5.9-2.3c-2.5-0.1-5,0.8-6.8,2.7c-1.7,1.8-2.5,4.4-2.5,7.8v19.3h-11.3V26H330v18.8c1.5-1.5,3.4-2.7,5.4-3.4c2.2-0.8,4.6-1.2,7-1.2C347.2,40.2,351.1,41.6,354.1,44.5z"/></svg><img class="brand-flow wm-l" src="../vendor/flow-wordmark-purple.png" alt="" aria-hidden="true" /><img class="brand-flow wm-d" src="../vendor/flow-wordmark.png" alt="" aria-hidden="true" /></span></a>
         <canvas id="hb" height="36" data-i18n-aria="a11y.heartbeat"
                 aria-label="Network heartbeat — beats on each finalized transaction"></canvas>
         <span id="conn"><span class="dot"></span><span id="conn-text" data-i18n="conn.connecting">connecting…</span></span>
       </div>
-      <div class="ah-stats">
+      <div class="ah-stats hscroll">
         <span class="pill final"><span data-i18n="head.final">final</span> <b id="p50">—</b></span>
         <span class="pill tapish" id="price-pill" role="button" tabindex="0"
               data-i18n-title="head.priceToggle" title="Tap to switch XEC / 1M XEC">—</span>
-        <span class="pill blockpill"><span data-i18n="pill.block">block</span> <b id="height">—</b></span>
+        <span class="pill blockpill"><span data-i18n="pill.block">block</span> <b id="height">—</b><span class="age" id="block-age"></span></span>
+        <span class="pill"><span data-i18n="head.tps">TPS</span> <b id="f-tps">—</b></span>
+        <span class="pill"><span data-i18n="head.tx24">24h</span> <b id="f-tx24">—</b></span>
         <span class="pill"><span data-i18n="head.online">online</span> <b id="f-online">—</b></span>
       </div>
     </div>
@@ -815,12 +859,8 @@
     </div>
 
     <div class="flow-footer">
-      <div class="ff-stats">
-        <div class="ff-cell"><span class="k" data-i18n="footer.tps">TPS · 24h</span><span class="v" id="f-tps">—</span></div>
-        <div class="ff-cell"><span class="k" data-i18n="footer.tx24">Tx · 24h</span><span class="v" id="f-tx24">—</span></div>
-      </div>
       <div class="ff-spacer"></div>
-      <div class="control-panel">
+      <div class="control-panel hscroll">
         <button class="ctrl-btn ctrl-watch" id="btn-watch" type="button"
                 data-i18n-title="watch.title" data-i18n-aria="watch.title" title="Watch addresses" aria-label="Watch addresses" aria-expanded="false">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -922,6 +962,8 @@ const I18N_LANGS = [
 // English base — source of truth + fallback for every missing key. Other
 // languages live in vendor/i18n/flow.<lang>.json (fetched on demand).
 const FLOW_STRINGS_EN = {
+  'a11y.scrollRow':'Scrollable row — swipe or scroll sideways for more',
+  'brand.aria':'eCash Flow — open e.cash',
   'a11y.skip':'Skip to the transaction stream',
   'a11y.h1':'eCash Live · Flow — live transaction stream',
   'a11y.heartbeat':'Network heartbeat — beats on each finalized transaction',
@@ -958,8 +1000,8 @@ const FLOW_STRINGS_EN = {
   'hist.loading':'Loading…',
   'hist.end':'That is as far back as Flow goes',
   'hist.failed':'Could not load older transactions.',
-  'footer.tps':'TPS · 24h',
-  'footer.tx24':'Tx · 24h',
+  'head.tps':'TPS',
+  'head.tx24':'24h',
   'head.online':'online',
   'ctrl.pause':'Pause',
   'ctrl.pause.title':'Pause the stream',
@@ -1007,6 +1049,7 @@ const FLOW_STRINGS_EN = {
   'sh.tokenId':'Token ID',
   'sh.explorer':'View on explorer',
   'sh.share':'Share',
+  'sh.chat':'Chat ↔',
   'sh.final':'Permanently final after {sec} — irreversible',
   'sh.finalNoTime':'Permanently final — irreversible',
   'sh.pending':'Sending into the network…',
@@ -1129,6 +1172,10 @@ async function setLang(code){
   if (typeof renderEchanToggle === 'function') renderEchanToggle();   // stateful title (mute/unmute) in the new language
   if (typeof updateLoadOlder === 'function') updateLoadOlder();       // JS-set text (load/loading/end) — applyStatic can't reach it
   if (typeof renderLangFace === 'function') renderLangFace();         // 🌐 + 2-letter code follows the new language
+  if (typeof renderBlockAge === 'function') renderBlockAge();         // Intl-formatted age, JS-set
+  if (typeof updateScrollHints === 'function') updateScrollHints();   // label widths changed
+  document.querySelectorAll('.hscroll').forEach(el => el.setAttribute('aria-label', t('a11y.scrollRow')));
+  if (typeof tickDetailTime === 'function') tickDetailTime();         // relative time in the new language
   if (typeof renderAllLearn === 'function') renderAllLearn();   // JS-built accordion, re-render in the new language
   if (typeof renderAllWatch === 'function') renderAllWatch();   // re-render the watchlist panel (labels/placeholders)
   if (typeof loadEchanSeed === 'function') loadEchanSeed();     // reload eChan dialog pool in the new language
@@ -1229,6 +1276,7 @@ const state = {
   count: 0,                // session finalized count
   height: 0,               // latest known tip height (display only)
   lastSealedHeight: 0,     // last height a divider was actually sealed for (B5 guard)
+  lastBlockAt: 0,          // ms timestamp of the tip block (real chain time, or when we saw it)
   atBottom: true,
   unseen: 0,
   paused: false,
@@ -1412,7 +1460,58 @@ stream.addEventListener('scroll', () => {
   state.atBottom = stream.scrollTop + stream.clientHeight >= stream.scrollHeight - 48;
   if (state.atBottom){ state.unseen = 0; newPill.hidden = true; newPill.classList.remove('show'); }
   updateLoadOlder();   // F11: the history pill lives at the top of the stream
+  updateFabAway();     // the "+" steps aside while scrolled up
 });
+/* ---- horizontal-scroll affordance ----
+   A row that scrolls sideways looks identical to one that doesn't, so each
+   `.hscroll` gets an edge fade on whichever side still has hidden content. Pure
+   measurement — no assumptions about widths, so it self-corrects after a language
+   switch, a font load, or a rotation. */
+function updateScrollHints(){
+  document.querySelectorAll('.hscroll').forEach(el => {
+    const max = el.scrollWidth - el.clientWidth;
+    const scrollable = max > 2;                       // 2px slack for fractional DPR
+    el.classList.toggle('can-l', scrollable && el.scrollLeft > 2);
+    el.classList.toggle('can-r', scrollable && el.scrollLeft < max - 2);
+    // keep nudging until this row has been scrolled at least once
+    el.classList.toggle('hint-on', scrollable && !el._hsUsed);
+  });
+}
+function initScrollHints(){
+  document.querySelectorAll('.hscroll').forEach(el => {
+    el.addEventListener('scroll', () => { el._hsUsed = true; updateScrollHints(); }, { passive: true });
+    // Desktop has no horizontal gesture: turn a vertical wheel into sideways
+    // scrolling, but only while this row can still move that way — otherwise the
+    // page keeps scrolling as normal.
+    el.addEventListener('wheel', (e) => {
+      if (e.deltaY === 0 || e.ctrlKey) return;
+      const max = el.scrollWidth - el.clientWidth;
+      if (max <= 2) return;
+      const next = Math.max(0, Math.min(max, el.scrollLeft + e.deltaY));
+      if (next === el.scrollLeft) return;             // at an end → let the page scroll
+      e.preventDefault();
+      el.scrollLeft = next;
+      el._hsUsed = true;
+      updateScrollHints();
+    }, { passive: false });
+    // Announce the affordance to assistive tech, and let keyboard users scroll it
+    // (a focused row scrolls with the arrow keys).
+    el.setAttribute('role', 'group');
+    el.setAttribute('aria-label', t('a11y.scrollRow'));
+    el.tabIndex = 0;
+  });
+  window.addEventListener('resize', updateScrollHints);
+  updateScrollHints();
+  // widths settle after webfonts land
+  try { document.fonts && document.fonts.ready.then(updateScrollHints); } catch {}
+}
+// The FAB only floats over the stream while the user is following live (where the
+// stream already reserves clearance for it); scrolled up, it gets out of the way.
+function updateFabAway(){
+  if (!fabEl || !cmpPanel) return;
+  if (!cmpPanel.hidden) return;                       // composer open → FAB is hidden anyway
+  fabEl.classList.toggle('away', !state.atBottom);
+}
 newPill.addEventListener('click', () => { stream.scrollTop = stream.scrollHeight; });
 function appended(){
   if (state.atBottom){ stream.scrollTop = stream.scrollHeight; }
@@ -1422,6 +1521,7 @@ function appended(){
     newPill.textContent = tf('newpill', { n: fmtInt(state.unseen) });
     newPill.classList.add('show');
   }
+  updateFabAway();
   // Burst cap: evict the oldest DOM nodes — cards, dividers, dust/run groups —
   // so the stream never grows unbounded (CLAUDE.md §10). Node type doesn't
   // matter: whatever has been in the stream longest goes first.
@@ -1733,6 +1833,7 @@ function finalize(tx, ttfMs, source){
     else firstTime('final', 'echan.firstFinal', 'celebrate', 0);        // hero touchpoint #2 (first ✓✓) → Learn "why ~2s"
   }
   if (tx.el) setCardText(tx);
+  refreshExpandedDetail(tx);   // an open panel must flip "sending…" → the final banner live
 }
 // Single owner of the p50 displays: the relay 24h p50 wins WHEN it is present,
 // non-warmup, and fresh; otherwise the session median owns #p50 / #rl-p50. This
@@ -2083,6 +2184,7 @@ function upgradeTtf(txid, ttfMs){
   const entry = state.finals.find(f => f.id === txid);
   if (entry){ entry.ttf = ttfMs; updateSessionP50(); }
   if (tx.el) setCardText(tx);
+  refreshExpandedDetail(tx);   // the node-precise number corrects an open panel too
 }
 // A tx we tracked has been bundled into a block (TX_CONFIRMED). This is the ONLY
 // honest source of a per-card block number (see the sealBlock note / F1). A tx
@@ -2310,6 +2412,12 @@ function setConn(kindKey, cls){
 
 /* ------------------------------------------------------------------ relay stats WS */
 function isFresh(){ return state.relayStats && (Date.now() - state.relayStatsAt) < STATS_FRESH_MS; }
+// How long ago the tip block landed. Only ever rendered from a real timestamp
+// (chronik blockInfo, or the moment we saw the block) — blank when unknown.
+function renderBlockAge(){
+  const el = $('block-age'); if (!el) return;
+  el.textContent = state.lastBlockAt ? fmtAgo(state.lastBlockAt, 'narrow') : '';
+}
 function updateStatsUI(){
   const s = state.relayStats;
   renderP50();   // single owner: relay-if-authoritative-else-session (kills warmup flicker, F8)
@@ -2361,6 +2469,14 @@ async function connectChronik(){
 
   // initial tip
   try { const info = await state.chronik.blockchainInfo(); if (info?.tipHeight){ state.height = info.tipHeight; state.lastSealedHeight = info.tipHeight; $('height').textContent = fmtInt(info.tipHeight); $('rl-height').textContent = fmtInt(info.tipHeight); } } catch {}
+  // tip block's real timestamp, so "block N · 4 min ago" is honest from the first paint
+  try {
+    if (state.height){
+      const tb = await state.chronik.block(state.height);
+      const ts = tb?.blockInfo?.timestamp != null ? Number(tb.blockInfo.timestamp) * 1000 : 0;
+      if (isFinite(ts) && ts > 0){ state.lastBlockAt = ts; renderBlockAge(); }
+    }
+  } catch {}
 
   const openWs = () => {
     let ws;
@@ -2430,6 +2546,9 @@ async function onBlock(msg){
     if (hashOrHeight != null && state.chronik){
       const b = await state.chronik.block(hashOrHeight);
       const bi = b?.blockInfo || {};
+      // real chain timestamp for the "how long ago" pill (falls back to now)
+      const ts = bi.timestamp != null ? Number(bi.timestamp) * 1000 : 0;
+      state.lastBlockAt = (isFinite(ts) && ts > 0) ? ts : Date.now();
       height = bi.height ?? height; numTxs = bi.numTxs ?? null;
     }
   } catch {}
@@ -2637,12 +2756,13 @@ function fmtXecAmt(xec, withUsd){
   return s;
 }
 // Localized "2 minutes ago" via Intl (no new i18n keys); '' if unavailable.
-function fmtAgo(ms){
+// style 'narrow' gives the compact form used by the top-bar block pill.
+function fmtAgo(ms, style){
   if (!ms) return '';
   const sec = Math.round((Date.now() - ms) / 1000);
   if (!isFinite(sec) || sec < 0) return '';
   try {
-    const rtf = new Intl.RelativeTimeFormat(localeFor(lang), { numeric: 'auto' });
+    const rtf = new Intl.RelativeTimeFormat(localeFor(lang), { numeric: 'auto', style: style || 'long' });
     if (sec < 60) return rtf.format(-sec, 'second');
     if (sec < 3600) return rtf.format(-Math.round(sec/60), 'minute');
     if (sec < 86400) return rtf.format(-Math.round(sec/3600), 'hour');
@@ -2668,6 +2788,24 @@ function powrReadHref(tx){
   if (p.action === 'like') return /^[0-9a-f]{64}$/i.test(p.targetTxid || '') ? POWR_FEED_BASE + p.targetTxid : null;
   if (p.action === 'unlock' || p.action === 'auth' || p.action === 'handle') return null;
   return /^[0-9a-f]{64}$/i.test(tx.id || '') ? POWR_FEED_BASE + tx.id : null;
+}
+// Who a "Chat" action would talk to: the tx's SENDER (first input address, same
+// rule as neo's chat button). If the tx is yours, the counterparty is the
+// recipient instead. null when there's nobody sensible to message.
+function chatPeer(tx){
+  const peer = normAddr(tx._mine ? tx.to : tx.from);
+  if (!peer || !validateCashAddress(peer)) return null;
+  if (myAddr && peer === myAddr) return null;      // no chatting with yourself
+  return peer;
+}
+// Open the composer aimed at that address (Flow's equivalent of neo's 1:1 chat:
+// an on-chain message straight to them).
+function chatWith(addr){
+  const a = normAddr(addr);
+  if (!a || !validateCashAddress(a)){ toast(t('try.badAddr')); return; }
+  $('compose-addr').value = a;
+  openComposer();                                   // focuses the message field (address is filled)
+  updateCmpPreview();
 }
 // Per-kind hero: the number that matters, big, at the top (F13). Messages lead
 // with their text (.cd-msg) instead, so they get no numeric hero.
@@ -2700,8 +2838,12 @@ function buildDetailHtml(tx){
   }
   // full message text — the collapsed t1 is nowrap+ellipsis, so a long message
   // was cut off; here it wraps in full (messages only).
+  // Shown for POWR too: its on-chain payload (action + hash) is all there IS on
+  // chain, so surfacing it is honest — the readable article lives off-chain behind
+  // the "Read ↗" link. No clamp here: the collapsed .t1 ellipsises, the panel
+  // shows the WHOLE text (pre-wrap + overflow-wrap:anywhere).
   let msgHtml = '';
-  if (tx.kind === 'msg' && tx.message && tx.message.content){
+  if ((tx.kind === 'msg' || tx.kind === 'powr') && tx.message && tx.message.content){
     msgHtml = '<div class="cd-msg">“' + esc(tx.message.content) + '”</div>';
   }
   // copyable identifier: shows the shortened form, copies the FULL value. A real
@@ -2737,9 +2879,12 @@ function buildDetailHtml(tx){
   // which on-chain message protocol this is
   const proto = (tx.kind === 'msg' || tx.kind === 'powr') ? msgProtoLabel(tx) : null;
   if (proto) rows.push(row(t('sh.protocol'), esc(proto)));
-  // time: absolute clock + localized relative ("2 minutes ago")
+  // time: absolute clock + localized relative ("2 minutes ago"). data-role lets
+  // tickDetailTime() refresh just this cell so the age stays live without
+  // re-rendering the panel (which would drop focus / a copy in progress).
   const ago = fmtAgo(tx.firstSeen || tx.firstSeenLocal);
-  rows.push(row(t('sh.time'), esc(fmtClock(tx) + (ago ? ' · ' + ago : ''))));
+  rows.push('<div><dt>' + esc(t('sh.time')) + '</dt><dd data-role="time">' +
+            esc(fmtClock(tx) + (ago ? ' · ' + ago : '')) + '</dd></div>');
   if (tx.from && tx.to){
     rows.push(row(t('sh.route'), cp(tx.from, shortAddr(tx.from)) + ' → ' + cp(tx.to, shortAddr(tx.to))));
   }
@@ -2752,8 +2897,13 @@ function buildDetailHtml(tx){
   // POWR content lives off-chain — link out to the readable item when there is one
   const powrHref = powrReadHref(tx);
   const powrBtn = powrHref ? '<a href="' + esc(powrHref) + '" target="_blank" rel="noopener noreferrer">' + esc(t('sh.powrRead')) + '</a>' : '';
+  // Chat: message the counterparty on-chain (Flow's take on neo's 1:1 chat button).
+  // Omitted when there is no valid counterparty, or it would be your own address.
+  const peer = chatPeer(tx);
+  const chatBtn = peer ? '<button type="button" data-act="chat" data-peer="' + esc(peer) + '">' +
+    esc(t('sh.chat')) + '</button>' : '';
   const btns = '<div class="cd-btns"><button type="button" class="pri" data-act="share">' + esc(t('sh.share')) +
-    '</button><button type="button" data-act="explorer">' + esc(t('sh.explorer')) + '</button>' + powrBtn + '</div>';
+    '</button>' + chatBtn + '<button type="button" data-act="explorer">' + esc(t('sh.explorer')) + '</button>' + powrBtn + '</div>';
   // hero → final banner → full message → rows → token art (size-capped) → buttons
   return detailHero(tx) + finHtml + msgHtml + rowsHtml + detailTokenArt(tx) + btns;
 }
@@ -2763,6 +2913,7 @@ function wireDetail(d, tx){
   if (!d) return;
   const sb = d.querySelector('[data-act="share"]'); if (sb) sb.addEventListener('click', (e) => { e.stopPropagation(); shareTx(tx); });
   const eb = d.querySelector('[data-act="explorer"]'); if (eb) eb.addEventListener('click', (e) => { e.stopPropagation(); window.open('https://explorer.e.cash/tx/' + tx.id, '_blank', 'noopener'); });
+  const cb = d.querySelector('[data-act="chat"]'); if (cb) cb.addEventListener('click', (e) => { e.stopPropagation(); chatWith(cb.getAttribute('data-peer')); });
   d.querySelectorAll('[data-copy]').forEach(el => {
     el.addEventListener('click', (e) => { e.stopPropagation(); copyText(el.getAttribute('data-copy')); });
     // .cp are real <button>s (Enter/Space fire click natively); .cd-art is a
@@ -2807,6 +2958,23 @@ function toggleCardExpand(tx){
 }
 // Refresh an already-open detail in place (real block arrived via confirmTx, or
 // the token ticker resolved) without toggling it.
+// Keep the "· 11 seconds ago" cell honest while a panel stays open. Surgical:
+// only that cell's text is rewritten, on a slow tick, and only while visible.
+function tickDetailTime(){
+  if (document.hidden) return;
+  const write = (root, tx) => {
+    if (!root || !tx) return;
+    const cell = root.querySelector('[data-role="time"]'); if (!cell) return;
+    const ago = fmtAgo(tx.firstSeen || tx.firstSeenLocal);
+    cell.textContent = fmtClock(tx) + (ago ? ' · ' + ago : '');
+  };
+  if (state.expandedId){
+    const tx = state.txs.get(state.expandedId);
+    if (tx && tx._detail && tx._detail.classList.contains('open')) write(tx._detail, tx);
+  }
+  const rc = $('receipt');
+  if (rc && !rc.hidden && receiptTx) write($('rc-body'), receiptTx);
+}
 function refreshExpandedDetail(tx){
   if (state.expandedId === tx.id && tx._detail && tx._detail.classList.contains('open')) fillDetail(tx);
 }
@@ -3512,7 +3680,7 @@ function closeComposer(){
   cmpPanel.classList.remove('show'); cmpBackdrop.classList.remove('show');
   fabEl.setAttribute('aria-expanded', 'false');
   if (cmpKeydownBound){ document.removeEventListener('keydown', cmpKeydownBound, true); cmpKeydownBound = null; }
-  setTimeout(() => { cmpPanel.hidden = true; cmpBackdrop.hidden = true; fabEl.hidden = false; try { fabEl.focus(); } catch {} }, 180);
+  setTimeout(() => { cmpPanel.hidden = true; cmpBackdrop.hidden = true; fabEl.hidden = false; updateFabAway(); try { fabEl.focus(); } catch {} }, 180);
 }
 fabEl.addEventListener('click', () => {
   fabEl.classList.remove('pulse');
@@ -3696,6 +3864,9 @@ async function boot(){
   fetchPrice(); setInterval(fetchPrice, 120000);
   connectStats();
   setInterval(updateStatsUI, 5000);   // re-check staleness even with no new frames (B11)
+  renderBlockAge(); setInterval(renderBlockAge, 5000);   // "block N · 4 min ago" keeps counting
+  initScrollHints();                                     // edge fades on the sideways-scrolling rows
+  setInterval(tickDetailTime, 10000);                    // keep an open panel's relative time honest
   connectChronik();
   setTimeout(() => firstTime('greet', 'echan.greet', 'happy'), 1200);
   // F3: draw attention to the "+" FAB the first time (one-time pulse + one eChan

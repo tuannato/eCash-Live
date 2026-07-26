@@ -6,6 +6,8 @@
     "packVersion": 1
   },
   "strings": {
+    "a11y.scrollRow": "Baris dapat digeser — geser atau scroll ke samping untuk lainnya",
+    "brand.aria": "eCash Flow — buka e.cash",
     "a11y.skip": "Lompat ke aliran transaksi",
     "a11y.h1": "eCash Live · Flow — aliran transaksi langsung",
     "a11y.heartbeat": "Detak jaringan — berdetak setiap transaksi difinalisasi",
@@ -42,8 +44,8 @@
     "hist.loading": "Memuat…",
     "hist.end": "Flow tidak mundur lebih jauh",
     "hist.failed": "Tidak dapat memuat transaksi lama.",
-    "footer.tps": "TPS · 24j",
-    "footer.tx24": "Tx · 24j",
+    "head.tps": "TPS",
+    "head.tx24": "24h",
     "head.online": "online",
     "ctrl.pause": "Jeda",
     "ctrl.pause.title": "Jeda aliran",
@@ -91,6 +93,7 @@
     "sh.tokenId": "ID token",
     "sh.explorer": "Lihat di explorer",
     "sh.share": "Bagikan",
+    "sh.chat": "Chat ↔",
     "sh.final": "Final permanen setelah {sec} — tidak dapat dibatalkan",
     "sh.finalNoTime": "Final permanen — tidak dapat dibatalkan",
     "sh.pending": "Mengirim ke jaringan…",

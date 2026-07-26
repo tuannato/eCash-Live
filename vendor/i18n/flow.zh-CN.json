@@ -6,6 +6,8 @@
     "packVersion": 1
   },
   "strings": {
+    "a11y.scrollRow": "可横向滚动 — 向侧边滑动或滚动查看更多",
+    "brand.aria": "eCash Flow — 打开 e.cash",
     "a11y.skip": "跳到交易流",
     "a11y.h1": "eCash Live · Flow — 实时交易流",
     "a11y.heartbeat": "网络心跳 — 每笔交易确定时跳动",
@@ -42,8 +44,8 @@
     "hist.loading": "加载中…",
     "hist.end": "Flow 只能回溯到这里",
     "hist.failed": "无法加载更早的交易。",
-    "footer.tps": "TPS · 24h",
-    "footer.tx24": "交易 · 24h",
+    "head.tps": "TPS",
+    "head.tx24": "24小时",
     "head.online": "在线",
     "ctrl.pause": "暂停",
     "ctrl.pause.title": "暂停交易流",
@@ -91,6 +93,7 @@
     "sh.tokenId": "代币 ID",
     "sh.explorer": "在浏览器中查看",
     "sh.share": "分享",
+    "sh.chat": "聊天 ↔",
     "sh.final": "{sec} 后永久最终确定 — 不可逆转",
     "sh.finalNoTime": "永久最终确定 — 不可逆转",
     "sh.pending": "正在发送到网络…",

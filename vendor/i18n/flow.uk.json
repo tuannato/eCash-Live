@@ -6,6 +6,8 @@
     "packVersion": 1
   },
   "strings": {
+    "a11y.scrollRow": "Рядок із прокруткою — проведіть або прокрутіть убік",
+    "brand.aria": "eCash Flow — відкрити e.cash",
     "a11y.skip": "Перейти до потоку транзакцій",
     "a11y.h1": "eCash Live · Flow — живий потік транзакцій",
     "a11y.heartbeat": "Пульс мережі — б'ється при кожній фіналізованій транзакції",
@@ -42,8 +44,8 @@
     "hist.loading": "Завантаження…",
     "hist.end": "Далі Flow не сягає",
     "hist.failed": "Не вдалося завантажити давніші транзакції.",
-    "footer.tps": "TPS · 24г",
-    "footer.tx24": "Тр · 24г",
+    "head.tps": "TPS",
+    "head.tx24": "24год",
     "head.online": "онлайн",
     "ctrl.pause": "Пауза",
     "ctrl.pause.title": "Призупинити потік",
@@ -91,6 +93,7 @@
     "sh.tokenId": "ID токена",
     "sh.explorer": "Переглянути в оглядачі",
     "sh.share": "Поділитися",
+    "sh.chat": "Чат ↔",
     "sh.final": "Остаточно через {sec} — незворотно",
     "sh.finalNoTime": "Остаточно — незворотно",
     "sh.pending": "Надсилання в мережу…",

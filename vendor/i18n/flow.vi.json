@@ -6,6 +6,8 @@
     "packVersion": 1
   },
   "strings": {
+    "a11y.scrollRow": "Hàng có thể trượt ngang — vuốt hoặc lăn sang bên để xem thêm",
+    "brand.aria": "eCash Flow — mở e.cash",
     "a11y.skip": "Tới luồng giao dịch",
     "a11y.h1": "eCash Live · Flow — luồng giao dịch trực tiếp",
     "a11y.heartbeat": "Nhịp mạng lưới — đập mỗi khi có giao dịch được chốt",
@@ -42,8 +44,8 @@
     "hist.loading": "Đang tải…",
     "hist.end": "Flow chỉ xem lại được đến đây",
     "hist.failed": "Không tải được giao dịch cũ hơn.",
-    "footer.tps": "TPS · 24h",
-    "footer.tx24": "Tx · 24h",
+    "head.tps": "TPS",
+    "head.tx24": "24h",
     "head.online": "online",
     "ctrl.pause": "Tạm dừng",
     "ctrl.pause.title": "Tạm dừng luồng",
@@ -91,6 +93,7 @@
     "sh.tokenId": "Mã token",
     "sh.explorer": "Xem trên explorer",
     "sh.share": "Chia sẻ",
+    "sh.chat": "Nhắn tin ↔",
     "sh.final": "Chốt vĩnh viễn sau {sec} — không thể đảo ngược",
     "sh.finalNoTime": "Chốt vĩnh viễn — không thể đảo ngược",
     "sh.pending": "Đang gửi vào mạng lưới…",

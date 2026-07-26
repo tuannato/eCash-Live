@@ -6,6 +6,8 @@
     "packVersion": 1
   },
   "strings": {
+    "a11y.scrollRow": "Nasa-scroll na hanay — mag-swipe o mag-scroll pakanan para sa iba pa",
+    "brand.aria": "eCash Flow — buksan ang e.cash",
     "a11y.skip": "Pumunta sa daloy ng transaksyon",
     "a11y.h1": "eCash Live · Flow — live na daloy ng transaksyon",
     "a11y.heartbeat": "Tibok ng network — tumitibok sa bawat na-finalize na transaksyon",
@@ -42,8 +44,8 @@
     "hist.loading": "Naglo-load…",
     "hist.end": "Hanggang dito na lang ang Flow",
     "hist.failed": "Hindi ma-load ang mas lumang transaksyon.",
-    "footer.tps": "TPS · 24h",
-    "footer.tx24": "Tx · 24h",
+    "head.tps": "TPS",
+    "head.tx24": "24h",
     "head.online": "online",
     "ctrl.pause": "I-pause",
     "ctrl.pause.title": "I-pause ang daloy",
@@ -91,6 +93,7 @@
     "sh.tokenId": "Token ID",
     "sh.explorer": "Tingnan sa explorer",
     "sh.share": "Ibahagi",
+    "sh.chat": "Chat ↔",
     "sh.final": "Permanenteng final pagkatapos ng {sec} — hindi na mababawi",
     "sh.finalNoTime": "Permanenteng final — hindi na mababawi",
     "sh.pending": "Ipinapadala sa network…",

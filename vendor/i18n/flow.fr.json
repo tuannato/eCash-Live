@@ -6,6 +6,8 @@
     "packVersion": 1
   },
   "strings": {
+    "a11y.scrollRow": "Ligne défilante — balaye ou fais défiler sur le côté pour voir plus",
+    "brand.aria": "eCash Flow — ouvrir e.cash",
     "a11y.skip": "Aller au flux de transactions",
     "a11y.h1": "eCash Live · Flow — flux de transactions en direct",
     "a11y.heartbeat": "Battement du réseau — bat à chaque transaction finalisée",
@@ -42,8 +44,8 @@
     "hist.loading": "Chargement…",
     "hist.end": "Flow ne remonte pas plus loin",
     "hist.failed": "Impossible de charger les transactions plus anciennes.",
-    "footer.tps": "TPS · 24h",
-    "footer.tx24": "Tx · 24h",
+    "head.tps": "TPS",
+    "head.tx24": "24h",
     "head.online": "en ligne",
     "ctrl.pause": "Pause",
     "ctrl.pause.title": "Mettre le flux en pause",
@@ -91,6 +93,7 @@
     "sh.tokenId": "ID du jeton",
     "sh.explorer": "Voir sur l’explorateur",
     "sh.share": "Partager",
+    "sh.chat": "Discuter ↔",
     "sh.final": "Définitif après {sec} — irréversible",
     "sh.finalNoTime": "Définitif — irréversible",
     "sh.pending": "Envoi vers le réseau…",

@@ -6,6 +6,8 @@
     "packVersion": 1
   },
   "strings": {
+    "a11y.scrollRow": "横スクロールできる行 — 横にスワイプまたはスクロールで続きを表示",
+    "brand.aria": "eCash Flow — e.cash を開く",
     "a11y.skip": "取引ストリームへ移動",
     "a11y.h1": "eCash Live · Flow — ライブ取引ストリーム",
     "a11y.heartbeat": "ネットワークの鼓動 — 取引が確定するたびに脈打つ",
@@ -42,8 +44,8 @@
     "hist.loading": "読み込み中…",
     "hist.end": "Flow で遡れるのはここまでです",
     "hist.failed": "過去の取引を読み込めませんでした。",
-    "footer.tps": "TPS · 24h",
-    "footer.tx24": "取引 · 24h",
+    "head.tps": "TPS",
+    "head.tx24": "24時間",
     "head.online": "オンライン",
     "ctrl.pause": "一時停止",
     "ctrl.pause.title": "ストリームを一時停止",
@@ -91,6 +93,7 @@
     "sh.tokenId": "トークンID",
     "sh.explorer": "エクスプローラーで見る",
     "sh.share": "共有",
+    "sh.chat": "チャット ↔",
     "sh.final": "{sec} で恒久的に確定 — 取り消し不可",
     "sh.finalNoTime": "恒久的に確定 — 取り消し不可",
     "sh.pending": "ネットワークへ送信中…",

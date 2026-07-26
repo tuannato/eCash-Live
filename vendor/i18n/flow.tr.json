@@ -6,6 +6,8 @@
     "packVersion": 1
   },
   "strings": {
+    "a11y.scrollRow": "Kaydırılabilir satır — daha fazlası için yana kaydır",
+    "brand.aria": "eCash Flow — e.cash’i aç",
     "a11y.skip": "İşlem akışına git",
     "a11y.h1": "eCash Live · Flow — canlı işlem akışı",
     "a11y.heartbeat": "Ağ kalp atışı — her kesinleşen işlemde atar",
@@ -42,8 +44,8 @@
     "hist.loading": "Yükleniyor…",
     "hist.end": "Flow bundan geriye gitmiyor",
     "hist.failed": "Daha eski işlemler yüklenemedi.",
-    "footer.tps": "TPS · 24s",
-    "footer.tx24": "İşlem · 24s",
+    "head.tps": "TPS",
+    "head.tx24": "24s",
     "head.online": "çevrimiçi",
     "ctrl.pause": "Duraklat",
     "ctrl.pause.title": "Akışı duraklat",
@@ -91,6 +93,7 @@
     "sh.tokenId": "Token kimliği",
     "sh.explorer": "Explorer’da gör",
     "sh.share": "Paylaş",
+    "sh.chat": "Sohbet ↔",
     "sh.final": "{sec} sonra kalıcı olarak kesin — geri alınamaz",
     "sh.finalNoTime": "Kalıcı olarak kesin — geri alınamaz",
     "sh.pending": "Ağa gönderiliyor…",

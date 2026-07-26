@@ -6,6 +6,8 @@
     "packVersion": 1
   },
   "strings": {
+    "a11y.scrollRow": "可橫向捲動 — 向側邊滑動或捲動查看更多",
+    "brand.aria": "eCash Flow — 開啟 e.cash",
     "a11y.skip": "跳到交易流",
     "a11y.h1": "eCash Live · Flow — 即時交易流",
     "a11y.heartbeat": "網路心跳 — 每筆交易確定時跳動",
@@ -42,8 +44,8 @@
     "hist.loading": "載入中…",
     "hist.end": "Flow 只能回溯到這裡",
     "hist.failed": "無法載入更早的交易。",
-    "footer.tps": "TPS · 24h",
-    "footer.tx24": "交易 · 24h",
+    "head.tps": "TPS",
+    "head.tx24": "24小時",
     "head.online": "在線",
     "ctrl.pause": "暫停",
     "ctrl.pause.title": "暫停交易流",
@@ -91,6 +93,7 @@
     "sh.tokenId": "代幣 ID",
     "sh.explorer": "在瀏覽器中查看",
     "sh.share": "分享",
+    "sh.chat": "聊天 ↔",
     "sh.final": "{sec} 後永久最終確定 — 不可逆轉",
     "sh.finalNoTime": "永久最終確定 — 不可逆轉",
     "sh.pending": "正在傳送到網路…",

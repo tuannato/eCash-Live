@@ -6,6 +6,8 @@
     "packVersion": 1
   },
   "strings": {
+    "a11y.scrollRow": "Scrollbare Zeile — seitwärts wischen oder scrollen für mehr",
+    "brand.aria": "eCash Flow — e.cash öffnen",
     "a11y.skip": "Zum Transaktions-Stream springen",
     "a11y.h1": "eCash Live · Flow — Live-Transaktions-Stream",
     "a11y.heartbeat": "Netzwerk-Herzschlag — schlägt bei jeder finalisierten Transaktion",
@@ -42,8 +44,8 @@
     "hist.loading": "Lädt…",
     "hist.end": "Weiter zurück reicht Flow nicht",
     "hist.failed": "Ältere Transaktionen konnten nicht geladen werden.",
-    "footer.tps": "TPS · 24h",
-    "footer.tx24": "Tx · 24h",
+    "head.tps": "TPS",
+    "head.tx24": "24h",
     "head.online": "online",
     "ctrl.pause": "Pause",
     "ctrl.pause.title": "Stream pausieren",
@@ -91,6 +93,7 @@
     "sh.tokenId": "Token-ID",
     "sh.explorer": "Im Explorer ansehen",
     "sh.share": "Teilen",
+    "sh.chat": "Chatten ↔",
     "sh.final": "Dauerhaft final nach {sec} — unwiderruflich",
     "sh.finalNoTime": "Dauerhaft final — unwiderruflich",
     "sh.pending": "Wird ins Netzwerk gesendet…",
