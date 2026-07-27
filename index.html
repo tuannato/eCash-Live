@@ -70,20 +70,20 @@
 <meta property="og:url" content="https://ecashlive.net/" />
 <meta property="og:title" content="eCash Live — every transaction, every block, live." />
 <meta property="og:description" content="A real-time visualizer for eCash (XEC). Watch Avalanche pre-consensus finalize transactions in ~3 seconds, then post-consensus lock blocks — live, side-by-side." />
-<meta property="og:image" content="https://ecashlive.net/icon-1200x630.png" />
-<meta property="og:image:type" content="image/png" />
+<meta property="og:image" content="https://ecashlive.net/og-card.jpg" />
+<meta property="og:image:type" content="image/jpeg" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="eCash Live — live visualizer of Avalanche pre and post-consensus on the XEC network." />
-<meta property="og:image" content="https://ecashlive.net/icon-512.png" />
-<meta property="og:image:type" content="image/png" />
+<meta property="og:image" content="https://ecashlive.net/og-square.jpg" />
+<meta property="og:image:type" content="image/jpeg" />
 <meta property="og:image:width" content="512" />
 <meta property="og:image:height" content="512" />
 <meta property="og:image:alt" content="eCash Live logo." />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="eCash Live — every transaction, every block, live." />
 <meta name="twitter:description" content="Live Avalanche pre &amp; post-consensus, on the eCash network." />
-<meta name="twitter:image" content="https://ecashlive.net/icon-1200x630.png" />
+<meta name="twitter:image" content="https://ecashlive.net/og-card.jpg" />
 <meta name="twitter:image:alt" content="eCash Live — live visualizer of Avalanche pre and post-consensus on the XEC network." />
 
 <!-- Favicons. Files live at the site root so browsers and crawlers find
@@ -6825,8 +6825,8 @@
      update-csp-hash.sh. See /vendor/companion/echan.js header for the
      module's architecture + roadmap (Phase 1a → 1e).
      ===================================================================== -->
-<link rel="stylesheet" href="./vendor/companion/echan.css?v=mc23">
-<link rel="stylesheet" href="./vendor/mediacenter/mediacenter.css?v=mc23">
+<link rel="stylesheet" href="./vendor/companion/echan.css?v=mc24">
+<link rel="stylesheet" href="./vendor/mediacenter/mediacenter.css?v=mc24">
 
 </head>
 <body>
@@ -6864,7 +6864,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v2.0.0">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v2.0.0</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v2.0.1">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v2.0.0</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -22610,12 +22610,12 @@ startTtfFeedModule();
      already fired when the module's IIFE runs, so init() can find
      #stage-wrap without a readyState dance. External script under 'self'
      — covered by the script-src whitelist, no CSP hash needed. -->
-<script src="./vendor/companion/echan.js?v=mc23" defer></script>
+<script src="./vendor/companion/echan.js?v=mc24" defer></script>
 
 <!-- Media center external module (sibling to eChan). External script/style under
      'self' — no CSP hash. Self-injects its DOM; opened via the play tab
      (#mc-tab-btn) or the eChan "Media center" quick-action. -->
-<script src="./vendor/mediacenter/mediacenter.js?v=mc23" defer></script>
+<script src="./vendor/mediacenter/mediacenter.js?v=mc24" defer></script>
 
 </body>
 </html>

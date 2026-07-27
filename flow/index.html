@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-mEijv7j5XMbCEQiDgdvgFmWhF4RY/tZ6UbYbNzrPpw0=';
+  script-src 'self' 'sha256-PXNq0vdsfVFuPfQzgN9lqJexh6bO2PR48cEhPUo13po=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -48,29 +48,37 @@
 <meta property="og:url" content="https://ecashlive.net/flow/" />
 <meta property="og:title" content="eCash Flow — watch money become final in seconds." />
 <meta property="og:description" content="The simple view of the eCash network: every transaction arrives like a message and turns permanently final in about two seconds. No account, no install." />
-<meta property="og:image" content="https://ecashlive.net/icon-1200x630.png" />
-<meta property="og:image:type" content="image/png" />
+<meta property="og:image" content="https://ecashlive.net/og-card.jpg" />
+<meta property="og:image:type" content="image/jpeg" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="eCash Flow — a live stream of eCash transactions becoming final in seconds." />
-<meta property="og:image" content="https://ecashlive.net/icon-512.png" />
-<meta property="og:image:type" content="image/png" />
+<meta property="og:image" content="https://ecashlive.net/og-square.jpg" />
+<meta property="og:image:type" content="image/jpeg" />
 <meta property="og:image:width" content="512" />
 <meta property="og:image:height" content="512" />
 <meta property="og:image:alt" content="eCash Live logo." />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="eCash Flow — watch money become final in seconds." />
 <meta name="twitter:description" content="Every eCash transaction, arriving like a message and final in ~2 seconds." />
-<meta name="twitter:image" content="https://ecashlive.net/icon-1200x630.png" />
+<meta name="twitter:image" content="https://ecashlive.net/og-card.jpg" />
 <link rel="icon" href="../favicon.ico" />
+<link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/icon-180.png" />
+<!-- Flow's OWN manifest. The root /site.webmanifest has start_url "/" and no
+     scope, so Add-to-Home-Screen from here used to install neo instead — the
+     mobile-first door was the one door you could not install. `id` + `scope`
+     keep the two installs distinct. `manifest-src 'self'` is already in the CSP. -->
+<link rel="manifest" href="/flow/flow.webmanifest" />
 <style>
   /* Palette = eCashLive brand DNA (retinted from Flow v2.dc.html:14-41).
      Base + [data-theme="light"] = LIGHT; the two dark blocks = DARK. */
   :root{
     --bg:#EAEEF6; --bg-app:#F7F9FD; --card:#FFFFFF; --card2:#EDF1F9;
-    --ink:#10142E; --ink2:#465073; --ink3:#7B84A3; --line:#DBE2EF; --frame:#C4D4DC;
+    --ink:#10142E; --ink2:#465073; --ink3:#626B8C; --line:#DBE2EF; --frame:#C4D4DC;
     --accent:#0074C2; --accent-deep:#00629F; --accent-bg:#E1F2FC;
-    --final:#00975C; --final-bg:#DFF6EA;
+    --final:#007C4C; --final-bg:#DFF6EA;
     --self-bg:#E1F2FC; --danger:#C4187E;
     --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
     --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
@@ -80,14 +88,14 @@
     --wash:rgba(13,18,44,.38);
     --shadow:0 1px 2px rgba(16,26,70,.05), 0 10px 26px rgba(16,26,70,.08);
     --final-ring:rgba(0,151,92,.38); --final-glow:rgba(0,151,92,.22);
-    --wat:#5A8A00; --wat-bg:#EFF8DC; --wat-ln:#C8E39A;
+    --wat:#4F7A00; --wat-bg:#EFF8DC; --wat-ln:#C8E39A;
     --glow:0 0 0 1px var(--final-ln), 0 0 22px rgba(0,151,92,.10);
     --grad:linear-gradient(120deg,#273498 0%,#0074C2 52%,#00ABE7 100%);
   }
   @media (prefers-color-scheme: dark){
     :root{
       --bg:#08080F; --bg-app:#0C0C18; --card:#12121F; --card2:#181828;
-      --ink:#F4F5FF; --ink2:#9EA3C4; --ink3:#616689; --line:#1E1E30; --frame:#2A4250;
+      --ink:#F4F5FF; --ink2:#9EA3C4; --ink3:#7C81A3; --line:#1E1E30; --frame:#2A4250;
       --accent:#01A0E0; --accent-deep:#29B6F0; --accent-bg:#0B2036;
       --final:#00E781; --final-bg:#07291B;
       --self-bg:#0B2036; --danger:#FF21D0;
@@ -103,7 +111,7 @@
   }
   :root[data-theme="dark"]{
     --bg:#08080F; --bg-app:#0C0C18; --card:#12121F; --card2:#181828;
-    --ink:#F4F5FF; --ink2:#9EA3C4; --ink3:#616689; --line:#1E1E30; --frame:#2A4250;
+    --ink:#F4F5FF; --ink2:#9EA3C4; --ink3:#7C81A3; --line:#1E1E30; --frame:#2A4250;
     --accent:#01A0E0; --accent-deep:#29B6F0; --accent-bg:#0B2036;
     --final:#00E781; --final-bg:#07291B;
     --self-bg:#0B2036; --danger:#FF21D0;
@@ -118,9 +126,9 @@
   }
   :root[data-theme="light"]{
     --bg:#EAEEF6; --bg-app:#F7F9FD; --card:#FFFFFF; --card2:#EDF1F9;
-    --ink:#10142E; --ink2:#465073; --ink3:#7B84A3; --line:#DBE2EF; --frame:#C4D4DC;
+    --ink:#10142E; --ink2:#465073; --ink3:#626B8C; --line:#DBE2EF; --frame:#C4D4DC;
     --accent:#0074C2; --accent-deep:#00629F; --accent-bg:#E1F2FC;
-    --final:#00975C; --final-bg:#DFF6EA;
+    --final:#007C4C; --final-bg:#DFF6EA;
     --self-bg:#E1F2FC; --danger:#C4187E;
     --msg:#6A1FC4; --msg-bg:#F2EAFD; --msg-ln:#D8C6F4;
     --token:#9C6D00; --token-bg:#FAF0D6; --token-ln:#EBD79F;
@@ -128,7 +136,7 @@
     --wash:rgba(13,18,44,.38);
     --shadow:0 1px 2px rgba(16,26,70,.05), 0 10px 26px rgba(16,26,70,.08);
     --final-ring:rgba(0,151,92,.38); --final-glow:rgba(0,151,92,.22);
-    --wat:#5A8A00; --wat-bg:#EFF8DC; --wat-ln:#C8E39A;
+    --wat:#4F7A00; --wat-bg:#EFF8DC; --wat-ln:#C8E39A;
     --glow:0 0 0 1px var(--final-ln), 0 0 22px rgba(0,151,92,.10);
   }
   *{box-sizing:border-box}
@@ -529,12 +537,32 @@
   .learn-more:hover{text-decoration:underline;}
   .learn-more:focus-visible{outline:2px solid var(--accent);border-radius:6px;}
   /* mobile Learn bar (opened by the footer "?") — in-flow, pushes content, no overlay */
-  .learn-bar,.watch-bar{flex:none;border-top:1px solid var(--line);background:var(--bg-app);
+  .learn-bar,.watch-bar,.info-bar{flex:none;border-top:1px solid var(--line);background:var(--bg-app);
              padding:2px 14px max(10px, env(safe-area-inset-bottom));max-height:52vh;overflow-y:auto;display:none;}
-  .learn-bar.open,.watch-bar.open{display:block;animation:drop .2s ease-out;}
-  /* desktop shows Learn + the watchlist in the rail, so the footer "?" / eye (and
-     their bars) are redundant there */
+  .learn-bar.open,.watch-bar.open,.info-bar.open{display:block;animation:drop .2s ease-out;}
+  .ib-stats{margin:8px 0 4px;}
+  .ib-narr{border-top:1px solid var(--line);padding-top:8px;margin-top:4px;}
+  .ib-narr .narr-log{max-height:34vh;overflow-y:auto;}
+  .ib-narr .narr-empty{font-size:11.5px;color:var(--ink3);padding:2px 0 6px;line-height:1.5;}
+  /* desktop shows Learn + the watchlist + the stats/narrator rails, so the footer
+     "?" / eye / bars (and their bars) are redundant there */
   @media (min-width:1120px){ #btn-learn,#btn-watch{display:none;} }
+  /* #btn-info survives to 1470px: the narrator log lives in #rail-right, which
+     needs 1470 — between 1120 and 1470 the bar is still the only way to reach it. */
+  @media (min-width:1470px){ #btn-info{display:none;} }
+  /* first-visit thesis banner (mobile only — the rail owns this above 1120px) */
+  .hero-banner{display:flex;align-items:center;gap:11px;margin:0 0 8px;padding:10px 12px;
+               border:1px solid var(--final-ln);border-radius:14px;background:var(--final-bg);}
+  .hb-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+  .hb-title{font-size:12px;font-weight:700;color:var(--final);letter-spacing:.02em;}
+  .hb-body{font-size:11.5px;color:var(--ink2);line-height:1.45;}
+  .hb-body b{color:var(--ink);font-weight:700;}
+  .hb-num{flex:none;font-family:'Space Grotesk',var(--sans);font-size:21px;font-weight:700;color:var(--final);}
+  .hb-x{flex:none;border:0;background:none;color:var(--ink3);cursor:pointer;font-size:14px;
+        line-height:1;padding:4px 5px;border-radius:6px;align-self:flex-start;}
+  .hb-x:hover{color:var(--ink);}
+  .hb-x:focus-visible{outline:2px solid var(--accent);}
+  @media (min-width:1120px){ .hero-banner{display:none !important;} }
   .card{cursor:pointer;}
   /* inset ring: the card is overflow:hidden (to clip the sunk token art), which
      would clip a positive-offset outline — draw it inside instead. */
@@ -627,6 +655,10 @@
   .wl-in:focus-visible{outline:2px solid var(--accent);outline-offset:-1px;}
   .wl-add-btn{flex:none;border:0;background:var(--grad);color:#fff;font-size:12.5px;font-weight:700;
               border-radius:11px;padding:8px 15px;cursor:pointer;white-space:nowrap;}
+  /* saved wallet address + a way to clear it (no silent re-seed from neo) */
+  .wl-mine{display:flex;align-items:center;gap:7px;margin-top:10px;padding-top:8px;
+           border-top:1px solid var(--line);}
+  .wl-mine-l{flex:1;min-width:0;font-size:11.5px;font-weight:600;color:var(--ink2);}
   /* export / import (F7) — secondary, side by side */
   .wl-io{display:flex;gap:7px;margin-top:8px;}
   .wl-io-btn{flex:1;border:1px solid var(--line2);background:var(--card);color:var(--ink2);
@@ -758,7 +790,7 @@
   <aside id="rail-left">
     <div class="rl-card rl-hero hero-2s">
       <div class="eyebrow" data-i18n="hero.title">Permanently final</div>
-      <div class="hero-row"><span class="big" id="rl-p50">—</span>
+      <div class="hero-row"><span class="big" id="rl-p50" data-stat="p50">—</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="var(--final)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 13l4 4L14.5 8"/><path d="M9.5 17l1.5 1.5L22 8"/></svg></div>
       <p><span data-i18n="hero.body1">Every transaction becomes</span>
         <b data-i18n="hero.body2">irreversible</b>
@@ -766,10 +798,10 @@
     </div>
     <div class="rl-card rl-stats">
       <h3 data-i18n="stats.title">Network</h3>
-      <div><dt data-i18n="stats.p50">Median final</dt><dd class="fin" id="rl-p50b">—</dd></div>
-      <div><dt data-i18n="stats.count">Transactions (session)</dt><dd id="rl-count">0</dd></div>
-      <div><dt data-i18n="stats.price">Price</dt><dd id="rl-price">—</dd></div>
-      <div><dt data-i18n="stats.block">Block</dt><dd id="rl-height">—</dd></div>
+      <div><dt data-i18n="stats.p50">Median final</dt><dd class="fin" data-stat="p50session">—</dd></div>
+      <div><dt data-i18n="stats.count">Transactions (session)</dt><dd data-stat="count">0</dd></div>
+      <div><dt data-i18n="stats.price">Price</dt><dd data-stat="price">—</dd></div>
+      <div><dt data-i18n="stats.block">Block</dt><dd data-stat="height">—</dd></div>
     </div>
     <div class="rl-card rl-learn">
       <h3 data-i18n="learn.title">Learn</h3>
@@ -777,7 +809,7 @@
     </div>
   </aside>
 
-  <main id="app" data-version="v1.7.0">
+  <main id="app" data-version="v1.8.0">
     <div class="app-head">
       <div class="ah-top">
         <a class="brand" href="https://e.cash" target="_blank" rel="noopener noreferrer"
@@ -787,7 +819,7 @@
         <span id="conn"><span class="dot"></span><span id="conn-text" data-i18n="conn.connecting">connecting…</span></span>
       </div>
       <div class="ah-stats hscroll">
-        <span class="pill final"><span data-i18n="head.final">final</span> <b id="p50">—</b></span>
+        <span class="pill final"><span data-i18n="head.final">final</span> <b id="p50" data-stat="p50">—</b></span>
         <span class="pill tapish" id="price-pill" role="button" tabindex="0"
               data-i18n-title="head.priceToggle" title="Tap to switch XEC / 1M XEC">—</span>
         <span class="pill blockpill"><span data-i18n="pill.block">block</span> <b id="height">—</b><span class="age" id="block-age"></span></span>
@@ -802,6 +834,22 @@
       <button class="chip" data-f="pay" type="button" data-i18n="chip.pay">Payments</button>
       <button class="chip" data-f="msg" type="button" data-i18n="chip.msg">Messages</button>
       <button class="chip" data-f="token" type="button" data-i18n="chip.token">Token</button>
+    </div>
+
+    <!-- The product thesis, for the door that is actually mobile-first. #rail-left
+         (which holds the hero) is display:none below 1120px, so on a phone Flow
+         used to show a stream of cards with nothing saying what you are looking
+         at. Deliberately NOT behind a control: a newcomer does not know to go
+         looking. First visit only, dismissible, then it never returns. -->
+    <div id="hero-banner" class="hero-banner" hidden>
+      <div class="hb-txt">
+        <span class="hb-title" data-i18n="hero.title">Permanently final</span>
+        <span class="hb-body"><span data-i18n="hero.body1">Every transaction becomes</span>
+          <b data-i18n="hero.body2">irreversible</b>
+          <span data-i18n="hero.body3">in seconds.</span></span>
+      </div>
+      <span class="hb-num" data-stat="p50">—</span>
+      <button type="button" class="hb-x" id="hero-x" data-i18n-aria="cmp.close" aria-label="Close">✕</button>
     </div>
 
     <div class="stream-wrap">
@@ -863,6 +911,24 @@
       <div class="wl-list" id="bar-watch-list"></div>
     </div>
 
+    <!-- Mobile home for the two rail panels that have no other way in below
+         1120px: the session stats (#rail-left) and eChan's back-scroll
+         (#rail-right, which needs 1470px — so laptops lose it too). Same in-flow
+         bar pattern as #learn-bar / #watch-bar, never an overlay. -->
+    <div id="info-bar" class="info-bar" role="region" data-i18n-aria="stats.title" aria-label="Network">
+      <dl class="rl-stats ib-stats">
+        <div><dt data-i18n="stats.p50">Median final</dt><dd class="fin" data-stat="p50session">—</dd></div>
+        <div><dt data-i18n="stats.count">Transactions (session)</dt><dd data-stat="count">0</dd></div>
+        <div><dt data-i18n="stats.price">Price</dt><dd data-stat="price">—</dd></div>
+        <div><dt data-i18n="stats.block">Block</dt><dd data-stat="height">—</dd></div>
+      </dl>
+      <div class="ib-narr">
+        <div class="narr-head"><img class="narr-avatar" src="../vendor/companion/sprites/echan_neutral.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+          <div><div class="narr-name">eChan</div><div class="narr-role" data-i18n="narrator.role">narrator</div></div></div>
+        <div id="bar-narr-log" class="narr-log"></div>
+      </div>
+    </div>
+
     <div class="flow-footer">
       <div class="ff-spacer"></div>
       <div class="control-panel hscroll">
@@ -874,6 +940,10 @@
         <button class="ctrl-btn" id="btn-learn" type="button"
                 data-i18n-title="learn.title" data-i18n-aria="learn.aria" title="Learn" aria-label="Learn about eCash">
           <span aria-hidden="true">?</span>
+        </button>
+        <button class="ctrl-btn" id="btn-info" type="button" aria-expanded="false"
+                data-i18n-title="stats.title" data-i18n-aria="stats.title" title="Network" aria-label="Network">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V10M9.3 19V5M14.7 19v-6M20 19V8"/></svg>
         </button>
         <button class="ctrl-btn" id="btn-pause" type="button" aria-pressed="false"
                 data-i18n-title="ctrl.pause.title" title="Pause the stream">
@@ -1143,10 +1213,14 @@ function tf(key, vars){
   return String(t(key)).replace(/\{(\w+)\}/g, (_, k) => (vars && vars[k] != null ? vars[k] : ''));
 }
 function localeFor(code){ try { new Intl.NumberFormat(code); return code; } catch { return 'en'; } }
+const I18N_V = '1';   // bump whenever any vendor/i18n/flow.*.json changes
 async function loadPack(code){
   if (code === 'en'){ pack = null; return; }
   try {
-    const r = await fetch(`../vendor/i18n/flow.${code}.json`, { cache:'no-cache' });
+    // Versioned URL + normal caching beats cache:'no-cache', which forced a
+    // revalidation round-trip on EVERY language load. Bump I18N_V when a pack
+    // changes — same discipline as the txparse ?v= token (see Footguns).
+    const r = await fetch(`../vendor/i18n/flow.${code}.json?v=${I18N_V}`);
     if (r.ok){ const j = await r.json(); pack = j.strings || j; }
     else pack = null;
   } catch { pack = null; }  // fall back to EN, never break
@@ -1183,6 +1257,7 @@ async function setLang(code){
   if (typeof tickDetailTime === 'function') tickDetailTime();         // relative time in the new language
   if (typeof renderAllLearn === 'function') renderAllLearn();   // JS-built accordion, re-render in the new language
   if (typeof renderAllWatch === 'function') renderAllWatch();   // re-render the watchlist panel (labels/placeholders)
+  if (typeof renderNarratorLog === 'function') renderNarratorLog();   // JS-built; its empty-state caption is localized (B3)
   if (typeof loadEchanSeed === 'function') loadEchanSeed();     // reload eChan dialog pool in the new language
 }
 function pickInitialLang(){
@@ -1221,6 +1296,7 @@ function toggleTheme(){
   try { localStorage.setItem(THEME_KEY, next); } catch {}
   applyThemeGlyph();
   hbReadCols();
+  if (!hbRunning) hbFlat(hbResize());   // the loop may be parked — repaint the resting line
 }
 
 /* ------------------------------------------------------------------ icons */
@@ -1243,7 +1319,35 @@ const IC = {
 };
 
 /* ------------------------------------------------------------------ helpers */
-function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+// Strip Unicode direction overrides + invisible characters from chain-supplied
+// text. This is NOT an escaping problem — an RLO (U+202E) reverses the rendered
+// run just as happily through textContent as through innerHTML, so esc() alone
+// could never have stopped it. An OP_RETURN message or a token ticker (mintable
+// for ~$1) can use them to reorder what the eye reads, e.g. to make a message
+// look like a Flow system notice. Tab/newline are kept — .cd-msg renders
+// pre-wrap and real messages legitimately contain them.
+// Codepoint ranges, not literal characters: an invisible char pasted into this
+// source would be unreviewable. 0x202a-0x202e are the direction overrides that
+// do the actual spoofing; 0x2066-0x2069 are their isolate equivalents.
+const BIDI_RANGES = [[0x200b,0x200f],[0x202a,0x202e],[0x2060,0x2064],[0x2066,0x2069],
+                     [0xfeff,0xfeff],[0x0000,0x0008],[0x000b,0x000c],[0x000e,0x001f],[0x007f,0x007f]];
+const BIDI_CTRL = new RegExp('[' + BIDI_RANGES.map(r =>
+  String.fromCharCode(r[0]) + '-' + String.fromCharCode(r[1])).join('') + ']', 'g');
+function clean(s){ return String(s == null ? '' : s).replace(BIDI_CTRL, ''); }
+// Sanitize chain-supplied free text ONCE, where it enters — not at each render.
+// Everything downstream (card .t1/.route via textContent, the detail panel, the
+// shared receipt, group labels, eChan) then reads already-clean values, so a path
+// that uses textContent instead of esc() is covered too.
+function scrubTx(tx){
+  if (!tx) return tx;
+  if (tx.message && tx.message.content != null) tx.message.content = clean(tx.message.content);
+  if (tx.token){
+    if (tx.token.ticker) tx.token.ticker = clean(tx.token.ticker);
+    if (tx.token.name)   tx.token.name   = clean(tx.token.name);
+  }
+  return tx;
+}
+function esc(s){ return clean(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function fmtInt(n){ try { return Number(n).toLocaleString(localeFor(lang)); } catch { return String(n); } }
 // Magnitude-aware TPS (matches neo/echan.js fmtTps): eCash's real finalized-tx
 // rate is a fraction of 1 TPS, so plain rounding shows a misleading "0" — keep
@@ -1345,12 +1449,26 @@ function hbReadCols(){
   hbLight = currentTheme() === 'light';
 }
 hbReadCols();
+// Reading hb.clientWidth inside the rAF callback forced a synchronous layout on
+// EVERY frame while the stream was mutating the DOM — the single most expensive
+// thing the idle page did. The width is now observed, not polled.
+let hbCssW = 0, hbNeedResize = true, hbRunning = false;
+try {
+  new ResizeObserver(entries => {
+    const w = Math.max(60, Math.round(entries[0].contentRect.width));
+    if (w !== hbCssW){ hbCssW = w; hbNeedResize = true; hbKick(); }
+  }).observe(hb);
+} catch { hbCssW = Math.max(60, hb.clientWidth | 0); }
 function hbResize(){
-  const dpr = Math.min(devicePixelRatio || 1, 2);
-  const w = Math.max(60, hb.clientWidth | 0);
-  const bw = Math.round(w*dpr), bh = Math.round(HBH*dpr);
-  if (hb.width !== bw || hb.height !== bh){ hb.width = bw; hb.height = bh; }
-  hbx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (!hbCssW) hbCssW = Math.max(60, hb.clientWidth | 0);   // first paint / no ResizeObserver
+  const w = hbCssW;
+  if (hbNeedResize){
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    const bw = Math.round(w*dpr), bh = Math.round(HBH*dpr);
+    if (hb.width !== bw || hb.height !== bh){ hb.width = bw; hb.height = bh; }
+    hbx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    hbNeedResize = false;
+  }
   hbW = w;
   return w;
 }
@@ -1400,7 +1518,7 @@ function hbDraw(w, t){
     sumEnv += env / Math.sqrt(spread);
   }
   hbPlucks = active.map(a => a.p);   // prune fully-decayed
-  if (!active.length){ hbFlat(w); return; }
+  if (!active.length) return false;  // at rest → the caller parks the loop
   // priority-weighted colour blend (block > finalize > tx; base blue when calm)
   const baseW = 2.0, base = hbRGB.acc;
   let r = baseW*base[0], g = baseW*base[1], b = baseW*base[2], tw = baseW;
@@ -1442,8 +1560,23 @@ function hbDraw(w, t){
   hbLineStyle(col, sumEnv);
   hbStrokeSmooth(xs, ly);
   hbResetShadow();
+  return true;   // still animating — keep the loop alive
 }
-function hbLoop(ts){ const w = hbResize(); hbDraw(w, ts); requestAnimationFrame(hbLoop); }
+// The loop PARKS when the string is at rest. Flow is meant to be left open, and
+// eCash's real rate is a fraction of 1 TPS, so "idle" is the dominant state: the
+// old unconditional rAF recursion repainted a flat line ~60x/s forever, which on a
+// phone is a genuine battery cost for zero information. hbDraw() returns false
+// once nothing is animating; hbSignal() (and a resize / retint) wakes it again.
+function hbLoop(ts){
+  const w = hbResize();
+  if (hbDraw(w, ts)) requestAnimationFrame(hbLoop);
+  else { hbRunning = false; hbFlat(w); }   // settle on the resting line, then stop
+}
+function hbKick(){
+  if (hbRunning || reduced) return;
+  hbRunning = true;
+  requestAnimationFrame(hbLoop);
+}
 // Real network-event hooks. beat() keeps its name (called from finalize()).
 // Reduced motion → no plucks accumulate (strip stays a static flat line).
 function hbSignal(kind){
@@ -1454,10 +1587,18 @@ function hbSignal(kind){
   hbPlucks.push({ t0: performance.now(), A0: spec.A0, sigmaFrac: spec.sigmaFrac,
                   speedFrac: spec.speedFrac, tau: spec.tau, col: spec.col, prio: spec.prio, sym: spec.sym, dir });
   if (hbPlucks.length > 16) hbPlucks.shift();   // hard cap (§10)
+  hbKick();                                     // wake the parked loop
 }
 function beat(){ hbSignal('final'); }
-if (reduced){ hbFlat(hbResize()); } else { requestAnimationFrame(hbLoop); }
-setInterval(hbReadCols, 1500);   // retint with the theme
+hbFlat(hbResize());   // resting line; hbSignal() starts the loop on the first real event
+// Retint on the events that can actually change the palette, instead of calling
+// getComputedStyle(documentElement) every 1.5s forever: the in-app toggle already
+// calls hbReadCols(), and this covers a follow-the-system theme change.
+try {
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    hbReadCols(); if (!hbRunning) hbFlat(hbResize());   // repaint the resting line in the new tint
+  });
+} catch {}
 
 /* ------------------------------------------------------------------ pacing */
 const stream = $('stream'), newPill = $('new-pill');
@@ -1550,6 +1691,13 @@ function appended(){
     const sib = node.nextElementSibling;
     node.remove();
     if (sib && (sib.classList.contains('card-detail') || sib.classList.contains('grp-detail') || sib.classList.contains('div-detail'))) sib.remove();
+    // Detaching the node is not releasing it: state.txs holds up to 2500 entries,
+    // each still pointing at its card via tx.el, so an evicted subtree (with any
+    // decoded token image) stayed reachable for the rest of the session. Bounded,
+    // but pure waste — drop the reference. Everything that touches tx.el already
+    // guards for it being absent (setCardText, tickSending, refreshExpandedDetail).
+    const et = node._tx;
+    if (et){ if (et.el === node) et.el = null; et._detail = null; node._tx = null; }
   }
 }
 function announce(msg){ const el = $('a11y-live'); if (!el) return; el.textContent = ''; setTimeout(() => { el.textContent = msg; }, 30); }
@@ -1652,8 +1800,10 @@ function tokenQty(tx){
 // storm). Honesty: never fabricates — an unresolved token shows its short id.
 function applyTokenInfo(tx, rec){
   if (!tx.token || !rec) return;
-  if (rec.ticker && !tx.token.ticker) tx.token.ticker = rec.ticker;
-  if (rec.name && !tx.token.name) tx.token.name = rec.name;
+  // Second entry point for chain text: the genesisInfo ticker/name arrive from
+  // chronik.token(), not from parseTransactionCore, so scrubTx() never saw them.
+  if (rec.ticker && !tx.token.ticker) tx.token.ticker = clean(rec.ticker);
+  if (rec.name && !tx.token.name) tx.token.name = clean(rec.name);
   tx.token.decimals = rec.decimals || 0;
 }
 // A resolved-good record is a plain object with ok:true; an in-flight fetch is
@@ -1809,6 +1959,7 @@ function cardFor(tx){
     '<div class="body"><div class="t1"></div><div class="t2"><span class="route"></span> <span class="seal"></span></div></div>' +
     '<div class="st"><span class="checks">' + IC.check + '</span><span class="ttf"></span></div>' + sinkHtml;
   tx.el = el;
+  el._tx = tx;   // back-reference so eviction in appended() can release tx.el
   setCardText(tx);
   // honor the active filter for cards added while a chip is selected
   if (state.filter !== 'all' && state.filter !== tx.f) el.classList.add('hide');
@@ -1842,11 +1993,7 @@ function finalize(tx, ttfMs, source){
     // tx finalizes between the WS "add" event and the async tx fetch) still
     // counts, since bootPollDone is true by then.
     bumpSessionCount(tx, source);
-    if (tx.ttf != null && tx.ttf > 0 && tx.ttf < TTF_SANITY_MAX_MS){
-      state.finals.push({ id: tx.id, ttf: tx.ttf });
-      if (state.finals.length > 60) state.finals.shift();
-      updateSessionP50();
-    }
+    recordFinalSample(tx);
     state.sinceBlock.push(tx);
     stopTicking(tx.id);   // sending stopwatch (v2 port): this tx is no longer pending
     const el = tx.el;
@@ -1873,6 +2020,23 @@ function finalize(tx, ttfMs, source){
 // removes the warmup flicker where updateStatsUI wrote "—" every 5s while
 // updateSessionP50 wrote "~x.xs" on every finalize (F8). #rl-p50b ("Median
 // final" in the rail) always reflects the session, labelled as such.
+// Single owner of state.finals writes. Called at first finalize AND from
+// upgradeTtf() when a node-precise value arrives for a tx that never contributed
+// a sample — which happens whenever the perceived path produced null: the wake
+// guard discarded the anchor (tab was backgrounded), or confirmTx() finalized a
+// tx that was mined without a seen TX_FINALIZED. Before this, upgradeTtf() only
+// corrected an EXISTING entry, so the most accurate number we ever get was
+// silently excluded from the session median (core value #1).
+function recordFinalSample(tx){
+  if (!(tx.ttf != null && tx.ttf > 0 && tx.ttf < TTF_SANITY_MAX_MS)) return;
+  const entry = state.finals.find(f => f.id === tx.id);
+  if (entry) entry.ttf = tx.ttf;
+  else {
+    state.finals.push({ id: tx.id, ttf: tx.ttf });
+    if (state.finals.length > 60) state.finals.shift();
+  }
+  updateSessionP50();
+}
 function sessionP50Ms(){
   if (!state.finals.length) return null;
   const a = state.finals.map(f => f.ttf).sort((x, y) => x - y);
@@ -1882,14 +2046,18 @@ function authoritativeRelayP50Ms(){
   const s = state.relayStats;
   return (s && !s.warmup && isFresh() && s.ttfP50Ms != null) ? s.ttfP50Ms : null;
 }
+// Stats now render into more than one place (desktop rail, the mobile #info-bar,
+// the first-visit hero banner), so writes go by data-stat rather than by id — a
+// new surface just declares the attribute and can never be forgotten by a writer.
+function setStat(name, text){
+  document.querySelectorAll('[data-stat="' + name + '"]').forEach(el => { el.textContent = text; });
+}
 function renderP50(){
   const relay = authoritativeRelayP50Ms();
   const sess = sessionP50Ms();
   const ms = relay != null ? relay : sess;
-  const txt = ms != null ? ('~' + fmtSec(ms)) : '—';
-  $('p50').textContent = txt;
-  $('rl-p50').textContent = txt;
-  $('rl-p50b').textContent = sess != null ? fmtSec(sess) : '—';
+  setStat('p50', ms != null ? ('~' + fmtSec(ms)) : '—');
+  setStat('p50session', sess != null ? fmtSec(sess) : '—');
 }
 function updateSessionP50(){ renderP50(); }
 // Count a finalized tx toward "Transactions (session)" exactly once, excluding
@@ -1901,7 +2069,7 @@ function bumpSessionCount(tx, source){
   if (source === 'presession' && !bootPollDone) return;
   tx._counted = true;
   state.count++;
-  $('rl-count').textContent = fmtInt(state.count);
+  setStat('count', fmtInt(state.count));
 }
 
 /* ---- bot/dust grouping ---- */
@@ -2026,7 +2194,7 @@ function sealBlock(height, realTxCount){
   state.lastSealedHeight = height;
   hbSignal('block');   // heartbeat: a block sealed → tall amber column
   $('height').textContent = fmtInt(height);
-  $('rl-height').textContent = fmtInt(height);
+  setStat('height', fmtInt(height));
   // We deliberately do NOT stamp tx.block = height for these here. A tx
   // finalized since the last divider is NOT necessarily in THIS block — the
   // miner picks a subset, and a just-finalized tx usually lands in the NEXT
@@ -2157,7 +2325,7 @@ function trackTx(tx){
 function admit(txData){
   if (state.txs.has(txData.txid)) return;
   let tx;
-  try { tx = parseTransactionCore(txData); } catch { return; }
+  try { tx = scrubTx(parseTransactionCore(txData)); } catch { return; }
   try { const r = deriveRoute(txData); tx.from = r.from; tx.to = r.to; tx._addrSet = r.allAddrs; } catch {}
   const wsSeen = takeWsSeen(tx.id);            // A6: honest anchor if the WS saw it first
   if (wsSeen) tx.wsObservedAt = wsSeen;
@@ -2179,9 +2347,7 @@ function admit(txData){
   // (3) the "try it" content-match fallback for the URL send path.
   if (mineTxids.has(tx.id)){ tx._mine = true; mineTxids.delete(tx.id); }
   else if (txTouchesMine(tx)){ tx._mine = true; }
-  else if (tryMsg && tx.message && tx.message.type === 'cashtab' && (tx.message.content || '').toLowerCase() === tryMsg){
-    tx._mine = true; tryMsg = null;
-  }
+  else if (tryMsgMatches(tx)){ tx._mine = true; tryMsg = null; }
   // E1: whale / shark reaction (thresholds mirror neo, §0.9).
   if (typeof tx.valueXec === 'number' && tx.valueXec >= SHARK_XEC){
     echanEvent(tx.valueXec >= WHALE_XEC ? 'bigtx' : 'sharktx', { valueXec: tx.valueXec });
@@ -2253,9 +2419,9 @@ function upgradeTtf(txid, ttfMs){
   if (!tx.final){ finalize(tx, ttfMs, 'node-precise'); return; }
   if (tx.ttfSource === 'node-precise') return;
   tx.ttf = ttfMs; tx.ttfSource = 'node-precise';
-  // adjust the session p50 sample set: correct this tx's entry in place
-  const entry = state.finals.find(f => f.id === txid);
-  if (entry){ entry.ttf = ttfMs; updateSessionP50(); }
+  // Correct this tx's p50 sample in place — or ADD it, if the perceived path
+  // produced null and never contributed one (wake guard / confirmTx).
+  recordFinalSample(tx);
   if (tx.el) setCardText(tx);
   refreshExpandedDetail(tx);   // the node-precise number corrects an open panel too
 }
@@ -2375,7 +2541,7 @@ function prependHistory(txDatas, height, realTxCount){
   let dust = 0, added = 0;
   for (const d of txDatas){
     if (histCount + added >= HIST_MAX) break;
-    let tx; try { tx = parseTransactionCore(d); } catch { continue; }
+    let tx; try { tx = scrubTx(parseTransactionCore(d)); } catch { continue; }
     if (!tx || !tx.id) continue;
     const k = txKind(tx); tx.kind = k.kind; tx.f = k.f; tx.icon = k.icon;
     // fold small payments into one summary card, exactly like the live stream
@@ -2451,15 +2617,15 @@ async function fetchPrice(){
   renderPrice();
 }
 function renderPrice(){
-  const el = $('price-pill'), rl = $('rl-price');
-  if (!state.xecUsd){ el.textContent = '—'; rl.textContent = '—'; return; }
+  const el = $('price-pill');
+  if (!state.xecUsd){ el.textContent = '—'; setStat('price', '—'); return; }
   if (state.per1m){
     const v = state.xecUsd * 1e6;
     el.textContent = '$' + v.toLocaleString(localeFor(lang), {minimumFractionDigits:2, maximumFractionDigits:2}) + ' / 1M XEC';
   } else {
     el.textContent = '$' + state.xecUsd.toFixed(state.xecUsd < 0.001 ? 8 : 6) + ' / XEC';
   }
-  rl.textContent = state.xecUsd ? ('$' + (state.xecUsd*1e6).toLocaleString(localeFor(lang), {minimumFractionDigits:2, maximumFractionDigits:2}) + ' / 1M') : '—';
+  setStat('price', '$' + (state.xecUsd*1e6).toLocaleString(localeFor(lang), {minimumFractionDigits:2, maximumFractionDigits:2}) + ' / 1M');
 }
 $('price-pill').addEventListener('click', () => { state.per1m = !state.per1m; try { localStorage.setItem('ecashlive:flow:price:per1m', state.per1m ? '1':'0'); } catch {}; renderPrice(); });
 $('price-pill').addEventListener('keydown', (e) => { if (e.key==='Enter'||e.key===' '){ e.preventDefault(); $('price-pill').click(); } });
@@ -2530,7 +2696,13 @@ function connectStats(){
     ws.onclose = () => { state.ttfWs = null; if (!closed) schedule(); };
     ws.onerror = () => { try { ws.close(); } catch {} };
   };
-  const schedule = () => { setTimeout(open, reconnectMs); reconnectMs = Math.min(reconnectMs*1.7, 30000); };
+  // Full jitter on the backoff. Without it every open tab reconnects on the same
+  // schedule, so a relay restart brings the whole audience back in lockstep bursts
+  // — the one moment the relay is least able to absorb them.
+  const schedule = () => {
+    setTimeout(open, Math.round(reconnectMs * (0.5 + Math.random() * 0.5)));
+    reconnectMs = Math.min(reconnectMs * 1.7, 30000);
+  };
   open();
 }
 
@@ -2544,7 +2716,7 @@ async function connectChronik(){
   catch (e){ setConn('conn.offline', 'warn'); console.warn('[flow] chronik init failed', e); return; }
 
   // initial tip
-  try { const info = await state.chronik.blockchainInfo(); if (info?.tipHeight){ state.height = info.tipHeight; state.lastSealedHeight = info.tipHeight; $('height').textContent = fmtInt(info.tipHeight); $('rl-height').textContent = fmtInt(info.tipHeight); } } catch {}
+  try { const info = await state.chronik.blockchainInfo(); if (info?.tipHeight){ state.height = info.tipHeight; state.lastSealedHeight = info.tipHeight; $('height').textContent = fmtInt(info.tipHeight); setStat('height', fmtInt(info.tipHeight)); } } catch {}
   // tip block's real timestamp, so "block N · 4 min ago" is honest from the first paint
   try {
     if (state.height){
@@ -2647,7 +2819,7 @@ async function onBlock(msg){
     // later back-fill a divider for a block whose txs were never shown, but skip
     // the in-stream divider itself (keeps "paused" honest).
     state.height = height; state.lastSealedHeight = height;
-    $('height').textContent = fmtInt(height); $('rl-height').textContent = fmtInt(height);
+    $('height').textContent = fmtInt(height); setStat('height', fmtInt(height));
     return;
   }
   sealBlock(height, numTxs != null ? numTxs : undefined);
@@ -2735,15 +2907,26 @@ function renderLearn(container){
 }
 // Re-rendered on language change (JS-built, so applyStatic() can't reach it).
 function renderAllLearn(){ renderLearn($('rail-learn-list')); renderLearn($('bar-learn-list')); }
-$('btn-learn').addEventListener('click', () => {
-  const bar = $('learn-bar'), btn = $('btn-learn');
+// Three footer bars now share one slot, so closing "the other one" pairwise no
+// longer scales — this closes every sibling by construction, and a fourth bar
+// only has to be added to FOOTER_BARS.
+const FOOTER_BARS = [['learn-bar','btn-learn'], ['watch-bar','btn-watch'], ['info-bar','btn-info']];
+function toggleFooterBar(barId, onOpen){
+  const bar = $(barId); if (!bar) return;
   const open = !bar.classList.contains('open');
-  const wb = $('watch-bar'); if (wb){ wb.classList.remove('open'); $('btn-watch').classList.remove('active'); }
-  bar.classList.toggle('open', open);
-  btn.classList.toggle('active', open);
-  btn.setAttribute('aria-expanded', String(open));
-  if (open) requestAnimationFrame(() => { try { bar.scrollIntoView({ block:'nearest' }); } catch {} });
-});
+  FOOTER_BARS.forEach(([b, t]) => {
+    const be = $(b), te = $(t); if (!be || !te) return;
+    const isThis = b === barId, on = isThis && open;
+    be.classList.toggle('open', on);
+    te.classList.toggle('active', on);
+    te.setAttribute('aria-expanded', String(on));
+  });
+  if (open){
+    if (onOpen) onOpen();
+    requestAnimationFrame(() => { try { bar.scrollIntoView({ block:'nearest' }); } catch {} });
+  }
+}
+$('btn-learn').addEventListener('click', () => toggleFooterBar('learn-bar'));
 
 // ---- filter chips (All / Payments / Messages / Token) ----
 // Every card — including the dust group and run-collapse groups — carries an
@@ -3179,14 +3362,29 @@ function drainEchan(){
   if (echanQueue.length) echanDrainTimer = setTimeout(() => { echanDrainTimer = null; drainEchan(); }, ECHAN_GAP_MS);
 }
 function renderNarratorLog(){
-  const el = $('narr-log'); if (!el) return;
-  el.innerHTML = state.narratorLog.map(n =>
-    '<div class="narr-entry"><span class="narr-time">' + esc(n.time) + '</span>' + esc(n.text) + '</div>'
-  ).join('');
+  // Two homes: the desktop right rail (#narr-log, >=1470px) and the mobile
+  // #info-bar (#bar-narr-log) — below 1470 the rail is the one panel with no
+  // other way in, so the log renders to whichever exists.
+  const html = state.narratorLog.length
+    ? state.narratorLog.map(n =>
+        '<div class="narr-entry"><span class="narr-time">' + esc(n.time) + '</span>' + esc(n.text) + '</div>'
+      ).join('')
+    : '<div class="narr-empty">' + esc(t('narrator.caption')) + '</div>';
+  ['narr-log', 'bar-narr-log'].forEach(id => { const el = $(id); if (el) el.innerHTML = html; });
 }
 const SEEN_KEY = 'ecashlive:flow:seen';
 let seen = {};
 try { seen = JSON.parse(localStorage.getItem(SEEN_KEY) || '{}') || {}; } catch {}
+function markSeen(key){ seen[key] = 1; try { localStorage.setItem(SEEN_KEY, JSON.stringify(seen)); } catch {} }
+// First-visit thesis banner (mobile). Reuses the SAME `seen` store as eChan's
+// one-shot explanations — no new persistence key. CSS hides it >=1120px where the
+// rail hero owns this, so no width check is needed here.
+function initHeroBanner(){
+  const el = $('hero-banner'); if (!el) return;
+  if (seen['heroBanner']) return;
+  el.hidden = false;
+  $('hero-x').addEventListener('click', () => { el.remove(); markSeen('heroBanner'); });
+}
 // Explain the thing the user just saw for the FIRST time (one-shot, persisted).
 // EB1: seen is marked at real display time inside say(), NOT here — so a bounded-
 // queue drop can't lose the line forever. enqueueSay dedupes by text, so a repeat
@@ -3249,7 +3447,12 @@ function seedLearnIdx(id){
 // event line that's outdated by the time its 12s slot comes up is dropped, never
 // shown late. A block line also dies once a newer block seals.
 const WHALE_XEC = 1e9, SHARK_XEC = 1e8;          // 🐋 ≥1B, 🦈 100M–1B
-const FAST_TTF_MAX_MS = 300, SLOW_TTF_MIN_MS = 4000;
+// Fallback only — the live threshold is the relay's own 24h P10 (see fastTtfMaxMs).
+// 300ms (the value neo shipped) is BELOW the protocol floor: ttf-relay.py:430-431
+// puts that floor at ~1.34s (128 rounds at the 10ms event loop) and calls a
+// sub-second reading "physically implausible", so a 300ms brag could only ever
+// fire on a measurement artifact. 1500ms sits just above the floor.
+const FAST_TTF_FALLBACK_MS = 1500, SLOW_TTF_MIN_MS = 4000;
 const EVENT_TRIGGERS = { 'event:bigtx':'bigtx', 'event:sharktx':'sharktx', 'event:fastttf':'fastttf', 'event:slowttf':'slowttf', 'event:block':'block' };
 const EVENT_COOLDOWN_MS = { bigtx: 5*60e3, sharktx: 5*60e3, fastttf: 15*60e3, slowttf: 15*60e3, block: 10*60e3 };
 const EVENT_STALE_MS    = { bigtx: 120e3, sharktx: 120e3, fastttf: 120e3, slowttf: 120e3, block: 120e3 };
@@ -3370,9 +3573,21 @@ function echanEvent(kind, data){
 }
 // node-precise TTF is the honest value (perceived carries latency) — brag on a very
 // fast finalize, grumble on a slow one. Called only from the node-precise path.
+// The "fast" threshold is the relay's live 24h P10, not a constant. The seed copy
+// makes a comparative claim ("Avalanche is fast today", "blink and you missed it"),
+// so the threshold has to mean "faster than most" or the line is an embellishment
+// (core value #1). P10 is exactly that boundary — and it keeps the brag symmetric
+// with SLOW_TTF_MIN_MS, which already sits near P90. A flat 2000ms was considered
+// and rejected: P50 is ~2.0s, so it would fire on roughly HALF of all traffic.
+// Same freshness guard as authoritativeRelayP50Ms(); falls back during warmup.
+function fastTtfMaxMs(){
+  const s = state.relayStats;
+  return (s && !s.warmup && isFresh() && typeof s.ttfP10Ms === 'number' && s.ttfP10Ms > 0)
+    ? s.ttfP10Ms : FAST_TTF_FALLBACK_MS;
+}
 function echanTtfEvent(ttfMs){
   if (!(ttfMs > 0)) return;
-  if (ttfMs <= FAST_TTF_MAX_MS) echanEvent('fastttf', { ms: ttfMs });
+  if (ttfMs <= fastTtfMaxMs()) echanEvent('fastttf', { ms: ttfMs });
   else if (ttfMs >= SLOW_TTF_MIN_MS) echanEvent('slowttf', { ms: ttfMs });
 }
 
@@ -3383,12 +3598,9 @@ function openLearnTopic(idx){
   let list;
   if (desktop){ list = $('rail-learn-list'); }
   else {
-    const bar = $('learn-bar'), btn = $('btn-learn');
-    if (bar) bar.classList.add('open');
-    if (btn){ btn.classList.add('active'); btn.setAttribute('aria-expanded', 'true'); }
-    const wb = $('watch-bar'), bw = $('btn-watch');
-    if (wb) wb.classList.remove('open');
-    if (bw) bw.classList.remove('active');
+    // Force the Learn bar open (not a toggle — eChan is pointing AT a topic) and
+    // close its siblings through the shared owner so no third bar is missed.
+    if (!$('learn-bar').classList.contains('open')) toggleFooterBar('learn-bar');
     list = $('bar-learn-list');
   }
   if (!list) return;
@@ -3434,7 +3646,19 @@ const CASHTAB_WEB = 'https://cashtab.com/';
 const WATCH_MAX = 20;                 // hard cap of watched addresses (§10; raised from 10 for the neo merge, F2)
 state.watchSet = new Set();           // normalized ecash: addresses (for matching)
 state.watchNames = new Map();         // addr -> user label (name it like the dashboard)
-let tryMsg = null;   // lowercase content the user typed for "try it" (one-shot match)
+// "try it" content match for the URL send path (no extension → we never learn the
+// txid, so the only signal is the message text coming back). This is a WEAK signal:
+// CMP_CHIPS ships the exact strings most likely to collide with a stranger's
+// Cashtab message ('gm 🌅', '🎉', …), so it is one-shot AND time-boxed — outside
+// the window a stranger's identical text can no longer be mislabelled as yours.
+const TRY_MATCH_WINDOW_MS = 10 * 60e3;   // generous enough for a manual wallet flow
+let tryMsg = null, tryMsgAt = 0;         // lowercase content + when it was armed
+function tryMsgMatches(tx){
+  if (!tryMsg) return false;
+  if (Date.now() - tryMsgAt > TRY_MATCH_WINDOW_MS){ tryMsg = null; return false; }
+  return !!(tx.message && tx.message.type === 'cashtab' &&
+            (tx.message.content || '').toLowerCase() === tryMsg);
+}
 function normAddr(a){ if (!a) return null; a = String(a).trim().toLowerCase(); if (!a) return null; return a.startsWith('ecash:') ? a : ('ecash:' + a); }
 
 // "your wallet" address (for self-send + marking your own txs _mine). Saved under
@@ -3445,6 +3669,9 @@ let myAddr = null;
 function loadMyAddr(){
   let a = null;
   try { a = localStorage.getItem(MY_ADDR_KEY); } catch {}
+  // A stored EMPTY string is the "forget me" sentinel — the user cleared it on
+  // purpose, so do NOT fall back to the neo seed and quietly resurrect it.
+  if (a === '') return;
   if (!a){ try { const chat = JSON.parse(localStorage.getItem('ecash-live-chat-v1') || 'null'); if (chat && chat.myAddr) a = chat.myAddr; } catch {} }
   a = normAddr(a);
   if (a && validateCashAddress(a)) myAddr = a;
@@ -3455,6 +3682,14 @@ function saveMyAddr(input){
   myAddr = a;
   try { localStorage.setItem(MY_ADDR_KEY, a); } catch {}
   return true;
+}
+// Clear the saved wallet address. Writes the empty sentinel rather than removing
+// the key so loadMyAddr() cannot re-seed it from neo on the next visit.
+function forgetMyAddr(){
+  myAddr = null;
+  try { localStorage.setItem(MY_ADDR_KEY, ''); } catch {}
+  renderAllWatch();
+  renderCmpPicks();
 }
 function txTouchesMine(tx){ return !!(myAddr && tx._addrSet && tx._addrSet.has(myAddr)); }
 // txids we broadcast via the extension — mark them _mine on arrival (exact, beats
@@ -3602,11 +3837,18 @@ function renderWatchlist(container){
       '<button type="button" class="wl-x" data-addr="' + esc(a) + '" aria-label="' + esc(t('watch.remove')) + '">✕</button>' +
     '</div>'
   ).join('');
+  // The saved wallet address, with a way to clear it. Shown only when one is set.
+  // Reuses cmp.myWallet / watch.remove — no new i18n keys.
+  const mine = myAddr
+    ? '<div class="wl-mine"><span class="wl-mine-l">' + esc(t('cmp.myWallet')) + '</span>' +
+        '<span class="wl-addr">' + esc(shortAddr(myAddr)) + '</span>' +
+        '<button type="button" class="wl-x wl-forget" aria-label="' + esc(t('watch.remove')) + '">✕</button></div>'
+    : '';
   container.innerHTML = empty + rows +
     '<div class="wl-add">' +
       '<input class="wl-in" type="text" placeholder="' + esc(t('watch.ph')) + '" aria-label="' + esc(t('watch.ph')) + '" />' +
       '<button type="button" class="wl-add-btn">' + esc(t('watch.add')) + '</button>' +
-    '</div>' +
+    '</div>' + mine +
     '<div class="wl-io">' +
       '<button type="button" class="wl-io-btn wl-export">' + esc(t('watch.export')) + '</button>' +
       '<button type="button" class="wl-io-btn wl-import">' + esc(t('watch.import')) + '</button>' +
@@ -3614,6 +3856,8 @@ function renderWatchlist(container){
   const exp = container.querySelector('.wl-export'), imp = container.querySelector('.wl-import');
   if (exp) exp.addEventListener('click', exportWatchlist);
   if (imp) imp.addEventListener('click', pickImportFile);
+  const fgt = container.querySelector('.wl-forget');
+  if (fgt) fgt.addEventListener('click', forgetMyAddr);
   container.querySelectorAll('.wl-x').forEach(b => b.addEventListener('click', () => removeWatch(b.getAttribute('data-addr'))));
   container.querySelectorAll('.wl-name').forEach(inp => {
     inp.addEventListener('change', () => renameWatch(inp.getAttribute('data-addr'), inp.value));
@@ -3767,7 +4011,7 @@ function closeComposer(){
 }
 fabEl.addEventListener('click', () => {
   fabEl.classList.remove('pulse');
-  if (!seen['fabUsed']){ seen['fabUsed'] = 1; try { localStorage.setItem(SEEN_KEY, JSON.stringify(seen)); } catch {} }
+  if (!seen['fabUsed']) markSeen('fabUsed');
   openComposer();
 });
 $('cmp-close').addEventListener('click', closeComposer);
@@ -3777,19 +4021,15 @@ $('cmp-amt-range').addEventListener('input', e => setAmount(e.target.value, 'ran
 $('cmp-amt-num').addEventListener('input', e => setAmount(e.target.value, 'num'));
 $('cmp-amt-num').addEventListener('blur', saveTryPrefs);
 $('compose-in').addEventListener('input', updateCmpPreview);
-// Persist a valid address as it's entered (saveMyAddr no-ops on an invalid one).
-$('compose-addr').addEventListener('blur', e => { const a = e.target.value.trim(); if (a) saveMyAddr(a); });
+// NOTE: #compose-addr is the RECIPIENT field, so nothing here may saveMyAddr().
+// It used to persist the field on blur, which meant merely typing — or tapping a
+// watchlist name in the pick row — silently claimed that address as your wallet.
+// See the matching note in sendTry(); myAddr comes from the extension or the
+// one-way neo seed only.
 // footer eye → toggle the mobile watch-bar (desktop uses the rail; #btn-watch is
 // display:none ≥1120px). One footer bar open at a time.
-$('btn-watch').addEventListener('click', () => {
-  const bar = $('watch-bar'), btn = $('btn-watch');
-  const open = !bar.classList.contains('open');
-  $('learn-bar').classList.remove('open'); $('btn-learn').classList.remove('active');
-  bar.classList.toggle('open', open);
-  btn.classList.toggle('active', open);
-  btn.setAttribute('aria-expanded', String(open));
-  if (open){ renderWatchlist($('bar-watch-list')); requestAnimationFrame(() => { try { bar.scrollIntoView({ block:'nearest' }); } catch {} }); }
-});
+$('btn-watch').addEventListener('click', () => toggleFooterBar('watch-bar', () => renderWatchlist($('bar-watch-list'))));
+$('btn-info').addEventListener('click', () => toggleFooterBar('info-bar', renderNarratorLog));
 // Unified hybrid send (F3/F4/F6): a message and/or a pure-XEC amount. Recipient is
 // REQUIRED (Cashtab rejects an empty-address bip21 — D3 gate). With the Cashtab
 // extension → sendBip21() (exact txid); else the cashtab.com URL. A pure-XEC send
@@ -3812,7 +4052,12 @@ async function sendTry(){
   }
   if (!addr){ hint(t('try.needAddr'), true); try { addrInput.focus(); } catch {}; return; }
   if (!validateCashAddress(addr)){ toast(t('try.badAddr')); return; }
-  saveMyAddr(addr);
+  // NOTE: do NOT saveMyAddr(addr) here. `addr` is the RECIPIENT — typed, or picked
+  // from the watchlist via renderCmpPicks(). Saving it would make txTouchesMine()
+  // label every future tx of that counterparty as "yours" (cyan bar, SR announce,
+  // echan.firstMine), hide the Chat button on their cards via chatPeer(), and
+  // persist all of it. myAddr is set ONLY from ctRequestAddress() (the extension
+  // telling us our own address) or the one-way neo seed in loadMyAddr().
   // amount: the explicit value, or the dust floor when a message rides along (matches neo)
   const amountXec = explicitAmt >= DUST_XEC ? explicitAmt : (msg ? DUST_XEC : 0);
   const params = [];
@@ -3836,8 +4081,12 @@ async function sendTry(){
       toast(t(e && e.message === 'timeout' ? 'try.timeout' : 'try.denied'));
     }
   } else {
-    if (msg) tryMsg = msg.toLowerCase();     // content match (URL path); myAddr covers pure-XEC
-    window.open(CASHTAB_WEB + '#/send?bip21=' + bip21, '_blank', 'noopener');
+    if (msg){ tryMsg = msg.toLowerCase(); tryMsgAt = Date.now(); }   // content match (URL path); myAddr covers pure-XEC
+    // encodeURIComponent: the bip21 value itself contains "?" and "&", so pasted
+    // raw into the fragment its own params read as siblings of bip21= to any
+    // standard parser. It happened to work only because Cashtab's parser is
+    // forgiving — that is luck, not a contract.
+    window.open(CASHTAB_WEB + '#/send?bip21=' + encodeURIComponent(bip21), '_blank', 'noopener');
     $('compose-in').value = ''; updateCmpPreview();
     hint(t('try.sent'), true);
   }
@@ -3891,7 +4140,7 @@ async function maybeOpenSharedTx(){
   if (!q || !/^[0-9a-f]{64}$/.test(q) || !state.chronik) return;
   try {
     const d = await state.chronik.tx(q);
-    const tx = parseTransactionCore(d);
+    const tx = scrubTx(parseTransactionCore(d));
     try { const r = deriveRoute(d); tx.from = r.from; tx.to = r.to; } catch {}
     const k = txKind(tx); tx.kind = k.kind; tx.f = k.f; tx.icon = k.icon;
     if ((tx.kind === 'token' || tx.kind === 'trade') && tx.token && tx.token.tokenId){
@@ -3935,9 +4184,11 @@ async function boot(){
   await loadPack(lang);
   applyStatic();
   renderAllLearn();
-  renderAllWatch();
-  updateWatchBadge();
   loadMyAddr();          // your wallet address (Flow key, else seeded from neo) → _mine + self-send
+  renderAllWatch();      // MUST follow loadMyAddr(): the panel renders the saved address + its ✕
+  updateWatchBadge();
+  initHeroBanner();      // first-visit thesis banner (mobile; CSS hides it on desktop)
+  renderNarratorLog();   // paint the empty-state caption into whichever log exists
   renderEchanToggle();   // E6: paint the footer bell in its saved on/off state
   updateLoadOlder();     // F11: history pill (hidden until the stream is scrolled to the top)
   // Version hides in the logo (hover to reveal) — single source of truth is #app

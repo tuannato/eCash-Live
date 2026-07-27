@@ -1,5 +1,5 @@
 /* =============================================================================
- * eChan companion — 1.3.5 controller
+ * eChan companion — 1.3.6 controller
  * =============================================================================
  *
  * 1.3.5 (review v1.7.1 pass): (a) F2 — sprites now lazy-load. buildDom keeps
@@ -76,7 +76,7 @@
   /* ===========================================================================
    * CONFIG
    * =========================================================================*/
-  const VERSION = '1.3.5';
+  const VERSION = '1.3.6';
   const SPRITE_PATH          = './vendor/companion/sprites/';
   const SPRITE_MANIFEST_URL  = './vendor/companion/sprites/manifest.json';
   const SEED_URL             = './vendor/companion/seed.json';
@@ -244,7 +244,13 @@
                   spot: d => msgSel(d.txid) },
     blockdrought: { trigger: 'event:blockdrought', priority: 2, cooldownMs: 0, chance: 1, spot: null },
   };
-  const FAST_TTF_MAX_MS  = 300;        /* brag below this */
+  /* Fallback only — the live brag threshold is the relay's own 24h P10 (see
+   * fastTtfMaxMs below). The old flat 300ms was BELOW the protocol floor:
+   * ttf-relay.py:430-431 puts that floor at ~1.34s (128 rounds at the 10ms
+   * event loop) and calls a sub-second reading "physically implausible", so a
+   * 300ms brag could only ever fire on a measurement artifact. Mirrors
+   * flow/index.html per CLAUDE.md §0.9 — change both together. */
+  const FAST_TTF_FALLBACK_MS = 1500;   /* brag floor while the relay is warming up */
   const SLOW_TTF_MIN_MS  = 4000;       /* grumble above this */
   const WHALE_XEC        = 1e9;        /* 🐋 whale: ≥1B XEC */
   const SHARK_XEC        = 1e8;        /* 🦈 shark: 100M–1B XEC (inline emits from 100M up) */
@@ -2273,7 +2279,7 @@
     if (type === 'ttf') {
       if (!data.precise) return;
       if (typeof data.ms === 'number' && data.ms < state.sessFastestMs) state.sessFastestMs = data.ms;
-      if (data.ms < FAST_TTF_MAX_MS)      routeKey = 'fastttf';
+      if (data.ms < fastTtfMaxMs())       routeKey = 'fastttf';
       else if (data.ms > SLOW_TTF_MIN_MS) routeKey = 'slowttf';
       else return;
     }
@@ -2366,6 +2372,22 @@
     const s = ms / 1000;
     if (s >= 10) return String(Math.round(s));
     return s.toFixed(1).replace(/\.0$/, '');
+  }
+
+  /* The "fast finality" brag threshold = the relay's live 24h P10, not a
+   * constant. The evt-fastttf lines make a comparative claim ("Avalanche is
+   * fast today", "blink and you missed it"), so the threshold must mean
+   * "faster than most" or the line is an embellishment. P10 is exactly that
+   * boundary and keeps the brag symmetric with SLOW_TTF_MIN_MS, which already
+   * sits near P90. A flat 2000ms was considered and rejected: P50 is ~2.0s, so
+   * it would fire on roughly HALF of all traffic. recordStats() rejects any
+   * frame without a numeric `tps`, and the relay omits every 24h field while
+   * warming up — so a stored frame is a non-warmup frame by construction. */
+  function fastTtfMaxMs() {
+    const st = state.lastStats;
+    const fresh = st && (Date.now() - state.lastStatsAt) < STATS_FRESH_MS;
+    return (fresh && typeof st.ttfP10Ms === 'number' && st.ttfP10Ms > 0)
+      ? st.ttfP10Ms : FAST_TTF_FALLBACK_MS;
   }
 
   /* Live template variables — usable in ANY seed line, not just event

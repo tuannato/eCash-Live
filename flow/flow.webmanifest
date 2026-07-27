@@ -1,0 +1,15 @@
+{
+  "id": "/flow/",
+  "name": "eCash Flow",
+  "short_name": "Flow",
+  "description": "The simple view of the eCash network: every transaction arrives like a message and turns permanently final in about two seconds.",
+  "start_url": "/flow/",
+  "scope": "/flow/",
+  "display": "standalone",
+  "theme_color": "#0090C8",
+  "background_color": "#08080F",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

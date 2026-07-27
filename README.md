@@ -21,9 +21,30 @@ and **post-consensus** (block finality) shown side by side.
   (SLP/ALP) transfers, and encrypted-message markers.
 - **1:1 chat** — read a wallet's on-chain message history by address.
 - **Watchlist** — track addresses with friendly labels.
-- **Tip jar** — send XEC via a generated BIP21 QR.
+- **Tip jar** — send XEC via a generated BIP21 QR (reached from the eChan
+  quick-action; the footer button it used to sit on is now the Flow gateway).
 - **eChan companion** — a deterministic, offline character that narrates live
   network activity from the stats feed (no LLM at runtime).
+
+-----
+
+## Two doors
+
+The same live data is served through two interfaces that must never disagree on a
+fact — they differ only in how much depth they show.
+
+| | **Dashboard** (`/`) | **Flow** (`/flow/`) |
+|---|---|---|
+| For | people who already know the chain | newcomers |
+| Shows | dense multi-column visualizer | a messenger-style stream |
+| A transaction is | a row with full protocol detail | a card that turns ✓✓ final |
+| A block is | its own animated column | a divider in the stream |
+
+**Flow** (`flow/index.html`) reads the same Chronik feeds, the same relay TTF
+feed, and the same `vendor/txparse.js`, and shares the `ecashlive.lang` language
+choice with the dashboard. It is a separate page with its own inline module and
+its own CSP hash. Where the dashboard adds detail, Flow simplifies by **omitting**
+— never by inventing a number it does not have.
 
 -----
 
@@ -40,11 +61,16 @@ estimate, then upgrades it in place to the precise value when the backend
 measurement arrives. The backend's own deployment is out of scope for this
 repository.
 
-| Layer            | Where                                              |
-|------------------|----------------------------------------------------|
-| Web app          | `index.html` + `vendor/` (served by GitHub Pages)  |
-| DNS / CDN proxy  | Cloudflare (DNS-only — does not modify content)    |
-| Indexer          | Public eCash Chronik nodes                          |
+| Layer            | Where                                                    |
+|------------------|----------------------------------------------------------|
+| Web app          | `index.html` + `flow/index.html` + `vendor/` (GitHub Pages) |
+| DNS / CDN proxy  | Cloudflare (DNS-only — does not modify content)          |
+| Indexer          | Public eCash Chronik nodes                                |
+
+Each page pins its **own** inline module by SHA-256 in its CSP meta tag, so the
+two hashes are independent. Editing a module without rerunning
+`./update-csp-hash.sh <file>` ships a blank page; `--check` verifies without
+writing and is enforced in CI (`.github/workflows/verify.yml`).
 
 ### eChan companion (`vendor/companion/`)
 

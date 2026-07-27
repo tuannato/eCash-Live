@@ -10,17 +10,31 @@
 # update the hash, the browser refuses to execute and the page renders blank.
 #
 # Usage:
-#   ./update-csp-hash.sh [path-to-html]
+#   ./update-csp-hash.sh [path-to-html]           # rewrite the token in place
+#   ./update-csp-hash.sh --check [path-to-html]   # verify only, never write
 #
 # Default path: index.html (in the current directory).
 #
 # Run this every time you edit the inline module. The script is idempotent:
 # running it when nothing changed leaves the file untouched.
+#
+# --check exits 1 when the pinned hash does not match the module, so CI can gate
+# a push. Forgetting the rewrite ships a fully blank page, and a Cloudflare HTML
+# transform (Auto Minify, Rocket Loader) breaks it the same way from a dashboard
+# toggle that never appears in a diff.
 # =============================================================================
 
 set -euo pipefail
 
-FILE="${1:-index.html}"
+CHECK=0
+ARGS=()
+for a in "$@"; do
+  case "$a" in
+    --check) CHECK=1 ;;
+    *) ARGS+=("$a") ;;
+  esac
+done
+FILE="${ARGS[0]:-index.html}"
 
 if [[ ! -f "$FILE" ]]; then
   echo "error: file not found: $FILE" >&2
@@ -47,6 +61,7 @@ fi
 import re, hashlib, base64, sys, os
 
 path = "$FILE"
+check = bool($CHECK)
 with open(path, 'r', encoding='utf-8') as f:
     html = f.read()
 
@@ -71,8 +86,15 @@ if not m:
 
 current = re.search(r'sha256-([A-Za-z0-9+/=]+)', m.group(0)).group(1)
 if current == new_hash:
-    print(f"unchanged: sha256-{new_hash}")
+    print(f"{'ok' if check else 'unchanged'}: {path} sha256-{new_hash}")
     sys.exit(0)
+
+if check:
+    print(f"STALE: {path}", file=sys.stderr)
+    print(f"  pinned in CSP : sha256-{current}", file=sys.stderr)
+    print(f"  module hashes : sha256-{new_hash}", file=sys.stderr)
+    print(f"  fix: ./update-csp-hash.sh {path}", file=sys.stderr)
+    sys.exit(1)
 
 new_html = csp_re.sub(lambda mo: mo.group(1) + 'sha256-' + new_hash + mo.group(2),
                       html, count=1)

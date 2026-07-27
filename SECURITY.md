@@ -46,9 +46,17 @@ A `<meta http-equiv="Content-Security-Policy">` tag in `<head>` pins:
 * `img-src` — `'self'`, `data:` (for SVG fallback icons), and
   `icons.etokens.cash` (token thumbnails).
 * `font-src 'self'`, `style-src 'self' 'unsafe-inline'`, plus
-  `frame-ancestors 'none'`, `base-uri 'none'`, `form-action 'none'` for
-  hardening.
+  `base-uri 'none'` and `form-action 'none'` for hardening.
 * `default-src 'none'` so anything not explicitly allowed is blocked.
+
+> **`frame-ancestors 'none'` is present in the meta tag but has NO effect.**
+> Per the CSP spec a `<meta http-equiv>` policy ignores `frame-ancestors`
+> (along with `report-uri` and `sandbox`) — those are honoured only as a real
+> HTTP response header. GitHub Pages cannot set response headers, so the site
+> currently has **no clickjacking protection**. The directive is left in place
+> so it starts working the moment the site is served through something that can
+> emit headers; until then, do not count it as a mitigation. This is a known,
+> accepted gap, not an oversight.
 
 ### Self-hosted vendor libraries
 `vendor/chronik-client.js`, `vendor/qrcode-generator.js`, and
@@ -111,4 +119,12 @@ naming the inline script. Run `update-csp-hash.sh` and reload.
 * Token icon thumbnails are still fetched from `icons.etokens.cash`, so
   that operator can correlate which tokens a visitor's IP is looking at.
   The fallback SVG renders inline so a blocked or down CDN doesn't break
-  the UI — just disable the icons toggle to avoid the requests entirely.
+  the UI — on the dashboard you can disable the icons toggle to avoid the
+  requests entirely. **Flow has no such toggle** (it deliberately ships
+  fewer controls), so on `/flow/` the token-icon requests cannot be turned
+  off from the UI.
+* Price data is fetched from `api.coingecko.com`, which likewise observes
+  the visitor's IP and User-Agent. Together with the token-icon CDN these
+  are the two deliberate exceptions to "no third-party runtime requests":
+  no third-party **code** or fonts ever load, but these two **data** hosts
+  do see traffic.
