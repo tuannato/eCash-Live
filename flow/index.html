@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-Yb9Q+yLdwUOX0n/hbw/u2YQxDH8xTCgn/MY4KwERApI=';
+  script-src 'self' 'sha256-mEijv7j5XMbCEQiDgdvgFmWhF4RY/tZ6UbYbNzrPpw0=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -132,7 +132,7 @@
     --glow:0 0 0 1px var(--final-ln), 0 0 22px rgba(0,151,92,.10);
   }
   *{box-sizing:border-box}
-  html,body{margin:0;padding:0}
+  html,body{margin:0;padding:0;overscroll-behavior:none}
   /* An explicit `display` rule (e.g. #cmp-panel{display:flex}) otherwise beats the
      UA [hidden] rule, leaving a "hidden" element laid out + click-catching. Force
      the attribute to win everywhere so `el.hidden = true` truly hides. */
@@ -216,6 +216,11 @@
      scroll away with the content, and this adds no width. --fade-to is the
      colour to fade INTO (each scroller sits on a different background).
      .hscroll-hint (JS-set, one-shot) nudges it once so touch users notice. */
+  /* touch-action:pan-x pins a drag on these rows to the horizontal axis — without
+     it a sideways swipe also panned the shell, so the footer appeared to slide
+     up/down while you were only trying to scroll it. overscroll-behavior stops the
+     gesture from chaining to the page once the row hits its end. */
+  .hscroll{touch-action:pan-x;overscroll-behavior-x:contain;}
   .hscroll::after,.hscroll::before{flex:none;align-self:stretch;width:34px;
         opacity:0;transition:opacity .22s;pointer-events:none;position:sticky;z-index:2;
         display:flex;align-items:center;color:var(--accent);
@@ -772,7 +777,7 @@
     </div>
   </aside>
 
-  <main id="app" data-version="v1.6.0">
+  <main id="app" data-version="v1.7.0">
     <div class="app-head">
       <div class="ah-top">
         <a class="brand" href="https://e.cash" target="_blank" rel="noopener noreferrer"
@@ -1595,6 +1600,13 @@ function txKind(tx){
 }
 // Token display name: hardcoded override ticker → fetched ticker/name → short
 // tokenId. Never invented — a token with no genesisInfo shows its short id.
+// True for an NFT. NOTE: tx.token.type is the PROTOCOL ('SLP'|'ALP') — the old
+// /NFT/i.test(type) could never match (F9). An SLP NFT1 child always references its
+// collection via groupTokenId, and an Agora 'oneshot' offer is by definition an NFT.
+function isNftToken(tx){
+  const tk = tx.token || {};
+  return !!(tx.agora && tx.agora.kind === 'oneshot') || !!tk.groupTokenId;
+}
 function tokenName(tx){
   const tk = tx.token || {};
   return tk.ticker || tk.name || shortId(tk.tokenId);
@@ -1602,15 +1614,36 @@ function tokenName(tx){
 // Token quantity from real atoms ÷ 10^decimals. Returns null until decimals is
 // known (fetchTokenTicker resolved) — we never show a raw-atoms figure that
 // would read wrong, so a not-yet-resolved token card shows just its name/id.
+// F9: atoms → display quantity with STRING math. Number(atoms) silently loses
+// precision above 2^53 (~9e15), which a big-supply or high-decimals token reaches
+// easily — a wrong quantity is worse than none (core value #1). Port of neo's
+// _formatAtomsWithDecimals; grouping uses the active locale's separators.
+function fmtAtoms(atomsStr, decimals){
+  try {
+    const dec = Math.max(0, decimals | 0);
+    const neg = String(atomsStr).trim().startsWith('-');
+    const digits = BigInt(atomsStr) < 0n ? (-BigInt(atomsStr)).toString() : BigInt(atomsStr).toString();
+    const padded = digits.padStart(dec + 1, '0');
+    const intDigits = dec === 0 ? padded : padded.slice(0, padded.length - dec);
+    let frac = dec === 0 ? '' : padded.slice(padded.length - dec).replace(/0+$/, '');
+    if (frac.length > 8) frac = frac.slice(0, 8);   // display cap, same as neo
+    let intPart;
+    try { intPart = BigInt(intDigits).toLocaleString(localeFor(lang)); }
+    catch { intPart = intDigits.replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+    let out = intPart;
+    if (frac){
+      // locale-correct decimal separator without going through Number()
+      let sep = '.';
+      try { sep = (1.1).toLocaleString(localeFor(lang)).replace(/[0-9]/g, '') || '.'; } catch {}
+      out += sep + frac;
+    }
+    return (neg ? '-' : '') + out;
+  } catch { return null; }
+}
 function tokenQty(tx){
   const tk = tx.token || {};
   if (tk.amount == null || tk.decimals == null) return null;
-  let atoms; try { atoms = BigInt(tk.amount); } catch { return null; }
-  const dec = tk.decimals || 0;
-  const v = dec > 0 ? Number(atoms) / Math.pow(10, dec) : Number(atoms);
-  if (!isFinite(v)) return null;
-  try { return v.toLocaleString(localeFor(lang), { maximumFractionDigits: Math.min(dec, 4) }); }
-  catch { return String(v); }
+  return fmtAtoms(tk.amount, tk.decimals || 0);
 }
 // Lazy token ticker/name/decimals cache (B15, pulled forward). One
 // chronik.token() per tokenId, deduped by the stored promise, result cached
@@ -1768,7 +1801,7 @@ function cardFor(tx){
   // icon — and is revealed in full at the bottom of the expanded detail.
   let sinkHtml = '';
   if ((tx.kind === 'token' || tx.kind === 'trade') && tx.token && tx.token.tokenId){
-    const isNft = !!(tx.agora && tx.agora.kind === 'oneshot') || /NFT/i.test(tx.token.type || '');
+    const isNft = isNftToken(tx);
     const img = tokenIconImg(tx.token.tokenId, isNft, 128);
     if (img) sinkHtml = '<span class="tok-sink" aria-hidden="true">' + img + '</span>';
   }
@@ -1888,6 +1921,8 @@ function foldDust(tx){
   const grp = { n:1, items:[ (tx.valueXec != null ? labelPay(tx) : '') + ' · ' + tx.id.slice(0,8) + '…' ] };
   const el = document.createElement('article');
   el.className = 'card t-group enter f-pay'; el.tabIndex = 0;
+  el.setAttribute('role', 'button');
+  el.setAttribute('aria-expanded', 'false');   // A8: it toggles a list — say so
   el.innerHTML = '<span class="ic">' + IC.stack + '</span>' +
     '<div class="body"><div class="t1">' + esc(tf('group.small', { n:'1' })) + '</div>' +
     '<div class="t2">' + esc(t('group.hint')) + '</div></div>' +
@@ -1895,7 +1930,11 @@ function foldDust(tx){
   const det = document.createElement('div');
   det.className = 'grp-detail'; det.innerHTML = esc(grp.items[0]);
   const caretEl = el.querySelector('.ttf');
-  const tog = () => { const open = det.classList.toggle('open'); caretEl.textContent = open ? '▴' : '▾'; };
+  const tog = () => {
+    const open = det.classList.toggle('open');
+    caretEl.textContent = open ? '▴' : '▾';
+    el.setAttribute('aria-expanded', String(open));
+  };
   el.addEventListener('click', tog);
   el.addEventListener('keydown', (e) => { if (e.key==='Enter'||e.key===' '){ e.preventDefault(); tog(); } });
   grp.el = el; grp.det = det;
@@ -1949,6 +1988,8 @@ function foldRun(tx, gkey){
     g = { n:1, lastTs: now, lastTx: tx, items:[line], txids:[tx.id] };
     const el = document.createElement('article');
     el.className = 'card t-group enter f-' + (tx.f || 'token'); el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+    el.setAttribute('aria-expanded', 'false');   // A8
     el.innerHTML = '<span class="ic">' + (tx.icon || IC.stack) + '</span>' +
       '<div class="body"><div class="t1">' + esc(tf('group.run', { n:'1', label: cs.t1 })) + '</div>' +
       '<div class="t2">' + esc(t('group.hint')) + '</div></div>' +
@@ -1956,7 +1997,11 @@ function foldRun(tx, gkey){
     const det = document.createElement('div');
     det.className = 'grp-detail'; det.innerHTML = esc(line);
     const caretEl = el.querySelector('.ttf');
-    const tog = () => { const open = det.classList.toggle('open'); caretEl.textContent = open ? '▴' : '▾'; };
+    const tog = () => {
+      const open = det.classList.toggle('open');
+      caretEl.textContent = open ? '▴' : '▾';
+      el.setAttribute('aria-expanded', String(open));
+    };
     el.addEventListener('click', tog);
     el.addEventListener('keydown', (e) => { if (e.key==='Enter'||e.key===' '){ e.preventDefault(); tog(); } });
     g.el = el; g.det = det;
@@ -2003,7 +2048,10 @@ function sealBlock(height, realTxCount){
   det.className = 'div-detail';
   det.innerHTML = sealed.slice(0,6).map(tx => esc((cardStrings(tx).t1 || '') + ' · ' + tx.id.slice(0,10) + '…')).join('<br>') +
     (sealed.length > 6 ? '<br>' + esc(tf('divider.more', { n: fmtInt(sealed.length-6) })) : '');
-  div.addEventListener('click', () => det.classList.toggle('open'));
+  div.setAttribute('aria-expanded', 'false');   // A8: the divider expands a preview list
+  div.addEventListener('click', () => {
+    div.setAttribute('aria-expanded', String(det.classList.toggle('open')));
+  });
   div._blockData = { height, n };
   hideEmpty();
   stream.appendChild(div); stream.appendChild(det);
@@ -2061,6 +2109,29 @@ function deriveRoute(txData){
    full, or at boot). Instead of dropping the node-precise number, buffer it
    briefly and apply the moment the tx lands. Bounded FIFO + TTL (mirrors neo's
    pendingBuffer / checkTtfBufferForTx). */
+/* ---- WS arrival times (A6) ----
+   The WS announces a tx before we have its data. When the fetch is over the
+   concurrency cap, the stream is paused, or the 5s poll admits the tx first, that
+   arrival time used to be thrown away and the perceived-TTF anchor silently became
+   "parse time" — up to a poll interval late, i.e. a TTF that reads better than
+   reality. Same bounded FIFO + TTL shape as ttfPending below. */
+const wsSeenAt = new Map();        // txid -> ms
+const WS_SEEN_MAX = 300;
+const WS_SEEN_TTL_MS = 30_000;
+function noteWsSeen(txid, at){
+  if (!txid) return;
+  wsSeenAt.set(txid, at);
+  while (wsSeenAt.size > WS_SEEN_MAX){ const k = wsSeenAt.keys().next().value; wsSeenAt.delete(k); }
+}
+// One-shot read: an anchor older than the TTL is discarded rather than used, so a
+// long-delayed admit can't attach a wildly stale reference point.
+function takeWsSeen(txid){
+  const at = wsSeenAt.get(txid);
+  if (at == null) return null;
+  wsSeenAt.delete(txid);
+  return (Date.now() - at) < WS_SEEN_TTL_MS ? at : null;
+}
+
 const ttfPending = new Map();       // txid -> { ttfMs, at }
 const TTF_PENDING_MAX = 300;
 const TTF_PENDING_TTL_MS = 30_000;
@@ -2088,6 +2159,8 @@ function admit(txData){
   let tx;
   try { tx = parseTransactionCore(txData); } catch { return; }
   try { const r = deriveRoute(txData); tx.from = r.from; tx.to = r.to; tx._addrSet = r.allAddrs; } catch {}
+  const wsSeen = takeWsSeen(tx.id);            // A6: honest anchor if the WS saw it first
+  if (wsSeen) tx.wsObservedAt = wsSeen;
   // already in a block when first seen → not part of the live sending→final
   // stream (block height is maintained by the block subscription); skip.
   if (txData.block && txData.block.height) return;
@@ -2325,8 +2398,11 @@ function prependHistory(txDatas, height, realTxCount){
   // BELOW the transactions it contains, and only states a count when chronik
   // actually gave us one.
   if (frag.childNodes.length){
-    const div = document.createElement('button');
-    div.className = 'divider'; div.type = 'button';
+    // A plain <div>, NOT a button: unlike the live divider this one has no
+    // "recently finalized" preview to expand, and a button that does nothing is
+    // worse than no button (it takes a tab stop and lies to screen readers).
+    const div = document.createElement('div');
+    div.className = 'divider';
     const n = (realTxCount != null) ? realTxCount : null;
     const lbl = n != null ? tf('divider.block', { h: fmtInt(height), n: fmtInt(n) })
                           : tf('divider.blockNoCount', { h: fmtInt(height) });
@@ -2518,6 +2594,10 @@ function handleWs(ws, msg){
     const seenAt = Date.now();   // WS ADDED arrival = the honest perceived-TTF anchor (F5)
     const existing = state.txs.get(txid);
     if (existing && !existing.wsObservedAt) existing.wsObservedAt = seenAt;
+    // A6: remember it even when we can't fetch right now (fetch cap hit, paused) or
+    // when the poll ends up admitting this tx first — otherwise its anchor becomes
+    // "parse time", up to a poll interval late, which biases perceived TTF LOW.
+    noteWsSeen(txid, seenAt);
     subscribeTxid(txid);
     if (!state.txs.has(txid) && wsFetchInFlight < 8 && !state.paused){
       wsFetchInFlight++;
@@ -2727,7 +2807,7 @@ function fmtClock(tx){
 // sunk peek on the collapsed card. Reuses the same hex-gated img + SVG fallback.
 function detailTokenArt(tx){
   if (!(tx.kind === 'token' || tx.kind === 'trade') || !tx.token || !tx.token.tokenId) return '';
-  const isNft = !!(tx.agora && tx.agora.kind === 'oneshot') || /NFT/i.test(tx.token.type || '');
+  const isNft = isNftToken(tx);
   const img = tokenIconImg(tx.token.tokenId, isNft, 512);   // large source for the portrait
   // role/tabindex so the copy-the-tokenId affordance is keyboard-reachable (A8)
   return img ? '<div class="cd-art" role="button" tabindex="0" aria-label="' + esc(t('sh.tokenId')) +
@@ -2742,6 +2822,9 @@ function tokenQtyNum(tx){
   const tk = tx.token || {};
   if (tk.amount == null || tk.decimals == null) return null;
   let atoms; try { atoms = BigInt(tk.amount); } catch { return null; }
+  // Only used for "price per token" division. Refuse rather than divide by a
+  // number that has already lost digits (F9) — the row is omitted instead.
+  if (atoms > BigInt(Number.MAX_SAFE_INTEGER) || atoms < -BigInt(Number.MAX_SAFE_INTEGER)) return null;
   const dec = tk.decimals || 0;
   const v = dec > 0 ? Number(atoms) / Math.pow(10, dec) : Number(atoms);
   return isFinite(v) ? v : null;
