@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-hN5ZmHzzOL1Gs71bigqsjAP1aIWw1cubsJSGQPSXOUs=';
+  script-src 'self' 'sha256-K2bkxOjbrwPV+OAsLsmF8HY2z1kD5hOEEDBVquc2hqA=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -510,6 +510,18 @@
       border-radius: 6px;
       box-shadow: 0 18px 44px rgba(0,0,0,0.6), 0 0 0 1px rgba(1,160,224,0.08);
       z-index: 600;
+      /* The page itself never scrolls (html,body{overflow:hidden}), so an
+         expanded tile used to push the rest of the list past the viewport
+         bottom with no way to reach it. Bound the panel to the space that
+         actually exists below the topbar and let IT scroll.
+         Uses --topbar-h (published by setupTopbarOverflow's measure() on
+         load/resize/RO) rather than a percentage: `100%` resolves against the
+         topbar's *specified* 60px, not its used height, so it under-measured
+         by ~60px in the mobile 2-row state. */
+      max-height: calc(100vh - var(--topbar-h, 60px) - 20px);
+      max-height: calc(100dvh - var(--topbar-h, 60px) - 20px);   /* dvh: excludes mobile browser chrome */
+      overflow-y: auto;
+      overscroll-behavior: contain;
     }
     .topbar-nav.open { display: flex; }
     /* Stack button + popup vertically inside the collapsed nav (without
@@ -537,11 +549,16 @@
     .topbar-nav .info-tile-btn .info-tile-caret {
       margin-left: auto;
     }
-    /* Inside collapsed panel: anchor popup full-width below button */
+    /* Inside collapsed panel: anchor popup full-width below button.
+       The panel above is now the single scroll container, so the popup must
+       give up the base rule's own max-height/overflow — otherwise a long tile
+       gets a second, nested scrollbar inside the first. */
     .topbar-nav .info-tile-pop {
       position: static;
       width: 100%;
       max-width: none;
+      max-height: none;
+      overflow-y: visible;
       margin-top: 6px;
       border: 1px solid var(--line-2);
       box-shadow: none;
@@ -578,6 +595,13 @@
     border-radius: 6px;
     box-shadow: 0 18px 44px rgba(0,0,0,0.6), 0 0 0 1px rgba(1,160,224,0.08);
     z-index: 600;
+    /* Same bound as the @media collapsed panel above — this is the desktop
+       path (setupTopbarOverflow sets the class), where the topbar can also be
+       2 rows tall, hence --topbar-h rather than a hardcoded 60px. */
+    max-height: calc(100vh - var(--topbar-h, 60px) - 20px);
+    max-height: calc(100dvh - var(--topbar-h, 60px) - 20px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
   body.topbar-nav-collapsed .topbar-nav.open { display: flex !important; }
   body.topbar-nav-collapsed .topbar-nav .info-tile {
@@ -606,6 +630,8 @@
     position: static;
     width: 100%;
     max-width: none;
+    max-height: none;      /* the panel is the single scroll container */
+    overflow-y: visible;
     margin-top: 6px;
     border: 1px solid var(--line-2);
     box-shadow: none;
@@ -4920,10 +4946,17 @@
     /* Body text size bump for readability on tiny screens. */
     .info-tile-body p { font-size: 13.5px; line-height: 1.55; }
     /* The topbar-nav container itself can scroll if a long dropdown pushes
-       it past viewport height. */
+       it past viewport height. The 80px here was a hardcoded guess at the
+       topbar height; the real mobile topbar is a 2-row grid (~120px), so the
+       panel still ran ~40px past the fold — and since html/body never scroll,
+       that content was unreachable. Use the live --topbar-h that
+       setupTopbarOverflow already publishes. NOTE the .open selector (0,2,0)
+       outranks the plain .topbar-nav rule, so this one has to be fixed too. */
     .topbar-nav.open {
-      max-height: calc(100vh - 80px);
+      max-height: calc(100vh - var(--topbar-h, 60px) - 20px);
+      max-height: calc(100dvh - var(--topbar-h, 60px) - 20px);
       overflow-y: auto;
+      overscroll-behavior: contain;
       -webkit-overflow-scrolling: touch;
     }
     .info-tile-pop .info-tile-body p { font-size: 13px; }
@@ -6864,7 +6897,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v2.0.1">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v2.0.0</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v2.0.2">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v2.0.2</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -22581,6 +22614,19 @@ window.addEventListener('pagehide', () => {
     ttfFeedState.renderPending = false;
   }
   _stopBackgroundIntervals();
+});
+
+// Single source of truth for the version string. The hover tooltip used to be a
+// second hardcoded literal next to data-version, and the two silently drifted
+// (shipped v2.0.1 while the tooltip still read v2.0.0). Mirrors what Flow already
+// does for #brand-ver — now there is exactly one place to bump.
+queueMicrotask(() => {
+  try {
+    const src = document.querySelector('.accent-version[data-version]');
+    const tip = $('version-tip');
+    const v = src && src.getAttribute('data-version');
+    if (tip && v) tip.textContent = v;
+  } catch {}
 });
 
 // Wire close button on banner (defer until DOM ready)

@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-PXNq0vdsfVFuPfQzgN9lqJexh6bO2PR48cEhPUo13po=';
+  script-src 'self' 'sha256-v6LBWkC50kkYR7E1XsU5YBMVuZ+a9o/k3YeYclWPCBk=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -809,7 +809,7 @@
     </div>
   </aside>
 
-  <main id="app" data-version="v1.8.0">
+  <main id="app" data-version="v1.9.0">
     <div class="app-head">
       <div class="ah-top">
         <a class="brand" href="https://e.cash" target="_blank" rel="noopener noreferrer"
@@ -1668,6 +1668,7 @@ function appended(){
     newPill.classList.add('show');
   }
   updateFabAway();
+  normalizeRoving();   // new card arrived / oldest evicted — keep exactly one tab stop
   // Burst cap: evict the oldest DOM nodes — cards, dividers, dust/run groups —
   // so the stream never grows unbounded (CLAUDE.md §10). Node type doesn't
   // matter: whatever has been in the stream longest goes first.
@@ -1701,6 +1702,56 @@ function appended(){
   }
 }
 function announce(msg){ const el = $('a11y-live'); if (!el) return; el.textContent = ''; setTimeout(() => { el.textContent = msg; }, 30); }
+
+/* ------------------------------------------------------------------ roving tabindex
+   The stream holds up to RENDER_CAP (120) focusable items — RENDER_CAP*3 (360)
+   while scrolled up, per A7 — and every card is role="button" tabindex="0". A
+   keyboard user therefore had to Tab through the entire feed to reach the footer.
+   Standard roving pattern: the stream is ONE tab stop, arrows move within it.
+
+   Deliberately STATELESS — the roving item is simply "the one with tabIndex 0",
+   read back from the DOM. A stored id or node reference would have to be repaired
+   on eviction, on filtering, and on history prepend; deriving it instead makes all
+   three self-healing, and can't retain a detached node (see the tx.el leak fixed
+   in appended()). Detail panels are siblings, not roving items: their buttons and
+   links stay normally tabbable, so Tab still walks from a card into its detail. */
+function rovingAll(){
+  return [...stream.children].filter(el =>
+    el.classList.contains('card') || el.classList.contains('divider'));
+}
+function rovingVisible(){ return rovingAll().filter(el => !el.classList.contains('hide')); }
+// Guarantee exactly one tab stop. Called after anything that adds, removes,
+// hides or reorders stream children.
+function normalizeRoving(){
+  const all = rovingAll();
+  if (!all.length) return;
+  let cur = all.find(el => el.tabIndex === 0 && !el.classList.contains('hide'));
+  if (!cur) cur = rovingVisible()[0] || null;
+  all.forEach(el => { el.tabIndex = (el === cur) ? 0 : -1; });
+}
+// Whatever the user actually focused becomes the tab stop. Without this, clicking
+// card #5 leaves the stop on card #1, so tabbing away and back would dump them at
+// the top of the feed instead of where they were.
+stream.addEventListener('focusin', (e) => {
+  const items = rovingAll();
+  if (!items.includes(e.target)) return;   // focus is inside a detail panel
+  items.forEach(el => { el.tabIndex = (el === e.target) ? 0 : -1; });
+});
+stream.addEventListener('keydown', (e) => {
+  const items = rovingVisible();
+  const i = items.indexOf(e.target);
+  if (i < 0) return;   // focus is inside a detail panel / a link — leave it alone
+  let j;
+  if (e.key === 'ArrowDown')      j = Math.min(i + 1, items.length - 1);
+  else if (e.key === 'ArrowUp')   j = Math.max(i - 1, 0);
+  else if (e.key === 'Home')      j = 0;
+  else if (e.key === 'End')       j = items.length - 1;
+  else return;
+  e.preventDefault();
+  items.forEach(el => { el.tabIndex = -1; });
+  items[j].tabIndex = 0;
+  items[j].focus();
+});
 
 /* ------------------------------------------------------------------ card render */
 function hideEmpty(){ const e = $('empty'); if (e) e.remove(); }
@@ -1964,7 +2015,7 @@ function cardFor(tx){
   // honor the active filter for cards added while a chip is selected
   if (state.filter !== 'all' && state.filter !== tx.f) el.classList.add('hide');
   // tap → expand the detail in place (no popup)
-  el.tabIndex = 0;
+  el.tabIndex = -1;                 // roving: normalizeRoving() picks the single tab stop
   el.setAttribute('role', 'button');
   el.setAttribute('aria-expanded', 'false');
   el.addEventListener('click', () => toggleCardExpand(tx));
@@ -2088,7 +2139,7 @@ function foldDust(tx){
   }
   const grp = { n:1, items:[ (tx.valueXec != null ? labelPay(tx) : '') + ' · ' + tx.id.slice(0,8) + '…' ] };
   const el = document.createElement('article');
-  el.className = 'card t-group enter f-pay'; el.tabIndex = 0;
+  el.className = 'card t-group enter f-pay'; el.tabIndex = -1;   // roving
   el.setAttribute('role', 'button');
   el.setAttribute('aria-expanded', 'false');   // A8: it toggles a list — say so
   el.innerHTML = '<span class="ic">' + IC.stack + '</span>' +
@@ -2155,7 +2206,7 @@ function foldRun(tx, gkey){
   } else {
     g = { n:1, lastTs: now, lastTx: tx, items:[line], txids:[tx.id] };
     const el = document.createElement('article');
-    el.className = 'card t-group enter f-' + (tx.f || 'token'); el.tabIndex = 0;
+    el.className = 'card t-group enter f-' + (tx.f || 'token'); el.tabIndex = -1;   // roving
     el.setAttribute('role', 'button');
     el.setAttribute('aria-expanded', 'false');   // A8
     el.innerHTML = '<span class="ic">' + (tx.icon || IC.stack) + '</span>' +
@@ -2583,6 +2634,7 @@ function prependHistory(txDatas, height, realTxCount){
   stream.insertBefore(frag, stream.firstChild);
   // prepending shifts everything down — keep the viewport where the user left it
   stream.scrollTop = prevTop + (stream.scrollHeight - prevH);
+  normalizeRoving();   // history prepended above the current tab stop
   histCount += added;
   return added;
 }
@@ -2943,6 +2995,7 @@ function applyFilter(){
     const tx = state.txs.get(state.expandedId);
     if (tx && tx.el && tx.el.classList.contains('hide')){ collapseCard(tx); state.expandedId = null; }
   }
+  normalizeRoving();   // the tab stop may have just been hidden by the chip
 }
 document.querySelectorAll('.chips .chip').forEach(b => {
   b.setAttribute('aria-pressed', b.classList.contains('on') ? 'true' : 'false');
