@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-v6LBWkC50kkYR7E1XsU5YBMVuZ+a9o/k3YeYclWPCBk=';
+  script-src 'self' 'sha256-9TFoYJm9Y2PaZ+FyrHFJ1JcRwl9WxT33okDo3/f4lh0=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://icons.etokens.cash;
@@ -809,7 +809,7 @@
     </div>
   </aside>
 
-  <main id="app" data-version="v1.9.0">
+  <main id="app" data-version="v1.10.0">
     <div class="app-head">
       <div class="ah-top">
         <a class="brand" href="https://e.cash" target="_blank" rel="noopener noreferrer"
@@ -3297,8 +3297,22 @@ function tickDetailTime(){
 function refreshExpandedDetail(tx){
   if (state.expandedId === tx.id && tx._detail && tx._detail.classList.contains('open')) fillDetail(tx);
 }
+// Share links go through the share Worker (P3 Stage 1), NOT ?tx= directly.
+// GitHub Pages serves identical HTML for every ?tx= and crawlers do not run JS,
+// so a ?tx= link could never unfurl as its own transaction. s.ecashlive.net
+// answers crawlers with per-tx og:* and redirects people straight to the same
+// ?tx= receipt — so the destination a human reaches is unchanged.
+// Falls back to the direct ?tx= link when the Worker host isn't configured, and
+// ?tx= keeps working forever for links already shared.
+const SHARE_BASE = 'https://s.ecashlive.net/';
+function shareUrlFor(txid){
+  const direct = location.origin + location.pathname + '?tx=' + txid;
+  // Only use the Worker for the real site — a local/preview origin must keep
+  // sharing its own URL or the link would point at production.
+  return location.hostname === 'ecashlive.net' ? (SHARE_BASE + txid) : direct;
+}
 async function shareTx(tx){
-  const url = location.origin + location.pathname + '?tx=' + tx.id;   // shareable Flow receipt
+  const url = shareUrlFor(tx.id);
   try { if (navigator.share){ await navigator.share({ title: 'eCash · Flow', url }); return; } } catch {}
   try { await navigator.clipboard.writeText(url); toast(t('toast.copied')); } catch { toast(url); }
 }

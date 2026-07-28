@@ -10,3 +10,11 @@ ttf-stats.json.tmp
 ecash_bot.py
 CLAUDE.md
 PROJECT_INDEX.md
+
+# --- Worker toolchain (P3 Stage 1) ---
+# wrangler + its deps are ~206MB and are reinstalled by `npm ci` from the
+# committed package-lock.json. The lockfile IS committed so deploys are
+# reproducible; node_modules never is. The Worker source itself (src/,
+# wrangler.toml, package.json) is part of the repo.
+node_modules/
+.wrangler/

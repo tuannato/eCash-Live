@@ -1,0 +1,40 @@
+# eCash Live — share-card Worker (P3 Stage 1)
+#
+# Serves https://s.ecashlive.net/<txid>: a per-transaction unfurl card for
+# crawlers, and an immediate redirect into Flow for people.
+#
+# WHY a separate subdomain rather than proxying ecashlive.net: the main site
+# stays DNS-only, so Cloudflare never sits in front of ordinary visitors and the
+# CSP-pinned pages are untouched. This Worker is a sibling service, held to the
+# same rule as ttf-relay.py — if it is down, nothing on the main site breaks
+# (a share link simply stops unfurling; the /flow/?tx= receipt still works).
+#
+# Deploy:
+#   npm install -g wrangler      # or npx wrangler
+#   wrangler login
+#   wrangler deploy
+#
+# DNS: add a CNAME/AAAA for `s` on ecashlive.net — this route is the ONLY
+# proxied (orange-cloud) hostname. Leave the apex DNS-only.
+
+name = "ecashlive-share"
+main = "src/index.js"
+compatibility_date = "2026-07-01"
+
+# The bundler follows the ../vendor imports; nothing is vendored twice.
+# chronik-client pulls in axios, which selects its fetch adapter under Workers
+# (verified: the bundle feature-detects `typeof fetch == "function"` and uses
+# globalThis Request/Response/ReadableStream/TextEncoder, all of which Workers
+# provide).
+[build]
+command = ""
+
+# A custom domain routes EVERY path on the hostname to this Worker, so the
+# pattern is the bare hostname — wrangler rejects wildcards and paths here
+# ("Wildcard operators (*) are not allowed in Custom Domains").
+[[routes]]
+pattern = "s.ecashlive.net"
+custom_domain = true
+
+[observability]
+enabled = true
