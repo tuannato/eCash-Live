@@ -17,6 +17,7 @@
     "hero.body3": "em segundos.",
     "stats.title": "Rede",
     "stats.p50": "Final mediana",
+    "stats.p50_30d": "Mediana · 30 dias",
     "stats.count": "Transações (sessão)",
     "stats.price": "Preço",
     "stats.block": "Bloco",

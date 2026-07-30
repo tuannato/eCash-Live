@@ -17,6 +17,7 @@
     "hero.body3": "됩니다.",
     "stats.title": "네트워크",
     "stats.p50": "확정 시간 중앙값",
+    "stats.p50_30d": "중앙값 · 30일",
     "stats.count": "거래 (세션)",
     "stats.price": "가격",
     "stats.block": "블록",

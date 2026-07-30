@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-PtKocNPgSoOLKQzLh4pmfEVSRKD5AtIJlTJ2e3XbpN8=';
+  script-src 'self' 'sha256-JbDPSwDn9HwchId9Udk4WO6RpFw61rUhJl/aEQrATl0=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -6898,7 +6898,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v2.1.0">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v2.1.0</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v2.2.0">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v2.2.0</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -7549,6 +7549,16 @@
   <div class="cell" id="f-tps-cell" title="Network transactions per second, rolling 24h. From the dedicated eCash node. Click for details.">
     <span class="k">TPS · 24h</span>
     <span class="v mono" id="f-tps">— <span class="u">tps</span></span>
+  </div>
+  <!-- 2b · TTF · 30d — rolling median from the relay's own daily rollup
+       (api.ecashlive.net/history). A live spot reading invites "you are showing
+       a lucky moment"; a 30-day median from the node's records cannot be
+       cherry-picked, and no explorer publishes it because none measures
+       finality. Hidden when the history is unavailable or too short — never a
+       placeholder number. Mirrors flow/index.html. -->
+  <div class="cell hide-medium" id="f-ttf30-cell" title="Median time-to-finality across the last 30 days, from this node's own daily records. Click for details." hidden>
+    <span class="k">TTF · 30d</span>
+    <span class="v mono" id="f-ttf30">— <span class="u">s</span></span>
   </div>
   <!-- 3 · Avg block-lock (session) — block-mined → ava-finalized leg, not yet
        exposed by the relay; remains session-scoped until a future patch. -->
@@ -13586,6 +13596,34 @@ function fetchPowrAuthor(txid) {
 }
 // "@who", or "@who · reply → @parent" for a reply once both resolve. Returns ''
 // when nothing is known, so the card reads exactly as it did before.
+/* ---- rolling 30-day median finality (P3 Stage 3a) ----
+   Read from the relay's own daily rollup via api.ecashlive.net/history, which
+   computes the median ONCE so both doors show the same figure and neither
+   re-implements the maths (the neo/Flow parity rule).
+
+   Honesty: the endpoint refuses to answer with fewer than 7 recorded days, and
+   this hides the cell entirely rather than showing a placeholder. One fetch per
+   load — the rollup only changes at 00:02 UTC.
+   Mirrors flow/index.html. */
+const HISTORY_API = 'https://api.ecashlive.net/history?days=30';
+async function loadTtf30() {
+  try {
+    const r = await fetch(HISTORY_API);
+    if (!r.ok) return;
+    const j = await r.json();
+    if (!j || typeof j.medianTtfMs !== 'number' || j.medianTtfMs <= 0) return;
+    const el = document.getElementById('f-ttf30');
+    const cell = document.getElementById('f-ttf30-cell');
+    if (!el || !cell) return;
+    el.innerHTML = (j.medianTtfMs / 1000).toFixed(2) + ' <span class="u">s</span>';
+    // Say what the number actually covers — `days` can be < 30 early on.
+    cell.title = `Median time-to-finality across ${j.days} day${j.days === 1 ? '' : 's'} `
+               + `(${j.from} to ${j.to}), from this node's own daily records. Click for details.`;
+    cell.hidden = false;
+  } catch { /* stay hidden — the live readings are unaffected */ }
+}
+queueMicrotask(loadTtf30);
+
 function powrByline(m) {
   const pw = m && m.powr;
   if (!pw) return '';

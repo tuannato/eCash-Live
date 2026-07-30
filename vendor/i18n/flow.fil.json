@@ -17,6 +17,7 @@
     "hero.body3": "sa ilang segundo.",
     "stats.title": "Network",
     "stats.p50": "Median final",
+    "stats.p50_30d": "Median · 30 araw",
     "stats.count": "Mga transaksyon (session)",
     "stats.price": "Presyo",
     "stats.block": "Block",

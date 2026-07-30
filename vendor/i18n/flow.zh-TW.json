@@ -17,6 +17,7 @@
     "hero.body3": "。",
     "stats.title": "網路",
     "stats.p50": "最終確認中位數",
+    "stats.p50_30d": "中位數 · 30 天",
     "stats.count": "交易（本次工作階段）",
     "stats.price": "價格",
     "stats.block": "區塊",

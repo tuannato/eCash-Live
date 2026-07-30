@@ -17,6 +17,7 @@
     "hero.body3": "in Sekunden.",
     "stats.title": "Netzwerk",
     "stats.p50": "Median final",
+    "stats.p50_30d": "Median · 30 Tage",
     "stats.count": "Transaktionen (Sitzung)",
     "stats.price": "Preis",
     "stats.block": "Block",

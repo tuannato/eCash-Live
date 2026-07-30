@@ -17,6 +17,7 @@
     "hero.body3": "になります。",
     "stats.title": "ネットワーク",
     "stats.p50": "確定時間の中央値",
+    "stats.p50_30d": "中央値 · 30日",
     "stats.count": "取引数（セッション）",
     "stats.price": "価格",
     "stats.block": "ブロック",

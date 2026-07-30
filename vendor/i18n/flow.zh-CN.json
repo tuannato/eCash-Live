@@ -17,6 +17,7 @@
     "hero.body3": "。",
     "stats.title": "网络",
     "stats.p50": "最终确认中位数",
+    "stats.p50_30d": "中位数 · 30 天",
     "stats.count": "交易（本次会话）",
     "stats.price": "价格",
     "stats.block": "区块",

@@ -17,6 +17,7 @@
     "hero.body3": "dalam hitungan detik.",
     "stats.title": "Jaringan",
     "stats.p50": "Median final",
+    "stats.p50_30d": "Median · 30 hari",
     "stats.count": "Transaksi (sesi ini)",
     "stats.price": "Harga",
     "stats.block": "Blok",

@@ -17,6 +17,7 @@
     "hero.body3": "hale gelir.",
     "stats.title": "Ağ",
     "stats.p50": "Medyan kesinleşme",
+    "stats.p50_30d": "Medyan · 30 gün",
     "stats.count": "İşlemler (oturum)",
     "stats.price": "Fiyat",
     "stats.block": "Blok",

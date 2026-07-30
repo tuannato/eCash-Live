@@ -29,6 +29,10 @@ const ORIGIN_ALLOW = ['https://ecashlive.net', 'https://www.ecashlive.net'];
 const COINGECKO = 'https://api.coingecko.com/api/v3/simple/price?ids=ecash&vs_currencies=usd';
 const ICON_HOST = 'https://icons.etokens.cash';
 const POWR_HOST = 'https://proofofwriting.com';
+// The relay's own daily rollup, served read-only by nginx on the relay host.
+// One JSONL line per UTC day since 2026-05-31: date, samples, tps, and
+// ttf_{mean,p10,p50,p90,min,max}_ms. ~150 bytes/day.
+const DAILY_URL = 'https://chronik1.ecashlive.net/ttf-daily.jsonl';
 
 const HEX64 = /^[0-9a-f]{64}$/;
 const ICON_SIZES = new Set(['32', '64', '128', '256', '512']);   // allowlist, not free-form
@@ -40,6 +44,7 @@ const API_VERSION = 2;   // v2: /powr returns {author} only, never the post body
 const CACHE_PRICE_S = 60;      // page polls every 120s; one origin read per minute
 const CACHE_ICON_S  = 604800;  // a token's icon does not change
 const CACHE_POWR_S  = 3600;
+const CACHE_HIST_S  = 3600;   // the rollup only changes once a day, at 00:02 UTC
 const CACHE_FAIL_S  = 30;      // negative caching, so a miss storm can't hammer upstream
 const UPSTREAM_TIMEOUT_MS = 4000;
 
@@ -201,6 +206,52 @@ async function handlePowr(parts) {
   }
 }
 
+/* ---------------------------------------------------------------- /history */
+// A rolling 30-day median, computed ONCE here so both doors show the same
+// number and neither has to re-implement the maths (the parity rule).
+//
+// Why this figure at all: a live spot reading invites "you are showing a lucky
+// moment". A 30-day median from the node's own audit trail cannot be cherry
+// picked, and nobody else can publish it — no explorer measures finality.
+//
+// Honesty: computed only from days the relay actually recorded. Fewer days than
+// asked for is reported as `days`, never padded; too few and the page shows
+// nothing rather than a figure built on a handful of samples.
+const HIST_MIN_DAYS = 7;
+export function summarizeDaily(text, window) {
+  const rows = [];
+  for (const line of String(text || '').split('\n')) {
+    const t = line.trim();
+    if (!t) continue;
+    try {
+      const r = JSON.parse(t);
+      if (r && typeof r.ttf_p50_ms === 'number' && r.ttf_p50_ms > 0 && typeof r.date === 'string') rows.push(r);
+    } catch { /* skip a malformed line rather than fail the whole series */ }
+  }
+  if (rows.length < HIST_MIN_DAYS) return null;
+  rows.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  const recent = rows.slice(-window);
+  const p50 = recent.map(r => r.ttf_p50_ms).sort((a, b) => a - b);
+  const mid = p50.length % 2
+    ? p50[(p50.length - 1) / 2]
+    : Math.round((p50[p50.length / 2 - 1] + p50[p50.length / 2]) / 2);
+  const samples = recent.reduce((a, r) => a + (typeof r.samples === 'number' ? r.samples : 0), 0);
+  return { days: recent.length, medianTtfMs: mid, samples, from: recent[0].date, to: recent[recent.length - 1].date };
+}
+
+async function handleHistory(url) {
+  const w = Math.min(Math.max(parseInt(url.searchParams.get('days') || '30', 10) || 30, 7), 365);
+  try {
+    const r = await upstream(DAILY_URL);
+    if (!r.ok) return json({ error: 'unavailable' }, CACHE_FAIL_S);
+    const out = summarizeDaily(await r.text(), w);
+    if (!out) return json({ error: 'not enough history' }, CACHE_FAIL_S);
+    return json(out, CACHE_HIST_S);
+  } catch {
+    return json({ error: 'unavailable' }, CACHE_FAIL_S);
+  }
+}
+
 /* ----------------------------------------------------------------- router */
 export default {
   async fetch(request, env, ctx) {
@@ -218,7 +269,7 @@ export default {
     const parts = url.pathname.split('/').filter(Boolean);
 
     const cache = caches.default;
-    const key = new Request(url.origin + url.pathname + '?_v=' + API_VERSION, { method: 'GET' });
+    const key = new Request(url.origin + url.pathname + '?_v=' + API_VERSION + '&' + url.searchParams.toString(), { method: 'GET' });
     const hit = await cache.match(key);
     if (hit) return withCors(hit, request);
 
@@ -227,6 +278,7 @@ export default {
       case 'price': res = await handlePrice(); break;
       case 'icon':  res = await handleIcon(parts); break;
       case 'powr':  res = await handlePowr(parts); break;
+      case 'history': res = await handleHistory(url); break;
       default:      return new Response('Not found', { status: 404 });
     }
 

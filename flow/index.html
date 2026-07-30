@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-9tzOM0iEs1nH9VI2t7AV91LGTwqbclwvTeAz3rGrPkU=';
+  script-src 'self' 'sha256-NULJkwdQLjwL8A40mghE4ykHw9PXUQivuOEjwrLDGtM=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -800,6 +800,7 @@
     <div class="rl-card rl-stats">
       <h3 data-i18n="stats.title">Network</h3>
       <div><dt data-i18n="stats.p50">Median final</dt><dd class="fin" data-stat="p50session">—</dd></div>
+        <div class="row-30d" hidden><dt data-i18n="stats.p50_30d">Median · 30 days</dt><dd class="fin" data-stat="p50_30d">—</dd></div>
       <div><dt data-i18n="stats.count">Transactions (session)</dt><dd data-stat="count">0</dd></div>
       <div><dt data-i18n="stats.price">Price</dt><dd data-stat="price">—</dd></div>
       <div><dt data-i18n="stats.block">Block</dt><dd data-stat="height">—</dd></div>
@@ -810,7 +811,7 @@
     </div>
   </aside>
 
-  <main id="app" data-version="v1.13.0">
+  <main id="app" data-version="v1.14.0">
     <div class="app-head">
       <div class="ah-top">
         <a class="brand" href="https://e.cash" target="_blank" rel="noopener noreferrer"
@@ -919,6 +920,7 @@
     <div id="info-bar" class="info-bar" role="region" data-i18n-aria="stats.title" aria-label="Network">
       <dl class="rl-stats ib-stats">
         <div><dt data-i18n="stats.p50">Median final</dt><dd class="fin" data-stat="p50session">—</dd></div>
+        <div class="row-30d" hidden><dt data-i18n="stats.p50_30d">Median · 30 days</dt><dd class="fin" data-stat="p50_30d">—</dd></div>
         <div><dt data-i18n="stats.count">Transactions (session)</dt><dd data-stat="count">0</dd></div>
         <div><dt data-i18n="stats.price">Price</dt><dd data-stat="price">—</dd></div>
         <div><dt data-i18n="stats.block">Block</dt><dd data-stat="height">—</dd></div>
@@ -1063,6 +1065,7 @@ const FLOW_STRINGS_EN = {
   'hero.body3':'in seconds.',
   'stats.title':'Network',
   'stats.p50':'Median final',
+  'stats.p50_30d':'Median · 30 days',
   'stats.count':'Transactions (session)',
   'stats.price':'Price',
   'stats.block':'Block',
@@ -1228,7 +1231,7 @@ function tf(key, vars){
   return String(t(key)).replace(/\{(\w+)\}/g, (_, k) => (vars && vars[k] != null ? vars[k] : ''));
 }
 function localeFor(code){ try { new Intl.NumberFormat(code); return code; } catch { return 'en'; } }
-const I18N_V = '2';   // bump whenever any vendor/i18n/flow.*.json changes
+const I18N_V = '3';   // bump whenever any vendor/i18n/flow.*.json changes
 async function loadPack(code){
   if (code === 'en'){ pack = null; return; }
   try {
@@ -1890,6 +1893,27 @@ function applyTokenInfo(tx, rec){
   if (rec.name && !tx.token.name) tx.token.name = clean(rec.name);
   tx.token.decimals = rec.decimals || 0;
 }
+/* ---- rolling 30-day median finality (P3 Stage 3a) ----
+   Read from the relay's own daily rollup via api.ecashlive.net/history, which
+   computes the median ONCE so both doors show the same figure and neither
+   re-implements the maths (the neo/Flow parity rule).
+
+   Honesty: the endpoint refuses to answer with fewer than 7 recorded days, and
+   this leaves the row hidden rather than showing a placeholder. One fetch per
+   load — the rollup only changes at 00:02 UTC.
+   Mirrors index.html. */
+const HISTORY_API = 'https://api.ecashlive.net/history?days=30';
+async function loadTtf30(){
+  try {
+    const r = await fetch(HISTORY_API);
+    if (!r.ok) return;
+    const j = await r.json();
+    if (!j || typeof j.medianTtfMs !== 'number' || j.medianTtfMs <= 0) return;
+    setStat('p50_30d', fmtSec(j.medianTtfMs));
+    document.querySelectorAll('.row-30d').forEach(el => { el.hidden = false; });
+  } catch { /* stay hidden — the live readings are unaffected */ }
+}
+
 /* ---- POWR author handles (P3 Stage 2) ----
    Proof of Writing keeps its content OFF-chain: the script carries only hashes,
    so a POWR card could only ever say "Proof of Writing". v1.5.9 established that
@@ -4374,6 +4398,7 @@ async function boot(){
   renderAllWatch();      // MUST follow loadMyAddr(): the panel renders the saved address + its ✕
   updateWatchBadge();
   initHeroBanner();      // first-visit thesis banner (mobile; CSS hides it on desktop)
+  loadTtf30();           // rolling 30-day median, hidden unless the history answers
   renderNarratorLog();   // paint the empty-state caption into whichever log exists
   renderEchanToggle();   // E6: paint the footer bell in its saved on/off state
   updateLoadOlder();     // F11: history pill (hidden until the stream is scrolled to the top)
