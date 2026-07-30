@@ -1,20 +1,48 @@
-.env
+# === eCash Live .gitignore ===
+# Restored 2026-07-15. This offline working copy shipped without one; the real
+# repo (github.com/tuannato/eCash-Live) has its own. Keep secrets + runtime
+# artifacts out of any commit made from here. See CLAUDE.md §14.
 
-# bot secrets & runtime — never commit
+# --- Secrets (NEVER commit) ---
+.env
+*.env
+ecash_bot_config.json
 .ecash_bot_config.json
+*ecash_bot_config*
 *.config.json
+ecash_bot.py
+
+# --- Relay runtime artifacts (regenerated on the VPS) ---
 ttf-stats.json
 ttf.log
 ttf-daily.jsonl
 ttf-stats.json.tmp
-ecash_bot.py
-CLAUDE.md
+ws-traffic.log
+
+# --- Generated navigation map (regenerable via project-index.py) ---
 PROJECT_INDEX.md
+
+# --- Local backups (safety net for this offline copy — never committed) ---
+*.bak
+*.bak.*
+
+# --- Local-only tooling (not part of the site) ---
+.claude/launch.json
+.claude/settings.local.json
+CLAUDE.md
 
 # --- Worker toolchain (P3 Stage 1) ---
 # wrangler + its deps are ~206MB and are reinstalled by `npm ci` from the
 # committed package-lock.json. The lockfile IS committed so deploys are
 # reproducible; node_modules never is. The Worker source itself (src/,
 # wrangler.toml, package.json) is part of the repo.
-node_modules/
-.wrangler/
+# NO trailing slash on purpose. `node_modules/` matches only DIRECTORIES, so a
+# SYMLINK named node_modules slips through and gets committed — which broke the
+# GitHub Pages build (Jekyll followed the link, the target does not exist in the
+# repo, Errno::ENOENT). Without the slash both are ignored.
+node_modules
+.wrangler
+
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
