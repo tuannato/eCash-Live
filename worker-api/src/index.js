@@ -33,6 +33,10 @@ const POWR_HOST = 'https://proofofwriting.com';
 const HEX64 = /^[0-9a-f]{64}$/;
 const ICON_SIZES = new Set(['32', '64', '128', '256', '512']);   // allowlist, not free-form
 
+// Bump when a response SHAPE changes: cached entries live up to an hour, so
+// without this the old {title,excerpt} payload would keep being served.
+const API_VERSION = 2;   // v2: /powr returns {author} only, never the post body
+
 const CACHE_PRICE_S = 60;      // page polls every 120s; one origin read per minute
 const CACHE_ICON_S  = 604800;  // a token's icon does not change
 const CACHE_POWR_S  = 3600;
@@ -132,33 +136,53 @@ async function handleIcon(parts) {
 }
 
 /* ------------------------------------------------------------------- /powr */
-// Unblocks the v1.5.9 rejection: proofofwriting.com serves the post's og:* but no
-// CORS header, so the browser could never read it. Server-side there is no CORS.
-export function extractOg(html) {
+// Returns the AUTHOR HANDLE ONLY — never the post body.
+//
+// Measured against four real POWR transactions, and the result is why:
+//   post    -> og:title "@AI_SATOSHI on Proof Of Writing", og:description = real text
+//   publish -> og:title "Proof Of Writing",  og:description = THEIR MARKETING COPY
+//   like    -> og:title "Proof Of Writing",  og:description = the same marketing copy
+//   reply   -> og:title "ecash:qzv…cfr2 on Proof Of Writing", og:description "0.0.00005784"
+//
+// Only one of four carried usable content; two carried "Pay with eCash to unlock
+// the full story", i.e. running their advertising inside eCash Live. So the body
+// is dropped entirely — there is no code path by which it can reach the UI.
+//
+// What is left is small, stable and honest: WHO wrote it. WHAT it says stays
+// behind the existing "Read ↗" deep-link, which sends the reader to them rather
+// than reproducing them. POWR content is off-chain, so eCash Live asserting it
+// would also sit badly with "honest numbers, or no numbers".
+export function extractAuthor(html) {
   const pick = (prop) => {
-    // Tolerate attribute order and single/double quotes.
     const re = new RegExp(
       '<meta[^>]+(?:property|name)=["\']' + prop + '["\'][^>]*content=["\']([^"\']*)["\']|' +
       '<meta[^>]+content=["\']([^"\']*)["\'][^>]*(?:property|name)=["\']' + prop + '["\']', 'i');
     const m = re.exec(html);
     return m ? (m[1] !== undefined ? m[1] : m[2]) : '';
   };
-  return { title: pick('og:title'), description: pick('og:description') };
+  const title = pick('og:title') || '';
+  // "<who> on Proof Of Writing" — a bare "Proof Of Writing" means no author.
+  const m = /^(.+?)\s+on\s+Proof\s*Of\s*Writing\s*$/i.exec(title);
+  if (!m) return '';
+  const who = m[1].trim();
+  if (!who) return '';
+  if (/^proof\s*of\s*writing$/i.test(who)) return '';   // generic
+  if (/^ecash:/i.test(who)) return '';                    // a raw address is not a handle
+  return who;
 }
 
-// POWR text is written by strangers and will render inside the eCash Live UI, so
-// it is scrubbed and hard-capped here as well as escaped at the render site.
+// Handles are chosen by strangers, so scrub and hard-cap even though the page
+// renders this via textContent.
 const BIDI_RANGES = [[0x200b,0x200f],[0x202a,0x202e],[0x2060,0x2064],[0x2066,0x2069],
                      [0xfeff,0xfeff],[0x0000,0x0008],[0x000b,0x000c],[0x000e,0x001f],[0x007f,0x007f]];
 const BIDI_CTRL = new RegExp('[' + BIDI_RANGES.map(r =>
   String.fromCharCode(r[0]) + '-' + String.fromCharCode(r[1])).join('') + ']', 'g');
 export function sanitize(s, max) {
   let out = String(s == null ? '' : s).replace(BIDI_CTRL, '').replace(/\s+/g, ' ').trim();
-  // Undo the HTML entities that og content arrives with, then re-cap.
   out = out.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
            .replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'");
   out = out.replace(BIDI_CTRL, '');
-  if (out.length > max) out = out.slice(0, max - 1).trimEnd() + '…';
+  if (out.length > max) out = out.slice(0, max - 1).trimEnd() + '\u2026';
   return out;
 }
 
@@ -169,11 +193,9 @@ async function handlePowr(parts) {
     const r = await upstream(`${POWR_HOST}/feed/${txid}`);
     if (!r.ok) return json({ error: 'not found' }, CACHE_FAIL_S);
     const html = (await r.text()).slice(0, 200000);   // bound the parse
-    const og = extractOg(html);
-    const title = sanitize(og.title, 120);
-    const excerpt = sanitize(og.description, 200);
-    if (!title && !excerpt) return json({ error: 'no content' }, CACHE_FAIL_S);
-    return json({ title, excerpt }, CACHE_POWR_S);
+    const author = sanitize(extractAuthor(html), 40);
+    if (!author) return json({ error: 'no author' }, CACHE_FAIL_S);
+    return json({ author }, CACHE_POWR_S);
   } catch {
     return json({ error: 'unavailable' }, CACHE_FAIL_S);
   }
@@ -196,7 +218,7 @@ export default {
     const parts = url.pathname.split('/').filter(Boolean);
 
     const cache = caches.default;
-    const key = new Request(url.origin + url.pathname, { method: 'GET' });
+    const key = new Request(url.origin + url.pathname + '?_v=' + API_VERSION, { method: 'GET' });
     const hit = await cache.match(key);
     if (hit) return withCors(hit, request);
 

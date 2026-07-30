@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-/XO2DYBEgJlaj+ErgPwPxeJXNi17RyK0XXwsr0BtZg8=';
+  script-src 'self' 'sha256-9tzOM0iEs1nH9VI2t7AV91LGTwqbclwvTeAz3rGrPkU=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -810,7 +810,7 @@
     </div>
   </aside>
 
-  <main id="app" data-version="v1.12.0">
+  <main id="app" data-version="v1.13.0">
     <div class="app-head">
       <div class="ah-top">
         <a class="brand" href="https://e.cash" target="_blank" rel="noopener noreferrer"
@@ -1890,12 +1890,18 @@ function applyTokenInfo(tx, rec){
   if (rec.name && !tx.token.name) tx.token.name = clean(rec.name);
   tx.token.decimals = rec.decimals || 0;
 }
-/* ---- POWR titles (P3 Stage 2) ----
+/* ---- POWR author handles (P3 Stage 2) ----
    Proof of Writing keeps its content OFF-chain: the script carries only hashes,
    so a POWR card could only ever say "Proof of Writing". v1.5.9 established that
-   the title could not be read client-side — proofofwriting.com serves the post's
-   og:* but sends no CORS header, and its data API needs a server-only key. The
-   API Worker reads it server-side, where CORS does not apply.
+   this could not be read client-side — proofofwriting.com serves the post's og:*
+   but sends no CORS header, and its data API needs a server-only key. The API
+   Worker reads it server-side, where CORS does not apply.
+
+   It returns the AUTHOR HANDLE ONLY. Measured on four real POWR transactions,
+   two of four had no content at all in og:description — just the platform's
+   marketing copy — and a reply returned "0.0.00005784". Showing the body would
+   have meant running someone else's advertising inside this UI, and asserting
+   off-chain text the chain cannot back.
 
    Same shape as the token cache: deduped by stored promise, capped, failures
    cool down instead of retrying forever. Purely additive — a card with no title
@@ -1917,14 +1923,19 @@ function fetchPowrTitle(txid){
     if (cached.retryAfter && Date.now() < cached.retryAfter) return;
   }
   const p = fetch(POWR_API + txid).then(r => r.ok ? r.json() : null).then(j => {
-    const rec = (j && j.title) ? { ok:true, title: clean(j.title), excerpt: clean(j.excerpt || '') }
-                               : { ok:false, retryAfter: Date.now() + POWR_FAIL_TTL_MS };
+    const rec = (j && j.author) ? { ok:true, author: clean(j.author) }
+                                : { ok:false, retryAfter: Date.now() + POWR_FAIL_TTL_MS };
     state.powrInfo.set(txid, rec);
     if (state.powrInfo.size > 200){ const k = state.powrInfo.keys().next().value; if (k && k !== txid) state.powrInfo.delete(k); }
     if (rec.ok){
       const tx = state.txs.get(txid);
       if (tx && tx.el) setCardText(tx);
       if (state.expandedId === txid && tx) refreshExpandedDetail(tx);
+      // …and any reply whose PARENT this is: its card names this author.
+      for (const other of state.txs.values()){
+        const opw = other.message && other.message.powr;
+        if (opw && opw.targetTxid === txid && other.el) setCardText(other);
+      }
     }
     return rec;
   }).catch(() => {
@@ -1994,10 +2005,29 @@ function cardStrings(tx){
       return { t1: q != null ? (q + ' ' + nm) : nm, t2: t('token.transfer') };
     }
     case 'powr': {
-      // Real article title once the API Worker resolves it; the generic label
-      // until then, and forever if the Worker is unreachable. Never invented.
+      // AUTHOR handle only — never the post body.
+      //
+      // POWR separates FEED (per-tx, /feed/<txid>) from PAPERS (blog posts at
+      // /posts/<slug>, server-side). Measured across 14 real transactions:
+      //   post, reply  -> /feed/<txid> yields a real handle
+      //   publish      -> a PAPER; its txid does not address the article at all
+      //   like, unlock, handle, auth -> no content of their own, correctly blank
+      // The body is never shown: for papers and bare actions the page returns a
+      // generic placeholder, and asserting off-chain text the chain cannot back
+      // would sit badly with "honest numbers, or no numbers" anyway.
+      //
+      // A reply orbits what it answers, so it also names the parent's author
+      // when that resolves — the closest reachable form of "show the original".
+      const pw = (tx.message && tx.message.powr) || null;
       const pr = resolvedPowr(tx.id);
-      return { t1: (pr && pr.title) || t('powr.title'), t2: (pr && pr.excerpt) || t('powr.sub') };
+      const parent = (pw && pw.targetTxid) ? resolvedPowr(pw.targetTxid) : null;
+      const action = pw && pw.action;
+      let sub = t('powr.title');
+      if (action === 'reply' && parent && parent.author) sub = 'reply → ' + parent.author;
+      else if (action === 'reply') sub = 'reply';
+      return (pr && pr.author)
+        ? { t1: pr.author, t2: sub }
+        : { t1: t('powr.title'), t2: (action === 'reply' && parent && parent.author) ? sub : t('powr.sub') };
     }
     case 'msg': {
       if (tx.message && tx.message.type === 'encrypted') return { t1: t('msg.encrypted'), t2: t('msg.sub') };
@@ -2474,7 +2504,14 @@ function admit(txData){
     if (rec) applyTokenInfo(tx, rec);
     fetchTokenTicker(tx.token.tokenId);
   }
-  if (tx.kind === 'powr') fetchPowrTitle(tx.id);   // real article title, resolved lazily
+  if (tx.kind === 'powr'){
+    fetchPowrTitle(tx.id);                       // this tx's own author
+    // A reply is about the post it answers, so resolve that author too. Only for
+    // `reply`: a `like`'s target is usually a paper, whose txid resolves to the
+    // generic page — that request would buy nothing.
+    const pw = tx.message && tx.message.powr;
+    if (pw && pw.action === 'reply' && pw.targetTxid) fetchPowrTitle(pw.targetTxid);
+  }
   // "yours" detection, strongest signal first: (1) a txid we broadcast via the
   // Cashtab extension (exact), (2) any tx touching your saved wallet address (F2),
   // (3) the "try it" content-match fallback for the URL send path.

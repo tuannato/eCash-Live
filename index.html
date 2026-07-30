@@ -28,10 +28,10 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-K2bkxOjbrwPV+OAsLsmF8HY2z1kD5hOEEDBVquc2hqA=';
+  script-src 'self' 'sha256-PtKocNPgSoOLKQzLh4pmfEVSRKD5AtIJlTJ2e3XbpN8=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
-  img-src 'self' data: https://icons.etokens.cash;
+  img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
   media-src 'self';
   connect-src 'self'
     https://chronik.e.cash wss://chronik.e.cash
@@ -40,6 +40,7 @@
     https://chronik-native3.fabien.cash wss://chronik-native3.fabien.cash
     https://chronik.pay2stay.com wss://chronik.pay2stay.com
     https://chronik1.ecashlive.net wss://chronik1.ecashlive.net
+    https://api.ecashlive.net
     https://api.coingecko.com;
   frame-src 'self' https://www.youtube-nocookie.com;
   frame-ancestors 'none';
@@ -6897,7 +6898,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v2.0.2">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v2.0.2</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v2.1.0">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v2.1.0</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -8585,7 +8586,12 @@ const explorerAddr = (addr) => `${EXPLORER_URL}/address/${encodeURIComponent(add
 // Available sizes (used by Cashtab): 32, 64, 128, 256, 512.
 // Tokens without an uploaded icon return a 404 — we use onerror to swap in a
 // generic fallback so the layout doesn't break.
-const TOKEN_ICON_BASE = 'https://icons.etokens.cash';
+// Proxy first so etokens.cash cannot correlate which tokens a visitor views
+// (SECURITY.md documents that risk). The direct CDN stays as a fallback, so the
+// CDN host must REMAIN in img-src and the privacy gain is "not contacted while
+// the proxy is healthy", not "never contacted". Mirrors flow/index.html.
+const TOKEN_ICON_BASE   = 'https://api.ecashlive.net/icon';
+const TOKEN_ICON_DIRECT = 'https://icons.etokens.cash';
 
 // ============ ICON DISPLAY PREFS ============
 // Whether the user wants token/NFT icons rendered at all. Persisted in
@@ -8689,26 +8695,38 @@ function tokenIconHtml(tokenId, opts = {}) {
   // Build URL. `loading="lazy"` keeps long lists cheap — Chrome/Firefox won't
   // request the image until it's near the viewport.
   const src = `${TOKEN_ICON_BASE}/${size}/${tokenIdLc}.png`;
+  const directSrc = `${TOKEN_ICON_DIRECT}/${size}/${tokenIdLc}.png`;
   // Inline data-URI fallback. We escape both src strings just enough for an
   // HTML attribute (& and ").
   const safeFallback = fallback.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
   // SECURITY: no inline `onerror=` — that would block any strict CSP. Instead
   // we stash the fallback URI in data-fallback and let the delegated `error`
   // listener (installed once at module init, below) swap src on failure.
-  return `<img class="${cssClass}" src="${src}" alt="" loading="lazy" decoding="async" data-token-icon="1" data-fallback="${safeFallback}" />`;
+  return `<img class="${cssClass}" src="${src}" alt="" loading="lazy" decoding="async" data-token-icon="1" data-direct="${directSrc}" data-fallback="${safeFallback}" />`;
 }
 
 // Delegated <img> error handler: when any token icon fails to load (CDN miss,
 // offline, etc.) swap its src for the inline data-URI fallback declared in
 // data-fallback. Uses capture phase because `error` events do not bubble.
 // Installed once at module init so we don't need per-image listeners.
+// Two-stage fallback (mirrors flow/index.html), still with no inline onerror:
+//   proxy -> direct CDN -> inline SVG badge.
+// data-token-icon carries the stage, so each image steps down at most twice and
+// the data: URI, which can never error, ends the chain.
 document.addEventListener('error', (ev) => {
   const t = ev.target;
-  if (!t || t.tagName !== 'IMG' || t.dataset.tokenIcon !== '1') return;
+  if (!t || t.tagName !== 'IMG') return;
+  const stage = t.dataset.tokenIcon;
+  if (stage === '1') {
+    const direct = t.dataset.direct;
+    t.dataset.tokenIcon = '2';
+    delete t.dataset.direct;
+    if (direct) { t.src = direct; return; }   // proxy down -> go straight to the CDN
+  } else if (stage !== '2') {
+    return;
+  }
   const fallback = t.dataset.fallback;
   if (!fallback) return;
-  // Clear data attrs first so a fallback that itself errors (shouldn't, it's a
-  // data: URI) doesn't loop.
   delete t.dataset.tokenIcon;
   delete t.dataset.fallback;
   t.src = fallback;
@@ -9572,10 +9590,14 @@ function connectTtfFeed() {
 function scheduleTtfReconnect() {
   const attempt = ttfFeedState.reconnectAttempt++;
   // Exponential backoff: 1s, 2s, 4s, 8s, ..., capped at TTF_RECONNECT_MAX_MS.
-  const delay = Math.min(
+  // Full jitter. Without it every open tab reconnects on the same schedule, so a
+  // relay restart brings the whole audience back in lockstep bursts — the one
+  // moment the relay is least able to absorb them. Mirrors flow/index.html.
+  const base = Math.min(
     TTF_RECONNECT_MIN_MS * Math.pow(2, attempt),
     TTF_RECONNECT_MAX_MS
   );
+  const delay = Math.round(base * (0.5 + Math.random() * 0.5));
   ttfFeedState.reconnectTimer = setTimeout(connectTtfFeed, delay);
 }
 
@@ -10822,7 +10844,7 @@ function processNewTx(txData, alreadyConfirmed) {
   // Sample WS tx-lag from the node's timeFirstSeen (skipped for already-confirmed
   // historical fetches further below).
   if (!alreadyConfirmed) _recordWsLag(txData);
-  const tx = parseTransaction(txData);
+  const tx = scrubTx(parseTransaction(txData));
   // Admission gate (v1.2.4): refuse new tx if at MAX_TXS cap with no safe
   // victim available. Equivalent in observable behavior to the fetch-cap
   // silent-skip already in effect at ~8823 — just made explicit so the
@@ -11562,6 +11584,10 @@ async function fetchTokenInfo(tokenId) {
       // initialQuantity in the typical sense). All extraction is guarded
       // with optional chaining + fallbacks.
       const gi = info.genesisInfo || {};
+      // Second entry point for chain text (mirrors Flow's applyTokenInfo):
+      // these never pass through parseTransaction, so scrubTx never sees them.
+      if (gi.tokenTicker) gi.tokenTicker = cleanChainText(gi.tokenTicker);
+      if (gi.tokenName)   gi.tokenName   = cleanChainText(gi.tokenName);
       const result = {
         ticker: gi.tokenTicker || '',
         name: gi.tokenName || '',
@@ -11696,7 +11722,7 @@ function parseOpReturn(hex) {
   }
   // Note: Agora covenants put the AGR0 marker in the **inputScript** of the
   // covenant input, NOT in an OP_RETURN. The agora detection happens in
-  // parseTransaction() above by inspecting inputs[0]/inputs[1] inputScripts.
+  // scrubTx(parseTransaction()) above by inspecting inputs[0]/inputs[1] inputScripts.
   // If we ever see AGR0 as a LOKAD prefix in OP_RETURN it's an unrelated
   // protocol or a misuse — return a generic 'broadcast' so it still surfaces
   // somewhere instead of getting silently dropped.
@@ -13513,6 +13539,64 @@ function powrFeedLinksHtml(tx) {
 // (post/publish/reply/quote/repost — i.e. "read the latest response"), but a
 // bare like has no readable content of its own, so it falls back to the liked
 // post. unlock/auth/handle have nothing to read → no link.
+/* ---- POWR author handles (P3 Stage 2) ----
+   POWR keeps its content OFF-chain — on-chain there is only an action and a
+   hash — and it separates FEED (per-tx, /feed/<txid>) from PAPERS (blog posts
+   at /posts/<slug>, addressed by slug, not by txid). v1.5.9 established the
+   page could not be read client-side: no CORS header, and their data API needs
+   a server-only key. The API Worker (worker-api/) reads it server-side.
+
+   It returns the AUTHOR HANDLE ONLY. Measured across 14 real transactions:
+   `post`/`reply` yield a real handle; `publish` is a PAPER whose txid does not
+   address the article; `like`/`unlock`/`handle`/`auth` have no content of their
+   own and correctly yield nothing. The body is never surfaced — for those cases
+   the page returns a generic placeholder, and asserting off-chain text the chain
+   cannot back would sit badly with "honest numbers, or no numbers".
+
+   Mirrors flow/index.html — keep the two in step. */
+const POWR_API = 'https://api.ecashlive.net/powr/';
+const POWR_FAIL_TTL_MS = 60000;
+const powrAuthors = new Map();          // txid -> {ok,author} | {ok:false,retryAfter} | Promise
+function resolvedPowrAuthor(txid) {
+  const c = powrAuthors.get(txid);
+  return (c && typeof c.then !== 'function' && c.ok) ? c.author : null;
+}
+function fetchPowrAuthor(txid) {
+  if (!txid || !/^[0-9a-f]{64}$/i.test(txid)) return;
+  const cached = powrAuthors.get(txid);
+  if (cached) {
+    if (typeof cached.then === 'function') return;
+    if (cached.ok) return;
+    if (cached.retryAfter && Date.now() < cached.retryAfter) return;
+  }
+  const p = fetch(POWR_API + txid).then(r => (r.ok ? r.json() : null)).then(j => {
+    const rec = (j && j.author) ? { ok: true, author: String(j.author) }
+                                : { ok: false, retryAfter: Date.now() + POWR_FAIL_TTL_MS };
+    powrAuthors.set(txid, rec);
+    if (powrAuthors.size > 200) {
+      const k = powrAuthors.keys().next().value;
+      if (k && k !== txid) powrAuthors.delete(k);
+    }
+    if (rec.ok) renderMessages();       // repaint: this card, and any reply to it
+    return rec;
+  }).catch(() => {
+    powrAuthors.set(txid, { ok: false, retryAfter: Date.now() + POWR_FAIL_TTL_MS });
+  });
+  powrAuthors.set(txid, p);
+}
+// "@who", or "@who · reply → @parent" for a reply once both resolve. Returns ''
+// when nothing is known, so the card reads exactly as it did before.
+function powrByline(m) {
+  const pw = m && m.powr;
+  if (!pw) return '';
+  const self = resolvedPowrAuthor(m.txid);
+  const parent = pw.targetTxid ? resolvedPowrAuthor(pw.targetTxid) : null;
+  const bits = [];
+  if (self) bits.push(self);
+  if (pw.action === 'reply' && parent) bits.push('reply \u2192 ' + parent);
+  return bits.join(' \u00b7 ');
+}
+
 function powrReadHref(tx) {
   const p = tx && tx.message && tx.message.powr;
   if (!p) return null;
@@ -13645,8 +13729,19 @@ function addMessageCard(tx) {
     type: tx.message.type,
     content: tx.message.content,
     timestamp: tx.firstSeenLocal,
+    // Carried so powrByline() can name the author, and the parent's author for a
+    // reply. Without it the byline is always empty.
+    powr: tx.message.powr,
     tx: tx,
   };
+  if (tx.message.type === 'powr' && tx.message.powr) {
+    fetchPowrAuthor(tx.id);                       // this tx's own author
+    // Only for `reply`: a `like`'s target is usually a PAPER, whose txid
+    // resolves to the generic page, so that request would buy nothing.
+    if (tx.message.powr.action === 'reply' && tx.message.powr.targetTxid) {
+      fetchPowrAuthor(tx.message.powr.targetTxid);
+    }
+  }
   // If tx is Agora but parseOpReturn returned a non-Agora type (e.g. cashtab msg + agora covenant
   // in same tx is rare but possible), keep the parsed type — the explicit synthetic types
   // from parseTransaction (agora-list/agora-buy/agora-cancel) already cover the no-OP_RETURN case.
@@ -13945,7 +14040,7 @@ function renderMessages() {
       : '';
     card.innerHTML = `
       <div class="head">
-        <span class="type">${icon} ${typeLabel}${groupBadge}</span>
+        <span class="type">${icon} ${typeLabel}${groupBadge}${m.type === 'powr' && powrByline(m) ? ' \u00b7 ' + escapeHtml(powrByline(m)) : ''}</span>
         <span class="time">${fmt.time(m.timestamp)}</span>
       </div>
       <div class="from">tx <span class="em">${fmt.short(m.txid, 6, 6)}</span><span class="copy-slot" data-copy="${m.txid}"></span></div>
@@ -14099,9 +14194,32 @@ function msgTypeLabel(t) {
   }
 }
 
+// Strip Unicode direction overrides + invisible characters from chain-supplied
+// text. This is NOT an escaping problem — an RLO (U+202E) reverses the rendered
+// run just as happily through textContent as through innerHTML, so escapeHtml()
+// alone could never have stopped it. A token ticker (mintable for ~$1) or an
+// OP_RETURN body can use them to reorder what the eye reads. Codepoint ranges
+// rather than literal characters, so this source stays reviewable.
+// Mirrors flow/index.html — keep the two in step.
+const BIDI_RANGES = [[0x200b,0x200f],[0x202a,0x202e],[0x2060,0x2064],[0x2066,0x2069],
+                     [0xfeff,0xfeff],[0x0000,0x0008],[0x000b,0x000c],[0x000e,0x001f],[0x007f,0x007f]];
+const BIDI_CTRL = new RegExp('[' + BIDI_RANGES.map(r =>
+  String.fromCharCode(r[0]) + '-' + String.fromCharCode(r[1])).join('') + ']', 'g');
+function cleanChainText(s) { return String(s == null ? '' : s).replace(BIDI_CTRL, ''); }
+// Sanitize chain-supplied free text ONCE, where it enters, so paths that use
+// textContent instead of escapeHtml() are covered too.
+function scrubTx(tx) {
+  if (!tx) return tx;
+  if (tx.message && tx.message.content != null) tx.message.content = cleanChainText(tx.message.content);
+  if (tx.token) {
+    if (tx.token.ticker) tx.token.ticker = cleanChainText(tx.token.ticker);
+    if (tx.token.name)   tx.token.name   = cleanChainText(tx.token.name);
+  }
+  return tx;
+}
 function escapeHtml(s) {
   if (!s) return '';
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  return cleanChainText(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 // Filter buttons
@@ -14625,7 +14743,7 @@ async function btlPinTx(txid) {
     }
     if (cachedRow && cachedRow.raw) {
       try {
-        if (!cachedRow.parsed) cachedRow.parsed = parseTransaction(cachedRow.raw);
+        if (!cachedRow.parsed) cachedRow.parsed = scrubTx(parseTransaction(cachedRow.raw));
         tx = cachedRow.parsed;
         if (cachedRow.raw.block) {
           tx.state = 'included';
@@ -14650,7 +14768,7 @@ async function btlPinTx(txid) {
     if (chronik && typeof chronik.tx === 'function') {
       try {
         const raw = await chronik.tx(txid);
-        tx = parseTransaction(raw);
+        tx = scrubTx(parseTransaction(raw));
         if (raw.block) { tx.state = 'included'; tx.includedBlock = raw.block.height ?? raw.block.blockInfo?.height; }
         // Admission gate (v1.2.4): mirror the processNewTx gate so the cap
         // holds at every state.txs.set site. Click path is rarely a stress
@@ -14932,7 +15050,7 @@ async function btlFetchPage() {
         // and "Load more" replaces the array (prior pages' raw data drops).
         // Worst case = BTL_PAGE_SIZE (200) × ~1-5KB/tx ≈ 0.2-1 MB transient.
         // The `parsed` slot is lazy: filled on first hover via
-        // parseTransaction(raw), reused by subsequent hovers + by btlPinTx
+        // scrubTx(parseTransaction(raw)), reused by subsequent hovers + by btlPinTx
         // on click (so click-after-hover is free, no double fetch+parse).
         raw: tx,
         parsed: null,
@@ -15089,7 +15207,7 @@ function btlRenderRows() {
       if (!window.matchMedia('(min-width: 1100px)').matches) return;
       if (!r.parsed) {
         try {
-          r.parsed = parseTransaction(r.raw);
+          r.parsed = scrubTx(parseTransaction(r.raw));
           // v1.2.8: stamp included-block info onto the parsed tx so the
           // detail panel renders the correct avalanche state ("included
           // in block") and block link instead of the parseTransaction
@@ -17451,7 +17569,7 @@ async function _resolveHistoryTx(txid) {
       if (r.parsed) return r.parsed;
       if (r.raw) {
         try {
-          r.parsed = parseTransaction(r.raw);
+          r.parsed = scrubTx(parseTransaction(r.raw));
           // Preserve the included-block info from the chronik tx — without
           // this, the detail panel would treat a historical confirmed tx as
           // "still pending" and the TTF/block fields would be blank.
@@ -17489,7 +17607,7 @@ async function _resolveHistoryTx(txid) {
   if (chronik && typeof chronik.tx === 'function') {
     try {
       const raw = await chronik.tx(txid);
-      const parsed = parseTransaction(raw);
+      const parsed = scrubTx(parseTransaction(raw));
       if (raw.block) {
         parsed.state = 'included';
         parsed.includedBlock = raw.block.height ?? raw.block.blockInfo?.height;
@@ -17701,7 +17819,7 @@ async function _fetchHistoryPage(page) {
 // case. Mirrors the equivalent btl row enrichment from earlier in v1.2.7.
 function _historyRowFromRawTx(raw) {
   let parsed = null;
-  try { parsed = parseTransaction(raw); } catch (e) {}
+  try { parsed = scrubTx(parseTransaction(raw)); } catch (e) {}
   const txid = raw.txid || (parsed && parsed.id);
   if (!txid) return null;
   // Stamp included-block info onto parsed so renderDetail treats this as a
