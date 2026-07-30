@@ -29,6 +29,10 @@ const CHRONIK_NODES = [
   'https://chronik.pay2stay.com',
 ];
 
+// Bump when the card's wording or markup changes — it is part of the cache key,
+// so a change takes effect immediately instead of waiting out the 24h TTL.
+const CARD_VERSION = 2;   // v2: state moved into og:title; no hardcoded duration
+
 const FETCH_TIMEOUT_MS = 4000;   // a crawler will not wait; fail to a plain card
 const CACHE_FINAL_S    = 86400;  // a finalized tx never changes again
 const CACHE_PENDING_S  = 15;     // still in the mempool — re-check soon
@@ -86,8 +90,13 @@ export default {
 
     // Edge cache: a finalized transaction is immutable, so this collapses
     // repeated unfurls of a popular link to one chronik read.
+    //
+    // CARD_VERSION is part of the key. A finalized card is cached for 24h, so
+    // without it a wording fix would keep serving the OLD card for a day after
+    // deploy — observed exactly that while testing the state-in-title change.
+    // Bump CARD_VERSION whenever buildCard()/renderHtml() output changes.
     const cache = caches.default;
-    const cacheKey = new Request(url.toString(), { method: 'GET' });
+    const cacheKey = new Request(url.origin + '/' + txid + '?_v=' + CARD_VERSION, { method: 'GET' });
     const hit = await cache.match(cacheKey);
     if (hit) return hit;
 
@@ -103,7 +112,9 @@ export default {
         let tx = null;
         try { tx = parseTransactionCore(d); } catch { tx = null; }
         card = buildCard(txid, tx, d);
-        maxAge = card.description.startsWith('Final') ? CACHE_FINAL_S : CACHE_PENDING_S;
+        // A mined tx is immutable -> cache hard. A final-but-unmined one WILL
+        // gain a block shortly, so keep it short and let the card follow.
+        maxAge = card.state === 'final-mined' ? CACHE_FINAL_S : CACHE_PENDING_S;
       }
     } catch {
       // Total failure must still land the human in Flow rather than 500.

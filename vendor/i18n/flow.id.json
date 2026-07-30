@@ -155,7 +155,7 @@
     "learn.title": "Pelajari",
     "learn.aria": "Pelajari tentang eCash",
     "learn.more": "Pelajari lebih lanjut ↗",
-    "learn.q1": "Kenapa pembayaran final dalam ~2 detik?",
+    "learn.q1": "Kenapa pembayaran final dalam hitungan detik?",
     "learn.a1": "Begitu kamu mengirim, node eCash memberikan suara atas transaksimu secara real-time dan cepat menyepakati bahwa itu valid — inilah pra-konsensus Avalanche. Itu membuat pembayaran menjadi final dan tidak dapat dibalik dalam sekitar dua detik, sebelum blok apa pun ditambang.",
     "learn.q2": "Apa itu Avalanche?",
     "learn.a2": "Avalanche adalah metode konsensus di mana setiap node berulang kali menanyakan pendapat sampel acak kecil dari node lain, dan seluruh jaringan menyatu pada jawaban yang sama dalam hitungan detik. eCash memakainya untuk menyelesaikan setiap transaksi sebelum blok.",

@@ -4,6 +4,7 @@
 export const TXID_RE = /^[0-9a-f]{64}$/;
 export const FLOW_URL = 'https://ecashlive.net/flow/';
 export const SITE = 'https://ecashlive.net';
+export const SHARE_URL = 'https://s.ecashlive.net/';
 
 // Same scrub as Flow (BIDI_RANGES there): direction overrides and invisibles are
 // a RENDERING attack, not an escaping one, so they must be removed rather than
@@ -63,23 +64,54 @@ export function buildCard(txid, tx, chainInfo){
   const isFinal = !!(chainInfo && (chainInfo.isFinal || (chainInfo.block && chainInfo.block.height)));
   const block = (chainInfo && chainInfo.block && chainInfo.block.height) || null;
 
-  // Title: lead with the amount when there is one, else the kind.
-  const title = (kind === 'pay' && amount) ? amount
-              : (amount && kind !== 'msg' && kind !== 'powr') ? (KIND_LABEL[kind] + ' · ' + amount)
-              : KIND_LABEL[kind];
+  // The STATE must ride in the title. X renders the title only — no description —
+  // so a title of just "32,433 XEC" told an X reader nothing about finality, which
+  // is the entire point of sharing the link. Verified against a real unfurl.
+  const lead = (kind === 'pay' && amount) ? amount
+             : (amount && kind !== 'msg' && kind !== 'powr') ? (KIND_LABEL[kind] + ' · ' + amount)
+             : KIND_LABEL[kind];
+  const stateTag = !isFinal ? 'settling'
+                 : (block == null) ? 'final, not yet in a block'
+                 : ('final · block ' + nf.format(block));
+  const title = lead + ' · ' + stateTag;
 
+  // Three distinct states, not two. "Final but not yet mined" is the one that
+  // actually demonstrates eCash: Avalanche settles the transaction while the next
+  // block is still minutes away, so for that whole window the money is
+  // irreversible without being in any block. Flow already relies on this state
+  // existing (runReconcile's isFinal-only branch); the card used to fold it into
+  // plain "Final" and threw the story away.
+  //
+  // NO FIXED DURATION. Earlier copy claimed "about two seconds", but the measured
+  // live 24h median is ~3.1s and it moves. The Worker has no access to the relay
+  // stats, so any number it hardcodes drifts away from the truth — the same class
+  // of error as the old flat FAST_TTF_MAX_MS brag. "In seconds" is what the site's
+  // own hero says (hero.body3) and is defensible at any plausible median.
   const bits = [];
-  bits.push(isFinal ? 'Final — irreversible.' : 'Waiting to finalize.');
-  if (block != null) bits.push('Block ' + nf.format(block) + '.');
-  bits.push(isFinal
-    ? 'On eCash this takes about two seconds, with no confirmations to wait for.'
-    : 'On eCash this takes about two seconds.');
+  if (!isFinal) {
+    bits.push('Not final yet — still settling on the eCash network.');
+  } else if (block == null) {
+    bits.push('Already final and irreversible — and not in a block yet.',
+              'Avalanche settled it in seconds; the next block is still minutes away.');
+  } else {
+    bits.push('Final and irreversible, mined into block ' + nf.format(block) + '.',
+              'It was already settled seconds after being sent, before this block existed.');
+  }
 
   return {
     kind,
-    title: title + ' · eCash',
+    // Explicit state, so callers never have to string-match the copy. The cache
+    // TTL used to be decided by description.startsWith('Final') — which silently
+    // depended on wording and broke the moment the copy was reworded.
+    state: !isFinal ? 'pending' : (block == null ? 'final-unmined' : 'final-mined'),
+    title,
     description: bits.join(' '),
-    canonical: FLOW_URL + '?tx=' + txid,
+    // selfUrl = this page's own identity (og:url / canonical). It MUST be the
+    // share URL: pointing it at /flow/ told Facebook and Telegram "the real page
+    // is over there", so they walked to the static page and used ITS og tags.
+    selfUrl: SHARE_URL + txid,
+    // goto = where a PERSON is sent, via JS only.
+    goto: FLOW_URL + '?tx=' + txid,
     txid,
   };
 }
@@ -89,9 +121,11 @@ export function buildCard(txid, tx, chainInfo){
 export function buildNotFoundCard(txid){
   return {
     kind: 'unknown',
+    state: 'missing',
     title: 'Transaction not found · eCash',
     description: 'This transaction could not be found on the eCash network. It may have been replaced before it was mined.',
-    canonical: FLOW_URL,
+    selfUrl: SHARE_URL + txid,
+    goto: FLOW_URL,
     txid,
   };
 }
@@ -108,16 +142,23 @@ export function buildNotFoundCard(txid){
  * renderer (WASM + paid CPU limits) and is deliberately out of scope here.
  */
 export function renderHtml(card){
-  const t = esc(card.title), d = esc(card.description), href = esc(card.canonical);
+  const t = esc(card.title), d = esc(card.description);
+  const self = esc(card.selfUrl), go = esc(card.goto);
+  // og:url and canonical are SELF-REFERENTIAL on purpose. Verified live: pointing
+  // them at /flow/ made Facebook and Telegram follow through and unfurl the static
+  // page's tags instead of this transaction's (X ignored them and worked). There
+  // is also deliberately NO <meta http-equiv="refresh"> — crawlers do not run JS
+  // but they DO follow meta refresh, which was the third thing walking them away.
+  // People are redirected by script only; the visible link covers JS-off.
   return `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${t}</title>
-<link rel="canonical" href="${href}">
+<link rel="canonical" href="${self}">
 <meta name="description" content="${d}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="eCash Live">
-<meta property="og:url" content="${href}">
+<meta property="og:url" content="${self}">
 <meta property="og:title" content="${t}">
 <meta property="og:description" content="${d}">
 <meta property="og:image" content="${SITE}/og-card.jpg">
@@ -129,10 +170,9 @@ export function renderHtml(card){
 <meta name="twitter:title" content="${t}">
 <meta name="twitter:description" content="${d}">
 <meta name="twitter:image" content="${SITE}/og-card.jpg">
-<meta http-equiv="refresh" content="0; url=${href}">
 <body style="background:#08080F;color:#F4F5FF;font:14px system-ui,sans-serif;padding:24px">
 <p>${t}</p>
-<p><a href="${href}" style="color:#01A0E0">Open in eCash Flow →</a></p>
-<script>location.replace(${JSON.stringify(card.canonical)});</script>
+<p><a href="${go}" style="color:#01A0E0">Open in eCash Flow →</a></p>
+<script>location.replace(${JSON.stringify(card.goto)});</script>
 </body>`;
 }

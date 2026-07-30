@@ -155,7 +155,7 @@
     "learn.title": "Öğren",
     "learn.aria": "eCash hakkında bilgi edin",
     "learn.more": "Daha fazla bilgi ↗",
-    "learn.q1": "Bir ödeme neden ~2 saniyede kesinleşir?",
+    "learn.q1": "Bir ödeme neden saniyeler içinde kesinleşir?",
     "learn.a1": "Gönderdiğiniz anda eCash düğümleri işleminizi gerçek zamanlı olarak oylar ve geçerli olduğunda hızla anlaşır — bu Avalanche ön uzlaşısıdır. Böylece ödeme, herhangi bir blok kazılmadan önce yaklaşık iki saniyede kesinleşir ve geri alınamaz hale gelir.",
     "learn.q2": "Avalanche nedir?",
     "learn.a2": "Avalanche, her düğümün diğer düğümlerden küçük rastgele bir örneğe tekrar tekrar ne düşündüklerini sorduğu ve tüm ağın saniyeler içinde aynı yanıtta buluştuğu bir uzlaşı yöntemidir. eCash bunu her işlemi bloklardan önce kesinleştirmek için kullanır.",

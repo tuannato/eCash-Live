@@ -44,6 +44,25 @@ brand in someone else's feed. The card therefore describes the transaction —
 kind, amount, state — and never quotes its contents. The path is gated on
 `^[0-9a-f]{64}$` before anything is interpolated.
 
+## The card must be self-referential (learned in production)
+
+The first deploy unfurled correctly on X but showed Flow's *static* tags on
+Facebook and Telegram. Three things in the page were pointing crawlers away:
+
+```html
+<link rel="canonical" href=".../flow/?tx=…">        <!-- "the real page is over there" -->
+<meta property="og:url" content=".../flow/?tx=…">   <!-- the card's identity -->
+<meta http-equiv="refresh" content="0; url=…">      <!-- crawlers DO follow this -->
+```
+
+Facebook and Telegram obeyed all three, walked to `/flow/`, and unfurled the
+static page. X ignored them, which is why it looked fine.
+
+So: **`og:url` and `canonical` point at the share URL itself**, and there is
+**no meta refresh** — crawlers do not run JavaScript, but they do follow a meta
+refresh. People are redirected by `location.replace()` only, with the visible
+link as the JS-off fallback. Do not "restore" either of these.
+
 ## Deploy
 
 ```bash

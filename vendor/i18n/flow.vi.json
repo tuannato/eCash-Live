@@ -155,7 +155,7 @@
     "learn.title": "Tìm hiểu",
     "learn.aria": "Tìm hiểu về eCash",
     "learn.more": "Tìm hiểu thêm ↗",
-    "learn.q1": "Vì sao thanh toán chốt sau ~2 giây?",
+    "learn.q1": "Vì sao thanh toán chốt chỉ sau vài giây?",
     "learn.a1": "Ngay khi bạn gửi, các node eCash bỏ phiếu cho giao dịch của bạn theo thời gian thực và nhanh chóng đồng thuận rằng nó hợp lệ — đây là tiền đồng thuận Avalanche. Điều đó khiến khoản thanh toán trở nên cuối cùng và không thể đảo ngược chỉ trong khoảng hai giây, trước khi có bất kỳ khối nào được đào.",
     "learn.q2": "Avalanche là gì?",
     "learn.a2": "Avalanche là một phương pháp đồng thuận trong đó mỗi node liên tục hỏi một nhóm nhỏ node khác được chọn ngẫu nhiên xem họ nghĩ gì, và cả mạng lưới hội tụ về cùng một câu trả lời trong vài giây. eCash dùng nó để chốt mọi giao dịch trước khi có khối.",

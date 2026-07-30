@@ -1,0 +1,27 @@
+# eCash Live — API Worker (P3 Stage 2)
+#
+# Proxies the two third parties the pages used to call directly, plus POWR
+# titles. See src/index.js for why this IMPROVES privacy rather than costing it.
+#
+# Deliberately a SEPARATE Worker from worker/ (s.ecashlive.net): this one is hit
+# by every visitor on every page load, that one only when a link is unfurled.
+# A problem here must not take share cards down with it.
+#
+# Deploy:
+#   cd worker-api && npx wrangler deploy
+#
+# DNS: `api` is created automatically by the custom-domain route. It is the
+# SECOND proxied hostname. The apex ecashlive.net stays DNS-only (grey cloud).
+
+name = "ecashlive-api"
+main = "src/index.js"
+compatibility_date = "2026-07-01"
+
+# Bare hostname — wrangler rejects wildcards and paths on a custom domain
+# (learned deploying the share Worker).
+[[routes]]
+pattern = "api.ecashlive.net"
+custom_domain = true
+
+[observability]
+enabled = true

@@ -155,7 +155,7 @@
     "learn.title": "Lernen",
     "learn.aria": "Über eCash lernen",
     "learn.more": "Mehr erfahren ↗",
-    "learn.q1": "Warum wird eine Zahlung in ~2 Sekunden final?",
+    "learn.q1": "Warum wird eine Zahlung in Sekunden final?",
     "learn.a1": "In dem Moment, in dem du sendest, stimmen die eCash-Knoten in Echtzeit über deine Transaktion ab und einigen sich schnell darauf, dass sie gültig ist – das ist der Avalanche-Vorkonsens. Dadurch wird die Zahlung in etwa zwei Sekunden endgültig und unumkehrbar, noch bevor ein Block geschürft wird.",
     "learn.q2": "Was ist Avalanche?",
     "learn.a2": "Avalanche ist ein Konsensverfahren, bei dem jeder Knoten wiederholt eine kleine zufällige Stichprobe anderer Knoten nach ihrer Meinung fragt, und das gesamte Netzwerk innerhalb von Sekunden zur selben Antwort konvergiert. eCash nutzt es, um jede Transaktion vor den Blöcken abzuschließen.",

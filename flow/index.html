@@ -8,10 +8,10 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-9TFoYJm9Y2PaZ+FyrHFJ1JcRwl9WxT33okDo3/f4lh0=';
+  script-src 'self' 'sha256-/XO2DYBEgJlaj+ErgPwPxeJXNi17RyK0XXwsr0BtZg8=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
-  img-src 'self' data: https://icons.etokens.cash;
+  img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
   media-src 'self';
   connect-src 'self'
     https://chronik.e.cash wss://chronik.e.cash
@@ -20,6 +20,7 @@
     https://chronik-native3.fabien.cash wss://chronik-native3.fabien.cash
     https://chronik.pay2stay.com wss://chronik.pay2stay.com
     https://chronik1.ecashlive.net wss://chronik1.ecashlive.net
+    https://api.ecashlive.net
     https://api.coingecko.com;
   frame-ancestors 'none';
   base-uri 'none';
@@ -29,7 +30,7 @@
 <title>eCash Live · Flow</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#0090C8" />
-<meta name="description" content="Flow — the simple view of eCash Live. Every transaction on the eCash network appears like a message and becomes irreversible in ~2 seconds." />
+<meta name="description" content="Flow — the simple view of eCash Live. Every transaction on the eCash network appears like a message and becomes irreversible in seconds." />
 
 <!-- Open Graph / Twitter share card (F14). Mirrors neo's block:
      WHY absolute URLs: LinkedIn/Slack unfurlers silently drop relative og:image.
@@ -47,7 +48,7 @@
 <meta property="og:site_name" content="eCash Live" />
 <meta property="og:url" content="https://ecashlive.net/flow/" />
 <meta property="og:title" content="eCash Flow — watch money become final in seconds." />
-<meta property="og:description" content="The simple view of the eCash network: every transaction arrives like a message and turns permanently final in about two seconds. No account, no install." />
+<meta property="og:description" content="The simple view of the eCash network: every transaction arrives like a message and turns permanently final in seconds. No account, no install." />
 <meta property="og:image" content="https://ecashlive.net/og-card.jpg" />
 <meta property="og:image:type" content="image/jpeg" />
 <meta property="og:image:width" content="1200" />
@@ -60,7 +61,7 @@
 <meta property="og:image:alt" content="eCash Live logo." />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="eCash Flow — watch money become final in seconds." />
-<meta name="twitter:description" content="Every eCash transaction, arriving like a message and final in ~2 seconds." />
+<meta name="twitter:description" content="Every eCash transaction, arriving like a message and final in seconds." />
 <meta name="twitter:image" content="https://ecashlive.net/og-card.jpg" />
 <link rel="icon" href="../favicon.ico" />
 <link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png" />
@@ -809,7 +810,7 @@
     </div>
   </aside>
 
-  <main id="app" data-version="v1.10.0">
+  <main id="app" data-version="v1.12.0">
     <div class="app-head">
       <div class="ah-top">
         <a class="brand" href="https://e.cash" target="_blank" rel="noopener noreferrer"
@@ -1005,6 +1006,20 @@ const CHRONIK_URLS = [
   'https://chronik1.ecashlive.net',
 ];
 const TTF_FEED_URL = 'wss://chronik1.ecashlive.net/ttf-feed';
+// Price is fetched DIRECTLY, unlike token icons and POWR titles.
+//
+// The api.ecashlive.net/price proxy exists and works, but CoinGecko's free API
+// answers 429 to it: Cloudflare Workers egress from IPs shared by thousands of
+// other Workers, and that pool is far past CoinGecko's anonymous rate limit
+// (measured in production — the Worker reports reason:"upstream-429"). Routing
+// through it would therefore cost every visitor a wasted round-trip before
+// falling back here, and buy nothing.
+//
+// Re-enable the proxy only with a CoinGecko API key on the Worker (their free
+// Demo tier issues one), which gives it a quota of its own. Until then the
+// privacy trade-off is unchanged from before Stage 2 for price alone — icons and
+// POWR, where the leak actually reveals *what you are looking at*, do go through
+// the proxy.
 const PRICE_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=ecash&vs_currencies=usd';
 const STATS_FRESH_MS = 15_000;
 const POLL_MS = 5_000;
@@ -1186,8 +1201,8 @@ const FLOW_STRINGS_EN = {
   'learn.title':'Learn',
   'learn.aria':'Learn about eCash',
   'learn.more':'Learn more ↗',
-  'learn.q1':'Why does a payment finalize in ~2 seconds?',
-  'learn.a1':'The moment you send, eCash nodes vote on your transaction in real time and quickly agree it is valid — this is Avalanche pre-consensus. That makes the payment final and irreversible in about two seconds, before any block is mined.',
+  'learn.q1':'Why does a payment finalize in seconds?',
+  'learn.a1':'The moment you send, eCash nodes vote on your transaction in real time and quickly agree it is valid — this is Avalanche pre-consensus. That makes the payment final and irreversible in seconds, before any block is mined.',
   'learn.q2':'What is Avalanche?',
   'learn.a2':'Avalanche is a consensus method where each node repeatedly asks a small random sample of other nodes what they think, and the whole network converges on the same answer within seconds. eCash uses it to finalize every transaction ahead of blocks.',
   'learn.q3':'What is a block for, if it is already final?',
@@ -1213,7 +1228,7 @@ function tf(key, vars){
   return String(t(key)).replace(/\{(\w+)\}/g, (_, k) => (vars && vars[k] != null ? vars[k] : ''));
 }
 function localeFor(code){ try { new Intl.NumberFormat(code); return code; } catch { return 'en'; } }
-const I18N_V = '1';   // bump whenever any vendor/i18n/flow.*.json changes
+const I18N_V = '2';   // bump whenever any vendor/i18n/flow.*.json changes
 async function loadPack(code){
   if (code === 'en'){ pack = null; return; }
   try {
@@ -1396,6 +1411,7 @@ const state = {
   sendingSet: new Set(),   // txids with a live "sending" stopwatch (v2 port)
   narratorLog: [],         // in-memory-only narrator history, capped at 5 (v2 port, right rail)
   tokenInfo: new Map(),    // tokenId -> {ticker,name,decimals} lazy cache, cap 200 (B15)
+  powrInfo: new Map(),     // txid -> {title,excerpt} lazy cache via the API Worker, cap 200
   hiddenAt: 0,             // last time the tab went hidden (wake guard)
   xecUsd: 0,               // per-XEC USD
   per1m: false,            // price-pill display mode
@@ -1761,7 +1777,11 @@ function labelPay(tx){
 }
 function shortId(id){ return id ? (id.slice(0,6) + '…' + id.slice(-4)) : ''; }
 // ---- token/NFT icon (icons.etokens.cash), CSP-safe fallback ----
-const TOKEN_ICON_BASE = 'https://icons.etokens.cash';
+// Proxy first so etokens.cash cannot correlate which tokens a visitor views
+// (SECURITY.md documents that risk, and Flow has no icons toggle to opt out).
+// The direct host stays as a fallback, so the CDN host must REMAIN in img-src.
+const TOKEN_ICON_PROXY  = 'https://api.ecashlive.net/icon';
+const TOKEN_ICON_DIRECT = 'https://icons.etokens.cash';
 function tokenFallbackSvg(letter, bg){
   const l = (letter || '◆').slice(0, 2);
   const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="16" fill="' + bg +
@@ -1775,15 +1795,28 @@ function tokenIconImg(tokenId, isNft, size){
   if (!tokenId || !/^[0-9a-f]{64}$/i.test(tokenId)) return null;
   const id = tokenId.toLowerCase();
   const px = size || 64;   // CDN size bucket: 128 for the sunk decoration, 512 for the expanded band
-  const src = TOKEN_ICON_BASE + '/' + px + '/' + id + '.png';
+  const src = TOKEN_ICON_PROXY + '/' + px + '/' + id + '.png';
+  const direct = TOKEN_ICON_DIRECT + '/' + px + '/' + id + '.png';
   const fb = tokenFallbackSvg(isNft ? '★' : '◆', isNft ? '#5E0EAE' : '#0074c2').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-  return '<img class="tok-ic" src="' + src + '" alt="" loading="lazy" decoding="async" data-token-icon="1" data-fallback="' + fb + '" />';
+  return '<img class="tok-ic" src="' + src + '" alt="" loading="lazy" decoding="async" data-token-icon="1"' +
+         ' data-direct="' + direct + '" data-fallback="' + fb + '" />';
 }
+// Two-stage fallback, still with no inline onerror (that would need a CSP relax):
+// proxy → direct CDN → inline SVG badge. data-token-icon holds the stage so each
+// image steps down at most twice and the data-URI, which can never error, ends it.
 document.addEventListener('error', (ev) => {
   const t = ev.target;
-  if (!t || t.tagName !== 'IMG' || t.dataset.tokenIcon !== '1') return;
+  if (!t || t.tagName !== 'IMG') return;
+  const stage = t.dataset.tokenIcon;
+  if (stage === '1'){
+    const direct = t.dataset.direct;
+    t.dataset.tokenIcon = '2';
+    if (direct){ t.src = direct; return; }        // proxy down → go straight to the CDN
+  } else if (stage !== '2'){
+    return;
+  }
   const fb = t.dataset.fallback; if (!fb) return;
-  t.dataset.tokenIcon = ''; t.src = fb;   // one swap; the fallback data-URI never errors
+  t.dataset.tokenIcon = ''; t.src = fb;
 }, true);
 // Classify a tx into a card kind (icon + filter category). STABLE (no i18n),
 // computed once at admit — kind='pay' payment, 'msg' message, 'powr' Proof of
@@ -1857,6 +1890,49 @@ function applyTokenInfo(tx, rec){
   if (rec.name && !tx.token.name) tx.token.name = clean(rec.name);
   tx.token.decimals = rec.decimals || 0;
 }
+/* ---- POWR titles (P3 Stage 2) ----
+   Proof of Writing keeps its content OFF-chain: the script carries only hashes,
+   so a POWR card could only ever say "Proof of Writing". v1.5.9 established that
+   the title could not be read client-side — proofofwriting.com serves the post's
+   og:* but sends no CORS header, and its data API needs a server-only key. The
+   API Worker reads it server-side, where CORS does not apply.
+
+   Same shape as the token cache: deduped by stored promise, capped, failures
+   cool down instead of retrying forever. Purely additive — a card with no title
+   yet, or a Worker that is down, reads exactly as it does today. The text is
+   third-party and lands via textContent (never innerHTML), and the Worker has
+   already scrubbed bidi and capped its length. */
+const POWR_FAIL_TTL_MS = 60_000;
+const POWR_API = 'https://api.ecashlive.net/powr/';
+function resolvedPowr(txid){
+  const c = state.powrInfo.get(txid);
+  return (c && typeof c.then !== 'function' && c.ok) ? c : null;
+}
+function fetchPowrTitle(txid){
+  if (!txid || !/^[0-9a-f]{64}$/i.test(txid)) return;
+  const cached = state.powrInfo.get(txid);
+  if (cached){
+    if (typeof cached.then === 'function') return;
+    if (cached.ok) return;
+    if (cached.retryAfter && Date.now() < cached.retryAfter) return;
+  }
+  const p = fetch(POWR_API + txid).then(r => r.ok ? r.json() : null).then(j => {
+    const rec = (j && j.title) ? { ok:true, title: clean(j.title), excerpt: clean(j.excerpt || '') }
+                               : { ok:false, retryAfter: Date.now() + POWR_FAIL_TTL_MS };
+    state.powrInfo.set(txid, rec);
+    if (state.powrInfo.size > 200){ const k = state.powrInfo.keys().next().value; if (k && k !== txid) state.powrInfo.delete(k); }
+    if (rec.ok){
+      const tx = state.txs.get(txid);
+      if (tx && tx.el) setCardText(tx);
+      if (state.expandedId === txid && tx) refreshExpandedDetail(tx);
+    }
+    return rec;
+  }).catch(() => {
+    state.powrInfo.set(txid, { ok:false, retryAfter: Date.now() + POWR_FAIL_TTL_MS });
+  });
+  state.powrInfo.set(txid, p);
+}
+
 // A resolved-good record is a plain object with ok:true; an in-flight fetch is
 // a Promise (thenable); a failure caches ok:false + retryAfter so the next tx of
 // that token retries after a short cool-down instead of being stuck on the short
@@ -1917,7 +1993,12 @@ function cardStrings(tx){
       const q = tokenQty(tx), nm = tokenName(tx);
       return { t1: q != null ? (q + ' ' + nm) : nm, t2: t('token.transfer') };
     }
-    case 'powr':  return { t1: t('powr.title'), t2: t('powr.sub') };
+    case 'powr': {
+      // Real article title once the API Worker resolves it; the generic label
+      // until then, and forever if the Worker is unreachable. Never invented.
+      const pr = resolvedPowr(tx.id);
+      return { t1: (pr && pr.title) || t('powr.title'), t2: (pr && pr.excerpt) || t('powr.sub') };
+    }
     case 'msg': {
       if (tx.message && tx.message.type === 'encrypted') return { t1: t('msg.encrypted'), t2: t('msg.sub') };
       const c = (tx.message && tx.message.content) || t('msg.generic');
@@ -2393,6 +2474,7 @@ function admit(txData){
     if (rec) applyTokenInfo(tx, rec);
     fetchTokenTicker(tx.token.tokenId);
   }
+  if (tx.kind === 'powr') fetchPowrTitle(tx.id);   // real article title, resolved lazily
   // "yours" detection, strongest signal first: (1) a txid we broadcast via the
   // Cashtab extension (exact), (2) any tx touching your saved wallet address (F2),
   // (3) the "try it" content-match fallback for the URL send path.

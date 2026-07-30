@@ -116,15 +116,34 @@ naming the inline script. Run `update-csp-hash.sh` and reload.
   CSP `connect-src` whitelist will block any host not pre-listed in the
   meta tag. This is intentional: it prevents a malicious link from
   pointing your page at a hostile chronik mirror.
-* Token icon thumbnails are still fetched from `icons.etokens.cash`, so
-  that operator can correlate which tokens a visitor's IP is looking at.
-  The fallback SVG renders inline so a blocked or down CDN doesn't break
-  the UI — on the dashboard you can disable the icons toggle to avoid the
-  requests entirely. **Flow has no such toggle** (it deliberately ships
-  fewer controls), so on `/flow/` the token-icon requests cannot be turned
-  off from the UI.
-* Price data is fetched from `api.coingecko.com`, which likewise observes
-  the visitor's IP and User-Agent. Together with the token-icon CDN these
-  are the two deliberate exceptions to "no third-party runtime requests":
-  no third-party **code** or fonts ever load, but these two **data** hosts
-  do see traffic.
+* **Token icons go through `api.ecashlive.net`** (a Cloudflare Worker in
+  this repo, `worker-api/`), so in the normal case `icons.etokens.cash` sees
+  that Worker rather than each visitor. The Worker forwards no visitor
+  headers upstream.
+* **Price is still fetched directly from `api.coingecko.com`.** The proxy
+  exists but CoinGecko's free API answers 429 to it — Cloudflare Workers
+  egress from IPs shared by thousands of other Workers, well past the
+  anonymous rate limit (measured in production). Proxying price would cost
+  every visitor a wasted round-trip and buy nothing. It can be re-enabled
+  with a CoinGecko API key on the Worker. Of the two, the icon CDN was the
+  more revealing leak anyway: it exposes *which tokens* a visitor views,
+  whereas every visitor asks the price the same question.
+* **The icon gain is conditional, not absolute.** The pages deliberately
+  keep the direct CDN as a fallback, so `icons.etokens.cash` remains in
+  `img-src` and a visitor's browser WILL contact it directly whenever the
+  Worker is unreachable. That trade was made
+  knowingly: availability over privacy, the same rule the relay lives by —
+  a sibling service going down must not degrade the page. Do not describe
+  this as "these hosts are never contacted"; the accurate claim is "not
+  contacted while the proxy is healthy".
+* When the direct path is used, `icons.etokens.cash` can again correlate
+  which tokens a visitor's IP is looking at, and `api.coingecko.com` sees
+  the IP and User-Agent. On the dashboard the icons toggle avoids the
+  requests entirely; **Flow has no such toggle** (it deliberately ships
+  fewer controls).
+* No third-party **code** or fonts ever load, on any path. These are
+  **data** requests only.
+* Proof of Writing titles are fetched through the same Worker
+  (`/powr/<txid>`). That text is written by strangers, so the Worker strips
+  bidi/zero-width characters and hard-caps its length, and the page renders
+  it via `textContent`, never `innerHTML`.

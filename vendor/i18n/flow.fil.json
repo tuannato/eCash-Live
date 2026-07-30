@@ -155,7 +155,7 @@
     "learn.title": "Matuto",
     "learn.aria": "Matuto tungkol sa eCash",
     "learn.more": "Matuto pa ↗",
-    "learn.q1": "Bakit final ang bayad sa loob ng ~2 segundo?",
+    "learn.q1": "Bakit final ang bayad sa loob ng ilang segundo?",
     "learn.a1": "Sa sandaling magpadala ka, bumoboto ang mga node ng eCash sa iyong transaksyon nang real-time at mabilis na sumasang-ayon na ito ay wasto — ito ang Avalanche pre-consensus. Dahil dito, nagiging pinal at hindi na mababawi ang bayad sa loob ng humigit-kumulang dalawang segundo, bago pa man ma-mine ang anumang block.",
     "learn.q2": "Ano ang Avalanche?",
     "learn.a2": "Ang Avalanche ay paraan ng consensus kung saan paulit-ulit na tinatanong ng bawat node ang maliit na random na sample ng ibang node kung ano ang tingin nila, at nagtatagpo ang buong network sa iisang sagot sa loob ng ilang segundo. Ginagamit ito ng eCash para tapusin ang bawat transaksyon bago ang mga block.",
