@@ -31,12 +31,30 @@ const CHRONIK_NODES = [
 
 // Bump when the card's wording or markup changes — it is part of the cache key,
 // so a change takes effect immediately instead of waiting out the 24h TTL.
-const CARD_VERSION = 2;   // v2: state moved into og:title; no hardcoded duration
+const CARD_VERSION = 3;   // v3: real TTF from the relay when it witnessed the tx
+
+// The relay's own measurement, by txid. It DID witness the transaction and timed
+// it against the node's microsecond log, so serving that is honest — unlike the
+// Worker inventing one. Unknown (not witnessed / evicted / relay restarted) is
+// answered 404 and the card simply omits the duration.
+const RELAY_TTF = 'https://chronik1.ecashlive.net/ttf/';
 
 const FETCH_TIMEOUT_MS = 4000;   // a crawler will not wait; fail to a plain card
 const CACHE_FINAL_S    = 86400;  // a finalized tx never changes again
 const CACHE_PENDING_S  = 15;     // still in the mempool — re-check soon
 const CACHE_MISSING_S  = 30;     // unknown txid: might just be propagating
+
+/** The relay's measured TTF for a txid, or null. Never blocks the card: a slow
+ *  or missing relay just means the duration is left out. */
+async function fetchRelayTtf(txid) {
+  try {
+    const r = await fetch(RELAY_TTF + txid, { signal: AbortSignal.timeout(2000) });
+    if (!r.ok) return null;                       // 404 = not witnessed; say nothing
+    const j = await r.json();
+    const ms = j && j.ttfMs;
+    return (typeof ms === 'number' && ms > 0 && ms < 3600000) ? ms : null;
+  } catch { return null; }
+}
 
 /** Try each node in turn. Returns the raw chronik tx object, or null. */
 async function fetchTx(txid) {
@@ -111,7 +129,9 @@ export default {
         // per-tx claims rather than emitting something we did not verify.
         let tx = null;
         try { tx = parseTransactionCore(d); } catch { tx = null; }
-        card = buildCard(txid, tx, d);
+        // Fetched in parallel with nothing else pending, and optional by design.
+        const ttfMs = await fetchRelayTtf(txid);
+        card = buildCard(txid, tx, d, ttfMs);
         // A mined tx is immutable -> cache hard. A final-but-unmined one WILL
         // gain a block shortly, so keep it short and let the card follow.
         maxAge = card.state === 'final-mined' ? CACHE_FINAL_S : CACHE_PENDING_S;

@@ -45,12 +45,17 @@ const KIND_LABEL = {
 /**
  * Build the per-transaction card copy.
  *
- * HONESTY — mirrors the /flow/?tx= receipt contract verbatim
+ * HONESTY — chain state mirrors the /flow/?tx= receipt contract verbatim
  * (flow/index.html maybeOpenSharedTx):
- *   final = isFinal || block.height ;  block = block.height || null ;  ttf = ALWAYS null
- * The Worker did not witness the transaction live, so it can never state a
- * time-to-finality. It states only what chronik returned, and OMITS anything it
- * does not know rather than guessing.
+ *   final = isFinal || block.height ;  block = block.height || null
+ * Anything unknown is OMITTED, never guessed.
+ *
+ * `ttfMs` is the RELAY's own measurement, passed in by index.js. The Worker
+ * still never invents a duration — but the relay genuinely witnessed the
+ * transaction and timed it against the node's microsecond log, so relaying that
+ * measurement is honest. It is the same number the live page shows. When the
+ * relay has no record (never witnessed, evicted from its bounded table, or
+ * restarted) the duration is simply left out, exactly as before.
  *
  * SECURITY — no chain-supplied free text ever reaches the card. Message bodies
  * and token tickers are attacker-controlled (SECURITY.md: a token can be minted
@@ -58,7 +63,7 @@ const KIND_LABEL = {
  * brand in someone else's feed. So the card describes the transaction — kind,
  * amount, state — and never quotes its contents.
  */
-export function buildCard(txid, tx, chainInfo){
+export function buildCard(txid, tx, chainInfo, ttfMs){
   const kind = kindOf(tx);
   const amount = tx ? fmtXec(tx.valueXec) : null;
   const isFinal = !!(chainInfo && (chainInfo.isFinal || (chainInfo.block && chainInfo.block.height)));
@@ -70,9 +75,17 @@ export function buildCard(txid, tx, chainInfo){
   const lead = (kind === 'pay' && amount) ? amount
              : (amount && kind !== 'msg' && kind !== 'powr') ? (KIND_LABEL[kind] + ' · ' + amount)
              : KIND_LABEL[kind];
+  // The relay's own measurement, when it witnessed this transaction. It timed
+  // the node's microsecond log, so this is the same number the live page shows,
+  // not a reconstruction. Absent (never witnessed, evicted, or the relay
+  // restarted) simply means the duration is left out — the card has always been
+  // allowed to say less, never to guess.
+  const secs = (typeof ttfMs === 'number' && ttfMs > 0 && ttfMs < 3600000)
+    ? (ttfMs / 1000).toFixed(1).replace(/\.0$/, '') + 's' : null;
+  const finalWord = secs ? ('final in ' + secs) : 'final';
   const stateTag = !isFinal ? 'settling'
-                 : (block == null) ? 'final, not yet in a block'
-                 : ('final · block ' + nf.format(block));
+                 : (block == null) ? (finalWord + ', not yet in a block')
+                 : (finalWord + ' · block ' + nf.format(block));
   const title = lead + ' · ' + stateTag;
 
   // Three distinct states, not two. "Final but not yet mined" is the one that
@@ -91,11 +104,15 @@ export function buildCard(txid, tx, chainInfo){
   if (!isFinal) {
     bits.push('Not final yet — still settling on the eCash network.');
   } else if (block == null) {
-    bits.push('Already final and irreversible — and not in a block yet.',
-              'Avalanche settled it in seconds; the next block is still minutes away.');
+    bits.push(secs
+      ? ('Already final and irreversible after ' + secs + ' — and not in a block yet.')
+      : 'Already final and irreversible — and not in a block yet.',
+      'Avalanche settled it; the next block is still minutes away.');
   } else {
     bits.push('Final and irreversible, mined into block ' + nf.format(block) + '.',
-              'It was already settled seconds after being sent, before this block existed.');
+      secs
+        ? ('It was already settled ' + secs + ' after being sent, before this block existed.')
+        : 'It was already settled seconds after being sent, before this block existed.');
   }
 
   return {
@@ -104,6 +121,7 @@ export function buildCard(txid, tx, chainInfo){
     // TTL used to be decided by description.startsWith('Final') — which silently
     // depended on wording and broke the moment the copy was reworded.
     state: !isFinal ? 'pending' : (block == null ? 'final-unmined' : 'final-mined'),
+    ttfMs: secs ? ttfMs : null,
     title,
     description: bits.join(' '),
     // selfUrl = this page's own identity (og:url / canonical). It MUST be the

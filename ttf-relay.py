@@ -215,6 +215,8 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import websockets
+from websockets.datastructures import Headers
+from websockets.http11 import Response
 
 
 # -----------------------------------------------------------------------------
@@ -229,6 +231,34 @@ DEBUG_LOG_PATH = Path(os.environ.get(
 TTF_LOG_PATH = Path(os.environ.get(
     "TTF_AUDIT_LOG",
     "/home/mikazuki/ttf-relay/ttf.log"))
+
+# v1.5.8: in-memory txid -> TTF lookup, so a shared receipt can state the real
+# finality time instead of omitting it.
+#
+# Until now a share card could never show a duration: the card is built by a
+# Cloudflare Worker that did not witness the transaction, so it had nothing
+# honest to print. This relay DID witness it and measured it against the node's
+# own microsecond log, so serving that measurement is honest — it is the same
+# number the live page shows, not a reconstruction.
+#
+# Deliberately memory-only, never persisted:
+#   * A restart empties it, and the card then omits the time. That is correct
+#     behaviour, not a regression — "no number" is always allowed, a wrong one
+#     never is. Observed relay uptime is measured in weeks, so this is rare.
+#   * Bounded at TTF_LOOKUP_MAX (CLAUDE.md §10 — every structure has a hard
+#     cap). At the observed ~6,000 finalizations/day that is roughly 8 days of
+#     coverage, comfortably longer than the window in which links get shared,
+#     and it costs a few MB next to bitcoind's gigabytes.
+# An OrderedDict is used as an LRU: oldest inserted is evicted first.
+TTF_LOOKUP_MAX = 50_000
+ttf_lookup: "OrderedDict[str, float]" = OrderedDict()
+
+def _ttf_lookup_put(txid: str, ttf_ms: float) -> None:
+    """Record a finalization. O(1); evicts the oldest entry past the cap."""
+    ttf_lookup[txid] = ttf_ms
+    while len(ttf_lookup) > TTF_LOOKUP_MAX:
+        ttf_lookup.popitem(last=False)
+
 
 # Daily rollup of TTF/TPS stats (v1.5.2). One JSONL line per UTC day, written
 # at 00:02 UTC. Schema: date, samples, tps, ttf_{mean,p10,p50,p90,min,max}_ms.
@@ -1028,6 +1058,10 @@ async def log_reader():
                 "emittedAt": int(time.time() * 1000),
             }
 
+            # Share cards ask for this by txid (v1.5.8). Recorded before the
+            # audit write so a slow disk cannot delay it.
+            _ttf_lookup_put(txid, ttf_ms)
+
             # Audit log: one JSON object per line
             audit_log.write(json.dumps(event) + "\n")
 
@@ -1091,6 +1125,49 @@ async def stats_broadcaster():
         if now - last_persist >= STATS_PERSIST_SEC:
             persist_stats_ring()
             last_persist = now
+
+
+# v1.5.8: answer GET /ttf/<txid> on the SAME port as the WebSocket.
+#
+# websockets >= 14 hands process_request (connection, request) and expects a
+# Response or None; returning None lets a real WS handshake proceed untouched.
+# This adds NO dependency — no aiohttp, no second listener, no new port.
+#
+# Serves ONLY a 64-hex txid lookup. There is no listing, no range query and no
+# way to enumerate: you must already know the txid, which means you already have
+# the transaction. The response carries a duration and nothing else — no
+# addresses, no amounts, nothing about any visitor.
+_TXID_RE = re.compile(r"^[0-9a-f]{64}$")
+
+def _json_response(status: int, phrase: str, payload: dict, max_age: int):
+    body = json.dumps(payload).encode()
+    headers = Headers({
+        "Content-Type": "application/json",
+        "Content-Length": str(len(body)),
+        "Cache-Control": f"public, max-age={max_age}",
+        "Access-Control-Allow-Origin": "*",
+    })
+    return Response(status, phrase, headers, body)
+
+
+def process_request(connection, request):
+    """HTTP side-door for share cards. Returns None for real WS handshakes."""
+    try:
+        path = request.path or ""
+    except Exception:
+        return None
+    if not path.startswith("/ttf/"):
+        return None            # not ours -> normal WebSocket handling
+    txid = path[len("/ttf/"):].strip().lower()
+    if not _TXID_RE.match(txid):
+        return _json_response(400, "Bad Request", {"error": "bad txid"}, 60)
+    ttf = ttf_lookup.get(txid)
+    if ttf is None:
+        # Not witnessed, or evicted, or lost to a restart. Say so plainly; the
+        # card then omits the duration rather than inventing one.
+        return _json_response(404, "Not Found", {"error": "unknown"}, 30)
+    # A finalized transaction's TTF never changes -> cache hard.
+    return _json_response(200, "OK", {"txid": txid, "ttfMs": ttf}, 86400)
 
 
 async def handle_client(ws):
@@ -1334,7 +1411,9 @@ async def main():
         # and warning-free.
         asyncio.get_running_loop().add_signal_handler(sig, stop.set)
 
-    async with websockets.serve(handle_client, WS_HOST, WS_PORT):
+    async with websockets.serve(
+        handle_client, WS_HOST, WS_PORT, process_request=process_request
+    ):
         reader_task = asyncio.create_task(log_reader())
         broadcaster_task = asyncio.create_task(broadcaster())
         stats_task = asyncio.create_task(stats_broadcaster())
