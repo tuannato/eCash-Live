@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-8PCWdTQxcl6++f+3ZdlK4bcvLdWsTqTsP/uSt9dDvcQ=';
+  script-src 'self' 'sha256-lVJyDDGsn4GUgm6ZA5lZsDWBf77cLzo8OPT/vx0zAKE=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -4315,13 +4315,13 @@ async function sendTry(){
       hint('', false);
       toast(t(e && e.message === 'timeout' ? 'try.timeout' : 'try.denied'));
     }
-  } else {
+    } else {
     if (msg){ tryMsg = msg.toLowerCase(); tryMsgAt = Date.now(); }   // content match (URL path); myAddr covers pure-XEC
-    // encodeURIComponent: the bip21 value itself contains "?" and "&", so pasted
-    // raw into the fragment its own params read as siblings of bip21= to any
-    // standard parser. It happened to work only because Cashtab's parser is
-    // forgiving — that is luck, not a contract.
-    window.open(CASHTAB_WEB + '#/send?bip21=' + encodeURIComponent(bip21), '_blank', 'noopener');
+    // Cashtab reads its `bip21` query param without decoding it first, so an
+    // encodeURIComponent-wrapped value arrives still percent-encoded and Cashtab
+    // reads the whole encoded string as the address ("Invalid address"). Pass the
+    // raw bip21 string — Cashtab's own parser tolerates the embedded "?"/"&".
+    window.open(CASHTAB_WEB + '#/send?bip21=' + bip21, '_blank', 'noopener');
     $('compose-in').value = ''; updateCmpPreview();
     hint(t('try.sent'), true);
   }
