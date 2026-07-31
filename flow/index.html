@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-NULJkwdQLjwL8A40mghE4ykHw9PXUQivuOEjwrLDGtM=';
+  script-src 'self' 'sha256-8PCWdTQxcl6++f+3ZdlK4bcvLdWsTqTsP/uSt9dDvcQ=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -27,6 +27,13 @@
   form-action 'none';
   manifest-src 'self';
 ">
+
+<!-- Door router — shared verbatim with neo (vendor/door.js). Flow never
+     redirects; it calls the resolver so a newcomer arriving here (typically a
+     shared ?tx= receipt) has Flow recorded as their door like anyone else.
+     Render-blocking and covered by script-src 'self' — see the file header. -->
+<script src="../vendor/door.js?v=mc24" data-door="flow"></script>
+
 <title>eCash Live · Flow</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#0090C8" />
@@ -811,7 +818,7 @@
     </div>
   </aside>
 
-  <main id="app" data-version="v1.14.0">
+  <main id="app" data-version="v2.3.0">
     <div class="app-head">
       <div class="ah-top">
         <a class="brand" href="https://e.cash" target="_blank" rel="noopener noreferrer"
@@ -3060,8 +3067,15 @@ $('btn-pause').addEventListener('click', () => {
 });
 $('btn-theme').addEventListener('click', toggleTheme);
 $('lang-select').addEventListener('change', (e) => setLang(e.target.value));
-// "Pro view →" records the choice so neo (mobile) stops redirecting here (h tier-2)
-$('pro-link').addEventListener('click', () => { try { localStorage.setItem('ecashlive:pref', 'pro'); } catch {} });
+// "Dashboard →" makes neo this visitor's door from now on. Written through the
+// shared resolver (vendor/door.js) so both doors spell the key the same way;
+// the inline fallback keeps the link working if door.js failed to load.
+$('pro-link').addEventListener('click', () => {
+  try {
+    if (window.__ecDoor) window.__ecDoor.choose('pro');
+    else localStorage.setItem('ecashlive:pref', 'pro');
+  } catch {}
+});
 
 // rAF never fires in a backgrounded tab, so a dialog opened right before the
 // tab loses visibility can sit "open" (hidden=false, focus already moved) but
@@ -3075,13 +3089,24 @@ function showAnimated(el, cls){
 // ---- Learn (accordion, NO popup) ----
 // Six topics. Clicking a question expands its answer in place (rail on desktop,
 // the "?"-toggled #learn-bar on mobile) — readable, stays put, no modal.
+// Each topic links to the article that actually answers IT, not to a homepage.
+// All six were opened and their headings checked against the question (2026-07-30):
+//   q1 pre-consensus launch     -> "Instant Settlement for the Digital Economy"
+//   q2 Avalanche FAQ            -> opens with "What's Avalanche on eCash?"
+//   q3 Avalanche deep-dive      -> "Avalanche-Enhanced Proof-of-Work",
+//                                  "51% Attack Protection and 1-Block Finality"
+//   q4 instant finality         -> "What's Instant Finality?", "History of Settlement Risk"
+//   q5 what is eCash            -> "The Vision Behind eCash", "How eCash Works"
+//   q6 Agora                    -> "How Agora Works", the token bazaar
+// Plain <a> navigations, so no connect-src change. If one 404s later, the topic
+// still reads fine — the link is an extra, not the answer.
 const LEARN_TOPICS = [
-  { q:'learn.q1', a:'learn.a1', url:'https://avalanche.cash' },
-  { q:'learn.q2', a:'learn.a2', url:'https://avalanche.cash' },
-  { q:'learn.q3', a:'learn.a3', url:'https://avalanche.cash' },
-  { q:'learn.q4', a:'learn.a4', url:'https://avalanche.cash' },
-  { q:'learn.q5', a:'learn.a5', url:'https://e.cash' },
-  { q:'learn.q6', a:'learn.a6', url:'https://e.cash' },
+  { q:'learn.q1', a:'learn.a1', url:'https://e.cash/blog/preconsensus-launch' },
+  { q:'learn.q2', a:'learn.a2', url:'https://e.cash/blog/avalanche-faq' },
+  { q:'learn.q3', a:'learn.a3', url:'https://e.cash/blog/avalanche' },
+  { q:'learn.q4', a:'learn.a4', url:'https://e.cash/blog/instant-finality' },
+  { q:'learn.q5', a:'learn.a5', url:'https://e.cash/blog/what-is-ecash' },
+  { q:'learn.q6', a:'learn.a6', url:'https://e.cash/blog/agora' },
 ];
 function renderLearn(container){
   if (!container) return;

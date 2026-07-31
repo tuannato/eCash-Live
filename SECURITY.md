@@ -40,14 +40,26 @@ A `<meta http-equiv="Content-Security-Policy">` tag in `<head>` pins:
 * `script-src 'self' 'sha256-...'` — only the inline module whose hash
   matches the pinned value can run. Update with `./update-csp-hash.sh`
   every time you edit the script.
-* `connect-src` — explicit whitelist of the five public chronik nodes
-  plus `api.coingecko.com`. To add your own VPS chronik subdomain, edit
-  the meta tag (instructions are in the surrounding comment).
+* `connect-src` — explicit whitelist, HTTP + WebSocket for each host: the
+  five public chronik nodes, this project's own `chronik1.ecashlive.net`,
+  `api.ecashlive.net` (the Worker in `worker-api/`), and
+  `api.coingecko.com`. To add your own VPS chronik subdomain, edit the
+  meta tag (instructions are in the surrounding comment).
 * `img-src` — `'self'`, `data:` (for SVG fallback icons), and
   `icons.etokens.cash` (token thumbnails).
 * `font-src 'self'`, `style-src 'self' 'unsafe-inline'`, plus
   `base-uri 'none'` and `form-action 'none'` for hardening.
 * `default-src 'none'` so anything not explicitly allowed is blocked.
+
+> **Why some scripts are hash-pinned and others are not.** `script-src` carries
+> both `'self'` and one `sha256-`. The hash exists because an *inline* script has
+> no URL to match against, so without it the policy would have to allow
+> `'unsafe-inline'` — which is what makes the pinning worth the maintenance.
+> Same-origin **files** (`vendor/door.js`, `vendor/companion/echan.js`,
+> `vendor/companion/mediacenter.js`) are covered by `'self'` and are not hashed;
+> an attacker who can overwrite a file in this repo has already won, so a hash
+> would add nothing there. Note this is not a relaxation: `'self'` has always
+> been in the policy.
 
 > **`frame-ancestors 'none'` is present in the meta tag but has NO effect.**
 > Per the CSP spec a `<meta http-equiv>` policy ignores `frame-ancestors`
@@ -59,10 +71,16 @@ A `<meta http-equiv="Content-Security-Policy">` tag in `<head>` pins:
 > accepted gap, not an oversight.
 
 ### Self-hosted vendor libraries
-`vendor/chronik-client.js`, `vendor/qrcode-generator.js`, and
-`vendor/qrcode.js` are bundled locally — no runtime imports from
-`esm.sh`, `cdn.jsdelivr.net`, or `unpkg.com`. See `VENDOR.md` for the
-rebuild procedure.
+`vendor/chronik-client.js`, `vendor/qrcode-generator.js`,
+`vendor/qrcode.js`, and `vendor/cashtab-connect.js` are bundled locally —
+no runtime imports from `esm.sh`, `cdn.jsdelivr.net`, or `unpkg.com`. See
+`VENDOR.md` for the rebuild procedure. `vendor/txparse.js` and
+`vendor/door.js` are this project's own code, not third-party.
+
+`cashtab-connect.js` talks to the Cashtab browser extension by
+`postMessage` only. It therefore needs no `connect-src` entry, and the
+page never sees a key, a seed phrase, or a signature — it hands Cashtab a
+`bip21` URI and Cashtab decides what to do with it.
 
 ### Self-hosted fonts
 Space Grotesk and Fira Code are served from `vendor/fonts/`. No requests
@@ -79,12 +97,53 @@ containing `"` or `<` cannot smuggle attributes into the resulting `href`.
   and resume on `visibilitychange`.
 * `pagehide` closes both the main and chat WebSockets cleanly.
 
+### What is stored in your browser
+There are no cookies, no analytics, and no session identifiers. Everything
+below is `localStorage` on the site's own origin, is read only by the page
+that wrote it, and is **never transmitted anywhere** — there is no backend
+to send it to.
+
+| Namespace | Holds |
+|---|---|
+| `ecash-live:*`, `ecash-live-*` | dashboard UI state: view, watchlist, chat draft, radar and icon toggles, price unit |
+| `ecashlive:flow:*` | Flow UI state: theme, watchlist, narrator mute, first-visit flags |
+| `ecashlive.echan.*` | companion state: visits, position, mute, a small stats ring |
+| `ecashlive.lang` | language, shared by both doors |
+| `ecashlive:pref` | which door you land on — see below |
+
+No private key, seed phrase, or password is ever accepted or stored. Two
+entries do hold a **public** eCash address you supplied — `ecashlive:flow:myaddr`
+(your own wallet, used to recognise your transactions in the stream) and the
+watchlists (addresses you chose to follow). They are personal in the sense that
+they tie this browser to on-chain activity you care about, so they are worth
+knowing about even though they are public data and stay on your device. Flow's
+watchlist panel has a **My wallet ✕** control that clears the address, and it
+writes an explicit empty value rather than deleting the key, so the dashboard's
+one-way seed cannot quietly restore it on the next visit.
+
+`ecashlive:pref` is the only entry that changes what you are served: it records
+`flow` or `pro` and decides which door opens when you visit the site root. It is
+set by your own click on either gateway, by `?door=flow` / `?door=pro`, or — for
+a visitor with no history here — once, automatically, to `flow`. The rule lives
+in `vendor/door.js`, shared verbatim by both pages so they cannot disagree about
+it.
+
 ### Tip-jar address protection
 The recipient address for the tip jar is held in a module-scoped `const`
 plus `Object.defineProperty(globalThis, ..., {writable:false,
-configurable:false})`. A 5-second integrity check hides the tip button
-if either is tampered with. (This is cosmetic against full XSS; the
-real defense is the CSP above.)
+configurable:false})`, so a later reassignment cannot take effect. (This
+is cosmetic against full XSS; the real defense is the CSP above.)
+
+> **The paired integrity check no longer reaches the UI.** Every 5 s it
+> compares the global against the literal and, on a mismatch, logs and hides
+> `#tip-btn` — an element that was **removed** in v1.7.2, when the footer
+> coffee button became the Flow gateway and tipping moved to the eChan
+> quick-action (`window.__ecOpenTip`). So the detection still runs and still
+> logs, but the "refuse to render" half is a no-op: the dialog stays
+> reachable. Recorded here rather than quietly deleted because the fix is a
+> real change (point the guard at `openTipDialog`), not a doc edit. The
+> `defineProperty` lock above is unaffected and is the part that actually
+> protects the address.
 
 ## Editing the file
 

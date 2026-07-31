@@ -46,11 +46,29 @@ choice with the dashboard. It is a separate page with its own inline module and
 its own CSP hash. Where the dashboard adds detail, Flow simplifies by **omitting**
 — never by inventing a number it does not have.
 
+### Which door you get
+
+**Flow is the default for anyone arriving for the first time.** It explains
+itself; the dashboard assumes you already know what a mempool is.
+
+The choice is then remembered, and you change it whenever you like: **Flow →**
+in the dashboard footer, **Dashboard →** in Flow's. Either click is permanent
+until the other one is clicked. `?door=flow` and `?door=pro` do the same thing
+from a link.
+
+Someone who has used the dashboard before is **never** moved. Having no stored
+preference is not the same as being new — the site ran for a long time with no
+preference key at all — so the router treats any existing dashboard state in the
+browser as the answer and records `pro`. The rule is one small file,
+[`vendor/door.js`](vendor/door.js), loaded by both pages so they cannot disagree
+about it, and it runs before the first paint so nobody watches the wrong door
+flash past.
+
 -----
 
 ## Architecture
 
-The frontend is a **single self-contained `index.html`** (~21,500 lines: HTML +
+The frontend is a **single self-contained `index.html`** (~22,800 lines: HTML +
 inline CSS + one inline ES module) — no build step, no runtime third-party scripts.
 It talks directly to public eCash **Chronik** indexer nodes over HTTP + WebSocket
 for the live transaction, block, and message feeds.

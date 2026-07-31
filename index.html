@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-JbDPSwDn9HwchId9Udk4WO6RpFw61rUhJl/aEQrATl0=';
+  script-src 'self' 'sha256-/VqnUSSJ03Go0olKK2yimRsKaPPt8ravgqwZxPwOsk8=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -48,6 +48,12 @@
   form-action 'none';
   manifest-src 'self';
 ">
+
+<!-- Door router — shared verbatim with Flow (vendor/door.js). Runs BEFORE the
+     first paint, so a visitor whose door is Flow never sees this dashboard
+     flash past on the way there. Render-blocking on purpose, and covered by
+     script-src 'self' so it costs no CSP hash — see the file header. -->
+<script src="./vendor/door.js?v=mc24" data-door="neo"></script>
 
 <title>eCash Live · Pre &amp; Post-Consensus Visualizer</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -6898,7 +6904,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v2.2.0">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v2.2.0</span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v2.3.0">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true">v2.3.0</span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -7963,20 +7969,26 @@
 </div>
 
 <script type="module">
-// P3 (FLOW_DESIGN.md h, tier-2): honor an explicit "I chose Flow" preference,
-// MOBILE ONLY. It is set when the user taps the Flow gateway (#flow-btn, below);
-// "Pro view →" inside Flow clears it back to 'pro'. Desktop neo is never
-// redirected, and a ?endpoint= dev override is always honored.
-try {
-  if (localStorage.getItem('ecashlive:pref') === 'flow'
-      && matchMedia('(max-width: 820px)').matches
-      && !new URLSearchParams(location.search).has('endpoint')) {
-    location.replace('./flow/');
-  }
-} catch {}
+// Door routing moved OUT of this module and into vendor/door.js (loaded in
+// <head>, shared verbatim with Flow). Two reasons it could not stay here:
+//   * a module is deferred, so the redirect fired only AFTER this page had
+//     painted — a newcomer saw the dashboard flash past on the way to Flow;
+//   * the rule lived here while Flow wrote only half of it, so the two doors
+//     could drift apart about the same visitor.
+// The rule also changed: Flow is now the default for anyone with no history
+// here, on every screen size, not just an explicit chooser on mobile. See
+// vendor/door.js for the newcomer test and why a returning neo user is never
+// moved.
+//
+// The gateway button records the choice through the shared writer so both
+// doors spell the key the same way; the inline fallback keeps the button
+// working if door.js failed to load.
 try {
   document.getElementById('flow-btn')?.addEventListener('click', () => {
-    try { localStorage.setItem('ecashlive:pref', 'flow'); } catch {}
+    try {
+      if (window.__ecDoor) window.__ecDoor.choose('flow');
+      else localStorage.setItem('ecashlive:pref', 'flow');
+    } catch {}
   });
 } catch {}
 // ============ ECHAN EVENT BUS (v1.3.1) ============
