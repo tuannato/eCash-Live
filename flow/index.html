@@ -4315,7 +4315,7 @@ async function sendTry(){
       hint('', false);
       toast(t(e && e.message === 'timeout' ? 'try.timeout' : 'try.denied'));
     }
-    } else {
+  } else {
     if (msg){ tryMsg = msg.toLowerCase(); tryMsgAt = Date.now(); }   // content match (URL path); myAddr covers pure-XEC
     // Cashtab reads its `bip21` query param without decoding it first, so an
     // encodeURIComponent-wrapped value arrives still percent-encoded and Cashtab
