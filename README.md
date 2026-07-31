@@ -211,6 +211,22 @@ dependency rebuild procedure.
 - **CoinGecko** — XEC/USD price (`api.coingecko.com`)
 - Fonts: Space Grotesk, Fira Code (self-hosted)
 
+## License
+
+Source code is [MIT](LICENSE).
+
+Images are not. [`NOTICE.md`](NOTICE.md) is the authoritative scope, and the
+short version is: **take the code, not the pictures.** In particular, **eChan
+is a mascot of the eCash community, not a character this project owns** — her
+sprites were rendered with AI from artwork the community has shared, so no
+copyright is claimed in them and no license to them is granted here. The same
+goes for the eCash brand marks (Bitcoin ABC), the YouTube thumbnails under
+`vendor/mediacenter/cards/`, and this site's own identity images.
+
+Third-party components keep their own licenses: the fonts are SIL OFL 1.1
+(text in [`vendor/fonts/OFL.txt`](vendor/fonts/OFL.txt), which must travel with
+them), and the vendored JavaScript is MIT. See [`VENDOR.md`](VENDOR.md).
+
 ## Links
 
 - eCash homepage — <https://e.cash>

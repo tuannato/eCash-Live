@@ -1,7 +1,16 @@
 # === eCash Live .gitignore ===
-# Restored 2026-07-15. This offline working copy shipped without one; the real
-# repo (github.com/tuannato/eCash-Live) has its own. Keep secrets + runtime
-# artifacts out of any commit made from here. See CLAUDE.md §14.
+# This IS the real repo (github.com/tuannato/eCash-Live, remote `origin`).
+# Everything below is either a secret, a private working note, a runtime
+# artifact, or a regenerable file. See CLAUDE.md §14.
+
+# --- Private working material (NEVER commit) ---
+# internal/ holds design docs, review artifacts, workplans, logo source files,
+# sampler output, and at least one script with a live API token in it. None of
+# it is part of the published site. Both forms on purpose: the bare name also
+# catches a SYMLINK named `internal` (the exact way a committed node_modules
+# symlink once broke the Pages build — see the Worker section below).
+internal
+internal/
 
 # --- Secrets (NEVER commit) ---
 .env
@@ -11,6 +20,18 @@ ecash_bot_config.json
 *ecash_bot_config*
 *.config.json
 ecash_bot.py
+# Generic credential shapes, so a new file cannot slip through by being named
+# something we did not predict.
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+*secret*
+*credentials*
+*.token
+.netrc
+.npmrc
 
 # --- Relay runtime artifacts (regenerated on the VPS) ---
 ttf-stats.json

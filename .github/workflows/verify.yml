@@ -1,0 +1,127 @@
+name: verify
+
+# The failure this exists to prevent: an inline module edited without rerunning
+# update-csp-hash.sh ships a page whose pinned SHA-256 no longer matches, the
+# browser refuses to execute it, and production is a FULLY BLANK page. Until now
+# the only defence was remembering. Both pages pin independently, so both are
+# checked.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: CSP hash matches the inline module
+        run: |
+          ./update-csp-hash.sh --check index.html
+          ./update-csp-hash.sh --check flow/index.html
+
+      - name: Inline modules parse
+        run: |
+          for f in index.html flow/index.html; do
+            python3 - "$f" > /tmp/module.mjs <<'PY'
+          import re, sys
+          html = open(sys.argv[1], encoding='utf-8').read()
+          sys.stdout.write(re.search(r'<script[^>]*type="module"[^>]*>(.*?)</script>', html, re.S).group(1))
+          PY
+            node --check /tmp/module.mjs || { echo "::error file=$f::inline module has a syntax error"; exit 1; }
+            echo "ok: $f"
+          done
+
+      - name: Vendor JS parses
+        run: |
+          for f in vendor/door.js vendor/txparse.js vendor/cashtab-connect.js vendor/companion/echan.js; do
+            node --check "$f" && echo "ok: $f"
+          done
+
+      - name: HTML tags balance
+        # A wrapper whose tag was changed at one end only silently swallows the
+        # rest of the page with zero console errors — node --check cannot see it.
+        run: |
+          python3 - <<'PY'
+          import re, sys
+          from html.parser import HTMLParser
+          VOID = {'area','base','br','col','embed','hr','img','input','link','meta','param',
+                  'source','track','wbr','path','circle','rect','line','polygon','polyline',
+                  'ellipse','stop','use'}
+          class P(HTMLParser):
+              def __init__(self):
+                  super().__init__(convert_charrefs=True); self.stack=[]; self.err=[]
+              def handle_starttag(self, t, a):
+                  if t not in VOID: self.stack.append((t, self.getpos()))
+              def handle_endtag(self, t):
+                  if t in VOID: return
+                  if not self.stack or self.stack[-1][0] != t:
+                      self.err.append((t, self.getpos())); return
+                  self.stack.pop()
+          bad = 0
+          for f in ('index.html', 'flow/index.html'):
+              h = open(f, encoding='utf-8').read()
+              h = re.sub(r'<script\b[^>]*>.*?</script>', '<script></script>', h, flags=re.S)
+              h = re.sub(r'<style\b[^>]*>.*?</style>', '<style></style>', h, flags=re.S)
+              p = P(); p.feed(h)
+              if p.err or p.stack:
+                  bad = 1
+                  print(f'::error file={f}::{len(p.err)} mismatched, {len(p.stack)} unclosed')
+                  for t, pos in (p.err + p.stack)[:5]: print(f'   <{t}> at {pos}')
+              else:
+                  print(f'ok: {f}')
+          sys.exit(bad)
+          PY
+
+      - name: i18n key parity across all Flow packs
+        # A missing key silently falls back to EN, so drift is invisible in the UI.
+        run: |
+          python3 - <<'PY'
+          import re, json, glob, os, sys
+          html = open('flow/index.html', encoding='utf-8').read()
+          block = re.search(r'const FLOW_STRINGS_EN\s*=\s*\{(.*?)\n\};', html, re.S).group(1)
+          en = set(re.findall(r"^\s*'([^']+)'\s*:", block, re.M))
+          bad = 0
+          for p in sorted(glob.glob('vendor/i18n/flow.*.json')):
+              ks = set((json.load(open(p, encoding='utf-8')).get('strings') or
+                        json.load(open(p, encoding='utf-8'))).keys())
+              miss, extra = en - ks, ks - en
+              if miss or extra:
+                  bad = 1
+                  print(f'::error file={p}::missing {sorted(miss)} extra {sorted(extra)}')
+          print(f'EN base: {len(en)} keys across {len(glob.glob("vendor/i18n/flow.*.json"))} packs')
+          sys.exit(bad)
+          PY
+
+      - name: Relay compiles, and mirrors the bot's shared constant
+        # ecash_bot.py is deliberately gitignored (secrets discipline, CLAUDE.md
+        # §0.10), so it is ABSENT from a public checkout. Check the mirror when
+        # the file is present — a private fork, or a local `act` run — and skip
+        # it with a note when it is not. Failing on a file that is intentionally
+        # not in the repo would make every push red for no reason.
+        run: |
+          python3 -m py_compile ttf-relay.py && echo "ok: py_compile ttf-relay.py"
+          if [ -f ecash_bot.py ]; then
+            python3 -m py_compile ecash_bot.py && echo "ok: py_compile ecash_bot.py"
+          else
+            echo "note: ecash_bot.py is not in this checkout (gitignored by design)"
+          fi
+          python3 - <<'PY'
+          import os, re, sys
+          def grab(f):
+              m = re.search(r'^_HIST_LO_MS\s*=\s*(\d+)', open(f, encoding='utf-8').read(), re.M)
+              return m.group(1) if m else None
+          a = grab('ttf-relay.py')
+          if a is None:
+              print('::error file=ttf-relay.py::_HIST_LO_MS not found'); sys.exit(1)
+          if not os.path.exists('ecash_bot.py'):
+              print(f'_HIST_LO_MS  relay={a}  bot=<absent, skipped>'); sys.exit(0)
+          b = grab('ecash_bot.py')
+          print(f'_HIST_LO_MS  relay={a}  bot={b}')
+          if b is None or a != b:
+              print('::error::_HIST_LO_MS must be mirrored (CLAUDE.md 0.9) — a mismatch silently corrupts percentiles')
+              sys.exit(1)
+          PY

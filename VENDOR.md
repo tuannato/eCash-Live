@@ -22,6 +22,32 @@ All three JS bundles were produced with `esbuild` from the upstream npm
 tarballs whose `shasum` (sha1) matched the sha1 returned by the npm registry
 for that version at build time.
 
+## Licenses
+
+Self-hosting does not make an upstream licence go away — it makes carrying it
+our job. Both licences below have an attribution requirement, so **neither the
+notices nor `OFL.txt` may be dropped when `vendor/` is copied.**
+
+| Component | Copyright | Licence |
+| --------- | --------- | ------- |
+| `chronik-client.js` | The Bitcoin developers | MIT |
+| `cashtab-connect.js` | © 2025 The Bitcoin developers | MIT (noted in the file header) |
+| `qrcode.js`, `qrcode-generator.js` | Kazuhiko Arase | MIT |
+| Space Grotesk (`vendor/fonts/`) | Florian Karsten | SIL OFL 1.1 |
+| Fira Code (`vendor/fonts/`) | The Fira Code Project Authors | SIL OFL 1.1 |
+
+OFL 1.1 §2 requires the licence text to be distributed *with* the fonts — it
+lives at [`vendor/fonts/OFL.txt`](fonts/OFL.txt).
+
+`vendor/txparse.js`, `vendor/door.js`, `vendor/companion/echan.js` and
+`vendor/mediacenter/mediacenter.js` are this project's own code, under the
+repository's [`LICENSE`](LICENSE). The eChan **sprites** are a different matter
+entirely — see [`NOTICE.md`](NOTICE.md).
+
+> **When you rebuild a bundle, re-check its licence header survived
+> minification.** `chronik-client.js` currently carries no copyright notice in
+> the built file, which MIT asks for; the table above is what carries it today.
+
 ## When to rebuild
 
 * You want a newer upstream version.
