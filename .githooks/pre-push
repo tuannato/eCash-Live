@@ -1,0 +1,193 @@
+#!/usr/bin/env bash
+#
+# pre-push — the gate that .github/workflows/verify.yml cannot be.
+#
+# GitHub Pages here deploys from the branch, so the deploy is triggered by the
+# push itself and runs independently of Actions. By the time verify.yml goes
+# red, the broken file is already being served. The single worst failure this
+# repo has — an inline module edited without rerunning update-csp-hash.sh, so
+# the browser refuses the pinned script and the page renders FULLY BLANK — must
+# therefore be caught before the push leaves the machine, not after.
+#
+# Runs the same checks as CI, against HEAD (what CI will actually see), not the
+# working tree. Roughly two seconds.
+#
+# Install (once per clone):   git config core.hooksPath .githooks
+# Bypass deliberately:        git push --no-verify
+
+set -uo pipefail
+
+RED=$'\033[31m'; GRN=$'\033[32m'; YEL=$'\033[33m'; DIM=$'\033[2m'; BLD=$'\033[1m'; OFF=$'\033[0m'
+[ -t 1 ] || { RED=; GRN=; YEL=; DIM=; BLD=; OFF=; }
+
+REPO="$(git rev-parse --show-toplevel)"
+cd "$REPO" || exit 1
+
+# ---------------------------------------------------------------- what is going
+# stdin: <local ref> <local sha> <remote ref> <remote sha>
+ZERO='0000000000000000000000000000000000000000'
+RANGE=''; TARGET=''
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$ZERO" ] && continue          # branch deletion — nothing to check
+  TARGET="${remote_ref#refs/heads/}"
+  if [ "$remote_sha" = "$ZERO" ]; then
+    RANGE="$local_sha"                            # new branch on the remote
+  else
+    RANGE="$remote_sha..$local_sha"
+  fi
+done
+[ -z "$RANGE" ] && exit 0                         # nothing being pushed
+
+printf '\n%s── pre-push ────────────────────────────────────────────%s\n' "$DIM" "$OFF"
+NCOMMITS=$(git rev-list --count "$RANGE" 2>/dev/null || echo '?')
+printf '%sPushing to %s%s%s\n' "$BLD" "${TARGET:-?}" "$OFF" ''
+printf '  %s commit(s):\n' "$NCOMMITS"
+git log --oneline --no-decorate "$RANGE" 2>/dev/null | head -10 | sed 's/^/    /'
+[ "$NCOMMITS" != '?' ] && [ "$NCOMMITS" -gt 10 ] && printf '    %s… and %s more%s\n' "$DIM" "$((NCOMMITS - 10))" "$OFF"
+printf '\n'
+git diff --stat "$RANGE" 2>/dev/null | tail -12 | sed 's/^/  /'
+
+# A dirty tree is not an error — but what you are pushing is HEAD, not what you
+# are looking at, and that difference has surprised people before.
+DIRTY=$(git status --porcelain --untracked-files=no | wc -l)
+[ "$DIRTY" -gt 0 ] && printf '\n  %s! %s tracked file(s) modified but NOT committed — they are not in this push%s\n' "$YEL" "$DIRTY" "$OFF"
+
+# ------------------------------------------------------------------- the checks
+# Extract only what the checks read. Extracting the whole tree would pull ~7MB
+# of fonts, sprites and lesson media for no reason.
+TMP=$(mktemp -d) || exit 1
+trap 'rm -rf "$TMP"' EXIT
+
+printf '\n%sChecks against HEAD%s\n' "$BLD" "$OFF"
+FAILED=0
+ok()   { printf '  %s✓%s %s\n' "$GRN" "$OFF" "$1"; }
+bad()  { printf '  %s✗ %s%s\n' "$RED" "$1" "$OFF"; [ -n "${2:-}" ] && printf '      %s%s%s\n' "$DIM" "$2" "$OFF"; FAILED=1; }
+
+# Pass ONLY paths that exist in HEAD: git archive aborts the WHOLE operation on
+# an unmatched pathspec, and ecash_bot.py is gitignored by design so it is never
+# there. That once extracted nothing at all, and because each check skipped its
+# missing file, the hook reported a clean pass over zero work. A hook that skips
+# silently is worse than no hook, so extraction failure is fatal now, and a file
+# expected in HEAD but absent from the extract FAILS rather than being skipped.
+WANT=(index.html flow/index.html update-csp-hash.sh ttf-relay.py
+      vendor/door.js vendor/txparse.js vendor/cashtab-connect.js
+      vendor/companion/echan.js vendor/i18n)
+PATHS=()
+for p in "${WANT[@]}"; do
+  git ls-tree -r HEAD --name-only -- "$p" | grep -q . && PATHS+=("$p")
+done
+if [ ${#PATHS[@]} -eq 0 ] || ! git archive HEAD -- "${PATHS[@]}" 2>"$TMP/_err" | tar -x -C "$TMP"; then
+  printf '  %s✗ could not extract HEAD — cannot verify anything%s\n      %s%s%s\n\n' \
+    "$RED" "$OFF" "$DIM" "$(head -1 "$TMP/_err" 2>/dev/null)" "$OFF"
+  printf '%s%sPUSH BLOCKED%s\n\n' "$RED" "$BLD" "$OFF"
+  exit 1
+fi
+
+cd "$TMP" || exit 1
+
+# Required in HEAD; absent means the extract is wrong, not that the check passes.
+require() { [ -f "$1" ] && return 0; bad "missing from HEAD: $1" "expected file not in the extract"; return 1; }
+
+# 1. CSP hash — the one that blanks production
+for f in index.html flow/index.html; do
+  require "$f" || continue
+  if out=$(bash ./update-csp-hash.sh --check "$f" 2>&1); then
+    ok "CSP hash · $f"
+  else
+    bad "CSP hash · $f" "$(printf '%s' "$out" | head -1)   fix: ./update-csp-hash.sh $f"
+  fi
+done
+
+# 2. inline modules parse
+for f in index.html flow/index.html; do
+  require "$f" || continue
+  python3 -c "
+import re,sys
+h=open('$f',encoding='utf-8').read()
+m=re.search(r'<script[^>]*type=\"module\"[^>]*>(.*?)</script>',h,re.S)
+sys.stdout.write(m.group(1) if m else '')" > "$TMP/_m.mjs" 2>/dev/null
+  if err=$(node --check "$TMP/_m.mjs" 2>&1); then ok "inline module · $f"
+  else bad "inline module · $f" "$(printf '%s' "$err" | head -2 | tail -1)"; fi
+done
+
+# 3. vendor JS parses
+vbad=''
+for f in vendor/door.js vendor/txparse.js vendor/cashtab-connect.js vendor/companion/echan.js; do
+  require "$f" || { vbad="$vbad $f(absent)"; continue; }
+  node --check "$f" >/dev/null 2>&1 || vbad="$vbad $f"
+done
+[ -z "$vbad" ] && ok "vendor JS parses" || bad "vendor JS parses" "failed:$vbad"
+
+# 4. HTML tag balance — a wrapper closed with the wrong tag swallows the page
+#    silently, with no console error and an unchanged CSP hash.
+if out=$(python3 - <<'PY' 2>&1
+import re,sys
+from html.parser import HTMLParser
+VOID={'area','base','br','col','embed','hr','img','input','link','meta','param',
+      'source','track','wbr','path','circle','rect','line','polygon','polyline',
+      'ellipse','stop','use'}
+class P(HTMLParser):
+    def __init__(s): super().__init__(convert_charrefs=True); s.stack=[]; s.err=[]
+    def handle_starttag(s,t,a):
+        if t not in VOID: s.stack.append((t,s.getpos()))
+    def handle_endtag(s,t):
+        if t in VOID: return
+        if not s.stack or s.stack[-1][0]!=t: s.err.append((t,s.getpos())); return
+        s.stack.pop()
+bad=0
+for f in ('index.html','flow/index.html'):
+    try: h=open(f,encoding='utf-8').read()
+    except OSError: continue
+    h=re.sub(r'<script\b[^>]*>.*?</script>','<script></script>',h,flags=re.S)
+    h=re.sub(r'<style\b[^>]*>.*?</style>','<style></style>',h,flags=re.S)
+    p=P(); p.feed(h)
+    if p.err or p.stack:
+        bad=1
+        for t,pos in (p.err+p.stack)[:3]: print(f'{f}: <{t}> at line {pos[0]}')
+sys.exit(bad)
+PY
+); then ok "HTML tags balance"; else bad "HTML tags balance" "$(printf '%s' "$out" | head -2)"; fi
+
+# 5. i18n parity — a missing key silently falls back to EN, so drift is invisible
+if out=$(python3 - <<'PY' 2>&1
+import re,json,glob,sys
+try: html=open('flow/index.html',encoding='utf-8').read()
+except OSError: print('flow/index.html missing from extract'); sys.exit(1)
+m=re.search(r'const FLOW_STRINGS_EN\s*=\s*\{(.*?)\n\};',html,re.S)
+if not m: print('FLOW_STRINGS_EN not found'); sys.exit(1)
+en=set(re.findall(r"^\s*'([^']+)'\s*:",m.group(1),re.M)); bad=0
+packs=sorted(glob.glob('vendor/i18n/flow.*.json'))
+if not packs: print('no flow i18n packs found in the extract'); sys.exit(1)
+for p in packs:
+    d=json.load(open(p,encoding='utf-8')); ks=set((d.get('strings') or d).keys())
+    miss,extra=en-ks,ks-en
+    if miss or extra:
+        bad=1; print(f'{p}: missing {sorted(miss)[:3]} extra {sorted(extra)[:3]}')
+print(f'{len(en)} keys x {len(packs)} packs')
+sys.exit(bad)
+PY
+); then ok "i18n parity  ${DIM}($(printf '%s' "$out" | tail -1))${OFF}"
+else bad "i18n parity" "$(printf '%s' "$out" | head -2)"; fi
+
+# 6. relay compiles + mirrors the bot constant (bot is gitignored by design)
+if ! require ttf-relay.py; then :
+elif err=$(python3 -m py_compile ttf-relay.py 2>&1); then
+  if [ -f ecash_bot.py ]; then
+    a=$(grep -oP '^_HIST_LO_MS\s*=\s*\K\d+' ttf-relay.py | head -1)
+    b=$(grep -oP '^_HIST_LO_MS\s*=\s*\K\d+' ecash_bot.py | head -1)
+    [ -n "$a" ] && [ "$a" = "$b" ] && ok "relay compiles · _HIST_LO_MS mirrored ($a)" \
+      || bad "_HIST_LO_MS mismatch" "relay=$a bot=$b — a mismatch silently corrupts percentiles"
+  else
+    ok "relay compiles  ${DIM}(bot gitignored, mirror not checkable here)${OFF}"
+  fi
+else bad "relay compiles" "$(printf '%s' "$err" | tail -1)"; fi
+
+cd "$REPO" || exit 1
+printf '\n'
+if [ "$FAILED" -ne 0 ]; then
+  printf '%s%sPUSH BLOCKED%s — fix the above, or %sgit push --no-verify%s to override.\n\n' \
+    "$RED" "$BLD" "$OFF" "$BLD" "$OFF"
+  exit 1
+fi
+printf '%sAll checks passed.%s %sPages deploys straight from this push.%s\n\n' "$GRN" "$OFF" "$DIM" "$OFF"
+exit 0

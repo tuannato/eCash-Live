@@ -130,6 +130,20 @@ vendor/                 # self-hosted libraries + fonts (no CDN at runtime)
 
 No toolchain, framework, or bundler is required — edit `index.html` and reload.
 
+Enable the pre-push checks once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+`.githooks/pre-push` runs the same checks as CI, against `HEAD`, in about a
+second, and refuses the push if any fail. It exists because **Pages deploys
+from the branch, so the deploy is triggered by the push itself and does not
+wait for Actions** — by the time `verify.yml` goes red, the broken file is
+already being served. The hook is the only thing that can stop a CSP-hash
+mismatch (which renders the page fully blank) from reaching production.
+`git push --no-verify` overrides it.
+
 ```bash
 # Serve locally from the repo root (any static server works)
 python3 -m http.server 8000
