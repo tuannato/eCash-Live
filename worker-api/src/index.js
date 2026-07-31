@@ -118,11 +118,8 @@ async function handlePrice() {
 
 /* ------------------------------------------------------------------- /icon */
 // /icon/<size>/<tokenId>.png -> icons.etokens.cash/<size>/<tokenId>.png
-async function handleIcon(parts) {
-  const [, size, file] = parts;                       // ['icon', '128', '<id>.png']
-  if (!ICON_SIZES.has(size)) return new Response('Bad size', { status: 404 });
-  const id = String(file || '').replace(/\.png$/i, '').toLowerCase();
-  if (!HEX64.test(id)) return new Response('Bad token id', { status: 404 });
+// `size` and `id` arrive already validated and normalized by routeOf().
+async function handleIcon({ size, id }) {
   try {
     const r = await upstream(`${ICON_HOST}/${size}/${id}.png`);
     if (!r.ok) return new Response('Not found', { status: 404, headers: { 'cache-control': `public, max-age=${CACHE_FAIL_S}` } });
@@ -191,9 +188,8 @@ export function sanitize(s, max) {
   return out;
 }
 
-async function handlePowr(parts) {
-  const txid = String(parts[1] || '').toLowerCase();
-  if (!HEX64.test(txid)) return json({ error: 'bad txid' }, CACHE_FAIL_S);
+// `txid` arrives already validated and lower-cased by routeOf().
+async function handlePowr({ txid }) {
   try {
     const r = await upstream(`${POWR_HOST}/feed/${txid}`);
     if (!r.ok) return json({ error: 'not found' }, CACHE_FAIL_S);
@@ -239,17 +235,91 @@ export function summarizeDaily(text, window) {
   return { days: recent.length, medianTtfMs: mid, samples, from: recent[0].date, to: recent[recent.length - 1].date };
 }
 
-async function handleHistory(url) {
-  const w = Math.min(Math.max(parseInt(url.searchParams.get('days') || '30', 10) || 30, 7), 365);
+// `days` is the window already clamped by historyWindow() — the SAME function
+// the cache key uses, so the key and the answer can never describe different
+// windows.
+async function handleHistory({ days }) {
   try {
     const r = await upstream(DAILY_URL);
     if (!r.ok) return json({ error: 'unavailable' }, CACHE_FAIL_S);
-    const out = summarizeDaily(await r.text(), w);
+    const out = summarizeDaily(await r.text(), days);
     if (!out) return json({ error: 'not enough history' }, CACHE_FAIL_S);
     return json(out, CACHE_HIST_S);
   } catch {
     return json({ error: 'unavailable' }, CACHE_FAIL_S);
   }
+}
+
+/* ---------------------------------------------------------------- routing */
+// The edge cache key is built from the CANONICAL route, never from the raw URL.
+//
+// It used to be `url.pathname + '?' + url.searchParams.toString()`, which left
+// TWO ways to miss the cache on every single request — each one costing a fresh
+// upstream fetch, with no rate limit anywhere in front of it:
+//
+//   /price?x=<random>   no handler except /history reads a query parameter, yet
+//                       every distinct query string was a distinct key.
+//   /price/<random>     the router dispatches on parts[0] alone, so any suffix
+//                       reached the same handler under a different pathname.
+//
+// That is not theoretical here: handlePrice's own comment records CoinGecko
+// already failing from Cloudflare's shared egress pool, and /history reads the
+// relay host — so the second vector pointed at our own measurement box, the one
+// asset in this project that cannot be rebuilt if a day of it is lost.
+//
+// Two rules keep it closed:
+//   1. Validate FIRST. An invalid request 404s without touching the cache, so a
+//      stream of junk can neither reach upstream nor fill the cache with
+//      negative entries.
+//   2. The key carries only what the handler actually reads, in normalized
+//      form. /history?days=abc, ?days=0 and ?days=30 all resolve to one entry.
+//
+// historyWindow() is shared by the key and the handler on purpose: if they ever
+// disagreed, the cache would serve one window's answer under another's key.
+export function historyWindow(url) {
+  const n = parseInt(url.searchParams.get('days') || '30', 10) || 30;
+  return Math.min(Math.max(n, 7), 365);
+}
+
+/** Canonical route, or null when nothing legitimate matches. */
+export function routeOf(url, parts) {
+  switch (parts[0]) {
+    case 'price':
+      return parts.length === 1 ? { name: 'price', path: '/price' } : null;
+
+    case 'icon': {
+      if (parts.length !== 3) return null;
+      const size = parts[1];
+      const id = String(parts[2]).replace(/\.png$/i, '').toLowerCase();
+      if (!ICON_SIZES.has(size) || !HEX64.test(id)) return null;
+      return { name: 'icon', path: `/icon/${size}/${id}`, size, id };
+    }
+
+    case 'powr': {
+      if (parts.length !== 2) return null;
+      const txid = String(parts[1]).toLowerCase();
+      if (!HEX64.test(txid)) return null;
+      return { name: 'powr', path: `/powr/${txid}`, txid };
+    }
+
+    case 'history': {
+      if (parts.length !== 1) return null;
+      const days = historyWindow(url);
+      return { name: 'history', path: '/history', params: { days: String(days) }, days };
+    }
+
+    default:
+      return null;
+  }
+}
+
+/** Stable cache key for a canonical route. Insertion order is fixed, so the
+ *  same route always serializes to the same string. */
+export function cacheKeyUrl(origin, route) {
+  const u = new URL(origin + route.path);
+  u.searchParams.set('_v', String(API_VERSION));
+  for (const [k, v] of Object.entries(route.params || {})) u.searchParams.set(k, v);
+  return u.toString();
 }
 
 /* ----------------------------------------------------------------- router */
@@ -268,18 +338,21 @@ export default {
     const url = new URL(request.url);
     const parts = url.pathname.split('/').filter(Boolean);
 
+    // Validate before the cache is involved at all (rule 1 above).
+    const route = routeOf(url, parts);
+    if (!route) return new Response('Not found', { status: 404 });
+
     const cache = caches.default;
-    const key = new Request(url.origin + url.pathname + '?_v=' + API_VERSION + '&' + url.searchParams.toString(), { method: 'GET' });
+    const key = new Request(cacheKeyUrl(url.origin, route), { method: 'GET' });
     const hit = await cache.match(key);
     if (hit) return withCors(hit, request);
 
     let res;
-    switch (parts[0]) {
-      case 'price': res = await handlePrice(); break;
-      case 'icon':  res = await handleIcon(parts); break;
-      case 'powr':  res = await handlePowr(parts); break;
-      case 'history': res = await handleHistory(url); break;
-      default:      return new Response('Not found', { status: 404 });
+    switch (route.name) {
+      case 'price':   res = await handlePrice(); break;
+      case 'icon':    res = await handleIcon(route); break;
+      case 'powr':    res = await handlePowr(route); break;
+      case 'history': res = await handleHistory(route); break;
     }
 
     // Only cache what succeeded well enough to be worth reusing; failures carry
