@@ -69,9 +69,9 @@ bad()  { printf '  %s✗ %s%s\n' "$RED" "$1" "$OFF"; [ -n "${2:-}" ] && printf '
 # missing file, the hook reported a clean pass over zero work. A hook that skips
 # silently is worse than no hook, so extraction failure is fatal now, and a file
 # expected in HEAD but absent from the extract FAILS rather than being skipped.
-WANT=(index.html flow/index.html update-csp-hash.sh ttf-relay.py
+WANT=(index.html flow/index.html finality/index.html update-csp-hash.sh ttf-relay.py
       vendor/door.js vendor/txparse.js vendor/cashtab-connect.js
-      vendor/companion/echan.js vendor/i18n)
+      vendor/companion/echan.js vendor/finality.js vendor/i18n)
 PATHS=()
 for p in "${WANT[@]}"; do
   git ls-tree -r HEAD --name-only -- "$p" | grep -q . && PATHS+=("$p")
@@ -112,7 +112,7 @@ done
 
 # 3. vendor JS parses
 vbad=''
-for f in vendor/door.js vendor/txparse.js vendor/cashtab-connect.js vendor/companion/echan.js; do
+for f in vendor/door.js vendor/txparse.js vendor/cashtab-connect.js vendor/companion/echan.js vendor/finality.js; do
   require "$f" || { vbad="$vbad $f(absent)"; continue; }
   node --check "$f" >/dev/null 2>&1 || vbad="$vbad $f"
 done
@@ -135,11 +135,13 @@ class P(HTMLParser):
         if not s.stack or s.stack[-1][0]!=t: s.err.append((t,s.getpos())); return
         s.stack.pop()
 bad=0
-for f in ('index.html','flow/index.html'):
+for f in ('index.html','flow/index.html','finality/index.html'):
     try: h=open(f,encoding='utf-8').read()
     except OSError: continue
-    h=re.sub(r'<script\b[^>]*>.*?</script>','<script></script>',h,flags=re.S)
-    h=re.sub(r'<style\b[^>]*>.*?</style>','<style></style>',h,flags=re.S)
+    # Comments FIRST — see the note in .github/workflows/verify.yml.
+    h=re.sub(r'<!--.*?-->','',h,flags=re.S)
+    h=re.sub(r'<script\b[^>]*>.*?</script>','',h,flags=re.S)
+    h=re.sub(r'<style\b[^>]*>.*?</style>','',h,flags=re.S)
     p=P(); p.feed(h)
     if p.err or p.stack:
         bad=1

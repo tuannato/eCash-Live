@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-AYq4cOXm8GQQslZnoq5F/ysv96ZwiTK0/dBmNtaRvzc=';
+  script-src 'self' 'sha256-ZayFww6Iewu3J5JkOiJCfbEpffOoRpgMke7V1uYgHBQ=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -4459,6 +4459,28 @@
     font-size: 15px; line-height: 1.6; color: var(--text-2);
     margin: 0 0 18px;
   }
+  /* Entry point to /finality/, first thing in the popover. This panel explains
+     what the footer cells MEAN; the report is where the same measurements are
+     charted over months and the method is written out. Someone who opened this
+     wanting evidence rather than a definition should not have to hunt. */
+  .so-report {
+    display: flex; align-items: center; gap: 14px;
+    padding: 13px 15px; margin: 0 0 18px;
+    background: linear-gradient(135deg, rgba(1,160,224,0.13), rgba(1,160,224,0.05));
+    border: 1px solid rgba(1,160,224,0.30); border-radius: 10px;
+    text-decoration: none; color: inherit;
+    transition: border-color .15s, background .15s;
+  }
+  .so-report:hover { border-color: var(--cyan); background: rgba(1,160,224,0.16); }
+  .so-report-txt { flex: 1 1 auto; min-width: 0; }
+  .so-report-k {
+    display: block; font-family: 'Fira Code', monospace; font-size: 11px;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--cyan);
+    margin-bottom: 3px;
+  }
+  .so-report-d { display: block; font-size: 13.5px; color: var(--text-2); line-height: 1.45; }
+  .so-report-go { flex: none; font-size: 17px; color: var(--cyan); }
+  @media (max-width: 560px) { .so-report-d { font-size: 12.5px; } }
   /* Section heading: small cyan mono label with a hairline rule trailing off
      to the right so sections read as distinct bands without heavy dividers. */
   .so-h {
@@ -21070,6 +21092,13 @@ const TOOLTIP_CONTENT = {
     title: 'Network Statistics',
     body: `
       <div class="so-wrap">
+        <a class="so-report" href="/finality/">
+          <span class="so-report-txt">
+            <span class="so-report-k">Finality report</span>
+            <span class="so-report-d">Every day's median charted, the worst days included, and exactly how the number is produced.</span>
+          </span>
+          <span class="so-report-go" aria-hidden="true">→</span>
+        </a>
         <p class="so-lead">The footer along the bottom of the page is a live readout of the eCash network. Its numbers come from two sources — a dedicated eCash node we operate, and your current browser session — and knowing which is which helps you read the bar correctly.</p>
 
         <div class="so-section">

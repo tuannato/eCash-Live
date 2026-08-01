@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+<!-- =================================================================
+     eCash Live — Finality report
+     =================================================================
+     WHY this is a page and not another popover. The 30-day figure is the one
+     thing here nobody else can publish: no explorer measures finality, and
+     reproducing it needs a node running for months with logtimemicros=1 plus
+     the discipline not to flatter the numbers. An asset like that has to be
+     linkable — citable by a wallet, unfurlable in a chat, indexable. A popup
+     is invisible to everything outside this tab.
+
+     NOTE — no inline <script>, deliberately. Both other pages pin their inline
+     module with a SHA-256 in the CSP, which means a third page would be a third
+     hash to regenerate, a third entry in verify.yml and the pre-push hook, and
+     a third way to ship a blank page. All behaviour lives in
+     ../vendor/finality.js instead: same-origin, already covered by
+     script-src 'self', so it costs no hash at all. Inline CSS is fine —
+     style-src carries 'unsafe-inline' as on the other pages.
+
+     Do NOT add door.js here. It routes newcomers to /flow/, and a link shared
+     as evidence has to land on the evidence.
+     ================================================================= -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'none';
+  script-src 'self';
+  style-src 'self' 'unsafe-inline';
+  font-src 'self';
+  img-src 'self' data:;
+  connect-src https://api.ecashlive.net;
+  frame-ancestors 'none';
+  base-uri 'none';
+  form-action 'none';
+  manifest-src 'self';
+">
+
+<title>Finality · eCash Live</title>
+<meta name="description" content="How long an eCash transaction actually takes to become final, measured every day at our own node and published in full — including the days that went badly.">
+<link rel="canonical" href="https://ecashlive.net/finality/">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/icon-180.png">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ecashlive.net/finality/">
+<meta property="og:title" content="eCash finality, measured daily">
+<meta property="og:description" content="Median time to finality on eCash, from a node's own dated records. Every day shown, including the bad ones.">
+<meta property="og:image" content="https://ecashlive.net/og-card.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ecashlive.net/og-card.jpg">
+
+<link rel="stylesheet" href="../vendor/fonts.css?v=mc24">
+<style>
+  :root {
+    --bg: #08080f;
+    --bg-2: #0d0d1a;
+    --panel: rgba(255,255,255,0.022);
+    --line: rgba(255,255,255,0.06);
+    --line-2: rgba(255,255,255,0.12);
+    --text: #ffffff;
+    --text-2: rgba(255,255,255,0.62);
+    --text-3: rgba(255,255,255,0.34);
+    --cyan: #01a0e0;
+    --cyan-bright: #29b6f0;
+    --cyan-deep: #0074c2;
+    --green: #00e781;
+    --amber: #ffb800;
+    --mono: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace;
+    --sg: 'Space Grotesk', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sg);
+    line-height: 1.55;
+    /* A single wash behind the fold, echoing the dashboard without repeating
+       its scanline — this page is for reading, not for ambient motion. */
+    background-image:
+      radial-gradient(1100px 520px at 50% -8%, rgba(1,160,224,0.10), transparent 70%);
+    background-repeat: no-repeat;
+    min-height: 100%;
+  }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%);
+    white-space: nowrap; border: 0;
+  }
+  a { color: var(--cyan); }
+  :focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 3px; }
+
+  .wrap { width: 100%; max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+
+  /* ---------------------------------------------------------------- header */
+  .top {
+    border-bottom: 1px solid var(--line);
+    background: rgba(8,8,15,0.72);
+    backdrop-filter: blur(8px);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .top-in { display: flex; align-items: center; gap: 16px; height: 60px; }
+  .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; color: var(--text); }
+  .brand-mark { width: 22px; height: 22px; flex: none; }
+  .brand-name { font-size: 14px; font-weight: 600; letter-spacing: 0.02em; }
+  .brand-sep { color: var(--text-3); font-size: 14px; }
+  .brand-page { font-size: 14px; color: var(--cyan); font-weight: 500; }
+  .top-nav { margin-left: auto; display: flex; gap: 4px; }
+  .top-nav a {
+    font-family: var(--mono); font-size: 11.5px; color: var(--text-2);
+    text-decoration: none; padding: 7px 11px; border-radius: 5px;
+    border: 1px solid transparent; white-space: nowrap;
+  }
+  .top-nav a:hover { color: var(--text); background: rgba(255,255,255,0.05); border-color: var(--line-2); }
+
+  /* ------------------------------------------------------------------ hero */
+  .hero { padding: 54px 0 34px; text-align: center; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--text-3); margin-bottom: 14px;
+  }
+  .figure {
+    font-family: var(--sg); font-weight: 700; letter-spacing: -0.02em;
+    font-size: clamp(52px, 12vw, 92px); line-height: 1;
+    background: linear-gradient(180deg, #fff 30%, var(--cyan-bright));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .figure .unit { font-size: 0.36em; font-weight: 500; color: var(--text-3);
+    -webkit-text-fill-color: var(--text-3); margin-left: 4px; letter-spacing: 0; }
+  .coverage {
+    font-family: var(--mono); font-size: 12px; color: var(--text-3);
+    margin-top: 16px;
+  }
+  .coverage b { color: var(--text-2); font-weight: 400; }
+  .hero-note {
+    max-width: 620px; margin: 20px auto 0; font-size: 14.5px; color: var(--text-2);
+  }
+
+  /* ----------------------------------------------------------------- panel */
+  .panel {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 20px;
+  }
+  section { margin-bottom: 30px; }
+  .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+  h2 { font-size: 16px; font-weight: 600; letter-spacing: 0.01em; }
+  .sec-sub { font-size: 12.5px; color: var(--text-3); }
+
+  /* ----------------------------------------------------------------- range */
+  .range { margin-left: auto; display: flex; gap: 2px; padding: 3px;
+    background: rgba(255,255,255,0.04); border: 1px solid var(--line); border-radius: 7px; }
+  .range button {
+    font-family: var(--mono); font-size: 11.5px; color: var(--text-3);
+    background: none; border: 0; padding: 5px 11px; border-radius: 5px; cursor: pointer;
+  }
+  .range button:hover { color: var(--text-2); }
+  .range button[aria-pressed="true"] { background: rgba(1,160,224,0.16); color: var(--cyan-bright); }
+
+  /* ----------------------------------------------------------------- chart */
+  .chart-wrap { position: relative; }
+  #chart svg { display: block; width: 100%; height: auto; }
+  .cw-msg {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 280px; font-family: var(--mono); font-size: 12px; color: var(--text-3);
+    text-align: center; padding: 20px;
+  }
+  /* Hover readout. An HTML box rather than SVG text — easier to style, and it
+     can sit above the plot without fighting the viewBox. */
+  .readout {
+    position: absolute; pointer-events: none; opacity: 0; transition: opacity .1s;
+    background: #10101c; border: 1px solid var(--line-2); border-radius: 8px;
+    padding: 9px 11px; font-family: var(--mono); font-size: 11px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.55); z-index: 3; min-width: 150px;
+  }
+  .readout.on { opacity: 1; }
+  .readout .r-date { color: var(--text); font-size: 11.5px; margin-bottom: 6px; }
+  .readout .r-row { display: flex; justify-content: space-between; gap: 14px; color: var(--text-3); }
+  .readout .r-row b { font-weight: 400; color: var(--text-2); }
+  .readout .r-p50 b { color: var(--cyan-bright); }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px;
+    font-family: var(--mono); font-size: 11px; color: var(--text-3); }
+  .legend i { display: inline-block; width: 16px; height: 3px; border-radius: 2px;
+    margin-right: 7px; vertical-align: middle; font-style: normal; }
+  .lg-band i { height: 10px; background: rgba(1,160,224,0.20); border: 1px solid rgba(1,160,224,0.45); }
+  .lg-p50 i { background: var(--cyan-bright); }
+  .lg-gap i { background: repeating-linear-gradient(90deg, var(--text-3) 0 3px, transparent 3px 6px); }
+
+  /* ----------------------------------------------------------------- stats */
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 15px 16px; }
+  .stat-k { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+  .stat-v { font-family: var(--sg); font-size: 25px; font-weight: 600; letter-spacing: -0.01em; }
+  .stat-v .u { font-size: 0.5em; color: var(--text-3); font-weight: 400; margin-left: 3px; }
+  .stat-note { font-family: var(--mono); font-size: 10.5px; color: var(--text-3); margin-top: 6px; }
+  .stat.good .stat-v { color: var(--green); }
+  .stat.bad .stat-v { color: var(--amber); }
+
+  /* ------------------------------------------------------------- prose */
+  .method p { font-size: 14.5px; color: var(--text-2); margin-bottom: 13px; max-width: 76ch; }
+  .method h3 { font-size: 13.5px; font-weight: 600; color: var(--text);
+    margin: 24px 0 10px; letter-spacing: 0.01em; }
+  .method h3:first-child { margin-top: 0; }
+  .method code { font-family: var(--mono); font-size: 12.5px; color: var(--cyan-bright);
+    background: rgba(1,160,224,0.1); padding: 1px 5px; border-radius: 3px; }
+  .method strong { color: var(--text); font-weight: 600; }
+  .callout {
+    border-left: 2px solid var(--amber); background: rgba(255,184,0,0.05);
+    padding: 13px 16px; border-radius: 0 8px 8px 0; margin: 16px 0;
+  }
+  .callout p { margin: 0; font-size: 14px; }
+  .callout .c-k { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--amber); display: block; margin-bottom: 6px; }
+
+  /* ---------------------------------------------------------------- footer */
+  .foot { border-top: 1px solid var(--line); margin-top: 40px; padding: 22px 0 40px;
+    font-family: var(--mono); font-size: 11.5px; color: var(--text-3); }
+  .foot-in { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .foot a { color: var(--text-2); text-decoration: none; }
+  .foot a:hover { color: var(--cyan); }
+  .foot-sep { margin-left: auto; }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 0 14px; }
+    .hero { padding: 34px 0 24px; }
+    .panel { padding: 14px; }
+    .brand-page { display: none; }
+    .brand-sep { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<a class="sr-only" href="#main">Skip to content</a>
+
+<header class="top">
+  <div class="wrap top-in">
+    <a class="brand" href="/" aria-label="eCash Live home">
+      <svg class="brand-mark" viewBox="0 0 108 108" aria-hidden="true">
+        <defs><linearGradient id="fg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#273498"/><stop offset="0.5" stop-color="#0074C2"/>
+          <stop offset="1" stop-color="#00ABE7"/>
+        </linearGradient></defs>
+        <circle cx="54" cy="54" r="52" fill="url(#fg)"/>
+        <path d="M54 28c-14.4 0-26 11.6-26 26s11.6 26 26 26c9.6 0 18-5.2 22.5-13H64.8c-2.8 2.5-6.6 4-10.8 4-7.9 0-14.5-5.6-15.9-13h41.6c.2-1.3.3-2.6.3-4 0-14.4-11.6-26-26-26zm-15.9 22c1.4-7.4 8-13 15.9-13s14.5 5.6 15.9 13H38.1z" fill="#fff"/>
+      </svg>
+      <span class="brand-name">eCash Live</span>
+    </a>
+    <span class="brand-sep">/</span>
+    <span class="brand-page">Finality</span>
+    <nav class="top-nav" aria-label="Other views">
+      <a href="/">Dashboard</a>
+      <a href="/flow/">Flow</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="wrap" tabindex="-1">
+
+  <section class="hero">
+    <h1 class="eyebrow">Median time to finality</h1>
+    <div class="figure" id="hero-figure">—<span class="unit">s</span></div>
+    <p class="coverage" id="hero-coverage">Loading the record…</p>
+    <p class="hero-note">
+      On eCash, a transaction becomes irreversible in seconds rather than after a
+      confirmation count. This is how long that actually took, every day, measured
+      at our own node — including the days it went badly.
+    </p>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Daily distribution</h2>
+      <span class="sec-sub">p10 – p90 band, median line</span>
+      <div class="range" role="group" aria-label="Time range" id="range">
+        <button type="button" data-days="30" aria-pressed="true">30d</button>
+        <button type="button" data-days="90" aria-pressed="false">90d</button>
+        <button type="button" data-days="365" aria-pressed="false">1y</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="chart-wrap" id="chart-wrap">
+        <div id="chart"><div class="cw-msg">Loading…</div></div>
+        <div class="readout" id="readout" role="status" aria-live="off"></div>
+      </div>
+      <div class="legend">
+        <span class="lg-p50"><i></i>Median (p50)</span>
+        <span class="lg-band"><i></i>p10 – p90</span>
+        <span class="lg-gap"><i></i>Gap — no record for that day</span>
+      </div>
+    </div>
+    <table class="sr-only" id="chart-table"><caption>Daily finality measurements</caption></table>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Across the window</h2></div>
+    <div class="stat-grid" id="stats"></div>
+  </section>
+
+  <section class="method panel">
+    <h3>How the number is produced</h3>
+    <p>
+      A dedicated eCash node runs with <code>logtimemicros=1</code>. Every transaction
+      writes two lines to its log — one when it enters the mempool, one when Avalanche
+      finalises it — and the time between them, to the microsecond, is the reading.
+      There is no model and nothing to tune: it is a subtraction.
+    </p>
+    <p>
+      Once a day the readings for the previous UTC day are rolled into one row:
+      count, p10, p50, p90, min, max. That row is never edited afterwards. The figure
+      at the top of this page is the median of those daily medians, which is why a
+      single busy hour cannot move it and why no particular day can be chosen to
+      flatter it.
+    </p>
+
+    <h3>What we throw away</h3>
+    <p>
+      A negative interval — the finalise line older than the mempool line — is dropped
+      rather than clamped. It means log lines arrived out of order or a clock stepped,
+      and neither yields a real measurement.
+    </p>
+    <p>
+      An earlier version quietly synthesised sub-second values to hide the fact that
+      the log only had second resolution. That was removed when microsecond logging
+      was switched on, and the error it had been introducing — about 420&nbsp;ms on
+      average — is recorded in the source rather than forgotten.
+    </p>
+    <p>
+      The share of transactions final in under three seconds is computed only from
+      histogram bins that sit <strong>entirely</strong> below three seconds. A bin
+      straddling the line is excluded, so the published share is about 3% lower than
+      the true one. The bias points away from us on purpose.
+    </p>
+
+    <h3>What this is not</h3>
+    <div class="callout">
+      <span class="c-k">Read this before citing</span>
+      <p>
+        These are readings from <strong>one node</strong>, in one place on the network.
+        A node elsewhere will see slightly different numbers, because part of what is
+        measured is how fast news reaches <em>this</em> machine. It is an honest
+        measurement of a real vantage point, not a network-wide average — and nobody,
+        including us, can publish the latter from a single host.
+      </p>
+    </div>
+    <p>
+      Percentiles come from a fixed histogram, which resolves up to 60&nbsp;seconds.
+      When a percentile would land above that ceiling the page shows
+      <strong>no number at all</strong> rather than the ceiling, because a saturated
+      percentile reads like a healthy one. The count of readings past the ceiling is
+      published alongside, so a silent percentile always has a visible reason.
+    </p>
+
+    <h3>Check it yourself</h3>
+    <p>
+      The series behind this chart is served raw at
+      <a href="https://api.ecashlive.net/history?days=365" target="_blank" rel="noopener">api.ecashlive.net/history</a>
+      — the same response this page reads, with no rounding applied on the way out.
+      Recompute the median from it and you should land exactly on the figure above.
+    </p>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <span id="foot-updated">—</span>
+    <a href="https://api.ecashlive.net/history?days=365" target="_blank" rel="noopener">Raw data ↗</a>
+    <a href="https://github.com/tuannato/eCash-Live" target="_blank" rel="noopener">Source ↗</a>
+    <span class="foot-sep"></span>
+    <a href="/">← Back to the dashboard</a>
+  </div>
+</footer>
+
+<script src="../vendor/finality.js?v=1" defer></script>
+</body>
+</html>

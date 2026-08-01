@@ -37,7 +37,7 @@ jobs:
 
       - name: Vendor JS parses
         run: |
-          for f in vendor/door.js vendor/txparse.js vendor/cashtab-connect.js vendor/companion/echan.js; do
+          for f in vendor/door.js vendor/txparse.js vendor/cashtab-connect.js vendor/companion/echan.js vendor/finality.js; do
             node --check "$f" && echo "ok: $f"
           done
 
@@ -62,10 +62,14 @@ jobs:
                       self.err.append((t, self.getpos())); return
                   self.stack.pop()
           bad = 0
-          for f in ('index.html', 'flow/index.html'):
+          for f in ('index.html', 'flow/index.html', 'finality/index.html'):
               h = open(f, encoding='utf-8').read()
-              h = re.sub(r'<script\b[^>]*>.*?</script>', '<script></script>', h, flags=re.S)
-              h = re.sub(r'<style\b[^>]*>.*?</style>', '<style></style>', h, flags=re.S)
+              # Comments FIRST: prose that mentions <script> would otherwise make the
+              # next regex swallow from the comment to the real </script>, taking
+              # </head> with it and reporting a perfectly balanced page as broken.
+              h = re.sub(r'<!--.*?-->', '', h, flags=re.S)
+              h = re.sub(r'<script\b[^>]*>.*?</script>', '', h, flags=re.S)
+              h = re.sub(r'<style\b[^>]*>.*?</style>', '', h, flags=re.S)
               p = P(); p.feed(h)
               if p.err or p.stack:
                   bad = 1
