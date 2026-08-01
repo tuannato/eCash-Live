@@ -474,17 +474,27 @@ def compute_ttf_ms(ts_added, ts_final):
 
 
 def _hist_bin(ttf_ms):
-    """Return the histogram bin index for a TTF value. Linear scan is fine —
-    only 40 edges, called once per finalized tx. Values above the top edge
-    land in the last bin (saturating); that's acceptable since the realistic
-    ceiling is already 60s."""
+    """Return the histogram bin index for a TTF value, or None if it is above
+    the top edge.
+
+    This used to saturate into the last bin, and the comment called that
+    acceptable "since the realistic ceiling is already 60s". The case that
+    reasoning misses is the only one anybody would be watching for: when
+    finality genuinely degrades, every reading past 60s piled into the last
+    bin, so p90 reported ~57s however bad it got — while ttfMeanMs, which is
+    ttf_sum/count and never touches a bin, climbed truthfully. Two numbers
+    from the same window drifting apart in silence, precisely during an
+    incident. A saturating percentile is a fabricated number, and this project
+    would rather publish none (see StatsRing.record for where overflow goes).
+
+    Linear scan is fine — only 40 edges, called once per finalized tx."""
     for i, edge in enumerate(_HIST_EDGES):
         if ttf_ms <= edge:
             return i
-    return _HIST_BIN_COUNT - 1
+    return None
 
 
-def _hist_percentile(hist, total, pct):
+def _hist_percentile(hist, total, pct, over=0):
     """Estimate a percentile from a merged histogram via linear interpolation
     within the bin that contains the target sample (v1.5).
 
@@ -507,8 +517,10 @@ def _hist_percentile(hist, total, pct):
 
     Edge cases:
       - total ≤ 0           → None (no samples yet)
-      - last (saturating) bin → return _HIST_HI_MS (can't interpolate past
-                                the ceiling)
+      - target inside the overflow → None. Samples above _HIST_HI_MS are
+                                counted, not binned (see _hist_bin), so their
+                                position is unknown; "no number" beats a
+                                ceiling masquerading as a measurement.
       - bin 0 (sub-floor)   → lower_edge = 0 by convention (sub-1s samples
                                 are physically implausible; treating bin 0
                                 as [0, _HIST_EDGES[0]] is the natural choice)
@@ -516,6 +528,12 @@ def _hist_percentile(hist, total, pct):
     if total <= 0:
         return None
     target = pct * total
+    # Overflow samples are all ABOVE the top edge, so in rank order they are
+    # the highest `over` of the `total`. A target landing there is in a region
+    # the histogram cannot resolve — say nothing rather than pin it to the
+    # ceiling, which is what made a degraded p90 read as a healthy ~57s.
+    if over > 0 and target > (total - over):
+        return None
     cum = 0
     for i, c in enumerate(hist):
         if c == 0:
@@ -530,8 +548,10 @@ def _hist_percentile(hist, total, pct):
             frac = (target - cum_before) / c
             frac = max(0.0, min(1.0, frac))  # numerical safety
             return lower + frac * (upper - lower)
-    # All counts exhausted without hitting target → return high ceiling.
-    return _HIST_HI_MS
+    # Counts exhausted without hitting target. With overflow present that
+    # means the target is past the ceiling and unresolvable; without it, this
+    # is a float-rounding edge at pct=1.0 and the top edge is the right answer.
+    return None if over > 0 else _HIST_HI_MS
 
 
 # -----------------------------------------------------------------------------
@@ -569,6 +589,12 @@ class StatsRing:
             "count": 0,
             "ttf_sum": 0,
             "hist": [0] * _HIST_BIN_COUNT,
+            # Samples above _HIST_HI_MS: counted here instead of being crushed
+            # into the top bin. `count` and `ttf_sum` still include them, so
+            # TPS and the mean stay exact; only their POSITION is unknown.
+            "over": 0,
+            "over_sum": 0,
+            "over_max": 0,
         }
 
     def _abs_bucket(self, ts):
@@ -593,7 +619,13 @@ class StatsRing:
         slot = self._slot_for(abs_idx)
         slot["count"] += 1
         slot["ttf_sum"] += int(ttf_ms)
-        slot["hist"][_hist_bin(ttf_ms)] += 1
+        b = _hist_bin(ttf_ms)
+        if b is None:
+            slot["over"] += 1
+            slot["over_sum"] += int(ttf_ms)
+            slot["over_max"] = max(slot["over_max"], int(ttf_ms))
+        else:
+            slot["hist"][b] += 1
 
     def snapshot(self, now):
         """O(buckets) — aggregate the live 24h window into display stats.
@@ -615,6 +647,9 @@ class StatsRing:
         int_count = 0              # integer, for mean/percentiles
         ttf_sum = 0
         merged_hist = [0] * _HIST_BIN_COUNT
+        over_count = 0        # samples above _HIST_HI_MS in the window
+        over_sum = 0
+        over_max = 0
 
         # v1.5.4: tpsPeak24h. We aggregate samples into per-minute groups
         # (6 ring buckets × 10s = 1 minute) and find max(count) / 60. A
@@ -633,6 +668,7 @@ class StatsRing:
         now60_count = 0
         now300_int = 0
         now300_hist = [0] * _HIST_BIN_COUNT
+        now300_over = 0
 
         for slot in self.slots:
             a = slot["idx"]
@@ -653,6 +689,9 @@ class StatsRing:
             ttf_sum += slot["ttf_sum"]
             for i, c in enumerate(slot["hist"]):
                 merged_hist[i] += c
+            over_count += slot.get("over", 0)
+            over_sum += slot.get("over_sum", 0)
+            over_max = max(over_max, slot.get("over_max", 0))
             # Group this slot's count into its minute bucket. We use the
             # un-fracted count here because the peak metric describes
             # "what was the busiest minute in the ring", not "what's the
@@ -666,6 +705,7 @@ class StatsRing:
                 now60_count += slot["count"]
             if bucket_start_ts >= now_lo_300:
                 now300_int += slot["count"]
+                now300_over += slot.get("over", 0)
                 for i, c in enumerate(slot["hist"]):
                     now300_hist[i] += c
 
@@ -675,9 +715,12 @@ class StatsRing:
         # theoretical minimum (134 polls × 10ms event loop) and is the headline
         # "how close real traffic gets to the floor" number; P90 is the
         # credibility/trust tail; P50 is the typical user experience.
-        p10 = _hist_percentile(merged_hist, int_count, 0.10)
-        p50 = _hist_percentile(merged_hist, int_count, 0.50)
-        p90 = _hist_percentile(merged_hist, int_count, 0.90)
+        # Any of these is None when its rank falls above the ceiling — the
+        # frontend already renders null as "—" (okMsOrNull / fmtMs), which is
+        # the same treatment warmup gets.
+        p10 = _hist_percentile(merged_hist, int_count, 0.10, over_count)
+        p50 = _hist_percentile(merged_hist, int_count, 0.50, over_count)
+        p90 = _hist_percentile(merged_hist, int_count, 0.90, over_count)
 
         # v1.5.4: derived metrics from the merged ring data.
         # tpsPeak24h: max per-minute TPS. Each minute_bucket holds the
@@ -694,7 +737,7 @@ class StatsRing:
         # v1.5.5: trailing-window rate + median (consumed by eChan). p50_now
         # is None when no samples landed in the last 5 min → emitted as null.
         tps_now = now60_count / 60.0
-        p50_now = _hist_percentile(now300_hist, now300_int, 0.50)
+        p50_now = _hist_percentile(now300_hist, now300_int, 0.50, now300_over)
 
         # v1.5.6: warmup gating. coverageSec = wall-time this ring generation
         # has been collecting (now - epoch_ts), capped at the window. Monotonic
@@ -744,6 +787,16 @@ class StatsRing:
             # the eChan companion (cadence pacing + liveTpsNow/liveTtfNow).
             "tpsNow": round(tps_now, 4),
             "ttfP50NowMs": round(p50_now) if p50_now is not None else None,
+            # v1.5.8 additions — additive, older clients ignore. When a
+            # percentile above comes back null, THESE say why: how many
+            # samples in the window exceeded the histogram ceiling, the
+            # largest one seen, and where the ceiling is (so nobody has to
+            # hard-code 60000 to phrase "> 60s"). ttfOverCount is 0 on a
+            # healthy network, which is the normal case.
+            "ttfOverCount": over_count,
+            "ttfOverMaxMs": over_max if over_count else None,
+            "ttfOverMeanMs": round(over_sum / over_count) if over_count else None,
+            "ttfCeilingMs": _HIST_HI_MS,
             # currentClients injected at broadcast site (snapshot doesn't see
             # the clients set). See stats_broadcaster.
         }
@@ -752,15 +805,22 @@ class StatsRing:
     def to_json(self):
         """Serialize only non-empty slots to keep the file small.
 
-        Includes a `hist_lo_ms` sentinel so load_json can detect a changed
-        histogram geometry across versions and start fresh rather than
-        misinterpret bins (samples are stored as bin indices; if the
-        edges change, the same index means a different range — silent
-        corruption otherwise, as observed in the v1.4→v1.5 transition)."""
+        Carries the histogram geometry so load_json can detect a change
+        across versions and start fresh rather than misinterpret bins: samples
+        are stored as bin INDICES, so if the edges move, the same index means
+        a different range — silent corruption, as observed in the v1.4→v1.5
+        transition.
+
+        hist_lo_ms was the only one guarded until v1.5.8. _HIST_HI_MS was not,
+        even though moving it shifts every edge exactly the same way; a future
+        change to it would have loaded the old ring and quietly reinterpreted
+        it, which is the precise failure the sentinel exists to prevent."""
         return {
             "bucket_sec": self.bucket_sec,
             "ring_len": self.ring_len,
             "hist_lo_ms": _HIST_LO_MS,
+            "hist_hi_ms": _HIST_HI_MS,
+            "hist_bin_count": _HIST_BIN_COUNT,
             "epoch_ts": self.epoch_ts,
             "slots": [s for s in self.slots if s["idx"] >= 0 and s["count"] > 0],
         }
@@ -768,14 +828,22 @@ class StatsRing:
     def load_json(self, data, now):
         """Restore from a previously persisted ring, dropping any bucket that
         is now older than the 24h window. Defensive against a changed
-        bucket_sec/ring_len/hist_lo_ms between versions — if any differ, we
-        start fresh rather than misalign the ring or misinterpret histogram
-        bins (the latter caused silent percentile corruption in v1.5)."""
+        bucket_sec/ring_len and the full histogram geometry between versions —
+        if any differ, we start fresh rather than misalign the ring or
+        misinterpret histogram bins (the latter caused silent percentile
+        corruption in v1.5).
+
+        The two geometry keys added in v1.5.8 default to the CURRENT values
+        when absent, so a file written before they existed still loads instead
+        of throwing away a good 24h window on upgrade. Files written from now
+        on carry them, so any later change is caught."""
         if not isinstance(data, dict):
             return
         if (data.get("bucket_sec") != self.bucket_sec
                 or data.get("ring_len") != self.ring_len
-                or data.get("hist_lo_ms") != _HIST_LO_MS):
+                or data.get("hist_lo_ms") != _HIST_LO_MS
+                or data.get("hist_hi_ms", _HIST_HI_MS) != _HIST_HI_MS
+                or data.get("hist_bin_count", _HIST_BIN_COUNT) != _HIST_BIN_COUNT):
             log.warning("stats ring geometry changed, starting fresh")
             return
         cur_abs = self._abs_bucket(now)
@@ -794,6 +862,13 @@ class StatsRing:
                 "count": int(slot.get("count", 0)),
                 "ttf_sum": int(slot.get("ttf_sum", 0)),
                 "hist": [int(x) for x in hist],
+                # Absent in files written before v1.5.8 → 0, which is exactly
+                # right: back then an over-ceiling sample was folded into the
+                # top bin, so there is no overflow to recover. Those bins read
+                # slightly heavy at the top until the window rolls over.
+                "over": int(slot.get("over", 0)),
+                "over_sum": int(slot.get("over_sum", 0)),
+                "over_max": int(slot.get("over_max", 0)),
             }
             restored += 1
             if oldest_restored_abs is None or a < oldest_restored_abs:
