@@ -40,6 +40,13 @@ OUT_NAME = "PROJECT_INDEX.md"
 PURPOSE = {
     "index.html": "The entire web app: HTML + pinned inline <style> + inline ES module. GitHub Pages.",
     "flow/index.html": "Flow — the newcomer interface (messenger-style stream). Own CSP hash; reads the SAME live data as neo via vendor/txparse.js + chronik + relay ttf-feed.",
+    "finality/index.html": "Finality report — the 30-day series charted, plus the method. NO inline module, so NO CSP hash: all behaviour is in vendor/finality.js under script-src \'self\'. Keep it that way.",
+    "vendor/finality.js": "Drives /finality/: fetches api.ecashlive.net/history and draws both SVG charts. A day the relay did not record is a HOLE — the line breaks, never interpolates.",
+    "backfill-under3s.py": "One-off, manual. Recovers pct_under_3s for days predating it, but ONLY where recomputing the whole row from ttf.log reproduces the stored one exactly. Dry-run by default.",
+    "LICENSE": "MIT — CODE only.",
+    "NOTICE.md": "Authoritative licence scope. Images are NOT MIT; eChan belongs to the eCash community, not this project. \'Take the code, not the pictures.\'",
+    ".githooks/pre-push": "The real deploy gate. Pages deploys ON PUSH and does not wait for Actions, so CI is a net, not a gate. Install: git config core.hooksPath .githooks",
+    ".github/workflows/verify.yml": "CI: CSP hashes, module + vendor JS syntax, HTML tag balance, Flow i18n parity, relay compile + _HIST_LO_MS mirror.",
     "ttf-relay.py": "VPS asyncio relay. Tails bitcoind debug.log, pairs mempool+finalize, computes µs TTF, WS broadcast + 24h stats ring.",
     "ecash_bot.py": "Telegram node-ops bot. Status + password-gated restart/stop/start/update. Reads relay's ttf-stats.json (not the WS).",
     "update-csp-hash.sh": "Rewrites the CSP sha256- token for a page's inline module (index.html AND flow/index.html). Run after ANY module edit.",
@@ -436,7 +443,7 @@ def build_report():
     # quick line-count summary up top
     big = ["index.html", "flow/index.html", "ttf-relay.py", "ecash_bot.py",
            "vendor/companion/echan.js", "vendor/mediacenter/mediacenter.js",
-           "vendor/txparse.js"]
+           "vendor/txparse.js", "vendor/finality.js"]
     buf.append("## At-a-glance line counts\n")
     for p in big:
         fp = os.path.join(ROOT, p)
@@ -452,6 +459,7 @@ def build_report():
     section_js_file(buf, "vendor/companion/echan.js")
     section_js_file(buf, "vendor/mediacenter/mediacenter.js")
     section_js_file(buf, "vendor/txparse.js")
+    section_js_file(buf, "vendor/finality.js")
     section_tree(buf)
 
     buf.append("---")
