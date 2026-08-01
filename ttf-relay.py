@@ -201,6 +201,7 @@
 # =============================================================================
 
 import asyncio
+import bisect
 import glob
 import gzip
 import json
@@ -1292,7 +1293,12 @@ async def daily_rollup_task():
     Schema per line:
       {"date":"YYYY-MM-DD", "samples":N, "tps":float,
        "ttf_mean_ms":int, "ttf_p10_ms":int, "ttf_p50_ms":int,
-       "ttf_p90_ms":int, "ttf_min_ms":int, "ttf_max_ms":int}
+       "ttf_p90_ms":int, "pct_under_3s":float, "ttf_min_ms":int,
+       "ttf_max_ms":int}
+
+    pct_under_3s was added later, so rows written before it are missing the
+    key entirely. Readers must treat that as "not recorded", never as zero —
+    the rollup is append-only and old rows are never rewritten.
 
     Self-healing: on startup, reads the last `date` in ttf-daily.jsonl and
     back-fills every full UTC day between then and yesterday. First-run
@@ -1381,6 +1387,19 @@ async def daily_rollup_task():
             "ttf_p10_ms": pct(0.10),
             "ttf_p50_ms": pct(0.50),
             "ttf_p90_ms": pct(0.90),
+            # Share of the day finalised within 3s, as a 0..1 fraction.
+            #
+            # EXACT here, unlike the live 24h figure. That one is derived from
+            # histogram bins and deliberately drops any bin straddling 3000ms,
+            # so it under-reports by roughly 3% — a bias aimed away from us
+            # because a headline number should not round in our favour. This
+            # path has every sample of the day sorted in memory, so no bin
+            # geometry is involved and no bias is needed: it is a count.
+            #
+            # `<= 3000` matches the live metric's boundary (its bins carry
+            # values up to and including their upper edge), so the two figures
+            # describe the same thing and differ only in precision.
+            "pct_under_3s": round(bisect.bisect_right(samples, 3000) / n, 5),
             "ttf_min_ms": int(samples[0]),
             "ttf_max_ms": int(samples[-1]),
         }

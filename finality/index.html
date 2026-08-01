@@ -190,6 +190,15 @@
   .lg-band i { height: 10px; background: rgba(1,160,224,0.20); border: 1px solid rgba(1,160,224,0.45); }
   .lg-p50 i { background: var(--cyan-bright); }
   .lg-gap i { background: repeating-linear-gradient(90deg, var(--text-3) 0 3px, transparent 3px 6px); }
+  .lg-bars i { height: 10px; width: 9px; background: rgba(1,160,224,0.30); border: 1px solid rgba(1,160,224,0.45); border-radius: 2px; }
+  .lg-u3 i { background: var(--green); }
+  .readout .r-u3 b { color: var(--green); }
+  /* Shown when no day in the window carries an under-3s figure yet. */
+  .chart-note {
+    margin-top: 12px; padding: 10px 13px; border-radius: 8px;
+    border-left: 2px solid var(--amber); background: rgba(255,184,0,0.05);
+    font-size: 13px; color: var(--text-2);
+  }
 
   /* ----------------------------------------------------------------- stats */
   .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
@@ -301,6 +310,23 @@
       </div>
     </div>
     <table class="sr-only" id="chart-table"><caption>Daily finality measurements</caption></table>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Volume, and the share under three seconds</h2>
+      <span class="sec-sub">a bad day on a quiet network reads differently from a bad day under load</span>
+    </div>
+    <div class="panel">
+      <div class="chart-wrap" id="vol-wrap">
+        <div id="vol"><div class="cw-msg">Loading…</div></div>
+        <div class="readout" id="vol-readout"></div>
+      </div>
+      <div class="legend">
+        <span class="lg-bars"><i></i>Transactions finalised that day</span>
+        <span class="lg-u3"><i></i>Share final within 3s</span>
+      </div>
+    </div>
   </section>
 
   <section>

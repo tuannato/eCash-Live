@@ -39,7 +39,8 @@ const ICON_SIZES = new Set(['32', '64', '128', '256', '512']);   // allowlist, n
 
 // Bump when a response SHAPE changes: cached entries live up to an hour, so
 // without this the old {title,excerpt} payload would keep being served.
-const API_VERSION = 3;   // v3: /history gained the per-day `series`
+const API_VERSION = 4;   // v4: series entries gained `under3s`
+                         // v3: /history gained the per-day `series`
                          // v2: /powr returns {author} only, never the post body
 
 const CACHE_PRICE_S = 60;      // page polls every 120s; one origin read per minute
@@ -256,6 +257,11 @@ export function summarizeDaily(text, window) {
     maxMs: num(r.ttf_max_ms),
     samples: num(r.samples),
     tps: num(r.tps),
+    // 0..1 share of the day finalised within 3s. The relay started writing it
+    // later than the rest, so every row before that is missing the key and
+    // arrives here as null — "not recorded", which is not the same claim as
+    // zero and must never be drawn as one.
+    under3s: num(r.pct_under_3s),
   }));
 
   return {
