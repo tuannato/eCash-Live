@@ -1284,6 +1284,112 @@ async def handle_client(ws):
         _ws_traffic_write("disconnect", iph, len(clients))
 
 
+# -----------------------------------------------------------------------------
+# Daily rollup helpers.
+#
+# Module scope, not nested inside daily_rollup_task(), because the backfill tool
+# has to run the SAME code. A second implementation that merely looked equivalent
+# would make its comparison against the stored rows meaningless — it would be
+# comparing two guesses. Neither function captures anything from the task; they
+# were nested only for grouping.
+# -----------------------------------------------------------------------------
+def parse_audit_for_day(day):
+    """Read ttf.log + rotated backups, return (samples, first_ts_ms,
+    last_ts_ms) for `day` (UTC). audit format = one JSON object per
+    line containing "ttfMs" and "emittedAt" (epoch ms). Skips
+    unreadable lines defensively.
+
+    first_ts/last_ts are the span of the relay's actual observation
+    during `day` — used by write_day() to compute a true TPS rate
+    (samples / coverage_sec) instead of assuming 24h uptime. If the
+    relay was down for 6h on that day, coverage_sec ≈ 18h × 3600 and
+    TPS reflects the actual rate of finalized tx while we were
+    watching."""
+    day_start_ms = int(datetime(day.year, day.month, day.day,
+                                tzinfo=timezone.utc).timestamp() * 1000)
+    next_day_ms = day_start_ms + 86_400_000
+    samples = []
+    first_ts = None
+    last_ts = None
+    candidates = sorted(glob.glob(str(TTF_LOG_PATH) + "*"))
+    for path in candidates:
+        try:
+            opener = gzip.open if path.endswith(".gz") else open
+            with opener(path, "rt", errors="replace") as f:
+                for line in f:
+                    if '"ttfMs"' not in line:
+                        continue
+                    try:
+                        rec = json.loads(line)
+                    except Exception:
+                        continue
+                    ts = rec.get("emittedAt", 0)
+                    if ts < day_start_ms or ts >= next_day_ms:
+                        continue
+                    ttf = rec.get("ttfMs")
+                    if isinstance(ttf, (int, float)) and ttf > 0:
+                        samples.append(float(ttf))
+                        if first_ts is None or ts < first_ts:
+                            first_ts = ts
+                        if last_ts is None or ts > last_ts:
+                            last_ts = ts
+        except FileNotFoundError:
+            continue
+        except Exception as e:
+            log.warning(f"audit read failed for {path}: {e}")
+    return samples, first_ts, last_ts
+
+def summarize(samples, first_ts_ms, last_ts_ms):
+    """Compute mean + percentiles + min/max from raw samples, plus
+    coverage_sec (the time span of actual observation during the day).
+    TPS is computed against coverage, not against 86400s, so a day
+    with 6h downtime reports the rate AT WHICH we observed, not a
+    diluted 18/24-of-true-rate.
+
+    coverage_sec lower-bound = 1.0 to keep the rate finite for the
+    degenerate single-sample case.
+
+    Sorted once, exact percentiles by nearest-rank — no histogram
+    bias, no binning. n=2700/day is trivial to sort.
+    """
+    if not samples:
+        return None
+    samples.sort()
+    n = len(samples)
+    # Coverage = span between first and last sample of the day, in
+    # seconds. Clamped at 1s so single-sample days don't divide by 0.
+    coverage_sec = max(1.0, (last_ts_ms - first_ts_ms) / 1000.0)
+
+    def pct(p):
+        # nearest-rank percentile: index = ceil(p * n) - 1
+        i = max(0, min(n - 1, int(p * n)))
+        return int(samples[i])
+    return {
+        "samples": n,
+        "coverage_sec": int(coverage_sec),
+        "tps": round(n / coverage_sec, 5),
+        "ttf_mean_ms": int(sum(samples) / n),
+        "ttf_p10_ms": pct(0.10),
+        "ttf_p50_ms": pct(0.50),
+        "ttf_p90_ms": pct(0.90),
+        # Share of the day finalised within 3s, as a 0..1 fraction.
+        #
+        # EXACT here, unlike the live 24h figure. That one is derived from
+        # histogram bins and deliberately drops any bin straddling 3000ms,
+        # so it under-reports by roughly 3% — a bias aimed away from us
+        # because a headline number should not round in our favour. This
+        # path has every sample of the day sorted in memory, so no bin
+        # geometry is involved and no bias is needed: it is a count.
+        #
+        # `<= 3000` matches the live metric's boundary (its bins carry
+        # values up to and including their upper edge), so the two figures
+        # describe the same thing and differ only in precision.
+        "pct_under_3s": round(bisect.bisect_right(samples, 3000) / n, 5),
+        "ttf_min_ms": int(samples[0]),
+        "ttf_max_ms": int(samples[-1]),
+    }
+
+
 async def daily_rollup_task():
     """Once a day at 00:02 UTC, summarize the prior day's TTF samples into
     one JSONL line in ttf-daily.jsonl. Source = ttf.log audit (not the
@@ -1308,101 +1414,6 @@ async def daily_rollup_task():
     with logrotate at 00:00 UTC if both run on this host).
     """
 
-    def parse_audit_for_day(day):
-        """Read ttf.log + rotated backups, return (samples, first_ts_ms,
-        last_ts_ms) for `day` (UTC). audit format = one JSON object per
-        line containing "ttfMs" and "emittedAt" (epoch ms). Skips
-        unreadable lines defensively.
-
-        first_ts/last_ts are the span of the relay's actual observation
-        during `day` — used by write_day() to compute a true TPS rate
-        (samples / coverage_sec) instead of assuming 24h uptime. If the
-        relay was down for 6h on that day, coverage_sec ≈ 18h × 3600 and
-        TPS reflects the actual rate of finalized tx while we were
-        watching."""
-        day_start_ms = int(datetime(day.year, day.month, day.day,
-                                    tzinfo=timezone.utc).timestamp() * 1000)
-        next_day_ms = day_start_ms + 86_400_000
-        samples = []
-        first_ts = None
-        last_ts = None
-        candidates = sorted(glob.glob(str(TTF_LOG_PATH) + "*"))
-        for path in candidates:
-            try:
-                opener = gzip.open if path.endswith(".gz") else open
-                with opener(path, "rt", errors="replace") as f:
-                    for line in f:
-                        if '"ttfMs"' not in line:
-                            continue
-                        try:
-                            rec = json.loads(line)
-                        except Exception:
-                            continue
-                        ts = rec.get("emittedAt", 0)
-                        if ts < day_start_ms or ts >= next_day_ms:
-                            continue
-                        ttf = rec.get("ttfMs")
-                        if isinstance(ttf, (int, float)) and ttf > 0:
-                            samples.append(float(ttf))
-                            if first_ts is None or ts < first_ts:
-                                first_ts = ts
-                            if last_ts is None or ts > last_ts:
-                                last_ts = ts
-            except FileNotFoundError:
-                continue
-            except Exception as e:
-                log.warning(f"audit read failed for {path}: {e}")
-        return samples, first_ts, last_ts
-
-    def summarize(samples, first_ts_ms, last_ts_ms):
-        """Compute mean + percentiles + min/max from raw samples, plus
-        coverage_sec (the time span of actual observation during the day).
-        TPS is computed against coverage, not against 86400s, so a day
-        with 6h downtime reports the rate AT WHICH we observed, not a
-        diluted 18/24-of-true-rate.
-
-        coverage_sec lower-bound = 1.0 to keep the rate finite for the
-        degenerate single-sample case.
-
-        Sorted once, exact percentiles by nearest-rank — no histogram
-        bias, no binning. n=2700/day is trivial to sort.
-        """
-        if not samples:
-            return None
-        samples.sort()
-        n = len(samples)
-        # Coverage = span between first and last sample of the day, in
-        # seconds. Clamped at 1s so single-sample days don't divide by 0.
-        coverage_sec = max(1.0, (last_ts_ms - first_ts_ms) / 1000.0)
-
-        def pct(p):
-            # nearest-rank percentile: index = ceil(p * n) - 1
-            i = max(0, min(n - 1, int(p * n)))
-            return int(samples[i])
-        return {
-            "samples": n,
-            "coverage_sec": int(coverage_sec),
-            "tps": round(n / coverage_sec, 5),
-            "ttf_mean_ms": int(sum(samples) / n),
-            "ttf_p10_ms": pct(0.10),
-            "ttf_p50_ms": pct(0.50),
-            "ttf_p90_ms": pct(0.90),
-            # Share of the day finalised within 3s, as a 0..1 fraction.
-            #
-            # EXACT here, unlike the live 24h figure. That one is derived from
-            # histogram bins and deliberately drops any bin straddling 3000ms,
-            # so it under-reports by roughly 3% — a bias aimed away from us
-            # because a headline number should not round in our favour. This
-            # path has every sample of the day sorted in memory, so no bin
-            # geometry is involved and no bias is needed: it is a count.
-            #
-            # `<= 3000` matches the live metric's boundary (its bins carry
-            # values up to and including their upper edge), so the two figures
-            # describe the same thing and differ only in precision.
-            "pct_under_3s": round(bisect.bisect_right(samples, 3000) / n, 5),
-            "ttf_min_ms": int(samples[0]),
-            "ttf_max_ms": int(samples[-1]),
-        }
 
     def write_day(day):
         """Compute + append one rollup line for `day`. No-op if no samples
