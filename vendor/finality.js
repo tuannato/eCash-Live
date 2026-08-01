@@ -24,6 +24,20 @@
   const API = 'https://api.ecashlive.net/history';
   const DAY_MS = 86400000;
 
+  // The response shape is versioned server-side (API_VERSION rides in the edge
+  // cache key), but a BROWSER caches by URL, and that key has no version in it.
+  // api.ecashlive.net/history?days=30 is the exact URL neo and Flow have been
+  // fetching all along, and the edge hands it out with a four-hour browser TTL.
+  // So a visitor whose browser stored the pre-series response kept serving it
+  // from disk, and this page reported "no series" while the API was answering
+  // correctly — observed live, not theorised.
+  //
+  // Sending the version makes the URL distinct for browsers. It costs nothing
+  // at the edge: routeOf() builds the cache key from only what the handler
+  // actually reads, so an extra parameter still maps to one entry. Bump it when
+  // the fields this page depends on change.
+  const API_V = 3;
+
   const el = (id) => document.getElementById(id);
   const state = { days: 30, data: null, busy: false };
 
@@ -284,7 +298,7 @@
     state.busy = true;
     message('Loading…');
     try {
-      const r = await fetch(`${API}?days=${encodeURIComponent(days)}`);
+      const r = await fetch(`${API}?days=${encodeURIComponent(days)}&v=${API_V}`);
       const j = await r.json().catch(() => null);
 
       // "not enough history" is a real answer, not a failure: the endpoint
