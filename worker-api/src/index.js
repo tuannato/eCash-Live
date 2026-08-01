@@ -39,7 +39,8 @@ const ICON_SIZES = new Set(['32', '64', '128', '256', '512']);   // allowlist, n
 
 // Bump when a response SHAPE changes: cached entries live up to an hour, so
 // without this the old {title,excerpt} payload would keep being served.
-const API_VERSION = 2;   // v2: /powr returns {author} only, never the post body
+const API_VERSION = 3;   // v3: /history gained the per-day `series`
+                         // v2: /powr returns {author} only, never the post body
 
 const CACHE_PRICE_S = 60;      // page polls every 120s; one origin read per minute
 const CACHE_ICON_S  = 604800;  // a token's icon does not change
@@ -232,7 +233,39 @@ export function summarizeDaily(text, window) {
     ? p50[(p50.length - 1) / 2]
     : Math.round((p50[p50.length / 2 - 1] + p50[p50.length / 2]) / 2);
   const samples = recent.reduce((a, r) => a + (typeof r.samples === 'number' ? r.samples : 0), 0);
-  return { days: recent.length, medianTtfMs: mid, samples, from: recent[0].date, to: recent[recent.length - 1].date };
+
+  // The per-day series (v3). The relay has been writing p10/p50/p90/max/tps per
+  // day since the rollup existed; until now only the median of the medians came
+  // out, so the shape of the distribution — which is the interesting part — was
+  // collected and never shown.
+  //
+  // Honesty rules, same as the aggregate above:
+  //   - only days the relay actually recorded appear. A gap in the series IS a
+  //     gap in the record; it is never filled in, and a consumer that draws a
+  //     line must break it rather than interpolate across a day we did not
+  //     measure.
+  //   - a field missing from an older row is null, never a substituted value.
+  //   - dates stay as recorded (UTC, YYYY-MM-DD) — no reformatting to a locale
+  //     the reader might read as a different day.
+  const num = (v) => (typeof v === 'number' && isFinite(v) ? v : null);
+  const series = recent.map((r) => ({
+    date: r.date,
+    p10Ms: num(r.ttf_p10_ms),
+    p50Ms: num(r.ttf_p50_ms),
+    p90Ms: num(r.ttf_p90_ms),
+    maxMs: num(r.ttf_max_ms),
+    samples: num(r.samples),
+    tps: num(r.tps),
+  }));
+
+  return {
+    days: recent.length,
+    medianTtfMs: mid,
+    samples,
+    from: recent[0].date,
+    to: recent[recent.length - 1].date,
+    series,
+  };
 }
 
 // `days` is the window already clamped by historyWindow() — the SAME function
