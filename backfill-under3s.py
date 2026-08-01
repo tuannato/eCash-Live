@@ -200,6 +200,19 @@ def main():
     for idx, obj in changes.items():
         out[idx] = json.dumps(obj, separators=(",", ":"))
 
+    # The relay appends a row at 00:02 UTC and again on startup catch-up. This
+    # tool works from a snapshot taken when it began, so a row appended between
+    # that read and the rename below would be silently dropped — and the
+    # readback check could not see it, because it compares against the same
+    # stale snapshot. Re-read and abort instead. Losing a day of the one
+    # dataset that cannot be rebuilt is not a risk worth a narrow window.
+    if open(path, encoding="utf-8").read().split("\n") != raw:
+        print("\nABORTED — ttf-daily.jsonl changed while this was running "
+              "(the relay most likely rolled a new day). Nothing was written; "
+              "the backup above is identical to the current file. Re-run.",
+              file=sys.stderr)
+        return 1
+
     # Write via a temp file in the same directory, then rename: a crash
     # mid-write must not be able to leave a half-written rollup behind.
     tmp = path + ".tmp"
