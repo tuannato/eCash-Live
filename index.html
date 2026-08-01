@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-/VqnUSSJ03Go0olKK2yimRsKaPPt8ravgqwZxPwOsk8=';
+  script-src 'self' 'sha256-AYq4cOXm8GQQslZnoq5F/ysv96ZwiTK0/dBmNtaRvzc=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -7550,21 +7550,24 @@
     </span>
     <span class="v" id="f-ttf">— <span class="u">s</span></span>
   </div>
+  <!-- 2 · TTF · 30d — rolling median from the relay's own daily rollup
+       (api.ecashlive.net/history). A live spot reading invites "you are showing
+       a lucky moment"; a 30-day median from the node's records cannot be
+       cherry-picked, and no explorer publishes it because none measures
+       finality. Hidden when the history is unavailable or too short — never a
+       placeholder number. Mirrors flow/index.html.
+       Sits directly after TTF · 24h: both cells report the same quantity over
+       different windows, so reading one against the other is the point. It was
+       originally appended after TPS, which put an unrelated unit between them. -->
+  <div class="cell hide-medium" id="f-ttf30-cell" title="Median time-to-finality across the last 30 days, from this node's own daily records. Click for details." hidden>
+    <span class="k">TTF · 30d</span>
+    <span class="v mono" id="f-ttf30">— <span class="u">s</span></span>
+  </div>
   <!-- 6 · TPS · 24h — network-wide rolling rate from the relay stats frame.
        No session equivalent; eye icon + em-dash when feed unavailable. -->
   <div class="cell" id="f-tps-cell" title="Network transactions per second, rolling 24h. From the dedicated eCash node. Click for details.">
     <span class="k">TPS · 24h</span>
     <span class="v mono" id="f-tps">— <span class="u">tps</span></span>
-  </div>
-  <!-- 2b · TTF · 30d — rolling median from the relay's own daily rollup
-       (api.ecashlive.net/history). A live spot reading invites "you are showing
-       a lucky moment"; a 30-day median from the node's records cannot be
-       cherry-picked, and no explorer publishes it because none measures
-       finality. Hidden when the history is unavailable or too short — never a
-       placeholder number. Mirrors flow/index.html. -->
-  <div class="cell hide-medium" id="f-ttf30-cell" title="Median time-to-finality across the last 30 days, from this node's own daily records. Click for details." hidden>
-    <span class="k">TTF · 30d</span>
-    <span class="v mono" id="f-ttf30">— <span class="u">s</span></span>
   </div>
   <!-- 3 · Avg block-lock (session) — block-mined → ava-finalized leg, not yet
        exposed by the relay; remains session-scoped until a future patch. -->
@@ -8327,6 +8330,21 @@ function fmtTtfDuration(ms, precision = 2) {
   const h = Math.floor(ms / 3_600_000);
   const m = Math.floor((ms % 3_600_000) / 60_000);
   return h + 'h ' + String(m).padStart(2, '0') + 'm';
+}
+
+// Footer stat markup for a TTF value: the number, then its unit in the small
+// dimmed <span class="u"> every other footer cell uses. The "2h 05m" form has
+// no single trailing unit, so it is passed through unchanged.
+//
+// This exists because TTF · 30d was added later and hand-rolled its own
+// `.toFixed(2) + ' <span class="u">s</span>'`, so the cell sat beside TTF · 24h
+// showing 2.05 s against 2.0 s — the same quantity, printed to a different
+// number of digits, in the same row. fmtTtfDuration's own comment says it is
+// shared "so they never disagree"; routing both cells through one function is
+// what makes that true rather than a coincidence to be re-broken next time.
+function ttfCellHtml(ms, precision = 1) {
+  const s = fmtTtfDuration(ms, precision);
+  return /^[\d.]+ (s|min)$/.test(s) ? s.replace(/ (s|min)$/, ' <span class="u">$1</span>') : s;
 }
 
 // "Upgrade window": when a tx finalizes via ws/poll/race we mark its
@@ -13627,7 +13645,7 @@ async function loadTtf30() {
     const el = document.getElementById('f-ttf30');
     const cell = document.getElementById('f-ttf30-cell');
     if (!el || !cell) return;
-    el.innerHTML = (j.medianTtfMs / 1000).toFixed(2) + ' <span class="u">s</span>';
+    el.innerHTML = ttfCellHtml(j.medianTtfMs, 1);
     // Say what the number actually covers — `days` can be < 30 early on.
     cell.title = `Median time-to-finality across ${j.days} day${j.days === 1 ? '' : 's'} `
                + `(${j.from} to ${j.to}), from this node's own daily records. Click for details.`;
@@ -15821,11 +15839,7 @@ function updateStats() {
     // session label format so swapping the view doesn't jolt the user with a
     // different number of digits.
     const p50 = state.relayStats.ttfP50Ms;
-    const s = fmtTtfDuration(p50, 1);
-    const html = /^[\d.]+ (s|min)$/.test(s)
-      ? s.replace(/ (s|min)$/, ' <span class="u">$1</span>')
-      : s;
-    $('f-ttf').innerHTML = html;
+    $('f-ttf').innerHTML = ttfCellHtml(p50, 1);
     // Dual-span label so the CSS @media at ≤700px can hide the spelled
     // form ("Time-to-finality") and reveal the abbreviated form ("TTF")
     // without the bar being forced to wrap on phones.
@@ -15843,11 +15857,7 @@ function updateStats() {
     const avg = window.length > 0
       ? window.reduce((a, b) => a + b, 0) / window.length
       : 0;
-    const avgStr = fmtTtfDuration(avg, 1);
-    const avgHtml = /^[\d.]+ (s|min)$/.test(avgStr)
-      ? avgStr.replace(/ (s|min)$/, ' <span class="u">$1</span>')
-      : avgStr;
-    $('f-ttf').innerHTML = renderTtfIndicator(null, null) + avgHtml;
+    $('f-ttf').innerHTML = renderTtfIndicator(null, null) + ttfCellHtml(avg, 1);
     if (ttfLabelEl) ttfLabelEl.innerHTML =
       '<span class="ttf-lbl-full">Time-to-finality</span><span class="ttf-lbl-abbr">TTF</span> · session';
   } else {
