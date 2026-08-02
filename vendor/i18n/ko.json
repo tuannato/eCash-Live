@@ -66,9 +66,6 @@
     "#btn-pause": {
       "title": "들어오는 트랜잭션 일시정지"
     },
-    "#tip-btn": {
-      "title": "커피 한 잔 사 줘 — 당신의 tx가 스트림에서 강조됩니다"
-    },
     "#bc-goto-search": {
       "placeholder": "block #으로 이동…"
     },

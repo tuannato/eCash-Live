@@ -66,9 +66,6 @@
     "#btn-pause": {
       "title": "Mettre en pause les transactions entrantes"
     },
-    "#tip-btn": {
-      "title": "Offre-moi un café — ta tx sera mise en évidence sur le stream"
-    },
     "#bc-goto-search": {
       "placeholder": "aller au block #…"
     },

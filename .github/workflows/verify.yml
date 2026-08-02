@@ -100,6 +100,15 @@ jobs:
           sys.exit(bad)
           PY
 
+      - name: neo i18n keys still resolve against the markup
+        # neo's packs are VALUE-keyed, so they cannot be parity-checked the way
+        # Flow's data-i18n keys are. Reword a label and the entry silently stops
+        # matching — that element stays English in all 15 languages with no
+        # error anywhere. This resolves every key back against index.html.
+        # It found a dead #tip-btn entry on its first run, for a button removed
+        # in v1.7.2 and translated in 15 packs ever since.
+        run: python3 tools/check-neo-i18n.py
+
       - name: Relay compiles, and mirrors the bot's shared constant
         # ecash_bot.py is deliberately gitignored (secrets discipline, CLAUDE.md
         # §0.10), so it is ABSENT from a public checkout. Check the mirror when

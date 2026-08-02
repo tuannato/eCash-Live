@@ -71,7 +71,8 @@ bad()  { printf '  %s✗ %s%s\n' "$RED" "$1" "$OFF"; [ -n "${2:-}" ] && printf '
 # expected in HEAD but absent from the extract FAILS rather than being skipped.
 WANT=(index.html flow/index.html finality/index.html update-csp-hash.sh ttf-relay.py
       vendor/door.js vendor/txparse.js vendor/cashtab-connect.js
-      vendor/companion/echan.js vendor/finality.js vendor/i18n)
+      vendor/companion/echan.js vendor/finality.js vendor/i18n
+      tools/check-neo-i18n.py)
 PATHS=()
 for p in "${WANT[@]}"; do
   git ls-tree -r HEAD --name-only -- "$p" | grep -q . && PATHS+=("$p")
@@ -149,6 +150,13 @@ for f in ('index.html','flow/index.html','finality/index.html'):
 sys.exit(bad)
 PY
 ); then ok "HTML tags balance"; else bad "HTML tags balance" "$(printf '%s' "$out" | head -2)"; fi
+
+# 5b. neo i18n keys still resolve (value-keyed packs cannot be parity-checked)
+if [ -f tools/check-neo-i18n.py ]; then
+  if out=$(python3 tools/check-neo-i18n.py 2>&1); then
+    ok "neo i18n resolves  ${DIM}($(printf '%s' "$out" | tail -1))${OFF}"
+  else bad "neo i18n drift" "$(printf '%s' "$out" | grep -m2 -E '^\s+(dom|domMap|titleMap)')"; fi
+fi
 
 # 5. i18n parity — a missing key silently falls back to EN, so drift is invisible
 if out=$(python3 - <<'PY' 2>&1

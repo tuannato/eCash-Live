@@ -66,9 +66,6 @@
     "#btn-pause": {
       "title": "Gelen işlemleri duraklat"
     },
-    "#tip-btn": {
-      "title": "Bana bir kahve ısmarla — tx'in stream'de vurgulanır"
-    },
     "#bc-goto-search": {
       "placeholder": "block #'a git…"
     },

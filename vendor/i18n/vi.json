@@ -66,9 +66,6 @@
     "#btn-pause": {
       "title": "Tạm dừng giao dịch đến"
     },
-    "#tip-btn": {
-      "title": "Mời mình một ly cà phê — tx của bạn sẽ được làm nổi bật trên stream"
-    },
     "#bc-goto-search": {
       "placeholder": "tới block #…"
     },

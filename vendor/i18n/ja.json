@@ -66,9 +66,6 @@
     "#btn-pause": {
       "title": "受信トランザクションを一時停止"
     },
-    "#tip-btn": {
-      "title": "コーヒーをおごってね — あなたのtxがストリームで強調されます"
-    },
     "#bc-goto-search": {
       "placeholder": "block #へ移動…"
     },

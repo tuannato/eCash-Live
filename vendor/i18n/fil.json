@@ -66,9 +66,6 @@
     "#btn-pause": {
       "title": "I-pause ang mga papasok na transaksyon"
     },
-    "#tip-btn": {
-      "title": "Ilibre mo ako ng kape — mahahighlight ang tx mo sa stream"
-    },
     "#bc-goto-search": {
       "placeholder": "pumunta sa block #…"
     },

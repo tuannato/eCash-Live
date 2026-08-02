@@ -66,9 +66,6 @@
     "#btn-pause": {
       "title": "Jeda transaksi masuk"
     },
-    "#tip-btn": {
-      "title": "Traktir aku kopi — tx-mu akan disorot di stream"
-    },
     "#bc-goto-search": {
       "placeholder": "ke block #…"
     },

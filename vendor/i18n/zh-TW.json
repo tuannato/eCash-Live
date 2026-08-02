@@ -66,9 +66,6 @@
     "#btn-pause": {
       "title": "暫停傳入的交易"
     },
-    "#tip-btn": {
-      "title": "請我喝杯咖啡 —— 你的 tx 會在串流中被高亮"
-    },
     "#bc-goto-search": {
       "placeholder": "前往 block #…"
     },
