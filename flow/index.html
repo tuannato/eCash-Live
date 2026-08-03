@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-lVJyDDGsn4GUgm6ZA5lZsDWBf77cLzo8OPT/vx0zAKE=';
+  script-src 'self' 'sha256-QdHgtHcXQ5MU+WAxGGHZP371NBBBgXXsY4ys/W9Gq9U=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -449,9 +449,37 @@
               font-family:var(--mono);line-height:1.8;}
   .grp-detail.open{display:block}
 
+  /* ===== floating-layer ladder (A11) =====================================
+     Every absolutely-positioned layer inside .stream-wrap declares its tier
+     HERE and nowhere else. Before this block the eight layers carried
+     hand-assigned numbers, which is how #toast and #cmp-panel ended up tied
+     at 7 — the tie broke on DOM order, so the panel painted over the toast
+     and a mistyped address reported itself into thin air (A1/M1).
+
+     .stream-wrap is position:relative with NO z-index, so it does NOT open a
+     stacking context: these tiers compete in the ROOT one, alongside
+     .brand-ver (9, in the header) and .skip-link (50, page shell). Those two
+     are left as literals on purpose — they belong to other regions — but they
+     are real ceilings, so 9 is NOT free and 50 must stay on top (it is the
+     keyboard escape hatch). 9-29 is deliberately left empty for future
+     overlays.
+
+     --z-toast is far above --z-receipt because a toast reports on an action
+     the user just took INSIDE whatever overlay is open; #receipt is opaque
+     (background:var(--bg-app)), so any tier below it is not "behind" but
+     invisible. Transient feedback outranks every persistent layer. */
+  :root{
+    --z-echan:4;      /* ambient narrator bubble — lowest, must never cover a control */
+    --z-pill:5;       /* #new-pill / #load-older — stream affordances */
+    --z-fab:6;        /* #fab and #cmp-backdrop (the backdrop hides the FAB) */
+    --z-panel:7;      /* #cmp-panel — floating composer dialog */
+    --z-receipt:8;    /* #receipt — opaque, covers the whole stream */
+    --z-toast:30;     /* transient feedback — outranks EVERY overlay above */
+  }
+
   /* z-index is REQUIRED: card contents (.ic/.body/.st) sit at z-index:1 for the
      sunk token art, so a z-index:auto pill gets painted UNDER the card text. */
-  #new-pill{position:absolute;left:50%;bottom:14px;transform:translateX(-50%) translateY(6px);z-index:5;
+  #new-pill{position:absolute;left:50%;bottom:14px;transform:translateX(-50%) translateY(6px);z-index:var(--z-pill);
             background:var(--grad);color:#fff;border:0;font-size:12px;font-weight:700;
             border-radius:99px;padding:7px 16px;cursor:pointer;opacity:0;pointer-events:none;
             transition:opacity .2s,transform .2s;box-shadow:0 6px 18px rgba(0,80,150,.35);}
@@ -459,7 +487,7 @@
   /* F11: history backfill pill — mirrors #new-pill at the TOP, appears only when
      the user has scrolled up to the start of the stream. Muted, not gradient:
      history is a secondary action, live is the main event. */
-  #load-older{position:absolute;left:50%;top:12px;transform:translateX(-50%) translateY(-6px);z-index:5;
+  #load-older{position:absolute;left:50%;top:12px;transform:translateX(-50%) translateY(-6px);z-index:var(--z-pill);
               background:var(--card);color:var(--ink2);border:1px solid var(--line2);font-size:11.5px;
               font-weight:600;border-radius:99px;padding:6px 15px;cursor:pointer;opacity:0;
               pointer-events:none;transition:opacity .2s,transform .2s;box-shadow:var(--shadow);}
@@ -476,7 +504,7 @@
          border:1px solid var(--msg-ln);border-radius:16px;padding:14px 16px;display:flex;gap:13px;
          align-items:flex-start;font-size:14px;line-height:1.62;color:var(--ink);opacity:0;
          transform:translateY(-6px);pointer-events:none;transition:opacity .25s,transform .25s;
-         box-shadow:var(--shadow);z-index:4;max-width:640px;margin:0 auto;}
+         box-shadow:var(--shadow);z-index:var(--z-echan);max-width:640px;margin:0 auto;}
   /* tap-to-dismiss (E5): only capture pointer events while actually shown, so the
      invisible bubble never eats clicks/scrolls over the top of the stream. */
   #echan.show{opacity:1;transform:none;pointer-events:auto;cursor:pointer;}
@@ -497,14 +525,17 @@
   /* ===== toast ===== */
   #toast{position:absolute;left:50%;bottom:70px;transform:translateX(-50%);background:var(--ink);
          color:var(--bg-app);font-size:12px;font-weight:600;border-radius:99px;padding:8px 16px;opacity:0;
-         transition:opacity .25s;pointer-events:none;white-space:nowrap;z-index:7;
+         transition:opacity .25s;pointer-events:none;white-space:nowrap;z-index:var(--z-toast);
          max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis;}
   #toast.show{opacity:.97;}
   /* ===== pinned shared receipt (F14) =====
      A ?tx= link opens a receipt STATE over the stream — it can't scroll away
-     like the old appended card. Covers the FAB (z-index 6) and the composer
-     panel (7) on purpose: you read the receipt, then enter the live stream. */
-  #receipt{position:absolute;inset:0;z-index:8;background:var(--bg-app);overflow-y:auto;
+     like the old appended card. Covers the FAB (--z-fab) and the composer
+     panel (--z-panel) on purpose: you read the receipt, then enter the live
+     stream. It does NOT cover #toast — this layer is opaque, so anything under
+     it is invisible rather than merely behind, and copying an identifier from
+     a receipt has to be able to say so (M1). */
+  #receipt{position:absolute;inset:0;z-index:var(--z-receipt);background:var(--bg-app);overflow-y:auto;
            padding:16px 14px calc(16px + env(safe-area-inset-bottom));
            opacity:0;transition:opacity .2s;}
   #receipt.show{opacity:1;}
@@ -578,7 +609,7 @@
 
   /* ===== composer (try-it + watchlist) ===== */
   /* ===== FAB composer (F3/F4/F6) — round "+" opens a floating send panel ===== */
-  #fab{position:absolute;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:6;
+  #fab{position:absolute;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:var(--z-fab);
        width:52px;height:52px;border:0;border-radius:50%;background:var(--grad);color:#fff;cursor:pointer;
        display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,116,194,.42);
        transition:transform .18s;}
@@ -592,9 +623,9 @@
   #fab.away{opacity:0;pointer-events:none;transform:translateY(10px) scale(.9);}
   @keyframes fabpulse{0%{box-shadow:0 6px 18px rgba(0,116,194,.42),0 0 0 0 rgba(0,167,224,.5)}
                       70%,100%{box-shadow:0 6px 18px rgba(0,116,194,.42),0 0 0 15px rgba(0,167,224,0)}}
-  #cmp-backdrop{position:absolute;inset:0;z-index:6;background:rgba(0,0,0,.28);opacity:0;transition:opacity .2s;}
+  #cmp-backdrop{position:absolute;inset:0;z-index:var(--z-fab);background:rgba(0,0,0,.28);opacity:0;transition:opacity .2s;}
   #cmp-backdrop.show{opacity:1;}
-  #cmp-panel{position:absolute;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:7;
+  #cmp-panel{position:absolute;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:var(--z-panel);
              width:min(370px, calc(100% - 32px));max-height:calc(100% - 32px);overflow-y:auto;
              background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
              overflow-x:hidden;
@@ -642,6 +673,10 @@
              display:flex;align-items:center;justify-content:center;line-height:1;border:1.5px solid var(--card);}
   .cmp-hint{font-size:10.5px;color:var(--ink3);margin-top:2px;line-height:1.5;display:none;}
   .cmp-hint.open{display:block;}
+  /* Errors used to go to toast(), which paints under this very panel (A1), so
+     they are routed here instead. The neutral --ink3 reads as a tip, not a
+     failure, hence the variant. */
+  .cmp-hint.err{color:var(--danger);font-weight:600;}
   /* ===== watchlist panel (rail + #watch-bar): named entries + add row ===== */
   .ctrl-watch{position:relative;}
   .wl-empty{font-size:11.5px;color:var(--ink3);padding:4px 0 8px;line-height:1.5;}
@@ -743,6 +778,28 @@
        overlapping hit-boxes — same pattern as neo's F8 fix. */
     .chips .chip::after{content:'';position:absolute;left:0;right:0;top:50%;
                          transform:translateY(-50%);height:44px;}
+    /* A9: the same vertical-only overlay for the remaining sub-44px controls.
+       Each height is MEASURED against the room that control actually has, not
+       set to 44 by default — an overlay that reaches past its neighbour moves
+       the mis-tap instead of removing it:
+         .hb-x      22px, 11px clear above / 41px below      → 44 fits
+         #rc-close  22px, 16px padding above / 12px below    → 44 fits
+         #cmp-close 19.6px, only 8.9px down to #compose-addr → capped at 36
+                    (44 would overhang the address field, so tapping the top of
+                    the input would close the panel instead of focusing it)
+         .wl-x      18px, but .wl-entry rows TOUCH at a 38px pitch → capped at 38
+                    (44 would overlap the next row's ✕ by 6px, and that button
+                    deletes a watchlist entry — a mis-tap there is destructive)
+       .lrn-q is deliberately NOT here: it is already a full-width 35.5px row and
+       its rows sit at a 36.5px pitch, so there is nothing to grow into. Making it
+       a real 44px needs more padding, i.e. a layout change, which is out of A9. */
+    .hb-x,#rc-close,#cmp-close,.wl-x{position:relative;}
+    .hb-x::after,#rc-close::after{content:'';position:absolute;left:0;right:0;top:50%;
+                         transform:translateY(-50%);height:44px;}
+    #cmp-close::after{content:'';position:absolute;left:0;right:0;top:50%;
+                         transform:translateY(-50%);height:36px;}
+    .wl-x::after{content:'';position:absolute;left:0;right:0;top:50%;
+                         transform:translateY(-50%);height:38px;}
   }
 
   /* ===== rails (desktop progressive enhancement) ===== */
@@ -843,6 +900,7 @@
       <button class="chip" data-f="pay" type="button" data-i18n="chip.pay">Payments</button>
       <button class="chip" data-f="msg" type="button" data-i18n="chip.msg">Messages</button>
       <button class="chip" data-f="token" type="button" data-i18n="chip.token">Token</button>
+      <button class="chip" data-f="watched" type="button" data-i18n="chip.watched">Watched</button>
     </div>
 
     <!-- The product thesis, for the door that is actually mobile-first. #rail-left
@@ -908,7 +966,7 @@
         </div>
         <div id="cmp-preview" class="cmp-preview" aria-live="polite"></div>
         <button id="compose-send" type="button" class="cmp-send" data-i18n="try.send">Send</button>
-        <div id="cmp-hint" class="cmp-hint"></div>
+        <div id="cmp-hint" class="cmp-hint" role="status" aria-live="polite"></div>
       </div>
     </div>
 
@@ -1121,6 +1179,7 @@ const FLOW_STRINGS_EN = {
   'chip.pay':'Payments',
   'chip.msg':'Messages',
   'chip.token':'Token',
+  'chip.watched':'Watched',
   'trade.buy':'Buy',
   'trade.list':'List',
   'trade.relist':'Relist',
@@ -1238,7 +1297,7 @@ function tf(key, vars){
   return String(t(key)).replace(/\{(\w+)\}/g, (_, k) => (vars && vars[k] != null ? vars[k] : ''));
 }
 function localeFor(code){ try { new Intl.NumberFormat(code); return code; } catch { return 'en'; } }
-const I18N_V = '3';   // bump whenever any vendor/i18n/flow.*.json changes
+const I18N_V = '4';   // bump whenever any vendor/i18n/flow.*.json changes
 async function loadPack(code){
   if (code === 'en'){ pack = null; return; }
   try {
@@ -1684,9 +1743,23 @@ function updateFabAway(){
   if (!cmpPanel.hidden) return;                       // composer open → FAB is hidden anyway
   fabEl.classList.toggle('away', !state.atBottom);
 }
+// A10: #stream carries scroll-behavior:smooth, which animates EVERY programmatic
+// scrollTop write — including the pin-to-bottom fired once per admitted card, so
+// a burst restarts the animation on every arrival. Pins and position restores are
+// bookkeeping, not motion; only a user-initiated jump (the "N new" pill) should
+// animate. An inline style beats the stylesheet, and restoring it afterwards
+// leaves the pill's smooth scroll — and the prefers-reduced-motion override —
+// untouched. Done this way rather than scrollTo({behavior:'instant'}) because
+// that enum value throws on older Safari.
+function scrollInstant(top){
+  const prev = stream.style.scrollBehavior;
+  stream.style.scrollBehavior = 'auto';
+  stream.scrollTop = top;
+  stream.style.scrollBehavior = prev;
+}
 newPill.addEventListener('click', () => { stream.scrollTop = stream.scrollHeight; });
 function appended(){
-  if (state.atBottom){ stream.scrollTop = stream.scrollHeight; }
+  if (state.atBottom){ scrollInstant(stream.scrollHeight); }
   else {
     state.unseen++;
     newPill.hidden = false;
@@ -2154,8 +2227,6 @@ function cardFor(tx){
   tx.el = el;
   el._tx = tx;   // back-reference so eviction in appended() can release tx.el
   setCardText(tx);
-  // honor the active filter for cards added while a chip is selected
-  if (state.filter !== 'all' && state.filter !== tx.f) el.classList.add('hide');
   // tap → expand the detail in place (no popup)
   el.tabIndex = -1;                 // roving: normalizeRoving() picks the single tab stop
   el.setAttribute('role', 'button');
@@ -2163,6 +2234,9 @@ function cardFor(tx){
   el.addEventListener('click', () => toggleCardExpand(tx));
   el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggleCardExpand(tx); } });
   applyHighlights(tx);
+  // MUST come after applyHighlights(): the "watched" chip tests .watched, which
+  // is set there. Honors the active chip for cards that arrive while one is on.
+  if (!matchesFilter(el)) el.classList.add('hide');
   return el;
 }
 function pushTx(tx){
@@ -2252,7 +2326,10 @@ function renderP50(){
   setStat('p50', ms != null ? ('~' + fmtSec(ms)) : '—');
   setStat('p50session', sess != null ? fmtSec(sess) : '—');
 }
-function updateSessionP50(){ renderP50(); }
+// A2: #p50 is also in .ah-stats and this path (every finalize) is not the one
+// that goes through updateStatsUI, so it needs its own re-measure — "—" growing
+// to "~2.1s" changes the row's width.
+function updateSessionP50(){ renderP50(); updateScrollHints(); }
 // Count a finalized tx toward "Transactions (session)" exactly once, excluding
 // the boot-time mempool backlog (presession finalizes before the first poll
 // completes — B7). Used by every finalize path incl. dust/folded so the number
@@ -2301,6 +2378,7 @@ function foldDust(tx){
   grp.el = el; grp.det = det;
   state.lastGroup = grp;
   hideEmpty();
+  if (!matchesFilter(el)) el.classList.add('hide');   // group cards obey the chip too
   stream.appendChild(el); stream.appendChild(det);
   appended();
 }
@@ -2368,6 +2446,7 @@ function foldRun(tx, gkey){
     g.el = el; g.det = det;
     state.groups.set(gkey, g);
     hideEmpty();
+    if (!matchesFilter(el)) el.classList.add('hide');   // group cards obey the chip too
     stream.appendChild(el); stream.appendChild(det);
     appended();
   }
@@ -2740,25 +2819,53 @@ function histCard(tx, d, height){
 function prependHistory(txDatas, height, realTxCount){
   const frag = document.createDocumentFragment();
   let dust = 0, added = 0;
+  const dustItems = [];   // bounded below, mirrors foldDust()'s 12-item window (§10)
   for (const d of txDatas){
     if (histCount + added >= HIST_MAX) break;
     let tx; try { tx = scrubTx(parseTransactionCore(d)); } catch { continue; }
     if (!tx || !tx.id) continue;
     const k = txKind(tx); tx.kind = k.kind; tx.f = k.f; tx.icon = k.icon;
     // fold small payments into one summary card, exactly like the live stream
-    if (tx.kind === 'pay' && tx.valueXec != null && tx.valueXec < DUST_XEC){ dust++; continue; }
+    if (tx.kind === 'pay' && tx.valueXec != null && tx.valueXec < DUST_XEC){
+      dust++;
+      dustItems.push((tx.valueXec != null ? labelPay(tx) : '') + ' · ' + tx.id.slice(0,8) + '…');
+      if (dustItems.length > 12) dustItems.shift();
+      continue;
+    }
     const el = histCard(tx, d, height);
     if (!el) continue;
     frag.appendChild(el);
     added++;
   }
   if (dust > 0){
+    // A3: this used to ship a ▾ caret and inherit cursor:pointer from .card
+    // t-group while having NO handler, NO detail, NO role and NO aria-expanded —
+    // and rovingAll() matches any .card, so it could take the stream's single tab
+    // stop and then do nothing on Enter. That is the same lesson the history
+    // DIVIDER eight lines below already records; it simply was never applied
+    // here. It now gets foldDust()'s full treatment — the folded txs were being
+    // discarded, so they are collected above instead.
     const g = document.createElement('article');
-    g.className = 'card t-group hist f-pay';
+    g.className = 'card t-group hist f-pay'; g.tabIndex = -1;   // roving
+    g.setAttribute('role', 'button');
+    g.setAttribute('aria-expanded', 'false');
     g.innerHTML = '<span class="ic">' + IC.stack + '</span>' +
       '<div class="body"><div class="t1">' + esc(tf('group.small', { n: fmtInt(dust) })) + '</div>' +
       '<div class="t2">' + esc(t('group.hint')) + '</div></div>' +
       '<div class="st"><span class="ttf">▾</span></div>';
+    const det = document.createElement('div');
+    det.className = 'grp-detail'; det.innerHTML = dustItems.map(esc).join('<br>');
+    const caretEl = g.querySelector('.ttf');
+    const tog = () => {
+      const open = det.classList.toggle('open');
+      caretEl.textContent = open ? '▴' : '▾';
+      g.setAttribute('aria-expanded', String(open));
+    };
+    g.addEventListener('click', tog);
+    g.addEventListener('keydown', (e) => { if (e.key==='Enter'||e.key===' '){ e.preventDefault(); tog(); } });
+    if (!matchesFilter(g)) g.classList.add('hide');   // group cards obey the chip too
+    // detail must sit directly after its card — appended() evicts the pair together
+    frag.insertBefore(det, frag.firstChild);
     frag.insertBefore(g, frag.firstChild);
   }
   // Same block boundary marker as the live stream (sealBlock): the divider sits
@@ -2782,8 +2889,10 @@ function prependHistory(txDatas, height, realTxCount){
   hideEmpty();
   const prevH = stream.scrollHeight, prevTop = stream.scrollTop;
   stream.insertBefore(frag, stream.firstChild);
-  // prepending shifts everything down — keep the viewport where the user left it
-  stream.scrollTop = prevTop + (stream.scrollHeight - prevH);
+  // prepending shifts everything down — keep the viewport where the user left it.
+  // MUST be instant (A10): animating a position RESTORE makes the viewport slide
+  // away, which is the exact opposite of what this line is for.
+  scrollInstant(prevTop + (stream.scrollHeight - prevH));
   normalizeRoving();   // history prepended above the current tab stop
   histCount += added;
   return added;
@@ -2820,14 +2929,25 @@ async function fetchPrice(){
 }
 function renderPrice(){
   const el = $('price-pill');
-  if (!state.xecUsd){ el.textContent = '—'; setStat('price', '—'); return; }
+  if (!state.xecUsd){ el.textContent = '—'; setStat('price', '—'); updateScrollHints(); return; }
+  // A6: the rail/bar stat used to be written OUTSIDE this branch, always in the
+  // /1M form — so toggling the pill off left the header reading "$0.00000631 /
+  // XEC" while the rail still read "$6.31 / 1M". One door disagreeing with
+  // itself about the same fact. Both now follow state.per1m; only the unit
+  // LABEL differs (the rail is narrower), never the number.
   if (state.per1m){
-    const v = state.xecUsd * 1e6;
-    el.textContent = '$' + v.toLocaleString(localeFor(lang), {minimumFractionDigits:2, maximumFractionDigits:2}) + ' / 1M XEC';
+    const v = '$' + (state.xecUsd * 1e6).toLocaleString(localeFor(lang), {minimumFractionDigits:2, maximumFractionDigits:2});
+    el.textContent = v + ' / 1M XEC';
+    setStat('price', v + ' / 1M');
   } else {
-    el.textContent = '$' + state.xecUsd.toFixed(state.xecUsd < 0.001 ? 8 : 6) + ' / XEC';
+    const v = '$' + state.xecUsd.toFixed(state.xecUsd < 0.001 ? 8 : 6);
+    el.textContent = v + ' / XEC';
+    setStat('price', v + ' / XEC');
   }
-  setStat('price', '$' + (state.xecUsd*1e6).toLocaleString(localeFor(lang), {minimumFractionDigits:2, maximumFractionDigits:2}) + ' / 1M');
+  // A2: #price-pill lives in .ah-stats and this is its widest swing
+  // ("$0.00000676 / XEC" vs "$6.76 / 1M XEC"), and the unit toggle is a USER
+  // action — tapping it can push the row into overflow with nothing re-measuring.
+  updateScrollHints();
 }
 $('price-pill').addEventListener('click', () => { state.per1m = !state.per1m; try { localStorage.setItem('ecashlive:flow:price:per1m', state.per1m ? '1':'0'); } catch {}; renderPrice(); });
 $('price-pill').addEventListener('keydown', (e) => { if (e.key==='Enter'||e.key===' '){ e.preventDefault(); $('price-pill').click(); } });
@@ -2861,6 +2981,11 @@ function isFresh(){ return state.relayStats && (Date.now() - state.relayStatsAt)
 function renderBlockAge(){
   const el = $('block-age'); if (!el) return;
   el.textContent = state.lastBlockAt ? fmtAgo(state.lastBlockAt, 'narrow') : '';
+  // A2: .ah-stats grows because of CONTENT, not resize — this appends
+  // " · 5 min ago" on a 5s interval, so the row can start overflowing with no
+  // resize event to trigger a re-measure. updateScrollHints() measures, so
+  // calling it here is idempotent and self-correcting.
+  updateScrollHints();
 }
 function updateStatsUI(){
   const s = state.relayStats;
@@ -2879,6 +3004,7 @@ function updateStatsUI(){
     // honest session-based fallback for it on every finalize.
     $('f-tps').textContent = '—'; $('f-tx24').textContent = '—';
   }
+  updateScrollHints();   // A2: TPS / 24h pills just changed width — re-measure the row
 }
 function connectStats(){
   let ws, reconnectMs = 1000, closed = false;
@@ -3151,11 +3277,28 @@ $('btn-learn').addEventListener('click', () => toggleFooterBar('learn-bar'));
 // ---- filter chips (All / Payments / Messages / Token) ----
 // Every card — including the dust group and run-collapse groups — carries an
 // f-<kind> class now, so one uniform check covers all of them.
-function applyFilter(){
+// THE single test for "does this card belong under the active chip".
+//
+// It reads the ELEMENT's classes rather than a tx, because the dust and
+// run-collapse group cards have no tx behind them, and because .watched is put
+// on the element by applyHighlights(). "watched" is not a kind: it is
+// orthogonal to f-pay/f-msg/f-token, so the f-<kind> test cannot express it.
+//
+// This exists because there were TWO copies of the test and they disagreed.
+// cardFor() compared state.filter against tx.f, which txKind() only ever sets
+// to pay/msg/token — so with the watched chip on, EVERY newly arrived card was
+// hidden, including the watched ones it was supposed to show. applyFilter()'s
+// copy was correct, which is exactly why the bug survived testing: exercising
+// the chip re-ran the good copy. Keep this as the only implementation.
+function matchesFilter(el){
   const f = state.filter;
+  if (f === 'all') return true;
+  if (f === 'watched') return el.classList.contains('watched');
+  return el.classList.contains('f-' + f);
+}
+function applyFilter(){
   stream.querySelectorAll('.card').forEach(c => {
-    const ok = f === 'all' || c.classList.contains('f-' + f);
-    c.classList.toggle('hide', !ok);
+    c.classList.toggle('hide', !matchesFilter(c));
   });
   // If the currently-expanded card was just filtered out, collapse it so its
   // inline detail panel doesn't linger as an orphan below a hidden card.
@@ -3172,7 +3315,7 @@ document.querySelectorAll('.chips .chip').forEach(b => {
     b.classList.add('on'); b.setAttribute('aria-pressed', 'true');
     state.filter = b.dataset.f;
     applyFilter();
-    if (state.atBottom) stream.scrollTop = stream.scrollHeight;
+    if (state.atBottom) scrollInstant(stream.scrollHeight);   // re-pin, not a journey (A10)
   });
 });
 
@@ -4003,6 +4146,9 @@ function rehighlightAll(){
     if (!tx._mine) tx.el.classList.toggle('watched', txTouchesWatch(tx));
     setCardText(tx);   // refresh the route prefix (a watched-address name may have changed)
   }
+  // The "watched" chip is the one filter whose result depends on the watchlist,
+  // so editing the list while it is active changes which cards belong (A8).
+  if (state.filter === 'watched') applyFilter();
 }
 /* ---- watchlist panel: named entries + add + remove, rendered into BOTH the
    right-rail card (desktop) and the "#watch-bar" (mobile, opened from the footer).
@@ -4140,7 +4286,18 @@ function encodeCashtabMsgOpReturn(msg){
   return '04' + '00746162' + pl + hex;
 }
 const cmpHint = $('cmp-hint');
-function hint(txt, show){ cmpHint.textContent = txt || ''; cmpHint.classList.toggle('open', !!show && !!txt); }
+// The panel's own status line. It carries role=status/aria-live, so the ORDER
+// below matters: a text change made while the node is still display:none is not
+// announced, so become visible first, then write. (This line inherited every
+// composer error from toast() in A1 — toast paints under the panel, so those
+// errors were invisible to sighted users while still being read aloud. Routing
+// them here without the live region would have inverted that bug.)
+function hint(txt, show, err){
+  const on = !!show && !!txt;
+  cmpHint.classList.toggle('open', on);
+  cmpHint.classList.toggle('err', on && !!err);
+  cmpHint.textContent = txt || '';
+}
 
 // ---- FAB composer (F3/F4/F6) ----
 // DUST_XEC (5.46) is already defined for the dust-fold threshold — reused here as
@@ -4182,7 +4339,7 @@ function renderCmpPicks(){
       else {
         hint(t('try.confirm'), true);
         try { const got = await ctRequestAddress(); if (saveMyAddr(got)) inp.value = myAddr; hint('', false); }
-        catch (e){ hint('', false); toast(t(e && e.message === 'timeout' ? 'try.timeout' : 'try.denied')); return; }
+        catch (e){ hint(t(e && e.message === 'timeout' ? 'try.timeout' : 'try.denied'), true, true); return; }
       }
     } else { inp.value = v; }
     updateCmpPreview();
@@ -4204,7 +4361,14 @@ function updateCmpPreview(){
   if (amt >= DUST_XEC){
     let s = tf('cmp.previewXec', { xec: amt.toLocaleString(localeFor(lang)) });
     const usd = state.xecUsd ? amt * state.xecUsd : 0;
-    if (usd) s += ' (~$' + (usd < 0.01 ? usd.toFixed(4) : usd.toFixed(2)) + ')';
+    // A7: was toFixed, one line below a toLocaleString — the same panel formatted
+    // its two numbers by different rules. Flow's convention is toLocaleString
+    // (CLAUDE.md §6 records the toFixed/Intl rounding divergence; this follows the
+    // existing rule rather than adding a third).
+    if (usd){
+      const d = usd < 0.01 ? 4 : 2;
+      s += ' (~$' + usd.toLocaleString(localeFor(lang), {minimumFractionDigits:d, maximumFractionDigits:d}) + ')';
+    }
     parts.push(s);
   }
   if (msg) parts.push(t('cmp.previewMsg'));
@@ -4228,7 +4392,11 @@ function openComposer(){
   showAnimated(cmpBackdrop, 'show'); showAnimated(cmpPanel, 'show');
   requestAnimationFrame(() => { try { const a = $('compose-addr'); (a.value ? $('compose-in') : a).focus(); } catch {} });
   cmpKeydownBound = (e) => {                 // focus trap + Escape
-    if (e.key === 'Escape'){ e.preventDefault(); closeComposer(); return; }
+    // A4: stopPropagation is load-bearing. This listener is capture-phase, so
+    // without it the document-level bubble handler still runs and Escape closes
+    // the composer AND collapses the expanded card / dismisses the receipt in
+    // one press.
+    if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); closeComposer(); return; }
     if (e.key !== 'Tab') return;
     const vis = [...cmpPanel.querySelectorAll('button,input,[tabindex]:not([tabindex="-1"])')].filter(el => !el.hidden && el.offsetParent !== null);
     if (!vis.length) return;
@@ -4275,7 +4443,9 @@ async function sendTry(){
   const explicitAmt = tryPrefs.amountOpen ? clampAmt(tryPrefs.amountXec) : 0;
   if (!msg && !(explicitAmt >= DUST_XEC)){ hint(t('cmp.needAmtOrMsg'), true); return; }
   let opret = null;
-  if (msg){ opret = encodeCashtabMsgOpReturn(msg); if (!opret){ toast(t('try.toolong')); return; } }
+  // Every user-facing failure below reports through hint(), NOT toast(): the
+  // panel is open at this point and paints over the toast (A1).
+  if (msg){ opret = encodeCashtabMsgOpReturn(msg); if (!opret){ hint(t('try.toolong'), true, true); return; } }
   const addrInput = $('compose-addr');
   let addr = normAddr(addrInput.value);
   const hasExt = isCashtabExtension();
@@ -4283,10 +4453,10 @@ async function sendTry(){
     // No address typed — ask the extension for the user's own (self-send).
     hint(t('try.confirm'), true);
     try { const got = await ctRequestAddress(); if (saveMyAddr(got)){ addr = myAddr; addrInput.value = myAddr; } }
-    catch (e){ hint('', false); toast(t(e && e.message === 'timeout' ? 'try.timeout' : 'try.denied')); return; }
+    catch (e){ hint(t(e && e.message === 'timeout' ? 'try.timeout' : 'try.denied'), true, true); return; }
   }
   if (!addr){ hint(t('try.needAddr'), true); try { addrInput.focus(); } catch {}; return; }
-  if (!validateCashAddress(addr)){ toast(t('try.badAddr')); return; }
+  if (!validateCashAddress(addr)){ hint(t('try.badAddr'), true, true); return; }
   // NOTE: do NOT saveMyAddr(addr) here. `addr` is the RECIPIENT — typed, or picked
   // from the watchlist via renderCmpPicks(). Saving it would make txTouchesMine()
   // label every future tx of that counterparty as "yours" (cyan bar, SR announce,
@@ -4312,8 +4482,7 @@ async function sendTry(){
       hint(t('try.sentExt'), true);
       setTimeout(closeComposer, 900);
     } catch (e){
-      hint('', false);
-      toast(t(e && e.message === 'timeout' ? 'try.timeout' : 'try.denied'));
+      hint(t(e && e.message === 'timeout' ? 'try.timeout' : 'try.denied'), true, true);
     }
   } else {
     if (msg){ tryMsg = msg.toLowerCase(); tryMsgAt = Date.now(); }   // content match (URL path); myAddr covers pure-XEC
