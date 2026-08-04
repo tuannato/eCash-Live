@@ -291,8 +291,39 @@ export function parseFirstPush(hex) {
 }
 
 // =============================================================================
+// msg() — build a message object. THE only place these three fields are set.
+//
+//   content   what the UI shows. Often a parser-composed label, sometimes with
+//             real on-chain text decorated into it ('alias: "vn"'). Never change
+//             an existing value here: neo, Flow and the share-card Worker all
+//             render from it, so a change moves render paths in three places.
+//   text      what a human actually wrote ON CHAIN, raw and undecorated, or
+//             null when nothing was. This is the ONLY field a search may look
+//             at. A label nobody wrote must never be matchable: searching
+//             "chat" has to miss the string 'eCashChat message'.
+//   synthetic true when `content` is parser-composed rather than verbatim
+//             on-chain text. It describes the PROVENANCE OF content, not the
+//             presence of text: the two are independent. 'alias: "vn"' is
+//             synthetic (we wrote the quotes and the word "alias") even though
+//             its text is the real 'vn'; an Agora label is synthetic even when a
+//             chat OP_RETURN rode along and its text was carried across.
+//
+// The invariant is `synthetic === (content !== text)` and it holds for every
+// branch below — a label always differs from what was written, verbatim text
+// always equals it, and a null text can never equal a content string. Assert it
+// in any harness that touches this file.
+// =============================================================================
+function msg(type, content, text, extra) {
+  const t = text ? text : null;
+  const m = { type, content, text: t, synthetic: content !== t };
+  if (extra) Object.assign(m, extra);
+  return m;
+}
+
+// =============================================================================
 // parseOpReturn(hex) — decode an OP_RETURN output script into a message object
-// { type, content, ... }. Returns null when nothing surfaceable is found.
+// { type, content, text, synthetic, ... }. Returns null when nothing
+// surfaceable is found.
 // =============================================================================
 export function parseOpReturn(hex) {
   if (!hex || !hex.startsWith('6a')) return null;
@@ -347,14 +378,15 @@ export function parseOpReturn(hex) {
       // Standard form: 04 <00746162> <push> <utf8 msg>
       const pushes = readAllPushes(afterId);
       const msgText = pushes.map(hexToUtf8).filter(Boolean).join(' ');
-      return { type: 'cashtab', content: msgText || 'Cashtab message' };
+      return msg('cashtab', msgText || 'Cashtab message', msgText);
     }
     // Non-standard inline form: first push contains id+msg
     const msgText = hexToUtf8(firstPushHex.slice(8));
-    return { type: 'cashtab', content: msgText || 'Cashtab message' };
+    return msg('cashtab', msgText || 'Cashtab message', msgText);
   }
   if (lokad === LOKAD.CASHTAB_ENC) {
-    return { type: 'encrypted', content: 'Encrypted Cashtab message' };
+    // Encrypted: there is no plaintext on chain, so there is nothing to search.
+    return msg('encrypted', 'Encrypted Cashtab message', null);
   }
   if (lokad === LOKAD.ALIAS) {
     // Alias: <04 2e786563> <00 version> <01-15 alias> <15 cashaddr-payload>
@@ -366,17 +398,18 @@ export function parseOpReturn(hex) {
         aliasName = txt; break;
       }
     }
-    return { type: 'alias', content: aliasName ? `alias: "${aliasName}"` : 'alias registration' };
+    // content keeps the decoration; text carries the raw alias someone chose.
+    return msg('alias', aliasName ? `alias: "${aliasName}"` : 'alias registration', aliasName);
   }
   if (lokad === LOKAD.AIRDROP) {
     // Airdrop: <04 drop> <20 tokenId> [<push> msg]
     const pushes = afterId ? readAllPushes(afterId) : [];
-    let msg = 'Token airdrop';
+    let label = 'Token airdrop', note = '';
     if (pushes.length >= 2) {
       const m = pushes.slice(1).map(hexToUtf8).filter(Boolean).join(' ');
-      if (m) msg = 'Airdrop · ' + m;
+      if (m) { label = 'Airdrop · ' + m; note = m; }
     }
-    return { type: 'airdrop', content: msg };
+    return msg('airdrop', label, note);
   }
   // Agora covenants put AGR0 in the inputScript, NOT an OP_RETURN — let the
   // inputScript-based detection in parseTransactionCore synthesize the message.
@@ -386,50 +419,57 @@ export function parseOpReturn(hex) {
   if (lokad === LOKAD.ECASHCHAT_TX) {
     // eCashChat: <04 chat> <push action> <push payload...>
     const pushes = afterId ? readAllPushes(afterId) : [];
-    if (pushes.length === 0) return { type: 'broadcast', content: 'eCashChat message' };
+    if (pushes.length === 0) return msg('broadcast', 'eCashChat message', null);
     const action = hexToUtf8(pushes[0]);
     if (action === 'hash' && pushes[2]) {
       const reply = hexToUtf8(pushes[2]);
-      return { type: 'broadcast', content: reply || 'eCashChat reply' };
+      return msg('broadcast', reply || 'eCashChat reply', reply);
     }
     if (action === 'post' && pushes[1]) {
       const post = hexToUtf8(pushes[1]);
-      return { type: 'broadcast', content: post || 'eCashChat post' };
+      return msg('broadcast', post || 'eCashChat post', post);
     }
     if (action === 'pass' && pushes[1]) {
-      return { type: 'encrypted', content: 'Encrypted eCashChat message' };
+      return msg('encrypted', 'Encrypted eCashChat message', null);
     }
     if (pushes[1]) {
-      const msg = hexToUtf8(pushes[1]);
-      if (msg) return { type: 'cashtab', content: msg };
+      const body = hexToUtf8(pushes[1]);
+      if (body) return msg('cashtab', body, body);
     }
-    const msg = hexToUtf8(pushes[0]);
-    return { type: 'cashtab', content: msg || 'eCashChat message' };
+    const body0 = hexToUtf8(pushes[0]);
+    return msg('cashtab', body0 || 'eCashChat message', body0);
   }
   if (lokad === LOKAD.ECASHCHAT_AUTH) {
-    return { type: 'encrypted', content: 'eCashChat auth' };
+    return msg('encrypted', 'eCashChat auth', null);
   }
   if (lokad === LOKAD.PAYBUTTON) {
     // PayButton: <04 PAY\x00> <push version> <push nonce> <push data>
     const pushes = afterId ? readAllPushes(afterId) : [];
     const data2 = pushes[2] ? hexToUtf8(pushes[2]) : '';
-    return { type: 'broadcast', content: data2 ? `PayButton: ${data2}` : 'PayButton tx' };
+    // data2 is merchant-supplied and often machine-generated (order ids), but it
+    // IS on chain and somebody put it there — searchable, per the same rule that
+    // keeps the plain-text fallback below.
+    return msg('broadcast', data2 ? `PayButton: ${data2}` : 'PayButton tx', data2);
   }
   if (lokad === LOKAD.PAYWALL) {
-    return { type: 'broadcast', content: 'Paywall payment' };
+    return msg('broadcast', 'Paywall payment', null);
   }
   if (lokad === LOKAD.CASHFUSION) {
-    return { type: 'broadcast', content: 'CashFusion shuffle' };
+    return msg('broadcast', 'CashFusion shuffle', null);
   }
   if (lokad === LOKAD.ARTICLE) {
     const pushes = afterId ? readAllPushes(afterId) : [];
     const title = pushes[0] ? hexToUtf8(pushes[0]) : '';
-    return { type: 'broadcast', content: title ? `Article: ${title.slice(0, 80)}` : 'eCashChat article' };
+    // The article BODY is off chain; the title is not, so only the title is text.
+    return msg('broadcast', title ? `Article: ${title.slice(0, 80)}` : 'eCashChat article', title);
   }
   if (lokad === LOKAD.POWR) {
     // Proof of Writing — content is OFF-chain (sha256 hashes only). Uses BARE
     // opcodes after the lokad push, so only readScriptItems can parse it.
-    const generic = { type: 'powr', content: 'Proof of Writing activity' };
+    // POWR's readable content lives OFF chain — the script carries only sha256
+    // hashes and a UUID nonce. Those are identifiers, not text, so every POWR
+    // message has null text no matter how specific its label gets.
+    const generic = msg('powr', 'Proof of Writing activity', null);
     const { items, truncated } = readScriptItems(afterId);
     if (truncated || items.length < 2) return generic;
     if (items[0].kind !== 'op' || items[0].op !== 0x00) return generic; // version byte
@@ -459,7 +499,7 @@ export function parseOpReturn(hex) {
         powr.nonce = nonce; content = `${action} · ${nonce}`;
       }
     }
-    return content ? { type: 'powr', content, powr } : generic;
+    return content ? msg('powr', content, null, { powr }) : generic;
   }
   // SLP/ALP token markers - skip (handled via tokenEntries)
   if (lokad === '534c5000' || lokad === '534c5032') return null;
@@ -472,15 +512,20 @@ export function parseOpReturn(hex) {
     if (action === '6d02') {
       const remaining = data.slice(push1Start + pushLen * 2);
       const post = parseFirstPush(remaining);
-      return { type: 'broadcast', content: post || 'Memo post' };
+      return msg('broadcast', post || 'Memo post', post);
     }
-    return { type: 'broadcast', content: 'Memo action' };
+    return msg('broadcast', 'Memo action', null);
   }
 
-  // Otherwise try to interpret as plain text (no recognized protocol id)
+  // Otherwise try to interpret as plain text (no recognized protocol id).
+  // This branch is why search must NOT be narrowed to known lokad ids: an
+  // OP_RETURN belonging to no protocol we know still carries something a person
+  // wrote, and a lokad-keyed scan would report "no results" for text it never
+  // looked at. content === text here, so it is the one branch that is never
+  // synthetic by construction.
   const text = hexToUtf8(firstPushHex);
   if (text && /^[\x20-\x7e\u00A0-\uFFFF]+$/.test(text) && text.length > 2) {
-    return { type: 'broadcast', content: text };
+    return msg('broadcast', text, text);
   }
   return null;
 }
@@ -820,7 +865,13 @@ export function parseTransactionCore(txData) {
     else if (tx.agora.side === 'cancel') synthType = 'agora-cancel';
     else if (tx.agora.side === 'relist') synthType = 'agora-relist';
     else synthType = 'agora-list';
-    tx.message = { type: synthType, content: tx.agora.label || 'Agora interaction', synthetic: true };
+    // This overwrite discards a chat-style OP_RETURN the tx may also carry — the
+    // Agora label is what the feed should SHOW. But discarding the text too would
+    // make real on-chain writing unfindable and report it as "no match" rather
+    // than "not looked at", so it is carried across. content is unchanged, so no
+    // render path moves; only `text` survives the overwrite.
+    const carried = tx.message && tx.message.text ? tx.message.text : null;
+    tx.message = msg(synthType, tx.agora.label || 'Agora interaction', carried);
   }
 
   return tx;

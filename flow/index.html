@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-QdHgtHcXQ5MU+WAxGGHZP371NBBBgXXsY4ys/W9Gq9U=';
+  script-src 'self' 'sha256-XpQ3i/WsmxCWSXpF8jvilN60BFqxIuSKRxJ2bpcEJHw=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -87,7 +87,7 @@
     --ink:#10142E; --ink2:#465073; --ink3:#626B8C; --line:#DBE2EF; --frame:#C4D4DC;
     --accent:#0074C2; --accent-deep:#00629F; --accent-bg:#E1F2FC;
     --final:#007C4C; --final-bg:#DFF6EA;
-    --self-bg:#E1F2FC; --danger:#C4187E;
+    --self-bg:#E1F2FC; --danger:#C4187E; --warn-ink:#B3261E;
     --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
     --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
     --msg:#6A1FC4; --msg-bg:#F2EAFD; --msg-ln:#D8C6F4;
@@ -106,7 +106,7 @@
       --ink:#F4F5FF; --ink2:#9EA3C4; --ink3:#7C81A3; --line:#1E1E30; --frame:#2A4250;
       --accent:#01A0E0; --accent-deep:#29B6F0; --accent-bg:#0B2036;
       --final:#00E781; --final-bg:#07291B;
-      --self-bg:#0B2036; --danger:#FF21D0;
+      --self-bg:#0B2036; --danger:#FF21D0; --warn-ink:#FF6169;
       --msg:#B985FF; --msg-bg:#201538; --msg-ln:#3C2B63;
       --token:#FFB800; --token-bg:#2B2209; --token-ln:#554414;
       --accent-ln:#174766; --final-ln:#0F4C31; --line2:#2E2E4A;
@@ -122,7 +122,7 @@
     --ink:#F4F5FF; --ink2:#9EA3C4; --ink3:#7C81A3; --line:#1E1E30; --frame:#2A4250;
     --accent:#01A0E0; --accent-deep:#29B6F0; --accent-bg:#0B2036;
     --final:#00E781; --final-bg:#07291B;
-    --self-bg:#0B2036; --danger:#FF21D0;
+    --self-bg:#0B2036; --danger:#FF21D0; --warn-ink:#FF6169;
     --msg:#B985FF; --msg-bg:#201538; --msg-ln:#3C2B63;
     --token:#FFB800; --token-bg:#2B2209; --token-ln:#554414;
     --accent-ln:#174766; --final-ln:#0F4C31; --line2:#2E2E4A;
@@ -137,7 +137,7 @@
     --ink:#10142E; --ink2:#465073; --ink3:#626B8C; --line:#DBE2EF; --frame:#C4D4DC;
     --accent:#0074C2; --accent-deep:#00629F; --accent-bg:#E1F2FC;
     --final:#007C4C; --final-bg:#DFF6EA;
-    --self-bg:#E1F2FC; --danger:#C4187E;
+    --self-bg:#E1F2FC; --danger:#C4187E; --warn-ink:#B3261E;
     --msg:#6A1FC4; --msg-bg:#F2EAFD; --msg-ln:#D8C6F4;
     --token:#9C6D00; --token-bg:#FAF0D6; --token-ln:#EBD79F;
     --accent-ln:#A5D8F3; --final-ln:#A3E5C6; --line2:#BFCADF;
@@ -276,12 +276,24 @@
   @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
 
   /* ===== filter chips ===== */
-  .chips{display:flex;gap:6px;padding:9px 14px;border-bottom:1px solid var(--line);flex:none;flex-wrap:wrap;background:var(--bg-app);}
-  .chips .chip{position:relative;font-size:12px;border:1px solid var(--line);background:var(--card);color:var(--ink2);
+  /* Scrolls sideways rather than wrapping: term chips are added by the user, so
+     a wrapping row would grow taller with each topic and push the stream down —
+     up to three lines on a phone at TERM_MAX. .hscroll supplies the chevron,
+     the wheel-to-sideways mapping and the keyboard affordance. */
+  /* The row owns the frame; .chips is only the scrolling part of it, so the
+     safety chip can sit outside the scroll area and stay pinned right. */
+  .chips-row{display:flex;align-items:center;gap:8px;padding:9px 14px;flex:none;
+             border-bottom:1px solid var(--line);background:var(--bg-app);}
+  .chips{--fade-to:var(--bg-app);display:flex;gap:6px;
+         flex:1;min-width:0;flex-wrap:nowrap;
+         overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;}
+  .chips::-webkit-scrollbar{display:none;}
+  .chips > *{flex:none;}
+  .chips-row .chip{position:relative;font-size:12px;border:1px solid var(--line);background:var(--card);color:var(--ink2);
                border-radius:99px;padding:5px 13px;cursor:pointer;line-height:1.3;transition:all .15s;}
-  .chips .chip:hover{border-color:var(--accent);color:var(--accent-deep);}
-  .chips .chip.on{background:var(--accent-bg);border-color:var(--accent);color:var(--accent-deep);font-weight:650;}
-  .chips .chip:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .chips-row .chip:hover{border-color:var(--accent);color:var(--accent-deep);}
+  .chips-row .chip.on{background:var(--accent-bg);border-color:var(--accent);color:var(--accent-deep);font-weight:650;}
+  .chips-row .chip:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
 
   /* ===== stream ===== */
   .stream-wrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;}
@@ -461,19 +473,25 @@
      .brand-ver (9, in the header) and .skip-link (50, page shell). Those two
      are left as literals on purpose — they belong to other regions — but they
      are real ceilings, so 9 is NOT free and 50 must stay on top (it is the
-     keyboard escape hatch). 9-29 is deliberately left empty for future
-     overlays.
+     keyboard escape hatch). This is why --z-receipt jumps 8 -> 10 rather than
+     taking the next number: 9 is spoken for. 11-29 stays empty for later.
 
      --z-toast is far above --z-receipt because a toast reports on an action
      the user just took INSIDE whatever overlay is open; #receipt is opaque
      (background:var(--bg-app)), so any tier below it is not "behind" but
-     invisible. Transient feedback outranks every persistent layer. */
+     invisible. Transient feedback outranks every persistent layer.
+
+     --z-lane sits directly above the stream affordances and BELOW the composer
+     and the receipt, on purpose: you can still compose while a topic Lane is
+     open, and a shared ?tx= link must always win — a link sent as evidence has
+     to land on the evidence, not on somebody's saved topic. */
   :root{
     --z-echan:4;      /* ambient narrator bubble — lowest, must never cover a control */
     --z-pill:5;       /* #new-pill / #load-older — stream affordances */
-    --z-fab:6;        /* #fab and #cmp-backdrop (the backdrop hides the FAB) */
-    --z-panel:7;      /* #cmp-panel — floating composer dialog */
-    --z-receipt:8;    /* #receipt — opaque, covers the whole stream */
+    --z-lane:6;       /* #lane — topic overlay; a STATE over the stream, not a dialog */
+    --z-fab:7;        /* #fab and #cmp-backdrop (the backdrop hides the FAB) */
+    --z-panel:8;      /* #cmp-panel / #term-editor — focused-action dialogs */
+    --z-receipt:10;   /* #receipt — opaque, covers the whole stream (9 is taken) */
     --z-toast:30;     /* transient feedback — outranks EVERY overlay above */
   }
 
@@ -528,6 +546,101 @@
          transition:opacity .25s;pointer-events:none;white-space:nowrap;z-index:var(--z-toast);
          max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis;}
   #toast.show{opacity:.97;}
+  /* ===== topic Lane =====
+     Same construction as #receipt: absolute, opaque, covers the stream. It is a
+     STATE, not a dialog — the stream underneath keeps running and is simply not
+     visible, which is the whole point (pausing would throw away the very
+     transactions a saved topic exists to collect). */
+  #lane{position:absolute;inset:0;z-index:var(--z-lane);background:var(--bg-app);overflow-y:auto;
+        padding:12px 12px calc(16px + env(safe-area-inset-bottom));
+        opacity:0;transition:opacity .18s;}
+  #lane.show{opacity:1;}
+  .lane-head{display:flex;align-items:center;gap:9px;margin-bottom:10px;}
+  .lane-title{font-size:13px;font-weight:700;color:var(--ink);}
+  .lane-count{font-size:11px;color:var(--ink3);font-variant-numeric:tabular-nums;}
+  #lane-close{margin-left:auto;position:relative;border:0;background:none;color:var(--ink3);
+              font-size:16px;cursor:pointer;line-height:1;padding:3px 6px;border-radius:6px;}
+  #lane-close:hover{color:var(--ink);}
+  #lane-close:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  /* Coverage line — the primary readout. It states what was searched, never just
+     what was found, so an empty Lane reads as "nothing matched in X" and never
+     as the unfounded claim "there is nothing". */
+  .lane-cov{font-size:10.5px;color:var(--ink3);line-height:1.6;margin-bottom:10px;}
+  .lane-row{display:flex;width:100%;gap:10px;align-items:flex-start;text-align:left;
+            background:var(--card);border:1px solid var(--line);border-radius:12px;
+            padding:9px 11px;margin-bottom:7px;cursor:pointer;color:inherit;font:inherit;}
+  .lane-row:hover{border-color:var(--accent);}
+  .lane-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+  .lane-row .lr-ic{flex:none;width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--ink3);}
+  .lane-row .lr-ic svg{width:15px;height:15px;}
+  .lr-body{min-width:0;flex:1;}
+  .lr-text{display:block;font-size:12.5px;line-height:1.5;color:var(--ink);
+           overflow-wrap:anywhere;}
+  .lr-text mark{background:var(--accent-bg);color:var(--accent-deep);border-radius:3px;padding:0 2px;}
+  .lr-meta{display:block;font-size:10px;color:var(--ink3);margin-top:3px;font-family:var(--mono);}
+  .lane-detail{display:none;margin:-4px 0 8px;padding:10px 12px;background:var(--card);
+               border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;}
+  .lane-detail.open{display:block;}
+  .lane-empty{font-size:12px;color:var(--ink3);line-height:1.7;padding:18px 4px;text-align:center;}
+
+  /* ===== topic editor (a dialog, like #cmp-panel) ===== */
+  #term-backdrop{position:absolute;inset:0;z-index:var(--z-fab);background:rgba(0,0,0,.28);opacity:0;transition:opacity .2s;}
+  #term-backdrop.show{opacity:1;}
+  #term-editor{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.98);
+               z-index:var(--z-panel);width:min(360px, calc(100% - 32px));max-height:calc(100% - 32px);
+               overflow-y:auto;overflow-x:hidden;background:var(--card);border:1px solid var(--line);
+               border-radius:16px;box-shadow:var(--shadow);padding:14px;display:flex;flex-direction:column;
+               gap:9px;opacity:0;transition:opacity .18s, transform .18s;}
+  #term-editor.show{opacity:1;transform:translate(-50%,-50%);}
+  #term-editor input[type=text]{width:100%;font-size:13px;padding:10px 12px;border-radius:10px;
+             border:1px solid var(--line);background:var(--bg-app);color:var(--ink);font-family:var(--sans);}
+  #term-editor input[type=text]:focus{outline:2px solid var(--accent);outline-offset:1px;}
+  #term-close{border:0;background:none;color:var(--ink3);font-size:16px;cursor:pointer;line-height:1;
+              padding:2px 5px;border-radius:6px;position:relative;}
+  .term-opt{display:flex;gap:8px;align-items:flex-start;font-size:11px;color:var(--ink2);line-height:1.5;cursor:pointer;}
+  .term-opt input{flex:none;margin-top:1px;}
+
+  /* Term chips live in the same row as the kind chips but behave differently:
+     they are independent toggles, not a mutually exclusive group. */
+  .chips-row .chip.term{border-color:var(--msg-ln);color:var(--msg);}
+  .chips-row .chip.term.on{background:var(--msg);border-color:var(--msg);color:#fff;}
+  /* Muted terms read as subtraction, not as another topic: grey, struck through,
+     and carrying the count of what they are removing. */
+  .chips-row .chip.term.mute{border-color:var(--line2);color:var(--ink3);text-decoration:line-through;}
+  .chips-row .chip.term.mute.on{background:var(--card2);border-color:var(--ink3);color:var(--ink2);}
+  .chips-row .chip.term .mct{margin-left:5px;font-weight:700;text-decoration:none;
+                             display:inline-block;font-variant-numeric:tabular-nums;}
+  .chips-row .chip.term .tx{margin-left:6px;opacity:.75;font-weight:700;}
+  .chips-row .chip.term .tx:hover{opacity:1;}
+  /* Safety affordance — amber, mirroring neo's .warn-btn so the two doors use
+     one visual language for "read this before you trust what you see". */
+  /* Amber carries the caution signal through the BACKGROUND and border; the text
+     itself is --ink2. Amber-on-amber measured 4.02:1 in the light theme — below
+     AA, and this is the one piece of copy that must never be hard to read.
+     --ink2 measures 6.97 light / 6.36 dark on --token-bg, and 7.50 / 7.85 for
+     the chip, so both clear AA in both themes with the hue intact. */
+  /* Red, and theme-aware: no single red clears AA on the amber background in
+     both themes — light needs a dark red, dark needs a light one — so --warn-ink
+     is a per-palette token like --danger. Measured 5.76:1 light / 5.37:1 dark.
+     flex:none keeps it out of the scroller's flex sizing. */
+  .chips-row .chip.warn{flex:none;border-color:var(--token-ln);background:var(--token-bg);
+                    color:var(--warn-ink);font-weight:800;min-width:30px;text-align:center;}
+  .chips-row .chip.warn:hover{border-color:var(--warn-ink);}
+  /* An always-visible line, not a popover: a newcomer does not know to look. */
+  .safety-line{font-size:10.5px;line-height:1.6;color:var(--ink2);background:var(--token-bg);
+               border:1px solid var(--token-ln);border-radius:9px;padding:7px 10px;}
+  /* Denser than a Q&A answer: this is a scannable checklist of four or five
+     items, not a paragraph to read through. */
+  /* .lrn-a.lrn-safety, not .lrn-safety: `.lrn-a p` has the same specificity and
+     is declared later in the sheet, so a single class here would lose the tie
+     and the intro would stay at 12px. */
+  .lrn-a.lrn-safety p{font-size:11px;}
+  .lrn-safety ul{margin:6px 0 0;padding-left:16px;}
+  .lrn-safety li{font-size:11px;margin-bottom:5px;line-height:1.55;color:var(--ink2);}
+  .lrn-safety li strong{color:var(--ink);}
+  .chips-row .chip.addterm{border-style:dashed;color:var(--ink3);}
+  .chips-row .chip.addterm:hover{color:var(--accent);border-color:var(--accent);}
+
   /* ===== pinned shared receipt (F14) =====
      A ?tx= link opens a receipt STATE over the stream — it can't scroll away
      like the old appended card. Covers the FAB (--z-fab) and the composer
@@ -560,6 +673,10 @@
      in-stream card that would scroll away). Rendered by renderLearn() into the
      rail (desktop) and the "?"-toggled #learn-bar (mobile). */
   .rl-learn h3{font-size:12px;margin:0 0 6px;color:var(--ink3);font-weight:600;text-transform:uppercase;letter-spacing:.07em;}
+  /* The list scrolls inside itself instead of stretching its container. dvh, not
+     vh, so a mobile URL bar appearing cannot push the last topic out of reach —
+     the same measurement mistake that made neo's LEARN panel unscrollable. */
+  .lrn-list{max-height:min(52dvh, 420px);overflow-y:auto;overscroll-behavior:contain;}
   .lrn-item{border-top:1px solid var(--line);}
   .lrn-item:first-child{border-top:0;}
   .lrn-q{display:flex;width:100%;gap:8px;align-items:center;justify-content:space-between;text-align:left;
@@ -776,7 +893,9 @@
     /* Chips render ~25px tall — below the 44px touch target. Vertical-only
        overlay (not horizontal) so adjacent chips with a 6px gap don't get
        overlapping hit-boxes — same pattern as neo's F8 fix. */
-    .chips .chip::after{content:'';position:absolute;left:0;right:0;top:50%;
+    .chips-row .chip::after{content:'';position:absolute;left:0;right:0;top:50%;
+                         transform:translateY(-50%);height:44px;}
+    #safety-chip::after{content:'';position:absolute;left:0;right:0;top:50%;
                          transform:translateY(-50%);height:44px;}
     /* A9: the same vertical-only overlay for the remaining sub-44px controls.
        Each height is MEASURED against the room that control actually has, not
@@ -895,12 +1014,20 @@
       </div>
     </div>
 
-    <div class="chips" role="group" data-i18n-aria="chips.aria" aria-label="Filter transactions">
-      <button class="chip on" data-f="all" type="button" data-i18n="chip.all">All</button>
-      <button class="chip" data-f="pay" type="button" data-i18n="chip.pay">Payments</button>
-      <button class="chip" data-f="msg" type="button" data-i18n="chip.msg">Messages</button>
-      <button class="chip" data-f="token" type="button" data-i18n="chip.token">Token</button>
-      <button class="chip" data-f="watched" type="button" data-i18n="chip.watched">Watched</button>
+    <!-- The safety chip sits OUTSIDE the scroller, not inside it: a chip in the
+         scrolling row would slide out of view exactly when the row fills up with
+         topics, and a sticky one would collide with .hscroll's own sticky edge
+         chevron. As a sibling it is simply always there, on the right. -->
+    <div class="chips-row">
+      <div class="chips hscroll" role="group" data-i18n-aria="chips.aria" aria-label="Filter transactions">
+        <button class="chip on" data-f="all" type="button" data-i18n="chip.all">All</button>
+        <button class="chip" data-f="pay" type="button" data-i18n="chip.pay">Payments</button>
+        <button class="chip" data-f="msg" type="button" data-i18n="chip.msg">Messages</button>
+        <button class="chip" data-f="token" type="button" data-i18n="chip.token">Token</button>
+        <button class="chip" data-f="watched" type="button" data-i18n="chip.watched">Watched</button>
+      </div>
+      <button class="chip warn" id="safety-chip" type="button" aria-haspopup="true"
+              data-i18n-aria="safety.chipAria" aria-label="Safety notice">!</button>
     </div>
 
     <!-- The product thesis, for the door that is actually mobile-first. #rail-left
@@ -929,6 +1056,23 @@
       <button id="load-older" type="button" hidden></button>
       <div id="echan"><img id="echan-avatar" class="e-avatar" src="../vendor/companion/sprites/echan_neutral.webp" alt="eChan" decoding="async" /><div class="echan-body"><span id="echan-text"></span><button id="echan-more" class="echan-more" type="button" hidden></button></div></div>
       <div id="toast" role="status" aria-live="polite"></div>
+      <!-- Topic Lane: a STATE over the stream, built like #receipt and NOT like a
+           dialog — no backdrop, no aria-modal. The live stream keeps collecting
+           underneath it (nothing is paused); it is simply covered. -->
+      <div id="lane" role="region" data-i18n-aria="lane.aria" aria-label="Saved topics" hidden>
+        <div class="lane-head">
+          <span class="lane-title" id="lane-title" data-i18n="lane.title">Topics</span>
+          <span class="lane-count" id="lane-count"></span>
+          <button id="lane-close" type="button" data-i18n-aria="lane.close" aria-label="Back to the live stream">✕</button>
+        </div>
+        <!-- Always visible, never behind a control: the Lane deliberately
+             retrieves what strangers wrote, and stuffing a popular term into a
+             message is the predictable abuse. -->
+        <div class="safety-line" data-i18n="safety.lane">Anyone can put any word in a message. Treat links and offers here as untrusted.</div>
+        <div class="lane-cov" id="lane-cov"></div>
+        <div id="lane-list"></div>
+        <div class="lane-empty" id="lane-empty" hidden></div>
+      </div>
       <!-- Shared-receipt state (F14): a ?tx= link opens a PINNED receipt over the
            stream instead of appending a card that scrolls away. Dismissing it
            drops ?tx= from the URL and reveals the live stream underneath. -->
@@ -954,6 +1098,8 @@
           <span id="cmp-title" data-i18n="cmp.title">Send on-chain</span>
           <button id="cmp-close" type="button" data-i18n-aria="cmp.close" aria-label="Close">✕</button>
         </div>
+        <!-- Before the send, not after: an on-chain message cannot be recalled. -->
+        <div class="safety-line" data-i18n="safety.compose">Public and permanent. Anyone can read this forever, and it cannot be deleted.</div>
         <input id="compose-addr" type="text" inputmode="text" autocapitalize="none" autocorrect="off" spellcheck="false"
                data-i18n-ph="cmp.toPh" placeholder="Recipient address" data-i18n-aria="cmp.to" aria-label="Recipient" />
         <div class="cmp-picks" id="cmp-picks"></div>
@@ -967,6 +1113,28 @@
         <div id="cmp-preview" class="cmp-preview" aria-live="polite"></div>
         <button id="compose-send" type="button" class="cmp-send" data-i18n="try.send">Send</button>
         <div id="cmp-hint" class="cmp-hint" role="status" aria-live="polite"></div>
+      </div>
+      <!-- Topic editor. A DIALOG, unlike the Lane, and that is consistent with
+           Flow's doctrine rather than an exception to it: the modals removed in
+           Phase 1/2 (#sheet, #learn) were for READING, which must stay in place;
+           #cmp-panel was added afterwards for a focused action ending in a
+           commit. Adding a topic is the same shape, so it copies that panel. -->
+      <div id="term-backdrop" hidden></div>
+      <div id="term-editor" role="dialog" aria-modal="true" aria-labelledby="term-title" hidden>
+        <div class="cmp-head">
+          <span id="term-title" data-i18n="term.title">Add a topic</span>
+          <button id="term-close" type="button" data-i18n-aria="cmp.close" aria-label="Close">✕</button>
+        </div>
+        <input id="term-input" type="text" maxlength="40" autocapitalize="none" autocorrect="off"
+               spellcheck="false" data-i18n-ph="term.ph" placeholder="A word to follow, e.g. gm" />
+        <label class="term-opt"><input id="term-fold" type="checkbox" />
+          <span data-i18n="term.fold">Ignore accents (quan an ngon finds Quán ăn ngon)</span></label>
+        <label class="term-opt"><input id="term-contains" type="checkbox" />
+          <span data-i18n="term.contains">Match inside longer words</span></label>
+        <label class="term-opt"><input id="term-mute" type="checkbox" />
+          <span data-i18n="term.mute">Mute instead: hide these from the stream</span></label>
+        <button id="term-save" type="button" class="cmp-send" data-i18n="term.save">Save topic</button>
+        <div id="term-hint" class="cmp-hint" role="status" aria-live="polite"></div>
       </div>
     </div>
 
@@ -1053,7 +1221,8 @@
 </div>
 
 <script type="module">
-import { parseTransactionCore, encodeOutputScript, validateCashAddress } from '../vendor/txparse.js?v=p3';
+import { parseTransactionCore, encodeOutputScript, validateCashAddress } from '../vendor/txparse.js?v=p4';
+import { matchAny } from '../vendor/core/match.js?v=1';
 import { isCashtabExtension, requestAddress as ctRequestAddress, sendBip21 as ctSendBip21 } from '../vendor/cashtab-connect.js?v=1';
 "use strict";
 const $ = (id) => document.getElementById(id);
@@ -1180,6 +1349,52 @@ const FLOW_STRINGS_EN = {
   'chip.msg':'Messages',
   'chip.token':'Token',
   'chip.watched':'Watched',
+  // Safety copy. The 22 safety.feed.* / safety.chat.* strings below are the EN
+  // originals of neo's popovers; the other 15 packs got neo's already-reviewed
+  // translations via internal/extract-safety-i18n.py rather than a fresh pass.
+  'safety.chipAria':'Safety notice',
+  'safety.lane':'Anyone can put any word in a message. Treat links and offers here as untrusted.',
+  'safety.compose':'Public and permanent. Anyone can read this forever, and it cannot be deleted.',
+  'safety.feed.title':'⚠ Feed safety notice',
+  'safety.feed.intro':'Flow shows all on-chain messages from the entire eCash network — anyone can broadcast anything.',
+  'safety.feed.b1.lead':'Treat every link as suspect.',
+  'safety.feed.b1.body':'Do not click URLs in messages from strangers; phishing kits routinely appear here.',
+  'safety.feed.b2.lead':'Never share your seed phrase, private key, or wallet password.',
+  'safety.feed.b2.body':'No legitimate project will ever ask for them in chat or in a message.',
+  'safety.feed.b3.lead':'Watch for impersonation.',
+  'safety.feed.b3.body':'Anyone can put any name in a message; verify identities through trusted channels.',
+  'safety.feed.b4.lead':'Token airdrops can be honeypots.',
+  'safety.feed.b4.body':'Unsolicited tokens may contain phishing links or scam info — researching before interacting is safer.',
+  'safety.chat.title':'⚠ Sending safety notice',
+  'safety.chat.intro':'Messages you send are permanent eCash on-chain transactions — they cannot be deleted or edited after broadcast, and anyone can read them forever.',
+  'safety.chat.b1.lead':'All messages are 100% public.',
+  'safety.chat.b1.body':"Once sent, they're stored on every eCash node worldwide, indexable by anyone. There is no private chat on-chain.",
+  'safety.chat.b2.lead':'Permanent record.',
+  'safety.chat.b2.body':'Think before you send — your words will outlast you on the blockchain.',
+  'safety.chat.b3.lead':'Watch for scams.',
+  'safety.chat.b3.body':"Even if a peer's wallet looks familiar, anyone holding their seed phrase could be the sender. Verify large transactions out-of-band.",
+  'safety.chat.b4.lead':'Never paste seed phrases, private keys, or passwords here',
+  'safety.chat.b4.body':'— they would be permanently exposed to the world.',
+  'safety.chat.b5.lead':'This site never sees your keys.',
+  'safety.chat.b5.body':'All sends are signed by your wallet (Cashtab/Electrum-XEC/etc); we just build the BIP21 link.',
+  'lane.aria':'Saved topics',
+  'lane.title':'Topics',
+  'lane.close':'Back to the live stream',
+  'lane.count':'{n} found',
+  'lane.scanned':'searched {n} transactions from this session',
+  'lane.noText':'{n} carried no text to search',
+  'lane.aged':'{n} older matches have left memory',
+  'lane.empty':'Nothing has matched yet. This topic keeps collecting while it stays on.',
+  'term.add':'+ Topic',
+  'term.title':'Add a topic',
+  'term.ph':'A word to follow, e.g. gm',
+  'term.fold':'Ignore accents (quan an ngon finds Quán ăn ngon)',
+  'term.contains':'Match inside longer words',
+  'term.mute':'Mute instead: hide these from the stream',
+  'term.save':'Save topic',
+  'term.needText':'Type a word to follow.',
+  'term.dupe':'You are already following that.',
+  'term.full':'{n} topics is the limit — remove one first.',
   'trade.buy':'Buy',
   'trade.list':'List',
   'trade.relist':'Relist',
@@ -1297,7 +1512,7 @@ function tf(key, vars){
   return String(t(key)).replace(/\{(\w+)\}/g, (_, k) => (vars && vars[k] != null ? vars[k] : ''));
 }
 function localeFor(code){ try { new Intl.NumberFormat(code); return code; } catch { return 'en'; } }
-const I18N_V = '4';   // bump whenever any vendor/i18n/flow.*.json changes
+const I18N_V = '7';   // bump whenever any vendor/i18n/flow.*.json changes
 async function loadPack(code){
   if (code === 'en'){ pack = null; return; }
   try {
@@ -1337,7 +1552,12 @@ async function setLang(code){
   if (typeof renderLangFace === 'function') renderLangFace();         // 🌐 + 2-letter code follows the new language
   if (typeof renderBlockAge === 'function') renderBlockAge();         // Intl-formatted age, JS-set
   if (typeof updateScrollHints === 'function') updateScrollHints();   // label widths changed
-  document.querySelectorAll('.hscroll').forEach(el => el.setAttribute('aria-label', t('a11y.scrollRow')));
+  // Same guard as initScrollHints(): a row carrying its own data-i18n-aria (the
+  // chips row says "Filter transactions") keeps it — applyStatic() has just set
+  // it, and overwriting it here would undo that on every language switch.
+  document.querySelectorAll('.hscroll:not([data-i18n-aria])').forEach(el => el.setAttribute('aria-label', t('a11y.scrollRow')));
+  if (typeof renderTermChips === 'function') renderTermChips();       // JS-built chips + the "+ Topic" label
+  if (state.laneOpen) renderLane();                                   // kind labels / relative time in the new language
   if (typeof tickDetailTime === 'function') tickDetailTime();         // relative time in the new language
   if (typeof renderAllLearn === 'function') renderAllLearn();   // JS-built accordion, re-render in the new language
   if (typeof renderAllWatch === 'function') renderAllWatch();   // re-render the watchlist panel (labels/placeholders)
@@ -1425,6 +1645,14 @@ function clean(s){ return String(s == null ? '' : s).replace(BIDI_CTRL, ''); }
 function scrubTx(tx){
   if (!tx) return tx;
   if (tx.message && tx.message.content != null) tx.message.content = clean(tx.message.content);
+  // msg.text is the ONLY field search may read, so it must be scrubbed too — a
+  // U+200B inserted mid-word evades every matcher while still rendering normally.
+  if (tx.message && tx.message.text != null) tx.message.text = clean(tx.message.text);
+  // The haystack, computed ONCE here rather than per term per render. It is
+  // deliberately msg.text and nothing else: msg.content can be a parser label
+  // ('eCashChat message'), and matching a string nobody wrote would make a
+  // search report findings that do not exist on chain.
+  tx._hay = (tx.message && tx.message.text) ? tx.message.text : null;
   if (tx.token){
     if (tx.token.ticker) tx.token.ticker = clean(tx.token.ticker);
     if (tx.token.name)   tx.token.name   = clean(tx.token.name);
@@ -1473,7 +1701,11 @@ const state = {
   atBottom: true,
   unseen: 0,
   paused: false,
-  filter: 'all',           // active filter chip: all | pay | msg | token
+  filter: 'all',           // active kind chip: all | pay | msg | token | watched
+  terms: [],               // saved topics [{q,on,mode,fold}], cap TERM_MAX
+  matched: [],             // txids matching an enabled term, newest last, cap MATCH_MAX
+  laneOpen: false,         // the topic overlay is covering the stream
+  laneExpandedId: null,    // txid whose detail is open INSIDE the lane (own accordion)
   expandedId: null,        // txid of the card whose inline detail is open (accordion)
   lastGroup: null,         // active bot/dust group card
   groups: new Map(),       // gkey -> run-collapse group (Agora relists, token/broadcast repeats)
@@ -1728,7 +1960,13 @@ function initScrollHints(){
     // Announce the affordance to assistive tech, and let keyboard users scroll it
     // (a focused row scrolls with the arrow keys).
     el.setAttribute('role', 'group');
-    el.setAttribute('aria-label', t('a11y.scrollRow'));
+    // Only label rows that have nothing better to say. .chips carries its own
+    // data-i18n-aria ("Filter transactions"), which is more useful than "this
+    // scrolls" — and overwriting it here would also start a fight with
+    // applyStatic(), which restores it on every language switch (CLAUDE.md §6).
+    if (!el.hasAttribute('aria-label') && !el.hasAttribute('data-i18n-aria')){
+      el.setAttribute('aria-label', t('a11y.scrollRow'));
+    }
     el.tabIndex = 0;
   });
   window.addEventListener('resize', updateScrollHints);
@@ -1741,7 +1979,10 @@ function initScrollHints(){
 function updateFabAway(){
   if (!fabEl || !cmpPanel) return;
   if (!cmpPanel.hidden) return;                       // composer open → FAB is hidden anyway
-  fabEl.classList.toggle('away', !state.atBottom);
+  // The Lane is an opaque overlay BELOW the FAB's tier, so without this the "+"
+  // floats over the topic list — the same covering-the-content problem .away
+  // exists to solve for the stream.
+  fabEl.classList.toggle('away', !state.atBottom || state.laneOpen);
 }
 // A10: #stream carries scroll-behavior:smooth, which animates EVERY programmatic
 // scrollTop write — including the pin-to-bottom fired once per admitted card, so
@@ -2234,8 +2475,9 @@ function cardFor(tx){
   el.addEventListener('click', () => toggleCardExpand(tx));
   el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggleCardExpand(tx); } });
   applyHighlights(tx);
-  // MUST come after applyHighlights(): the "watched" chip tests .watched, which
-  // is set there. Honors the active chip for cards that arrive while one is on.
+  if (txIsMuted(tx)) el.classList.add('muted');
+  // MUST come after applyHighlights() and the mute mark: matchesFilter() reads
+  // .watched and .muted off the element, both set just above.
   if (!matchesFilter(el)) el.classList.add('hide');
   return el;
 }
@@ -2277,7 +2519,7 @@ function finalize(tx, ttfMs, source){
     }
     beat();
     if (tx._mine) setTimeout(() => enqueueSay(t('echan.firstMine'), 'celebrate'), 400);   // personalized hero
-    else firstTime('final', 'echan.firstFinal', 'celebrate', 0);        // hero touchpoint #2 (first ✓✓) → Learn "why ~2s"
+    else firstTime('final', 'echan.firstFinal', 'celebrate', 'why2s');        // hero touchpoint #2 (first ✓✓) → Learn "why ~2s"
   }
   if (tx.el) setCardText(tx);
   refreshExpandedDetail(tx);   // an open panel must flip "sending…" → the final banner live
@@ -2497,7 +2739,7 @@ function sealBlock(height, realTxCount){
   stream.appendChild(div); stream.appendChild(det);
   state.lastGroup = null;  // start a fresh dust group after a block
   appended();
-  firstTime('block', 'echan.firstBlock', 'observing', 2);   // → Learn "what a block is for"
+  firstTime('block', 'echan.firstBlock', 'observing', 'block');   // → Learn "what a block is for"
   echanEvent('block', { height, txCount: realTxCount });    // E1: block commentary (stale once a newer block seals)
 }
 
@@ -2642,7 +2884,7 @@ function admit(txData){
   // trades / POWR always surface as their own card.
   else if (tx.kind === 'pay' && tx.valueXec != null && tx.valueXec < DUST_XEC){ tx._dust = true; foldDust(tx); }
   else pushTx(tx);
-  if (tx.kind === 'trade') firstTime('trade', 'echan.firstTrade', 'happy', 5);   // → Learn "tokens + Agora trades"
+  if (tx.kind === 'trade') firstTime('trade', 'echan.firstTrade', 'happy', 'agora');   // → Learn "tokens + Agora trades"
   else if (tx.kind === 'msg' || tx.kind === 'powr') firstTime('msg', 'echan.firstMsg', 'neutral');
   // already pre-consensus final at first sight → finalize immediately (no ttf ref)
   if (txData.isFinal === true && !tx._dust && !tx._folded){
@@ -2650,6 +2892,11 @@ function admit(txData){
     if (tx.el){ tx.el.querySelector('.ttf').textContent = t('card.final'); }
   }
   drainPendingTtf(tx.id);   // apply any node-precise ttf that arrived before admit (F4)
+  // Prospective half of a saved topic. Deliberately AFTER the fold branches and
+  // independent of them: a message folded into a run-group is still a message
+  // somebody wrote, and a topic should collect it even though the stream chose
+  // not to give it its own card.
+  if (txMatchesTerms(tx)) laneAdd(tx);
 }
 function markFinal(txid, refMs){
   const tx = state.txs.get(txid);
@@ -3226,29 +3473,65 @@ function showAnimated(el, cls){
 //   q6 Agora                    -> "How Agora Works", the token bazaar
 // Plain <a> navigations, so no connect-src change. If one 404s later, the topic
 // still reads fine — the link is an extra, not the answer.
+/* Every topic carries a STABLE id and callers address it by id, never by
+   position. Eight call sites used to hold a raw index (firstTime ×3,
+   seedLearnIdx ×3, EVENT_LEARN ×5); inserting the safety topic at the front
+   would have shifted all of them silently, pointing eChan's "tell me more" at
+   the wrong answer with nothing to notice it. Same lesson as matchesFilter:
+   remove the second source of truth rather than remember to update it.
+   The safety notice is FIRST on purpose — it is about what the reader is
+   looking at right now, and the ! chip jumps straight to it. */
 const LEARN_TOPICS = [
-  { q:'learn.q1', a:'learn.a1', url:'https://e.cash/blog/preconsensus-launch' },
-  { q:'learn.q2', a:'learn.a2', url:'https://e.cash/blog/avalanche-faq' },
-  { q:'learn.q3', a:'learn.a3', url:'https://e.cash/blog/avalanche' },
-  { q:'learn.q4', a:'learn.a4', url:'https://e.cash/blog/instant-finality' },
-  { q:'learn.q5', a:'learn.a5', url:'https://e.cash/blog/what-is-ecash' },
-  { q:'learn.q6', a:'learn.a6', url:'https://e.cash/blog/agora' },
+  { id:'safety',  q:'safety.feed.title', bullets:'feed' },
+  { id:'why2s',   q:'learn.q1', a:'learn.a1', url:'https://e.cash/blog/preconsensus-launch' },
+  { id:'avalanche', q:'learn.q2', a:'learn.a2', url:'https://e.cash/blog/avalanche-faq' },
+  { id:'block',   q:'learn.q3', a:'learn.a3', url:'https://e.cash/blog/avalanche' },
+  { id:'final6',  q:'learn.q4', a:'learn.a4', url:'https://e.cash/blog/instant-finality' },
+  { id:'whatxec', q:'learn.q5', a:'learn.a5', url:'https://e.cash/blog/what-is-ecash' },
+  { id:'agora',   q:'learn.q6', a:'learn.a6', url:'https://e.cash/blog/agora' },
 ];
+const learnIndexOf = (id) => LEARN_TOPICS.findIndex(tp => tp.id === id);
 function renderLearn(container){
   if (!container) return;
-  container.innerHTML = LEARN_TOPICS.map(tp =>
-    '<div class="lrn-item">' +
-      '<button class="lrn-q" type="button" aria-expanded="false"><span>' + esc(t(tp.q)) +
-      '</span><span class="lrn-caret" aria-hidden="true">▾</span></button>' +
-      '<div class="lrn-a"><p>' + esc(t(tp.a)) + '</p>' +
-      '<a class="learn-more" href="' + tp.url + '" target="_blank" rel="noopener noreferrer">' + esc(t('learn.more')) + '</a></div>' +
-    '</div>'
-  ).join('');
+  container.innerHTML = LEARN_TOPICS.map(tp => {
+    // Two shapes: a plain Q&A with an outbound link, or the safety notice, which
+    // is an intro plus bullets. The bullet copy is carried over verbatim from
+    // neo's reviewed translations, but it arrives as two flat strings per bullet
+    // (lead + body) and is rebuilt here through esc() — the packs' own HTML is
+    // NEVER handed to innerHTML.
+    const head = '<button class="lrn-q" type="button" aria-expanded="false"><span>' + esc(t(tp.q)) +
+                 '</span><span class="lrn-caret" aria-hidden="true">▾</span></button>';
+    let body;
+    if (tp.bullets){
+      const n = tp.bullets === 'feed' ? 4 : 5;
+      let li = '';
+      for (let i = 1; i <= n; i++){
+        li += '<li><strong>' + esc(t('safety.' + tp.bullets + '.b' + i + '.lead')) + '</strong> ' +
+              esc(t('safety.' + tp.bullets + '.b' + i + '.body')) + '</li>';
+      }
+      body = '<div class="lrn-a lrn-safety"><p>' + esc(t('safety.' + tp.bullets + '.intro')) + '</p><ul>' + li + '</ul></div>';
+    } else {
+      body = '<div class="lrn-a"><p>' + esc(t(tp.a)) + '</p>' +
+             '<a class="learn-more" href="' + tp.url + '" target="_blank" rel="noopener noreferrer">' + esc(t('learn.more')) + '</a></div>';
+    }
+    return '<div class="lrn-item">' + head + body + '</div>';
+  }).join('');
   container.querySelectorAll('.lrn-q').forEach(btn => btn.addEventListener('click', () => {
     const ans = btn.nextElementSibling;
-    const open = ans.classList.toggle('open');
-    btn.setAttribute('aria-expanded', String(open));
-    btn.querySelector('.lrn-caret').textContent = open ? '▴' : '▾';
+    const willOpen = !ans.classList.contains('open');
+    // One open at a time, matching the card and Lane accordions. With several
+    // open at once the list grew past the panel and pushed the page instead of
+    // scrolling, which is what put neo's LEARN content out of reach (v2.0.2).
+    container.querySelectorAll('.lrn-a.open').forEach(a => a.classList.remove('open'));
+    container.querySelectorAll('.lrn-q[aria-expanded="true"]').forEach(q => {
+      q.setAttribute('aria-expanded', 'false');
+      const c = q.querySelector('.lrn-caret'); if (c) c.textContent = '▾';
+    });
+    if (willOpen){
+      ans.classList.add('open');
+      btn.setAttribute('aria-expanded', 'true');
+      btn.querySelector('.lrn-caret').textContent = '▴';
+    }
   }));
 }
 // Re-rendered on language change (JS-built, so applyStatic() can't reach it).
@@ -3291,6 +3574,10 @@ $('btn-learn').addEventListener('click', () => toggleFooterBar('learn-bar'));
 // copy was correct, which is exactly why the bug survived testing: exercising
 // the chip re-ran the good copy. Keep this as the only implementation.
 function matchesFilter(el){
+  // A muted card is out regardless of the chip. Kept here rather than as a
+  // second pass over .hide so that ONE function still owns that class — the
+  // thing whose absence let the watched chip ship broken.
+  if (el.classList.contains('muted')) return false;
   const f = state.filter;
   if (f === 'all') return true;
   if (f === 'watched') return el.classList.contains('watched');
@@ -3308,16 +3595,389 @@ function applyFilter(){
   }
   normalizeRoving();   // the tab stop may have just been hidden by the chip
 }
-document.querySelectorAll('.chips .chip').forEach(b => {
+// Scoped to [data-f] — the KIND chips. Term chips share this row but are
+// independent toggles, so resetting every .chip here would clear them too.
+document.querySelectorAll('.chips .chip[data-f]').forEach(b => {
   b.setAttribute('aria-pressed', b.classList.contains('on') ? 'true' : 'false');
   b.addEventListener('click', () => {
-    document.querySelectorAll('.chips .chip').forEach(x => { x.classList.remove('on'); x.setAttribute('aria-pressed', 'false'); });
+    document.querySelectorAll('.chips .chip[data-f]').forEach(x => { x.classList.remove('on'); x.setAttribute('aria-pressed', 'false'); });
     b.classList.add('on'); b.setAttribute('aria-pressed', 'true');
     state.filter = b.dataset.f;
     applyFilter();
     if (state.atBottom) scrollInstant(stream.scrollHeight);   // re-pin, not a journey (A10)
   });
 });
+
+/* ------------------------------------------------------------------ topic Lane
+   A saved topic is two features wearing one name: a retrospective search over
+   what we already hold, and a prospective subscription that fills for as long as
+   the term stays on. Only the second is unbounded, and it is the one that makes
+   a topic worth keeping — which is why turning a term on must never pause the
+   stream. state.paused stops COLLECTING (the WS fetch is skipped and the tx is
+   gone, not deferred), so pausing here would switch off the accumulation the
+   feature exists to produce.
+
+   The Lane is therefore an overlay, not a filter: it never touches #stream, so
+   eviction, the roving tabindex, the unseen pill and applyFilter all keep their
+   current behaviour, and a match cannot be evicted out of the Lane by unrelated
+   traffic the way a hidden card would be. */
+const TERM_MAX = 8;              // §10 — user-typed, but still bounded
+const MATCH_MAX = 200;           // §10 — cap of txids held for the Lane
+const TERMS_KEY = 'ecashlive:flow:filters';
+const laneEl = $('lane'), laneList = $('lane-list'), laneEmpty = $('lane-empty'),
+      laneCov = $('lane-cov'), laneCount = $('lane-count');
+let laneSeedScanned = 0, laneSeedSkipped = 0;
+
+function loadTerms(){
+  try {
+    const raw = JSON.parse(localStorage.getItem(TERMS_KEY) || '[]');
+    if (!Array.isArray(raw)) return;
+    for (const e of raw){
+      if (state.terms.length >= TERM_MAX) break;
+      const q = typeof e === 'string' ? e : (e && e.q);
+      if (!q || typeof q !== 'string') continue;
+      state.terms.push({ q: q.slice(0, 40), on: e.on !== false, mode: e.mode === 'contains' ? 'contains' : 'word',
+                         fold: !!e.fold, mute: !!e.mute });   // missing mute == followed (older saves)
+    }
+  } catch {}
+}
+function saveTerms(){
+  try { localStorage.setItem(TERMS_KEY, JSON.stringify(state.terms)); } catch {}
+}
+// A term is either FOLLOWED (feeds the Lane) or MUTED (hides matches from the
+// stream). One list, one editor, one storage key — mute is the same predicate
+// with the opposite sign, which is the whole reason it is cheap.
+function enabledTerms(){ return state.terms.filter(t => t.on && t.q && !t.mute); }
+function activeMutes(){ return state.terms.filter(t => t.on && t.q && t.mute); }
+
+// A tx belongs to the Lane when any FOLLOWED term matches its on-chain text.
+// tx._hay is null for everything that carries no writing (payments, tokens,
+// encrypted messages, POWR), and those are skipped rather than counted as
+// non-matches — "cannot be asked" is not "answered no".
+//
+// A muted term wins over a followed one: term-stuffing — dropping a popular word
+// into a message so it lands in someone's topic — is the predictable abuse, and
+// mute is the reader's answer to it.
+function txMatchesTerms(tx){
+  if (!tx || !tx._hay) return false;
+  if (txIsMuted(tx)) return false;
+  return matchAny(tx._hay, enabledTerms());
+}
+function txIsMuted(tx){
+  if (!tx || !tx._hay) return false;      // nothing written -> nothing to mute on
+  const m = activeMutes();
+  return m.length ? matchAny(tx._hay, m) : false;
+}
+// Muting HIDES things, so it has to say how much it hid. A silent filter is the
+// same dishonesty as reporting "no results" for a corpus never looked at: the
+// count rides on the chip itself, so the cost of the mute is always in view.
+function muteCount(q){
+  let n = 0;
+  const one = [state.terms.find(x => x.q === q)].filter(Boolean);
+  if (!one.length || !one[0].on) return 0;
+  for (const tx of state.txs.values()) if (tx._hay && matchAny(tx._hay, one)) n++;
+  return n;
+}
+function laneAdd(tx){
+  if (!tx || !tx.id) return;
+  if (state.matched.includes(tx.id)) return;
+  state.matched.push(tx.id);
+  while (state.matched.length > MATCH_MAX) state.matched.shift();
+  if (state.laneOpen) renderLane();
+  renderTermChips();                       // the count badge on the chips
+}
+// Seed from what this session already holds. NOT a network scan: state.txs is
+// in-memory (cap 2500) and already includes anything "Load older" pulled in, so
+// this costs nothing and touches nobody's node. Without it a brand-new topic
+// would show an empty Lane until a matching tx happened to arrive, which on this
+// chain can be days — and would look broken rather than honest.
+function seedLane(){
+  state.matched = [];
+  laneSeedScanned = 0; laneSeedSkipped = 0;
+  const terms = enabledTerms();
+  if (!terms.length) return;
+  for (const tx of state.txs.values()){
+    laneSeedScanned++;
+    if (!tx._hay){ laneSeedSkipped++; continue; }
+    // txMatchesTerms(), NOT matchAny() — the seed must apply the same rules as a
+    // live arrival, and only that function knows a mute outranks a follow. This
+    // shipped wrong once: the stream hid the muted cards while the Lane kept
+    // showing them, because the seed had its own copy of the test.
+    if (txMatchesTerms(tx)) state.matched.push(tx.id);
+  }
+  while (state.matched.length > MATCH_MAX) state.matched.shift();
+}
+
+// Build <mark> from DOM nodes. The term is user input and must NEVER be
+// concatenated into an innerHTML string.
+function highlightInto(el, text, terms){
+  el.textContent = '';
+  const lower = text.toLowerCase();
+  const spans = [];
+  for (const t of terms){
+    const needle = String(t.q || '').toLowerCase();
+    if (!needle) continue;
+    let i = lower.indexOf(needle);
+    while (i !== -1){ spans.push([i, i + needle.length]); i = lower.indexOf(needle, i + needle.length); }
+  }
+  if (!spans.length){ el.textContent = text; return; }
+  spans.sort((a, b) => a[0] - b[0]);
+  const merged = [spans[0]];
+  for (const s of spans.slice(1)){
+    const last = merged[merged.length - 1];
+    if (s[0] <= last[1]) last[1] = Math.max(last[1], s[1]); else merged.push(s);
+  }
+  let pos = 0;
+  for (const [a, b] of merged){
+    if (a > pos) el.appendChild(document.createTextNode(text.slice(pos, a)));
+    const m = document.createElement('mark');
+    m.textContent = text.slice(a, b);
+    el.appendChild(m);
+    pos = b;
+  }
+  if (pos < text.length) el.appendChild(document.createTextNode(text.slice(pos)));
+}
+
+function laneRow(tx){
+  const row = document.createElement('button');
+  row.type = 'button'; row.className = 'lane-row';
+  row.tabIndex = -1;                       // roving: normalizeLaneRoving() picks the one stop
+  row.setAttribute('aria-expanded', 'false');
+  const ic = document.createElement('span');
+  ic.className = 'lr-ic'; ic.innerHTML = tx.icon || IC.msg;   // our own inline SVG
+  const body = document.createElement('span'); body.className = 'lr-body';
+  const txt = document.createElement('span'); txt.className = 'lr-text';
+  highlightInto(txt, tx._hay || '', enabledTerms());
+  const meta = document.createElement('span'); meta.className = 'lr-meta';
+  const bits = [kindLabel(tx)];
+  if (tx.ts) { const ago = fmtAgo(tx.ts, 'narrow'); if (ago) bits.push(ago); }
+  if (tx.block) bits.push(t('pill.block') + ' ' + fmtInt(tx.block));
+  meta.textContent = bits.join(' · ');
+  body.appendChild(txt); body.appendChild(meta);
+  row.appendChild(ic); row.appendChild(body);
+
+  const det = document.createElement('div');
+  det.className = 'lane-detail';
+  row.addEventListener('click', () => {
+    const open = !det.classList.contains('open');
+    // one open at a time, same accordion rule as the stream
+    laneList.querySelectorAll('.lane-detail.open').forEach(d => d.classList.remove('open'));
+    laneList.querySelectorAll('.lane-row[aria-expanded="true"]').forEach(r => r.setAttribute('aria-expanded', 'false'));
+    if (open){
+      det.innerHTML = buildDetailHtml(tx);   // ONE renderer — card, receipt and Lane cannot disagree
+      wireDetail(det, tx);
+      det.classList.add('open');
+      row.setAttribute('aria-expanded', 'true');
+      state.laneExpandedId = tx.id;
+    } else { state.laneExpandedId = null; }
+  });
+  return [row, det];
+}
+
+/* Roving tabindex for the Lane — its own, because rovingAll() reads
+   stream.children and these rows live in #lane-list. Without it the Lane is up
+   to MATCH_MAX (200) tab stops, which is the exact defect §14's roving pattern
+   was introduced to fix for the stream's 120 cards; building a second surface
+   without it would have recreated the problem at a worse scale.
+
+   Stateless in the same way: the roving item is simply "the row with tabIndex
+   0", read back from the DOM, so a re-render needs no bookkeeping. */
+function laneRows(){ return [...laneList.querySelectorAll('.lane-row')]; }
+function normalizeLaneRoving(){
+  const rows = laneRows();
+  if (!rows.length) return;
+  let cur = rows.find(r => r.tabIndex === 0) || rows[0];
+  rows.forEach(r => { r.tabIndex = (r === cur) ? 0 : -1; });
+}
+laneList.addEventListener('focusin', (e) => {
+  const rows = laneRows();
+  if (!rows.includes(e.target)) return;    // focus is inside an open detail panel
+  rows.forEach(r => { r.tabIndex = (r === e.target) ? 0 : -1; });
+});
+laneList.addEventListener('keydown', (e) => {
+  const rows = laneRows();
+  const i = rows.indexOf(document.activeElement);
+  if (i === -1) return;
+  let next = null;
+  if (e.key === 'ArrowDown') next = rows[Math.min(i + 1, rows.length - 1)];
+  else if (e.key === 'ArrowUp') next = rows[Math.max(i - 1, 0)];
+  else if (e.key === 'Home') next = rows[0];
+  else if (e.key === 'End') next = rows[rows.length - 1];
+  else return;
+  e.preventDefault();
+  if (next && next !== document.activeElement) next.focus();
+});
+
+function renderLane(){
+  laneList.textContent = '';
+  let shown = 0, gone = 0;
+  for (const id of state.matched){
+    const tx = state.txs.get(id);
+    if (!tx){ gone++; continue; }            // aged out of state.txs (cap 2500)
+    const [row, det] = laneRow(tx);
+    laneList.appendChild(row); laneList.appendChild(det);
+    shown++;
+  }
+  normalizeLaneRoving();   // exactly one tab stop, however many rows landed
+  laneCount.textContent = shown ? tf('lane.count', { n: fmtInt(shown) }) : '';
+  // Coverage first, always: what was looked at, not merely what was found.
+  const cov = [tf('lane.scanned', { n: fmtInt(laneSeedScanned) })];
+  if (laneSeedSkipped) cov.push(tf('lane.noText', { n: fmtInt(laneSeedSkipped) }));
+  if (gone) cov.push(tf('lane.aged', { n: fmtInt(gone) }));
+  laneCov.textContent = cov.join(' · ');
+  laneEmpty.hidden = shown > 0;
+  if (!shown) laneEmpty.textContent = t('lane.empty');
+}
+
+/* Focus containment for the opaque overlays, RECOMPUTED from state rather than
+   toggled by whoever opened last. Toggling was already wrong in two ways: the
+   receipt never set it at all (so Tab walked from a shared receipt into the
+   cards behind it — an F14 gap that predates the Lane), and once both can be
+   open, whichever closed first would have released containment the other still
+   needed. Deriving it is the same fix as matchesFilter: one place decides. */
+function syncInert(){
+  const receiptOpen = !$('receipt').hidden;
+  try { stream.inert = receiptOpen || state.laneOpen; } catch {}
+  try { laneEl.inert = receiptOpen; } catch {}   // the receipt covers the Lane too
+}
+function openLane(){
+  if (!enabledTerms().length) return;
+  state.laneOpen = true;
+  laneEl.hidden = false;
+  showAnimated(laneEl, 'show');
+  renderLane();
+  updateFabAway();                     // the "+" steps aside while the Lane covers the stream
+  syncInert();   // the stream underneath must stop taking Tab
+  requestAnimationFrame(() => { try { $('lane-close').focus(); } catch {} });
+}
+function closeLane(){
+  state.laneOpen = false;
+  state.laneExpandedId = null;
+  laneEl.classList.remove('show');
+  syncInert();   // may still need to stay contained if a receipt is up
+  updateFabAway();
+  setTimeout(() => { if (!state.laneOpen) laneEl.hidden = true; }, 180);
+}
+$('lane-close').addEventListener('click', closeLane);
+// The ! chip reuses the Learn surface rather than adding a fourth footer bar:
+// Learn is already the place things get explained, already an accordion, and
+// already has both a desktop rail and a mobile bar.
+$('safety-chip').addEventListener('click', () => openLearnTopic('safety'));
+
+// ---- term chips (same row as the kind chips, different behaviour) ----
+const chipsRow = document.querySelector('.chips');
+function renderTermChips(){
+  chipsRow.querySelectorAll('.chip.term, .chip.addterm').forEach(el => el.remove());
+  for (const term of state.terms){
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip term' + (term.mute ? ' mute' : '') + (term.on ? ' on' : '');
+    b.setAttribute('aria-pressed', String(!!term.on));
+    b.appendChild(document.createTextNode(term.q));   // user text — never innerHTML
+    if (term.mute){
+      // The count is the disclosure: a mute that hides silently is the same
+      // problem as a search that reports "nothing" for a corpus it never read.
+      const n = muteCount(term.q);
+      const c = document.createElement('span');
+      c.className = 'mct'; c.textContent = n ? '−' + fmtInt(n) : '−';
+      b.appendChild(c);
+    }
+    const x = document.createElement('span');
+    x.className = 'tx'; x.textContent = '✕'; x.setAttribute('aria-hidden', 'true');
+    b.appendChild(x);
+    b.addEventListener('click', (e) => {
+      if (e.target === x){ removeTerm(term.q); return; }
+      // Dismissing the Lane with ✕ leaves the topic ON — it should keep
+      // collecting. So tapping an already-on chip REOPENS the Lane rather than
+      // switching the topic off; without this the only way back in was to toggle
+      // the term off and on again, which also throws away the collected set.
+      // A mute has no Lane to show, so it is a plain on/off toggle.
+      if (!term.mute && term.on && !state.laneOpen){ openLane(); return; }
+      term.on = !term.on;
+      saveTerms(); onTermsChanged();
+    });
+    chipsRow.appendChild(b);
+  }
+  if (state.terms.length < TERM_MAX){
+    const add = document.createElement('button');
+    add.type = 'button'; add.className = 'chip addterm';
+    add.textContent = t('term.add');
+    add.setAttribute('aria-haspopup', 'dialog');
+    add.addEventListener('click', openTermEditor);
+    chipsRow.appendChild(add);
+  }
+  updateScrollHints();   // A2: the row just changed width by content
+}
+function removeTerm(q){
+  const i = state.terms.findIndex(x => x.q === q);
+  if (i === -1) return;
+  state.terms.splice(i, 1);
+  saveTerms(); onTermsChanged();
+}
+// One place decides what a term change means, so the Lane, the chips and the
+// stored value can never describe different sets.
+function onTermsChanged(){
+  // Re-evaluate mutes across every card we still hold, then let applyFilter()
+  // recompute .hide from the single predicate. Recomputed, not toggled — a mute
+  // being removed has to give cards back, not just stop hiding new ones.
+  for (const tx of state.txs.values()){
+    if (tx.el) tx.el.classList.toggle('muted', txIsMuted(tx));
+  }
+  applyFilter();
+  seedLane();
+  renderTermChips();
+  if (!enabledTerms().length){
+    // User decision (2026-08-03): turning the last term off closes the Lane
+    // rather than leaving the reader stranded on an empty screen.
+    if (state.laneOpen) closeLane();
+  } else if (state.laneOpen){
+    renderLane();
+  } else {
+    openLane();
+  }
+}
+
+// ---- topic editor dialog ----
+const termEditor = $('term-editor'), termBackdrop = $('term-backdrop'), termHint = $('term-hint');
+let termRelease = null;
+function setTermHint(msg, err){
+  termHint.classList.toggle('open', !!msg);
+  termHint.classList.toggle('err', !!msg && !!err);
+  termHint.textContent = msg || '';
+}
+function openTermEditor(){
+  $('term-input').value = '';
+  $('term-fold').checked = false;
+  $('term-contains').checked = false;
+  $('term-mute').checked = false;
+  setTermHint('', false);
+  termBackdrop.hidden = false; termEditor.hidden = false;
+  showAnimated(termBackdrop, 'show'); showAnimated(termEditor, 'show');
+  termRelease = trapFocus(termEditor, closeTermEditor);
+  requestAnimationFrame(() => { try { $('term-input').focus(); } catch {} });
+}
+function closeTermEditor(){
+  termEditor.classList.remove('show'); termBackdrop.classList.remove('show');
+  if (termRelease){ termRelease(); termRelease = null; }
+  setTimeout(() => { termEditor.hidden = true; termBackdrop.hidden = true; }, 180);
+}
+function saveTerm(){
+  const q = ($('term-input').value || '').trim();
+  if (!q){ setTermHint(t('term.needText'), true); return; }
+  if (state.terms.length >= TERM_MAX){ setTermHint(tf('term.full', { n: TERM_MAX }), true); return; }
+  if (state.terms.some(x => x.q.toLowerCase() === q.toLowerCase())){ setTermHint(t('term.dupe'), true); return; }
+  state.terms.push({ q: q.slice(0, 40), on: true,
+                     mode: $('term-contains').checked ? 'contains' : 'word',
+                     fold: !!$('term-fold').checked,
+                     mute: !!$('term-mute').checked });
+  saveTerms();
+  closeTermEditor();
+  onTermsChanged();
+}
+$('term-save').addEventListener('click', saveTerm);
+$('term-input').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); saveTerm(); } });
+$('term-close').addEventListener('click', closeTermEditor);
+termBackdrop.addEventListener('click', closeTermEditor);
 
 /* wake guard: record when the tab is hidden so a finalize replayed on resume
    whose anchor predates the sleep is discarded, not inflated. Also pauses the
@@ -3633,14 +4293,24 @@ async function copyText(str){
   try { await navigator.clipboard.writeText(str); toast(t('copy.done')); } catch { toast(str); }
 }
 function toast(msg){ const el = $('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 2200); }
+// Escape now has four things it could mean, so the order is written out as an
+// explicit stack rather than another if-chain: dismiss the TOPMOST layer only,
+// and stop. The two dialogs (#cmp-panel, #term-editor) are not listed here —
+// they run their own capture-phase handler via trapFocus() and stopPropagation,
+// so this listener never sees the event while one of them is open (A4).
+const ESC_STACK = [
+  // topmost first
+  { is: () => { const rc = $('receipt'); return rc && !rc.hidden; }, close: () => closeReceipt() },
+  { is: () => state.laneOpen,           close: () => closeLane() },
+  { is: () => !!state.expandedId,       close: () => {
+      const tx = state.txs.get(state.expandedId); if (tx) collapseCard(tx);
+      state.expandedId = null;
+    } },
+];
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
-  // the pinned receipt sits over everything — dismiss it first (F14)
-  const rc = $('receipt');
-  if (rc && !rc.hidden){ closeReceipt(); return; }
-  if (state.expandedId){
-    const tx = state.txs.get(state.expandedId); if (tx) collapseCard(tx);
-    state.expandedId = null;
+  for (const layer of ESC_STACK){
+    if (layer.is()){ layer.close(); return; }
   }
 });
 
@@ -3813,9 +4483,9 @@ function seedEmotion(id){
 }
 // E5: map an ambient line to the closest Learn topic (0..5); null = no "tell me more".
 function seedLearnIdx(id){
-  if (/^edu-(preconsensus|ttf|livettf|postconsensus)/.test(id)) return 0;   // why ~2s / final
-  if (/^edu-agora/.test(id)) return 5;                                       // tokens + Agora
-  if (/^edu-(xec-unit|decimals|supply)/.test(id)) return 4;                  // what is XEC
+  if (/^edu-(preconsensus|ttf|livettf|postconsensus)/.test(id)) return 'why2s';
+  if (/^edu-agora/.test(id)) return 'agora';
+  if (/^edu-(xec-unit|decimals|supply)/.test(id)) return 'whatxec';
   return null;
 }
 // ---- E1/E2: event-driven reactions (whale/shark/block/fast·slow-TTF) ----
@@ -3836,7 +4506,7 @@ const EVENT_COOLDOWN_MS = { bigtx: 5*60e3, sharktx: 5*60e3, fastttf: 15*60e3, sl
 const EVENT_STALE_MS    = { bigtx: 120e3, sharktx: 120e3, fastttf: 120e3, slowttf: 120e3, block: 120e3 };
 const EVENT_CHANCE      = { block: 0.3 };        // don't narrate every block; others always
 const EVENT_EMOTION     = { bigtx:'celebrate', sharktx:'happy', fastttf:'celebrate', slowttf:'thinking', block:'observing' };
-const EVENT_LEARN       = { bigtx:4, sharktx:4, fastttf:0, slowttf:0, block:2 };
+const EVENT_LEARN       = { bigtx:'whatxec', sharktx:'whatxec', fastttf:'why2s', slowttf:'why2s', block:'block' };
 const EVENT_BOOT_GRACE_MS = 10000;               // no events in the first 10s (skip boot backlog)
 const bootAt = Date.now();
 let echanEventPool = {};                          // kind -> [{id,text,emotion}]
@@ -3971,7 +4641,11 @@ function echanTtfEvent(ttfMs){
 
 /* ---- eChan interactivity (E5) + off-switch (E6) ---- */
 // Open a specific Learn topic (0..5): the rail on desktop, the "?"-bar on mobile.
-function openLearnTopic(idx){
+// Takes a topic ID. Callers must not know positions — see the note on
+// LEARN_TOPICS. An unknown id is a no-op rather than opening the wrong answer.
+function openLearnTopic(id){
+  const idx = typeof id === 'number' ? id : learnIndexOf(id);
+  if (idx < 0) return;
   const desktop = window.matchMedia('(min-width:1120px)').matches;
   let list;
   if (desktop){ list = $('rail-learn-list'); }
@@ -4380,7 +5054,33 @@ function setAmountOpen(open){
   $('cmp-amt-toggle').setAttribute('aria-expanded', String(open));
   updateCmpPreview();
 }
-let cmpKeydownBound = null;
+// Shared focus trap for Flow's panel dialogs — today #cmp-panel, next the topic
+// editor. Returns a release function; call it on close.
+//
+// Extracted rather than copied. Two copies of one behaviour drift apart, and
+// this session shipped a bug from exactly that: the filter test existed in
+// cardFor() and applyFilter() and they disagreed, so the watched chip hid every
+// card it was supposed to show. The selector and the visibility filter here are
+// byte-for-byte the composer's original ones, so the extraction is behaviour
+// neutral — extend them only with a test that proves what changed.
+//
+// The Escape half is capture-phase and MUST stopPropagation (A4): the
+// document-level bubble handler would otherwise close the dialog AND collapse
+// the expanded card / dismiss the receipt on a single press.
+function trapFocus(panel, onEscape){
+  const handler = (e) => {
+    if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); onEscape(); return; }
+    if (e.key !== 'Tab') return;
+    const vis = [...panel.querySelectorAll('button,input,[tabindex]:not([tabindex="-1"])')].filter(el => !el.hidden && el.offsetParent !== null);
+    if (!vis.length) return;
+    const first = vis[0], last = vis[vis.length - 1];
+    if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  };
+  document.addEventListener('keydown', handler, true);
+  return () => document.removeEventListener('keydown', handler, true);
+}
+let cmpRelease = null;
 function openComposer(){
   renderCmpChips();
   renderCmpPicks();
@@ -4391,25 +5091,12 @@ function openComposer(){
   fabEl.setAttribute('aria-expanded', 'true');
   showAnimated(cmpBackdrop, 'show'); showAnimated(cmpPanel, 'show');
   requestAnimationFrame(() => { try { const a = $('compose-addr'); (a.value ? $('compose-in') : a).focus(); } catch {} });
-  cmpKeydownBound = (e) => {                 // focus trap + Escape
-    // A4: stopPropagation is load-bearing. This listener is capture-phase, so
-    // without it the document-level bubble handler still runs and Escape closes
-    // the composer AND collapses the expanded card / dismisses the receipt in
-    // one press.
-    if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); closeComposer(); return; }
-    if (e.key !== 'Tab') return;
-    const vis = [...cmpPanel.querySelectorAll('button,input,[tabindex]:not([tabindex="-1"])')].filter(el => !el.hidden && el.offsetParent !== null);
-    if (!vis.length) return;
-    const first = vis[0], last = vis[vis.length - 1];
-    if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
-    else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
-  };
-  document.addEventListener('keydown', cmpKeydownBound, true);
+  cmpRelease = trapFocus(cmpPanel, closeComposer);
 }
 function closeComposer(){
   cmpPanel.classList.remove('show'); cmpBackdrop.classList.remove('show');
   fabEl.setAttribute('aria-expanded', 'false');
-  if (cmpKeydownBound){ document.removeEventListener('keydown', cmpKeydownBound, true); cmpKeydownBound = null; }
+  if (cmpRelease){ cmpRelease(); cmpRelease = null; }
   setTimeout(() => { cmpPanel.hidden = true; cmpBackdrop.hidden = true; fabEl.hidden = false; updateFabAway(); try { fabEl.focus(); } catch {} }, 180);
 }
 fabEl.addEventListener('click', () => {
@@ -4519,12 +5206,13 @@ function openReceipt(tx, notFoundId){
   }
   el.hidden = false;
   showAnimated(el, 'show');
+  syncInert();
   requestAnimationFrame(() => { try { $('rc-enter').focus(); } catch {} });
 }
 function closeReceipt(){
   const el = $('receipt');
   el.classList.remove('show');
-  setTimeout(() => { el.hidden = true; $('rc-body').innerHTML = ''; receiptTx = null; }, 200);
+  setTimeout(() => { el.hidden = true; $('rc-body').innerHTML = ''; receiptTx = null; syncInert(); }, 200);
   // drop ?tx= so a reload lands on the live stream
   try { const u = new URL(location.href); u.searchParams.delete('tx'); history.replaceState(null, '', u.pathname + u.search + u.hash); } catch {}
 }
@@ -4591,6 +5279,8 @@ async function boot(){
   loadMyAddr();          // your wallet address (Flow key, else seeded from neo) → _mine + self-send
   renderAllWatch();      // MUST follow loadMyAddr(): the panel renders the saved address + its ✕
   updateWatchBadge();
+  loadTerms();           // saved topics → the chips row (the Lane opens only on demand)
+  renderTermChips();
   initHeroBanner();      // first-visit thesis banner (mobile; CSS hides it on desktop)
   loadTtf30();           // rolling 30-day median, hidden unless the history answers
   renderNarratorLog();   // paint the empty-state caption into whichever log exists

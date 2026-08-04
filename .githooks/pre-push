@@ -71,7 +71,7 @@ bad()  { printf '  %s✗ %s%s\n' "$RED" "$1" "$OFF"; [ -n "${2:-}" ] && printf '
 # expected in HEAD but absent from the extract FAILS rather than being skipped.
 WANT=(index.html flow/index.html finality/index.html update-csp-hash.sh ttf-relay.py
       vendor/door.js vendor/txparse.js vendor/cashtab-connect.js
-      vendor/companion/echan.js vendor/finality.js vendor/i18n
+      vendor/companion/echan.js vendor/finality.js vendor/core/match.js vendor/i18n
       tools/check-neo-i18n.py)
 PATHS=()
 for p in "${WANT[@]}"; do
@@ -113,7 +113,7 @@ done
 
 # 3. vendor JS parses
 vbad=''
-for f in vendor/door.js vendor/txparse.js vendor/cashtab-connect.js vendor/companion/echan.js vendor/finality.js; do
+for f in vendor/door.js vendor/txparse.js vendor/cashtab-connect.js vendor/companion/echan.js vendor/finality.js vendor/core/match.js; do
   require "$f" || { vbad="$vbad $f(absent)"; continue; }
   node --check "$f" >/dev/null 2>&1 || vbad="$vbad $f"
 done
