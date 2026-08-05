@@ -73,7 +73,6 @@ export function createBackfill({ chronik, lokads, parse, prefilter, keep, onBatc
 
   const size = Math.max(1, Math.min(MAX_PAGE_SIZE, pageSize | 0));
   const seen = new Set();
-  let rrIndex = 0;
 
   const cursor = {};
   for (const id of lokads) {
@@ -105,15 +104,30 @@ export function createBackfill({ chronik, lokads, parse, prefilter, keep, onBatc
     };
   }
 
-  /** Round-robin so "searched back to <date>" means the same thing for every
-   *  protocol. Walking one id to exhaustion first would leave the others
-   *  untouched while the banner implied whole-corpus coverage. */
+  /** Read whichever protocol is HOLDING THE FLOOR BACK.
+   *
+   *  Coverage is only as deep as the shallowest protocol — that is what makes a
+   *  single "searched back to <date>" honest — so the page worth fetching is
+   *  always the one belonging to the protocol with the newest oldest-entry.
+   *
+   *  Plain round-robin advanced all six equally, which sounds fair and is not:
+   *  the floor is set by the densest protocol, and a page is a fixed 50
+   *  transactions, so the sparse ones raced years ahead while the dense one
+   *  crawled and the reported date barely moved. Measured on chain: PayButton
+   *  needs 368 pages and Alias 24, so five sixths of every round was being spent
+   *  where it could not lower the floor.
+   *
+   *  A protocol never read comes first: with no oldest-entry it contributes no
+   *  floor at all, so nothing can be claimed until it has been looked at once. */
   function nextLokad() {
-    for (let i = 0; i < lokads.length; i++) {
-      const id = lokads[(rrIndex + i) % lokads.length];
-      if (!cursor[id].done) { rrIndex = (rrIndex + i + 1) % lokads.length; return id; }
+    let best = null, bestTs = -Infinity;
+    for (const id of lokads) {
+      const c = cursor[id];
+      if (c.done) continue;
+      if (c.oldestTs == null) return id;          // unread — no claim possible without it
+      if (c.oldestTs > bestTs) { bestTs = c.oldestTs; best = id; }
     }
-    return null;
+    return best;
   }
 
   return {
