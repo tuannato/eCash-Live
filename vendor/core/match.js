@@ -201,6 +201,25 @@ export function findAllSpans(haystack, terms) {
   return merged;
 }
 
+// Does EVERY enabled term match? The other half of the reader's choice.
+//
+// ANY widens (a second topic adds to the lane); ALL narrows (a second topic
+// filters what the first found). Both are useful and neither is a safe default
+// for the other, which is why it is a control rather than a guess.
+//
+// Empty term list is false, not true. A vacuous "all of nothing matched" would
+// put every transaction in the lane the moment the last topic was switched off.
+export function matchEvery(haystack, terms) {
+  if (!haystack || !terms || !terms.length) return false;
+  let considered = 0;
+  for (const t of terms) {
+    if (!t || t.on === false || !t.q) continue;
+    considered++;
+    if (!matchTerm(haystack, t.q, { mode: t.mode || 'word', fold: !!t.fold })) return false;
+  }
+  return considered > 0;
+}
+
 // Convenience: does ANY enabled term match? Terms OR each other, so that turning
 // on a second topic widens the Lane rather than narrowing it to their overlap.
 export function matchAny(haystack, terms) {

@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-Rhp3N+2ZgGHwY2m/UbfUezBcpxXTVPuUmnJXnhRleM8=';
+  script-src 'self' 'sha256-9Mfx0XyBaZuvlmEH6jJEMOja5VFYUVm+K5CXe60yY28=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -311,6 +311,11 @@
   .chips-row .chip.addterm{flex:none;border-style:dashed;border-color:var(--accent);
     color:var(--accent-deep);font-weight:600;}
   .chips-row .chip.addterm:hover{background:var(--accent-bg);}
+  /* Reads as a state word, not a command: it says what the topics currently
+     mean together rather than what pressing it will do. */
+  .chips-row .chip.termmode{flex:none;font-variant:small-caps;letter-spacing:.03em;
+    border-color:var(--line2);color:var(--ink3);}
+  .chips-row .chip.termmode.on{border-color:var(--msg-ln);color:var(--msg);background:var(--card2);}
 
   /* ===== stream ===== */
   .stream-wrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;}
@@ -598,6 +603,16 @@
   .lane-detail{display:none;margin:-4px 0 8px;padding:10px 12px;background:var(--card);
                border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;}
   .lane-detail.open{display:block;}
+  /* Bars can fill most of a phone screen; the exit has to be visible inside
+     them, not only on the footer button that opened them. */
+  .bar-x{position:absolute;top:8px;right:10px;z-index:2;border:1px solid var(--line);
+    background:var(--card);color:var(--ink3);border-radius:9px;width:30px;height:30px;
+    line-height:1;font-size:13px;cursor:pointer;}
+  .bar-x:hover{border-color:var(--accent);color:var(--accent-deep);}
+  .bar-x:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .bar-x::after{content:'';position:absolute;left:-7px;right:-7px;top:50%;
+    transform:translateY(-50%);height:44px;}
+  .learn-bar,.watch-bar,.info-bar{position:relative;}
   .lane-empty{font-size:12px;color:var(--ink3);line-height:1.7;padding:18px 4px;text-align:center;}
   .lane-more{display:block;width:100%;margin:2px 0 8px;padding:11px 14px;border:1px solid var(--line);
     border-radius:12px;background:var(--card);color:var(--ink2);font:inherit;font-size:12.5px;
@@ -913,10 +928,34 @@
     .control-panel .ctrl-btn{position:relative;}
     .control-panel .ctrl-btn::after{content:'';position:absolute;left:0;right:0;top:50%;
                                     transform:translateY(-50%);height:44px;}
+    /* The row must be tall enough to CONTAIN the 44px overlays, or they do
+       nothing at all. `.chips` needs overflow-x:auto to scroll sideways, and
+       that makes overflow-y compute to auto as well — so the row clipped every
+       overlay to its own 27.6px height and the touch targets below have been
+       inert since they shipped. Measured before the fix: a tap 16px above a
+       chip's centre missed it entirely. Giving the row 44px of height is what
+       makes the rest of this block real. */
+    .chips{min-height:44px;align-items:center;}
     /* Chips render ~25px tall — below the 44px touch target. Vertical-only
        overlay (not horizontal) so adjacent chips with a 6px gap don't get
        overlapping hit-boxes — same pattern as neo's F8 fix. */
     .chips-row .chip::after{content:'';position:absolute;left:0;right:0;top:50%;
+                         transform:translateY(-50%);height:44px;}
+    /* The ✕ must sit ABOVE that overlay or it can never be tapped: a pseudo
+       element hit-tests as the element that owns it, so on a phone every tap
+       aimed at the ✕ arrived as the chip itself and a topic could not be
+       removed at all. Desktop was unaffected — this overlay only exists here.
+       It gets its own vertical 44px area, widened slightly so the glyph is not
+       a 10px target. */
+    .chips-row .chip.term .tx{position:relative;z-index:1;margin-left:5px;padding:0 2px 0 6px;
+                         border-left:1px solid currentColor;opacity:.55;}
+    /* Deliberately NOT widened horizontally. Remove is destructive and sits
+       against a benign toggle, so precision beats reach: the hit box is exactly
+       this glyph's own box (~18px), and only the VERTICAL 44px is taken, which
+       costs nothing because the chip has no neighbour above or below. A hairline
+       makes the boundary visible, so the split is something you can see rather
+       than something you discover by deleting a topic you meant to switch off. */
+    .chips-row .chip.term .tx::after{content:'';position:absolute;left:0;right:0;top:50%;
                          transform:translateY(-50%);height:44px;}
     #safety-chip::after{content:'';position:absolute;left:0;right:0;top:50%;
                          transform:translateY(-50%);height:44px;}
@@ -1262,7 +1301,7 @@
 
 <script type="module">
 import { parseTransactionCore, encodeOutputScript, validateCashAddress, parseOpReturn, MESSAGE_LOKADS } from '../vendor/txparse.js?v=p5';
-import { matchAny, findAllSpans } from '../vendor/core/match.js?v=2';
+import { matchAny, matchEvery, findAllSpans } from '../vendor/core/match.js?v=3';
 import { createBackfill } from '../vendor/core/backfill.js?v=3';
 import { isCashtabExtension, requestAddress as ctRequestAddress, sendBip21 as ctSendBip21 } from '../vendor/cashtab-connect.js?v=1';
 "use strict";
@@ -1434,6 +1473,9 @@ const FLOW_STRINGS_EN = {
   'lane.holes':'{n} pages could not be loaded',
   'lane.cacheFull':'memory full — older pages are still searched for this topic, but not kept for other ones',
   'term.add':'+ Topic',
+  'term.any':'any word',
+  'term.all':'all words',
+  'term.modeAria':'Match any word or all words',
   'term.title':'Add a topic',
   'term.ph':'A word to follow, e.g. gm',
   // The example belongs to the READER's language, not to whoever wrote the
@@ -1564,7 +1606,7 @@ function tf(key, vars){
   return String(t(key)).replace(/\{(\w+)\}/g, (_, k) => (vars && vars[k] != null ? vars[k] : ''));
 }
 function localeFor(code){ try { new Intl.NumberFormat(code); return code; } catch { return 'en'; } }
-const I18N_V = '10';   // bump whenever any vendor/i18n/flow.*.json changes
+const I18N_V = '11';   // bump whenever any vendor/i18n/flow.*.json changes
 async function loadPack(code){
   if (code === 'en'){ pack = null; return; }
   try {
@@ -1766,6 +1808,7 @@ const state = {
   paused: false,
   filter: 'all',           // active kind chip: all | pay | msg | token | watched
   terms: [],               // saved topics [{q,on,mode,fold}], cap TERM_MAX
+  termMode: 'any',         // 'any' = a topic widens the Lane; 'all' = it narrows it
   matched: [],             // txids matching an enabled term, newest last, cap MATCH_MAX
   laneTxs: new Map(),      // txid -> tx pulled by the retrospective backfill, cap MATCH_MAX.
                            // Separate from .txs on purpose: a result that cost a
@@ -3611,6 +3654,21 @@ function renderAllLearn(){ renderLearn($('rail-learn-list')); renderLearn($('bar
 // longer scales — this closes every sibling by construction, and a fourth bar
 // only has to be added to FOOTER_BARS.
 const FOOTER_BARS = [['learn-bar','btn-learn'], ['watch-bar','btn-watch'], ['info-bar','btn-info']];
+/* Every bar gets a ✕, injected once rather than repeated in three places of
+   markup. Until now the only way to close one was to find the footer button
+   that opened it and press it again — on a phone that button is small, sits
+   below the bar, and nothing said it was also the way out. The bar could be
+   most of the screen with no visible exit. */
+FOOTER_BARS.forEach(([barId]) => {
+  const bar = $(barId); if (!bar || bar.querySelector('.bar-x')) return;
+  const x = document.createElement('button');
+  x.type = 'button'; x.className = 'bar-x'; x.textContent = '✕';
+  x.setAttribute('data-i18n-aria', 'cmp.close');
+  x.setAttribute('aria-label', 'Close');
+  x.addEventListener('click', () => toggleFooterBar(barId));
+  bar.insertBefore(x, bar.firstChild);
+});
+function openFooterBar(){ return FOOTER_BARS.find(([b]) => { const e = $(b); return e && e.classList.contains('open'); }); }
 function toggleFooterBar(barId, onOpen){
   const bar = $(barId); if (!bar) return;
   const open = !bar.classList.contains('open');
@@ -3805,7 +3863,7 @@ function lanePrefilter(txData){
            : (Number.isFinite(fts) && fts > 0) ? fts * 1000 : null;
   corpusAdd(txData.txid, hay, ts);
   if (activeMutes().length && matchAny(hay, activeMutes())) return false;
-  return matchAny(hay, enabledTerms());
+  return matchTerms(hay, enabledTerms());
 }
 
 // Answer a term from the corpus alone. No requests, no cursor, instant.
@@ -3815,7 +3873,7 @@ function corpusMatches(){
   if (!follow.length) return out;
   for (const [txid, e] of laneCorpus){
     if (mutes.length && matchAny(e.text, mutes)) continue;
-    if (matchAny(e.text, follow)) out.push(txid);
+    if (matchTerms(e.text, follow)) out.push(txid);
   }
   return out;
 }
@@ -4033,8 +4091,11 @@ laneMore.addEventListener('click', runLaneBackfill);
 
 function loadTerms(){
   try {
-    const raw = JSON.parse(localStorage.getItem(TERMS_KEY) || '[]');
-    if (!Array.isArray(raw)) return;
+    const stored = JSON.parse(localStorage.getItem(TERMS_KEY) || '[]');
+    // Older saves are a bare array; newer ones wrap it to carry the mode.
+    const raw = Array.isArray(stored) ? stored : (stored && Array.isArray(stored.terms) ? stored.terms : null);
+    if (!raw) return;
+    if (stored && stored.mode === 'all') state.termMode = 'all';
     for (const e of raw){
       if (state.terms.length >= TERM_MAX) break;
       const q = typeof e === 'string' ? e : (e && e.q);
@@ -4059,7 +4120,9 @@ function loadTerms(){
   } catch {}
 }
 function saveTerms(){
-  try { localStorage.setItem(TERMS_KEY, JSON.stringify(state.terms)); } catch {}
+  // The mode rides with the terms: it is meaningless without them and must not
+  // be able to outlive them under a separate key.
+  try { localStorage.setItem(TERMS_KEY, JSON.stringify({ mode: state.termMode, terms: state.terms })); } catch {}
 }
 // A term is either FOLLOWED (feeds the Lane) or MUTED (hides matches from the
 // stream). One list, one editor, one storage key — mute is the same predicate
@@ -4075,10 +4138,21 @@ function activeMutes(){ return state.terms.filter(t => t.on && t.q && t.mute); }
 // A muted term wins over a followed one: term-stuffing — dropping a popular word
 // into a message so it lands in someone's topic — is the predictable abuse, and
 // mute is the reader's answer to it.
+/* ANY widens, ALL narrows — and neither is a safe default for the other, so it
+   is the reader's switch rather than our guess. ONE dispatch point: the stream,
+   the Lane and the corpus all ask through here, so they cannot disagree about
+   what the current topics mean.
+
+   Mutes are always ANY, whatever this is set to. A mute is a veto: one match is
+   enough to hide something, and requiring every mute to agree would make a
+   second mute quietly weaken the first. */
+function matchTerms(hay, terms){
+  return state.termMode === 'all' ? matchEvery(hay, terms) : matchAny(hay, terms);
+}
 function txMatchesTerms(tx){
   if (!tx || !tx._hay) return false;
   if (txIsMuted(tx)) return false;
-  return matchAny(tx._hay, enabledTerms());
+  return matchTerms(tx._hay, enabledTerms());
 }
 function txIsMuted(tx){
   if (!tx || !tx._hay) return false;      // nothing written -> nothing to mute on
@@ -4359,7 +4433,11 @@ const chipsRow = document.querySelector('.chips');
    eye already is, and the button that creates it does not drift further away
    with every addition. state.terms is therefore rendered newest-first. */
 function renderTermChips(){
-  chipsRow.querySelectorAll('.chip.term, .chip.addterm').forEach(el => el.remove());
+  // Every JS-built chip must be listed here. `.chip.term` does NOT match
+  // `.chip.termmode` — different class, not a variant — so the mode chip
+  // survived each render and a second one was appended on top of it, leaving
+  // two chips showing contradictory labels while the state was in fact correct.
+  chipsRow.querySelectorAll('.chip.term, .chip.addterm, .chip.termmode').forEach(el => el.remove());
   if (state.terms.length < TERM_MAX){
     const add = document.createElement('button');
     add.type = 'button'; add.className = 'chip addterm';
@@ -4367,6 +4445,21 @@ function renderTermChips(){
     add.setAttribute('aria-haspopup', 'dialog');
     add.addEventListener('click', openTermEditor);
     chipsRow.appendChild(add);
+  }
+  // Shown only with two or more topics running: with one, ANY and ALL are the
+  // same answer, and a control that cannot change anything is noise.
+  if (enabledTerms().length > 1){
+    const m = document.createElement('button');
+    m.type = 'button';
+    m.className = 'chip termmode' + (state.termMode === 'all' ? ' on' : '');
+    m.textContent = t(state.termMode === 'all' ? 'term.all' : 'term.any');
+    m.setAttribute('aria-label', t('term.modeAria'));
+    m.setAttribute('aria-pressed', String(state.termMode === 'all'));
+    m.addEventListener('click', () => {
+      state.termMode = state.termMode === 'all' ? 'any' : 'all';
+      saveTerms(); onTermsChanged();
+    });
+    chipsRow.appendChild(m);
   }
   for (const term of [...state.terms].reverse()){
     const b = document.createElement('button');
@@ -4385,6 +4478,17 @@ function renderTermChips(){
     const x = document.createElement('span');
     x.className = 'tx'; x.textContent = '✕'; x.setAttribute('aria-hidden', 'true');
     b.appendChild(x);
+    // Delete/Backspace on the focused chip removes it. Without this a keyboard
+    // or screen-reader user had no way to remove a topic at all: the ✕ is a
+    // decorative aria-hidden span inside the button, and nothing else calls
+    // removeTerm. The chip's accessible name says so, reusing the existing
+    // "Remove" string rather than minting a sixteenth translation.
+    b.setAttribute('aria-label', term.q + ' — ' + t('watch.remove') + ' (Delete)');
+    b.addEventListener('keydown', (e) => {
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+      e.preventDefault();
+      removeTerm(term.q);
+    });
     b.addEventListener('click', (e) => {
       if (e.target === x){ removeTerm(term.q); return; }
       // Dismissing the Lane with ✕ leaves the topic ON — it should keep
@@ -4812,6 +4916,9 @@ const ESC_STACK = [
       const tx = state.txs.get(state.expandedId); if (tx) collapseCard(tx);
       state.expandedId = null;
     } },
+  // Lowest: a footer bar covers the least and should be the last thing Escape
+  // takes away. It is here at all because a bar had no keyboard exit either.
+  { is: () => !!openFooterBar(),        close: () => { const b = openFooterBar(); if (b) toggleFooterBar(b[0]); } },
 ];
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
