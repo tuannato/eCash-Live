@@ -41,6 +41,62 @@ export const LOKAD = {
   POWR:           '504f5752',  // POWR — Proof of Writing (proofofwriting.com)
 };
 
+// =============================================================================
+// MESSAGE_LOKADS — the LOKAD ids whose branch below can return a non-null
+// `text`, i.e. the only ids worth walking when searching for something a human
+// wrote. Everything else costs full tx-object bandwidth to fetch and yields
+// nothing searchable.
+//
+// IN (6), with the field each one's text comes from:
+//   00746162  Cashtab Msg   msgText
+//   2e786563  Alias         aliasName
+//   64726f70  Airdrop       note
+//   63686174  eCashChat     reply / post / body
+//   50415900  PayButton     data payload
+//   626c6f67  Article       title
+//
+// Alias and PayButton were BOTH unreachable until 2026-08-04b: their specs
+// mandate a bare OP_0 version field, readAllPushes stops at the first bare
+// opcode, and so neither branch ever saw a push. The parity harness below is
+// what caught it — it is the whole reason this table is checked rather than
+// trusted. Both branches now use readScriptItems and keep positions; see them
+// for the details, including PayButton's second, previously masked, field-order
+// bug. **neo's inline copy still carries both bugs** and is fixed by adopting
+// this file, not by patching it a second time.
+//
+// OUT (6), textless by construction — do NOT "optimise" them back in:
+//   6361736d  Cashtab Encrypted  no plaintext exists
+//   41475230  Agora              covenant data; the branch returns null
+//   61757468  eCashChat Auth     no text
+//   70617977  Paywall            no text
+//   46555a00  CashFusion         no text
+//   504f5752  Proof of Writing   content is OFF chain; the script holds hashes
+// (SLP 534c5000 / ALP 534c5032 are token markers, also textless.)
+//
+// THIS TABLE IS DECLARED, NOT DERIVED — and that is deliberate. Deriving it at
+// runtime was tried and does not work: a probe payload only satisfies the
+// Cashtab branch, while Alias needs a bare OP_0 version byte, Airdrop a 32-byte
+// tokenId, eCashChat an action push and Article a title push, so a naive probe
+// reports those four as textless and silently shrinks the search. Instead the
+// table lives next to LOKAD and a harness asserts it still matches the branches
+// using a realistic payload per protocol, so drift fails a test rather than
+// quietly narrowing coverage.
+//
+// NOT COVERED BY ANY LOKAD, and therefore not reachable through the index: the
+// plain-text fallback at the end of parseOpReturn (a bare `OP_RETURN <text>`
+// whose first push is not exactly 4 bytes, so chronik cannot index it) and
+// memo.cash (2-byte prefix). Those are found only in the live stream. Disclose
+// that in the coverage line; never let it read as "no results".
+// =============================================================================
+export const MESSAGE_LOKADS = [
+  LOKAD.CASHTAB_MSG,
+  LOKAD.ALIAS,
+  LOKAD.AIRDROP,
+  LOKAD.ECASHCHAT_TX,
+  LOKAD.PAYBUTTON,
+  LOKAD.ARTICLE,
+];
+
 // POWR action opcodes (bare OP_1..OP_9 following the bare OP_0 version byte).
 export const POWR_ACTIONS = {
   0x51: 'post', 0x52: 'reply', 0x53: 'quote', 0x54: 'repost', 0x55: 'like',
@@ -280,6 +336,69 @@ export function readScriptItems(hex, maxItems = 32) {
   return { items, truncated };
 }
 
+// =============================================================================
+// encodePush(hex) — wrap a payload in the smallest push opcode that fits.
+// Only used by parseEmpp below. OP_RETURN is capped at 223 bytes on eCash, so
+// PUSHDATA1 is the largest form reachable in practice; PUSHDATA2 is kept as a
+// backstop so a non-standard oversized fragment degrades instead of corrupting.
+// =============================================================================
+function encodePush(hex) {
+  const len = hex.length / 2;
+  if (len <= 0x4b) return len.toString(16).padStart(2, '0') + hex;
+  if (len <= 0xff) return '4c' + len.toString(16).padStart(2, '0') + hex;
+  const lo = (len & 0xff).toString(16).padStart(2, '0');
+  const hi = ((len >> 8) & 0xff).toString(16).padStart(2, '0');
+  return '4d' + lo + hi + hex;
+}
+
+// =============================================================================
+// parseEmpp(restHex) — decode an eMPP OP_RETURN body (everything after 6a 50).
+//
+// eMPP (doc/standards/empp.md) is `OP_RETURN OP_RESERVED <push0> <push1> ...`,
+// one push per protocol fragment. Each payload begins with a RAW 4-byte LOKAD
+// ID — NOT a nested push op — followed by protocol-defined bytes. Verified
+// against 9 real chain txs: push.len is exactly 4 + the UTF-8 byte length of
+// the message, with no inner length prefix anywhere.
+//
+// WHY THIS RE-WRAPS A SCRIPT INSTEAD OF CALLING THE BRANCHES DIRECTLY.
+// The protocol branches live inside parseOpReturn and read its locals
+// (afterId, firstPushHex, pushLen, firstPushIsId). Extracting them would touch
+// all eleven — the highest-regression edit available in this file. Instead each
+// fragment is re-wrapped as `6a <push>`, which parseOpReturn already handles as
+// its "non-standard inline form": firstPushIsId is false for any push that is
+// not exactly 4 bytes, so lokad becomes the first 4 bytes and the remainder is
+// the payload. That is byte-for-byte the eMPP layout, so the existing branches
+// read it correctly with ZERO changes to them.
+//
+// The recursion is exactly one level deep: a synthesized script starts with a
+// push opcode (0x01-0x4d), never OP_RESERVED, so it can never re-enter here.
+// =============================================================================
+function parseEmpp(restHex) {
+  const { items, truncated } = readScriptItems(restHex);
+  // Spec validity: a bare opcode, an empty push, or a malformed/oversized tail
+  // invalidates the WHOLE OP_RETURN — not merely the offending fragment.
+  if (truncated || !items.length) return null;
+  for (const it of items) {
+    if (it.kind !== 'push' || it.len === 0) return null;
+  }
+  let fallback = null;
+  for (const it of items) {
+    // A fragment shorter than the 4-byte LOKAD ID cannot name a protocol. Skip
+    // it rather than invalidating the script: the 4-byte prefix is a
+    // recommendation in the spec, not a validity rule.
+    if (it.len < 4) continue;
+    const m = parseOpReturn('6a' + encodePush(it.hex));
+    if (!m) continue;
+    // Prefer the first fragment carrying real on-chain text. A tx pairing a
+    // textless protocol with a written message (the common ALP-send + note
+    // shape) must surface the note, or the writing stays unfindable — which is
+    // the exact defect this function exists to fix.
+    if (m.text) return m;
+    if (!fallback) fallback = m;
+  }
+  return fallback;
+}
+
 export function parseFirstPush(hex) {
   if (!hex || hex.length < 2) return null;
   const firstByte = parseInt(hex.slice(0, 2), 16);
@@ -329,6 +448,14 @@ export function parseOpReturn(hex) {
   if (!hex || !hex.startsWith('6a')) return null;
   const data = hex.slice(2);
   if (data.length < 8) return null;
+
+  // eMPP: OP_RETURN OP_RESERVED <push>... — a multi-protocol OP_RETURN. It needs
+  // its own walker because OP_RESERVED (0x50) is not a length-prefixed push, so
+  // the dispatch below — which reads a push length out of this very byte —
+  // cannot describe it. Before this branch existed, 0x50 was > 75 and every eMPP
+  // tx fell straight through to the `return null` at the end of that dispatch,
+  // leaving a note attached to a token send invisible in both doors.
+  if (data.startsWith('50')) return parseEmpp(data.slice(2));
 
   let firstByte = parseInt(data.slice(0, 2), 16);
   let pushLen, push1Start;
@@ -389,8 +516,19 @@ export function parseOpReturn(hex) {
     return msg('encrypted', 'Encrypted Cashtab message', null);
   }
   if (lokad === LOKAD.ALIAS) {
-    // Alias: <04 2e786563> <00 version> <01-15 alias> <15 cashaddr-payload>
-    const pushes = afterId ? readAllPushes(afterId) : [];
+    // Alias: <04 2e786563> <OP_0 version> <01-15 alias> <15 cashaddr-payload>
+    //
+    // The version is a BARE OP_0 — doc/standards/ecash-alias.md: "A push of a
+    // version number. Must be pushed as OP_0." readAllPushes stops dead at the
+    // first bare opcode (by design, §6), so it returned [] here and the alias
+    // name was NEVER extracted from a spec-conformant registration. Use the
+    // bare-opcode-aware walker instead and keep positions: an opcode becomes an
+    // empty slot rather than vanishing, so the alias stays at index 1 where the
+    // spec puts it. readAllPushes itself is untouched — five other branches
+    // depend on its stop-at-opcode behaviour.
+    const pushes = afterId
+      ? readScriptItems(afterId).items.map((i) => (i.kind === 'push' ? i.hex : ''))
+      : [];
     let aliasName = '';
     for (let i = 0; i < pushes.length && i < 3; i++) {
       const txt = hexToUtf8(pushes[i]);
@@ -443,9 +581,20 @@ export function parseOpReturn(hex) {
     return msg('encrypted', 'eCashChat auth', null);
   }
   if (lokad === LOKAD.PAYBUTTON) {
-    // PayButton: <04 PAY\x00> <push version> <push nonce> <push data>
-    const pushes = afterId ? readAllPushes(afterId) : [];
-    const data2 = pushes[2] ? hexToUtf8(pushes[2]) : '';
+    // PayButton: <04 PAY\x00> <OP_0 version> <data> <nonce>
+    //
+    // TWO bugs were fixed here together, the second only visible once the first
+    // was gone. (1) The version is a BARE OP_0 — doc/standards/paybutton.md:
+    // "The version must be pushed as OP_0" — so readAllPushes stopped at it and
+    // returned [], exactly as in the Alias branch above. (2) The field order is
+    // version, DATA, nonce, not version, nonce, data, so index 2 was the nonce.
+    // Positions must be preserved rather than filtered: the spec signifies an
+    // EMPTY data payload with another OP_0, and dropping opcodes would slide the
+    // nonce into the data slot (its example 3 is exactly that case).
+    const pushes = afterId
+      ? readScriptItems(afterId).items.map((i) => (i.kind === 'push' ? i.hex : ''))
+      : [];
+    const data2 = pushes[1] ? hexToUtf8(pushes[1]) : '';
     // data2 is merchant-supplied and often machine-generated (order ids), but it
     // IS on chain and somebody put it there — searchable, per the same rule that
     // keeps the plain-text fallback below.
