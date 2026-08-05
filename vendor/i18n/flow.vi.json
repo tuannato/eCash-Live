@@ -81,6 +81,7 @@
     "lane.deepScanned": "đã đọc {n} tin nhắn từ chỉ mục chuỗi",
     "lane.reach": "đã tìm đầy đủ tới {d}",
     "lane.holes": "{n} trang không tải được",
+    "lane.cacheFull": "bộ nhớ đã đầy — các trang cũ hơn vẫn được tìm cho chủ đề này, nhưng không giữ lại cho chủ đề khác",
     "term.add": "+ Chủ đề",
     "term.title": "Thêm chủ đề",
     "term.ph": "Một từ để theo dõi, ví dụ gm",

@@ -81,6 +81,7 @@
     "lane.deepScanned": "{n} Nachrichten aus dem Chain-Index gelesen",
     "lane.reach": "vollständig durchsucht bis {d}",
     "lane.holes": "{n} Seiten konnten nicht geladen werden",
+    "lane.cacheFull": "Speicher voll — ältere Seiten werden für dieses Thema weiter durchsucht, aber nicht für andere behalten",
     "term.add": "+ Thema",
     "term.title": "Thema hinzufügen",
     "term.ph": "Ein Wort zum Verfolgen, z. B. gm",

@@ -81,6 +81,7 @@
     "lane.deepScanned": "{n} pesan dibaca dari indeks rantai",
     "lane.reach": "dicari lengkap sampai {d}",
     "lane.holes": "{n} halaman gagal dimuat",
+    "lane.cacheFull": "memori penuh — halaman lama masih dicari untuk topik ini, tetapi tidak disimpan untuk topik lain",
     "term.add": "+ Topik",
     "term.title": "Tambah topik",
     "term.ph": "Kata yang diikuti, mis. gm",

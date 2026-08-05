@@ -81,6 +81,7 @@
     "lane.deepScanned": "체인 색인에서 메시지 {n}건을 읽었습니다",
     "lane.reach": "{d}까지 전부 검색함",
     "lane.holes": "{n}개 페이지를 불러오지 못했습니다",
+    "lane.cacheFull": "메모리가 가득 찼습니다 — 더 오래된 페이지는 이 주제로는 계속 검색되지만 다른 주제를 위해 보관되지는 않습니다",
     "term.add": "+ 주제",
     "term.title": "주제 추가",
     "term.ph": "따라갈 단어, 예: gm",

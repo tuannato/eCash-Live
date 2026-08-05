@@ -81,6 +81,7 @@
     "lane.deepScanned": "zincir dizininden {n} mesaj okundu",
     "lane.reach": "{d} tarihine kadar eksiksiz arandı",
     "lane.holes": "{n} sayfa yüklenemedi",
+    "lane.cacheFull": "bellek dolu — daha eski sayfalar bu konu için hâlâ aranıyor, ancak diğerleri için saklanmıyor",
     "term.add": "+ Konu",
     "term.title": "Konu ekle",
     "term.ph": "Takip edilecek bir kelime, ör. gm",

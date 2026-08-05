@@ -81,6 +81,7 @@
     "lane.deepScanned": "{n} mensahe ang nabasa mula sa chain index",
     "lane.reach": "kumpletong nahanap hanggang {d}",
     "lane.holes": "{n} pahina ang hindi na-load",
+    "lane.cacheFull": "puno na ang memorya — hinahanap pa rin ang mas lumang pahina para sa paksang ito, pero hindi itinatago para sa iba",
     "term.add": "+ Paksa",
     "term.title": "Magdagdag ng paksa",
     "term.ph": "Salitang susubaybayan, hal. gm",

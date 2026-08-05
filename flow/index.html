@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-0CvJwCy/32HXH0JXMNpAJD5PcR04zi0ZJfF44wETesg=';
+  script-src 'self' 'sha256-W2wshu9s5P7IYndMmaxFuoNWxn8RqDS08/7el/JavSw=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -294,6 +294,23 @@
   .chips-row .chip:hover{border-color:var(--accent);color:var(--accent-deep);}
   .chips-row .chip.on{background:var(--accent-bg);border-color:var(--accent);color:var(--accent-deep);font-weight:650;}
   .chips-row .chip:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  /* Kind filter: a native select under a chip-shaped face. The select carries the
+     accessibility and the interaction; the face carries the look. Same structure
+     as .lang-wrap in the footer, which has shipped since v1.5.0. */
+  .kind-wrap{position:relative;display:inline-flex;align-items:center;flex:none;}
+  .kind-face{pointer-events:none;display:inline-flex;align-items:center;gap:6px;}
+  .kind-face .caret{opacity:.6;font-size:10px;}
+  .kind-wrap:hover .kind-face{border-color:var(--accent);color:var(--accent-deep);}
+  .kind-select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;
+               border:0;padding:0;-webkit-appearance:none;appearance:none;}
+  .kind-select:focus-visible + .kind-face{outline:2px solid var(--accent);outline-offset:1px;}
+  /* "+ Topic" is the one thing in this row the reader CREATES, and it holds a
+     fixed position on the left so it does not drift as topics accumulate.
+     Raised a step above a plain chip — dashed accent border, accent text — but
+     deliberately not a filled button: it should read as available, not urgent. */
+  .chips-row .chip.addterm{flex:none;border-style:dashed;border-color:var(--accent);
+    color:var(--accent-deep);font-weight:600;}
+  .chips-row .chip.addterm:hover{background:var(--accent-bg);}
 
   /* ===== stream ===== */
   .stream-wrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;}
@@ -1025,13 +1042,24 @@
          topics, and a sticky one would collide with .hscroll's own sticky edge
          chevron. As a sibling it is simply always there, on the right. -->
     <div class="chips-row">
-      <div class="chips hscroll" role="group" data-i18n-aria="chips.aria" aria-label="Filter transactions">
-        <button class="chip on" data-f="all" type="button" data-i18n="chip.all">All</button>
-        <button class="chip" data-f="pay" type="button" data-i18n="chip.pay">Payments</button>
-        <button class="chip" data-f="msg" type="button" data-i18n="chip.msg">Messages</button>
-        <button class="chip" data-f="token" type="button" data-i18n="chip.token">Token</button>
-        <button class="chip" data-f="watched" type="button" data-i18n="chip.watched">Watched</button>
-      </div>
+      <!-- The five kind filters are ONE control, not five chips. They are mutually
+           exclusive — exactly what a select is for — and as a row of chips they
+           spent most of the width saying which four things are NOT selected,
+           crowding out the topic chips the user actually creates.
+           A native <select> under a styled face, the same trick the footer
+           language control uses: keyboard, screen reader and the OS picker come
+           free, and no popup of our own has to be built or trapped. -->
+      <span class="kind-wrap">
+        <select class="kind-select" id="kind-select" data-i18n-aria="chips.aria" aria-label="Filter transactions">
+          <option value="all"     data-i18n="chip.all">All</option>
+          <option value="pay"     data-i18n="chip.pay">Payments</option>
+          <option value="msg"     data-i18n="chip.msg">Messages</option>
+          <option value="token"   data-i18n="chip.token">Token</option>
+          <option value="watched" data-i18n="chip.watched">Watched</option>
+        </select>
+        <span class="chip kind-face" aria-hidden="true"><span id="kind-label">All</span><span class="caret">▾</span></span>
+      </span>
+      <div class="chips hscroll" role="group" data-i18n-aria="lane.aria" aria-label="Saved topics"></div>
       <button class="chip warn" id="safety-chip" type="button" aria-haspopup="true"
               data-i18n-aria="safety.chipAria" aria-label="Safety notice">!</button>
     </div>
@@ -1235,7 +1263,7 @@
 <script type="module">
 import { parseTransactionCore, encodeOutputScript, validateCashAddress, parseOpReturn, MESSAGE_LOKADS } from '../vendor/txparse.js?v=p5';
 import { matchAny, findAllSpans } from '../vendor/core/match.js?v=2';
-import { createBackfill } from '../vendor/core/backfill.js?v=1';
+import { createBackfill } from '../vendor/core/backfill.js?v=2';
 import { isCashtabExtension, requestAddress as ctRequestAddress, sendBip21 as ctSendBip21 } from '../vendor/cashtab-connect.js?v=1';
 "use strict";
 const $ = (id) => document.getElementById(id);
@@ -1404,6 +1432,7 @@ const FLOW_STRINGS_EN = {
   'lane.deepScanned':'read {n} messages from the chain index',
   'lane.reach':'searched in full back to {d}',
   'lane.holes':'{n} pages could not be loaded',
+  'lane.cacheFull':'memory full — older pages are still searched for this topic, but not kept for other ones',
   'term.add':'+ Topic',
   'term.title':'Add a topic',
   'term.ph':'A word to follow, e.g. gm',
@@ -1535,7 +1564,7 @@ function tf(key, vars){
   return String(t(key)).replace(/\{(\w+)\}/g, (_, k) => (vars && vars[k] != null ? vars[k] : ''));
 }
 function localeFor(code){ try { new Intl.NumberFormat(code); return code; } catch { return 'en'; } }
-const I18N_V = '9';   // bump whenever any vendor/i18n/flow.*.json changes
+const I18N_V = '10';   // bump whenever any vendor/i18n/flow.*.json changes
 async function loadPack(code){
   if (code === 'en'){ pack = null; return; }
   try {
@@ -1579,6 +1608,7 @@ async function setLang(code){
   // chips row says "Filter transactions") keeps it — applyStatic() has just set
   // it, and overwriting it here would undo that on every language switch.
   document.querySelectorAll('.hscroll:not([data-i18n-aria])').forEach(el => el.setAttribute('aria-label', t('a11y.scrollRow')));
+  if (typeof renderKindFace === 'function') renderKindFace();          // applyStatic() just retranslated the <option>s
   if (typeof renderTermChips === 'function') renderTermChips();       // JS-built chips + the "+ Topic" label
   if (state.laneOpen) renderLane();                                   // kind labels / relative time in the new language
   // The "search further back" label is JS-set and STATEFUL (idle / searching /
@@ -3636,17 +3666,23 @@ function applyFilter(){
   }
   normalizeRoving();   // the tab stop may have just been hidden by the chip
 }
-// Scoped to [data-f] — the KIND chips. Term chips share this row but are
-// independent toggles, so resetting every .chip here would clear them too.
-document.querySelectorAll('.chips .chip[data-f]').forEach(b => {
-  b.setAttribute('aria-pressed', b.classList.contains('on') ? 'true' : 'false');
-  b.addEventListener('click', () => {
-    document.querySelectorAll('.chips .chip[data-f]').forEach(x => { x.classList.remove('on'); x.setAttribute('aria-pressed', 'false'); });
-    b.classList.add('on'); b.setAttribute('aria-pressed', 'true');
-    state.filter = b.dataset.f;
-    applyFilter();
-    if (state.atBottom) scrollInstant(stream.scrollHeight);   // re-pin, not a journey (A10)
-  });
+/* The kind filter. One select instead of five chips, so there is one source of
+   truth for which kind is showing and no set of buttons to keep in sync.
+   The visible face is redrawn from the select rather than toggled, so a language
+   switch and a programmatic change both land in the same place. */
+const kindSelect = $('kind-select'), kindFaceLabel = $('kind-label');   // NOT kindLabel — that is the tx-kind text function above
+function renderKindFace(){
+  const opt = kindSelect.options[kindSelect.selectedIndex];
+  kindFaceLabel.textContent = opt ? opt.textContent : '';
+  // Lit only when it is actually narrowing the stream — "All" is the resting
+  // state and should not look like a filter is engaged.
+  kindSelect.nextElementSibling.classList.toggle('on', kindSelect.value !== 'all');
+}
+kindSelect.addEventListener('change', () => {
+  state.filter = kindSelect.value;
+  renderKindFace();
+  applyFilter();
+  if (state.atBottom) scrollInstant(stream.scrollHeight);   // re-pin, not a journey (A10)
 });
 
 /* ------------------------------------------------------------------ topic Lane
@@ -4257,6 +4293,11 @@ function renderLane(){
   if (reach) cov.push(tf('lane.reach', { d: fmtDate(reach * 1000) }));
   // A page that failed is a HOLE, said out loud. Silence would read as absence.
   if (laneDeepHoles) cov.push(tf('lane.holes', { n: fmtInt(laneDeepHoles) }));
+  // Said out loud once the corpus stops growing. Without it the "read N messages"
+  // figure simply freezes while the date keeps moving back, which reads as a
+  // stuck counter — and hides the real consequence: pages read past this point
+  // still answer the CURRENT topic, but a future one will not find them.
+  if (corpusFull) cov.push(t('lane.cacheFull'));
   laneCov.textContent = cov.join(' · ');
   laneEmpty.hidden = shown > 0;
   if (!shown) laneEmpty.textContent = t('lane.empty');
@@ -4300,9 +4341,22 @@ $('safety-chip').addEventListener('click', () => openLearnTopic('safety'));
 
 // ---- term chips (same row as the kind chips, different behaviour) ----
 const chipsRow = document.querySelector('.chips');
+/* Order in this row is deliberate: "+ Topic" sits at the LEFT, immediately after
+   the kind filter, and never moves. A newly added topic is inserted directly
+   after it, pushing older ones right — so the thing just created is where the
+   eye already is, and the button that creates it does not drift further away
+   with every addition. state.terms is therefore rendered newest-first. */
 function renderTermChips(){
   chipsRow.querySelectorAll('.chip.term, .chip.addterm').forEach(el => el.remove());
-  for (const term of state.terms){
+  if (state.terms.length < TERM_MAX){
+    const add = document.createElement('button');
+    add.type = 'button'; add.className = 'chip addterm';
+    add.textContent = t('term.add');
+    add.setAttribute('aria-haspopup', 'dialog');
+    add.addEventListener('click', openTermEditor);
+    chipsRow.appendChild(add);
+  }
+  for (const term of [...state.terms].reverse()){
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'chip term' + (term.mute ? ' mute' : '') + (term.on ? ' on' : '');
@@ -4331,14 +4385,6 @@ function renderTermChips(){
       saveTerms(); onTermsChanged();
     });
     chipsRow.appendChild(b);
-  }
-  if (state.terms.length < TERM_MAX){
-    const add = document.createElement('button');
-    add.type = 'button'; add.className = 'chip addterm';
-    add.textContent = t('term.add');
-    add.setAttribute('aria-haspopup', 'dialog');
-    add.addEventListener('click', openTermEditor);
-    chipsRow.appendChild(add);
   }
   updateScrollHints();   // A2: the row just changed width by content
 }
@@ -5727,6 +5773,7 @@ async function boot(){
   loadMyAddr();          // your wallet address (Flow key, else seeded from neo) → _mine + self-send
   renderAllWatch();      // MUST follow loadMyAddr(): the panel renders the saved address + its ✕
   updateWatchBadge();
+  renderKindFace();      // paint the kind filter's face from the select's own state
   loadTerms();           // saved topics → the chips row (the Lane opens only on demand)
   // Corpus BEFORE the first render: a saved topic must show what was already
   // paid for in an earlier session, not an empty Lane it then has to re-fetch.

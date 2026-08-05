@@ -81,6 +81,7 @@
     "lane.deepScanned": "{n} messages lus depuis l’index de la chaîne",
     "lane.reach": "recherche complète jusqu’au {d}",
     "lane.holes": "{n} pages n’ont pas pu être chargées",
+    "lane.cacheFull": "mémoire pleine — les pages plus anciennes sont toujours parcourues pour ce sujet, mais pas conservées pour les autres",
     "term.add": "+ Sujet",
     "term.title": "Ajouter un sujet",
     "term.ph": "Un mot à suivre, p. ex. gm",
