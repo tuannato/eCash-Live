@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-NZMrIDHIVmzU4Vn6woBN45+EuFytflsPvQPgO0Tf4/E=';
+  script-src 'self' 'sha256-RNeXHg41Z3vQN5zcgiBvCwxOQD41vgfwUP8qRLeXWHk=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -2865,10 +2865,14 @@ function drainPendingTtf(txid){
 // Track a tx with a hard memory cap (CLAUDE.md §10: every structure is bounded).
 // Evicts the oldest tracked tx — its card is already gone via RENDER_CAP.
 function trackTx(tx){
+  if (!state.txs.has(tx.id)) muteApply(tx, +1);
   state.txs.set(tx.id, tx);
   if (state.txs.size > 2500){
     const oldest = state.txs.keys().next().value;
-    if (oldest && oldest !== tx.id){ state.txs.delete(oldest); state.subscribed.delete(oldest); }
+    if (oldest && oldest !== tx.id){
+      muteApply(state.txs.get(oldest), -1);
+      state.txs.delete(oldest); state.subscribed.delete(oldest);
+    }
   }
 }
 function admit(txData){
@@ -3010,6 +3014,7 @@ function removeTx(txid){
   if (!tx || tx.final) return;
   stopTicking(txid);
   if (tx.el && tx.el.parentNode) tx.el.remove();
+  muteApply(tx, -1);
   state.txs.delete(txid);
   state.subscribed.delete(txid);
 }
@@ -4020,12 +4025,40 @@ function txIsMuted(tx){
 // Muting HIDES things, so it has to say how much it hid. A silent filter is the
 // same dishonesty as reporting "no results" for a corpus never looked at: the
 // count rides on the chip itself, so the cost of the mute is always in view.
+/* Mute counts are maintained INCREMENTALLY.
+
+   They used to be a full walk of state.txs (up to 2500) per muted chip, and
+   renderTermChips() runs on every live match — so a busy minute spent that walk
+   once per chip per arriving transaction, on the main thread, for a number that
+   changes by at most one each time. Adjusting on the two events that can change
+   it costs O(mutes) per transaction instead, and mutes are capped at TERM_MAX.
+
+   The count itself stays: a mute that hides silently is the same defect as a
+   search reporting "nothing" for a corpus it never read. */
+const muteCounts = new Map();     // term.q -> how many held txs it is hiding
+function muteApply(tx, delta){
+  if (!tx || !tx._hay) return;
+  for (const m of state.terms){
+    if (!m.mute || !m.on || !m.q) continue;
+    if (!matchAny(tx._hay, [m])) continue;
+    muteCounts.set(m.q, Math.max(0, (muteCounts.get(m.q) || 0) + delta));
+  }
+}
+// Full recount, for when the QUESTION changes rather than the data: a new or
+// edited mute has no history to count up from.
+function recountMutes(){
+  muteCounts.clear();
+  const mutes = state.terms.filter(m => m.mute && m.on && m.q);
+  if (!mutes.length) return;
+  for (const tx of state.txs.values()){
+    if (!tx._hay) continue;
+    for (const m of mutes) if (matchAny(tx._hay, [m])) muteCounts.set(m.q, (muteCounts.get(m.q) || 0) + 1);
+  }
+}
 function muteCount(q){
-  let n = 0;
-  const one = [state.terms.find(x => x.q === q)].filter(Boolean);
-  if (!one.length || !one[0].on) return 0;
-  for (const tx of state.txs.values()) if (tx._hay && matchAny(tx._hay, one)) n++;
-  return n;
+  const t = state.terms.find(x => x.q === q);
+  if (!t || !t.on || !t.mute) return 0;
+  return muteCounts.get(q) || 0;
 }
 function laneAdd(tx){
   if (!tx || !tx.id) return;
@@ -4317,6 +4350,7 @@ function onTermsChanged(){
   // term resumed mid-walk and the NEWEST pages of every protocol were unreachable
   // for it, permanently. Reproduced live: a new term began at page 3 of all six.
   // Nothing here resets a thing that cost a request; only the answer is rebuilt.
+  recountMutes();              // a changed mute set has no history to count up from
   laneRunToken++;              // any run still in flight stops writing shared state
   laneBusy = false;
   laneDeepDone = false;        // "searched everything" belonged to the old question
