@@ -342,6 +342,13 @@ export function readScriptItems(hex, maxItems = 32) {
 // PUSHDATA1 is the largest form reachable in practice; PUSHDATA2 is kept as a
 // backstop so a non-standard oversized fragment degrades instead of corrupting.
 // =============================================================================
+// The single printable-text rule. Hoisted so the eMPP fragment path below and
+// the top-level plain-text fallback cannot drift into two different ideas of
+// what counts as writing.
+const PRINTABLE_TEXT = /^[\x20-\x7e\u00A0-\uFFFF]+$/;
+// Every LOKAD ID this parser has a branch for, plus the two token markers.
+const KNOWN_LOKADS = new Set([...Object.values(LOKAD), '534c5000', '534c5032']);
+
 function encodePush(hex) {
   const len = hex.length / 2;
   if (len <= 0x4b) return len.toString(16).padStart(2, '0') + hex;
@@ -387,7 +394,21 @@ function parseEmpp(restHex) {
     // it rather than invalidating the script: the 4-byte prefix is a
     // recommendation in the spec, not a validity rule.
     if (it.len < 4) continue;
-    const m = parseOpReturn('6a' + encodePush(it.hex));
+    let m;
+    const lok = it.hex.slice(0, 8).toLowerCase();
+    if (KNOWN_LOKADS.has(lok)) {
+      m = parseOpReturn('6a' + encodePush(it.hex));
+    } else {
+      // Unknown protocol. Re-wrapping would send the whole fragment through the
+      // top-level plain-text fallback, which reads the payload AND the 4-byte id
+      // as one string — so an eMPP note under an unrecognised id rendered as
+      // "WXZZsome payload text", presenting protocol machinery as something a
+      // person wrote, and putting it in the search haystack too.
+      const text = hexToUtf8(it.hex.slice(8));
+      m = (text && PRINTABLE_TEXT.test(text) && text.length > 2)
+        ? msg('broadcast', text, text)
+        : null;
+    }
     if (!m) continue;
     // Prefer the first fragment carrying real on-chain text. A tx pairing a
     // textless protocol with a written message (the common ALP-send + note
@@ -673,7 +694,7 @@ export function parseOpReturn(hex) {
   // looked at. content === text here, so it is the one branch that is never
   // synthetic by construction.
   const text = hexToUtf8(firstPushHex);
-  if (text && /^[\x20-\x7e\u00A0-\uFFFF]+$/.test(text) && text.length > 2) {
+  if (text && PRINTABLE_TEXT.test(text) && text.length > 2) {
     return msg('broadcast', text, text);
   }
   return null;
