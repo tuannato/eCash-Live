@@ -79,7 +79,7 @@
     "lane.searching": "Mencari…",
     "lane.deepEnd": "Semua di rantai sudah dicari",
     "lane.deepScanned": "{n} pesan dibaca dari indeks rantai",
-    "lane.reach": "sampai {d}",
+    "lane.reach": "dicari lengkap sampai {d}",
     "lane.holes": "{n} halaman gagal dimuat",
     "term.add": "+ Topik",
     "term.title": "Tambah topik",

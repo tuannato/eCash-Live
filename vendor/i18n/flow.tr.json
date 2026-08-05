@@ -79,7 +79,7 @@
     "lane.searching": "Aranıyor…",
     "lane.deepEnd": "Zincirdeki her şey arandı",
     "lane.deepScanned": "zincir dizininden {n} mesaj okundu",
-    "lane.reach": "{d} tarihine kadar",
+    "lane.reach": "{d} tarihine kadar eksiksiz arandı",
     "lane.holes": "{n} sayfa yüklenemedi",
     "term.add": "+ Konu",
     "term.title": "Konu ekle",

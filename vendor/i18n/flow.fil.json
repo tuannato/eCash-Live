@@ -79,7 +79,7 @@
     "lane.searching": "Naghahanap…",
     "lane.deepEnd": "Nahanap na ang lahat sa chain",
     "lane.deepScanned": "{n} mensahe ang nabasa mula sa chain index",
-    "lane.reach": "hanggang {d}",
+    "lane.reach": "kumpletong nahanap hanggang {d}",
     "lane.holes": "{n} pahina ang hindi na-load",
     "term.add": "+ Paksa",
     "term.title": "Magdagdag ng paksa",

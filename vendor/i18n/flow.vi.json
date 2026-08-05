@@ -79,7 +79,7 @@
     "lane.searching": "Đang tìm…",
     "lane.deepEnd": "Đã tìm hết trên chuỗi",
     "lane.deepScanned": "đã đọc {n} tin nhắn từ chỉ mục chuỗi",
-    "lane.reach": "về tới {d}",
+    "lane.reach": "đã tìm đầy đủ tới {d}",
     "lane.holes": "{n} trang không tải được",
     "term.add": "+ Chủ đề",
     "term.title": "Thêm chủ đề",

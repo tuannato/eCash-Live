@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-XJtWv0/F1tD22r9ihQPlo2YhlWQl6nVuapsi4gx6p3w=';
+  script-src 'self' 'sha256-NZMrIDHIVmzU4Vn6woBN45+EuFytflsPvQPgO0Tf4/E=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -1233,7 +1233,7 @@
 
 <script type="module">
 import { parseTransactionCore, encodeOutputScript, validateCashAddress, parseOpReturn, MESSAGE_LOKADS } from '../vendor/txparse.js?v=p5';
-import { matchAny } from '../vendor/core/match.js?v=1';
+import { matchAny, findAllSpans } from '../vendor/core/match.js?v=2';
 import { createBackfill } from '../vendor/core/backfill.js?v=1';
 import { isCashtabExtension, requestAddress as ctRequestAddress, sendBip21 as ctSendBip21 } from '../vendor/cashtab-connect.js?v=1';
 "use strict";
@@ -1401,7 +1401,7 @@ const FLOW_STRINGS_EN = {
   'lane.searching':'Searching…',
   'lane.deepEnd':'Searched everything on chain',
   'lane.deepScanned':'read {n} messages from the chain index',
-  'lane.reach':'back to {d}',
+  'lane.reach':'searched in full back to {d}',
   'lane.holes':'{n} pages could not be loaded',
   'term.add':'+ Topic',
   'term.title':'Add a topic',
@@ -1534,7 +1534,7 @@ function tf(key, vars){
   return String(t(key)).replace(/\{(\w+)\}/g, (_, k) => (vars && vars[k] != null ? vars[k] : ''));
 }
 function localeFor(code){ try { new Intl.NumberFormat(code); return code; } catch { return 'en'; } }
-const I18N_V = '8';   // bump whenever any vendor/i18n/flow.*.json changes
+const I18N_V = '9';   // bump whenever any vendor/i18n/flow.*.json changes
 async function loadPack(code){
   if (code === 'en'){ pack = null; return; }
   try {
@@ -3342,7 +3342,7 @@ async function connectChronik(){
       ws = state.chronik.ws({
         onMessage: (msg) => handleWs(ws, msg),
         onReconnect: () => setConn('conn.reconnecting', 'warn'),
-        onConnect: () => { setConn('conn.live', 'live'); scheduleReconcile(); },   // reconnect → catch blocks/confirms missed while dropped (A2)
+        onConnect: () => { setConn('conn.live', 'live'); scheduleReconcile(); laneHydrate(laneRunToken); maybeAutoBackfill(); },   // reconnect → catch blocks/confirms missed while dropped (A2); hydrate restored hits, and search once for a topic nothing has answered yet
         onError: () => setConn('conn.reconnecting', 'warn'),
       });
     } catch (e){ setConn('conn.offline', 'warn'); return; }
@@ -3661,7 +3661,6 @@ const MATCH_MAX = 200;           // §10 — cap of txids held for the Lane
 const TERMS_KEY = 'ecashlive:flow:filters';
 const laneEl = $('lane'), laneList = $('lane-list'), laneEmpty = $('lane-empty'),
       laneCov = $('lane-cov'), laneCount = $('lane-count'), laneMore = $('lane-more');
-let laneSeedScanned = 0, laneSeedSkipped = 0;
 
 /* ---- retrospective backfill (Phase 4b) ------------------------------------
    The live stream is protocol-agnostic but only moves FORWARD; nothing written
@@ -3675,19 +3674,79 @@ let laneSeedScanned = 0, laneSeedSkipped = 0;
    state.txs is a live cache with a very different job. */
 const LANE_PAGE = 50;      // ~1.1 MB/click measured, vs 4.5 at chronik's max 200
 const LANE_REQUESTS = 6;   // one page per protocol, round-robin
+// §10 — {text, ts} per entry, not a full tx object. ~160 bytes each, so 2000 is
+// roughly 320 KB, which is what makes persisting it alongside the cursor viable.
+const CORPUS_MAX = 2000;
 // User-approved 2026-08-04b (CLAUDE.md §4 requires it for any new key). Holds ONLY
-// how far the backward walk got — {lokad: {page, numPages, ...}} — so a returning
-// reader resumes instead of re-downloading pages they already paid for. No search
-// terms and no results live here; those are in TERMS_KEY and in memory.
+// how far the backward walk got — {lokad: {page, numPages, ...}}. No search terms
+// and no results live here; those are in TERMS_KEY and in memory.
 const LANE_CURSOR_KEY = 'ecashlive:flow:lane-cursor';
-let laneBf = null, laneBusy = false;
-let laneDeepScanned = 0, laneDeepKept = 0, laneDeepHoles = 0, laneDeepOldest = null, laneDeepDone = false;
+let laneBf = null, laneBusy = false, laneRunToken = 0;
+let laneDeepHoles = 0, laneDeepDone = false;
 
-// Cheap gate: read ONLY the first output's OP_RETURN and match on that. Full
-// parsing every fetched tx costs 1950 ms per 200-tx page against 2 ms this way
-// (measured on real chronik data) — the difference between a usable feature and
-// a frozen tab. Scrub first: a zero-width char mid-word would otherwise evade
-// the matcher while rendering normally.
+/* THE CORPUS, and why it exists — this is the fix for a real bug, recorded so it
+   is not "simplified" away.
+
+   The prefilter below already decodes every scanned transaction's on-chain text.
+   The first version threw that away and kept `raw: txData` — the whole chronik
+   object — for the few that matched: it kept the expensive thing and discarded
+   the cheap one. Worse, because nothing was cached, a NEW term had to walk the
+   index again, and since the cursor was persisted it resumed mid-walk, so the
+   newest pages were unreachable for that term forever. Reproduced live: a fresh
+   term started at page 3 of every protocol and could never see pages 0-2.
+
+   Keeping {text, ts} per scanned tx dissolves all of it. A new term is answered
+   LOCALLY from what was already paid for — no requests, no cursor question — and
+   the cursor stops meaning "how far this term looked" (which must never be
+   reused across terms) and starts meaning "how much index is cached" (which is a
+   fact about the cache, so persisting it is correct). Only genuine matches that
+   are not already parsed cost a request, and only one each. */
+const laneCorpus = new Map();   // txid -> {text, ts}
+let corpusOldest = null;        // oldest ts seen anywhere — NOT the reported reach
+
+/* THE REPORTED REACH IS THE FLOOR, NOT THE DEEPEST POINT.
+   Measured on real data: after two rounds, Cashtab had reached 2026-07-03 while
+   Alias had reached 2023-11-01, because a page holds 50 transactions and the
+   sparse protocols cover years in one page while the dense one covers weeks.
+   Reporting the oldest thing seen — 2023 — claimed almost three years of
+   coverage when the protocol carrying nearly all the writing had read one month.
+   The reader saw exactly that: hits clustered in the last month, one stray from
+   2023, and a banner promising 2023.
+   So the floor is the OLDEST DATE EVERY protocol has passed, i.e. the max of the
+   per-protocol depths. A protocol that is finished imposes no floor: it has been
+   read to genesis, so it constrains nothing. */
+function laneReach(){
+  const cur = laneBf ? laneBf.cursor : (laneSavedCursor || null);
+  if (!cur) return null;
+  let floor = null;
+  for (const id of MESSAGE_LOKADS){
+    const c = cur[id];
+    if (!c || c.done) continue;               // exhausted -> covers everything
+    if (!c.oldestTs) return null;             // never read -> no honest claim
+    floor = (floor == null) ? c.oldestTs : Math.max(floor, c.oldestTs);
+  }
+  return floor;
+}
+
+/* When full the corpus REFUSES new entries instead of evicting. Eviction would
+   break the one property the reach line depends on: the corpus is a contiguous
+   window from the newest message backwards, so `corpusOldest` means "everything
+   from now back to here is held". A Map evicts in insertion order and the walk
+   inserts newest-first, so evicting would have deleted the NEWEST entries and
+   left a hole at the near end while still claiming the far date. */
+let corpusFull = false;
+function corpusAdd(txid, text, ts){
+  if (laneCorpus.has(txid)) return;
+  if (laneCorpus.size >= CORPUS_MAX){ corpusFull = true; return; }
+  laneCorpus.set(txid, { text, ts: ts || null });
+  if (ts && (corpusOldest == null || ts < corpusOldest)) corpusOldest = ts;
+}
+
+// Cheap gate AND the corpus filler. Reading only the first output's OP_RETURN
+// costs 2 ms per 200-tx page against 1950 ms for a full parse (measured on real
+// chronik data) — the difference between a usable feature and a frozen tab.
+// Scrub first: a zero-width char mid-word would otherwise evade every matcher
+// while still rendering normally.
 function lanePrefilter(txData){
   const sc = txData && txData.outputs && txData.outputs[0] && txData.outputs[0].outputScript;
   if (!sc || sc.slice(0, 2).toLowerCase() !== '6a') return false;
@@ -3696,92 +3755,216 @@ function lanePrefilter(txData){
   if (!m || !m.text) return false;
   const hay = clean(m.text);
   if (!hay) return false;
+  // Recorded BEFORE the term test, on purpose: the corpus answers future terms,
+  // not this one, so filtering it by today's question would defeat it entirely.
+  const bts = txData.block && Number(txData.block.timestamp);
+  const fts = Number(txData.timeFirstSeen);
+  const ts = (Number.isFinite(bts) && bts > 0) ? bts * 1000
+           : (Number.isFinite(fts) && fts > 0) ? fts * 1000 : null;
+  corpusAdd(txData.txid, hay, ts);
   if (activeMutes().length && matchAny(hay, activeMutes())) return false;
   return matchAny(hay, enabledTerms());
 }
 
-function laneResetBackfill(){
-  laneBf = null; laneBusy = false;
-  laneDeepScanned = 0; laneDeepKept = 0; laneDeepHoles = 0; laneDeepOldest = null; laneDeepDone = false;
-  state.laneTxs.clear();
-  // The cursor survives a term change ON PURPOSE. It records how far back the
-  // INDEX was read, which is a fact about pages fetched, not about the question
-  // asked — re-downloading them because the wording changed would spend someone
-  // else's bandwidth to learn nothing new. Results are cleared; position is not.
+// Answer a term from the corpus alone. No requests, no cursor, instant.
+function corpusMatches(){
+  const out = [];
+  const follow = enabledTerms(), mutes = activeMutes();
+  if (!follow.length) return out;
+  for (const [txid, e] of laneCorpus){
+    if (mutes.length && matchAny(e.text, mutes)) continue;
+    if (matchAny(e.text, follow)) out.push(txid);
+  }
+  return out;
 }
-function loadLaneCursor(){
+
+/* NOTE: there is deliberately no "reset the backfill" function any more.
+
+   A term change resets nothing that cost a request — the corpus, the parsed
+   transactions and the cursor all describe WHAT WAS READ, which does not change
+   when the question does. Only `state.matched`, the answer, is rebuilt, and it
+   is rebuilt locally. The previous version cleared the results but kept the
+   cursor, which is the worst of both: it paid again for pages it had thrown
+   away, and it skipped the newest pages for every term after the first. */
+/* THE CURSOR AND THE CORPUS ARE STORED TOGETHER, AND THAT IS THE POINT.
+
+   The cursor says which pages have been read; the corpus is what was read. If
+   the cursor outlives the corpus, the next session resumes past pages it can no
+   longer search, and every new term is blind to them — which is the original bug
+   in a slower form, surviving a reload instead of a term change. Writing them as
+   one value makes that state unreachable rather than merely unlikely.
+
+   If storage fails (quota, private mode) NEITHER is kept, for the same reason. */
+function loadLaneStore(){
   try {
     const raw = JSON.parse(localStorage.getItem(LANE_CURSOR_KEY) || 'null');
-    return raw && typeof raw === 'object' ? raw : null;
+    if (!raw || typeof raw !== 'object' || !raw.cursor || !Array.isArray(raw.corpus)) return null;
+    return raw;
   } catch { return null; }
 }
-function saveLaneCursor(){
-  // load() re-validates every field, so a corrupted or hand-edited entry costs a
-  // restart of that protocol's walk, never a wrong claim about what was read.
-  try { if (laneBf) localStorage.setItem(LANE_CURSOR_KEY, JSON.stringify(laneBf.cursor)); } catch {}
+function saveLaneStore(){
+  if (!laneBf) return;
+  try {
+    const corpus = [];
+    for (const [id, e] of laneCorpus) corpus.push([id, e.text, e.ts]);
+    localStorage.setItem(LANE_CURSOR_KEY, JSON.stringify({ v: 1, cursor: laneBf.cursor, corpus }));
+  } catch {
+    // Out of quota or storage denied: drop the whole entry rather than leave a
+    // cursor with no corpus behind it.
+    try { localStorage.removeItem(LANE_CURSOR_KEY); } catch {}
+  }
+}
+let laneSavedCursor = null;
+function restoreLaneStore(){
+  const s = loadLaneStore();
+  if (!s) return null;
+  for (const row of s.corpus){
+    if (!Array.isArray(row) || typeof row[0] !== 'string' || typeof row[1] !== 'string') continue;
+    corpusAdd(row[0], row[1], Number.isFinite(row[2]) ? row[2] : null);
+  }
+  laneSavedCursor = s.cursor;
+  return s.cursor;
+}
+
+/* Same finishing work histCard() does for F11 history, and the SINGLE place that
+   does it. parseTransactionCore alone is not enough: without txKind() a row has
+   no tx.kind, so kindLabel() falls through to "Payment" for every message — and
+   the icon only looks right because it lands on the IC.msg fallback. Both the
+   page walk and the single-tx hydrate below go through here, so they cannot
+   drift apart. */
+function laneParseTx(d){
+  let tx;
+  try { tx = scrubTx(parseTransactionCore(d)); } catch { return null; }
+  if (!tx) return null;
+  const k = txKind(tx); tx.kind = k.kind; tx.f = k.f; tx.icon = k.icon;
+  try { const r = deriveRoute(d); tx.from = r.from; tx.to = r.to; tx._addrSet = r.allAddrs; } catch {}
+  tx._hist = true;              // never renders a duration (F11 rule)
+  tx.ttf = null;                // we did not witness it, so there is none
+  tx.block = (d.block && d.block.height) || null;
+  tx.final = !!(tx.block || d.isFinal);
+  // Age comes from the block it landed in, falling back to first-seen. Left
+  // UNSET when neither is known — a Lane mixing today with 2023 must not guess,
+  // and an absent time reads as unknown rather than as "just now".
+  const bts = d.block && Number(d.block.timestamp);
+  const fts = Number(d.timeFirstSeen);
+  if (Number.isFinite(bts) && bts > 0) tx.ts = bts * 1000;
+  else if (Number.isFinite(fts) && fts > 0) tx.ts = fts * 1000;
+  return tx;
+}
+
+function laneHold(tx){
+  if (!tx || !tx.id || state.laneTxs.has(tx.id)) return;
+  state.laneTxs.set(tx.id, tx);
+  // Evicting here can only drop a transaction the Lane is no longer showing,
+  // because laneSetMatched() caps the visible set to the SAME bound and keeps
+  // the newest. Dropping the map entry without the id would leave an orphan
+  // holding memory it can never render from.
+  while (state.laneTxs.size > MATCH_MAX){
+    const oldest = state.laneTxs.keys().next().value;
+    state.laneTxs.delete(oldest);
+  }
+}
+
+/* SINGLE owner of state.matched, and the only place the cap is applied. Two
+   writers with two different rules is what let a cheap live match evict a
+   backfilled one that had cost a request — the exact thing the design note
+   promised would not happen.
+
+   Newest first: a search result reads top-down, and the old insertion order
+   interleaved "two years ago" with "just now" by whichever code path ran. */
+function laneSetMatched(ids){
+  const seen = new Set();
+  const rows = [];
+  for (const id of ids){
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const tx = state.txs.get(id) || state.laneTxs.get(id);
+    const c = laneCorpus.get(id);
+    rows.push([id, (tx && tx.ts) || (c && c.ts) || 0]);
+  }
+  // Cap by RECENCY but display OLDEST FIRST. Those are two different decisions:
+  // when something has to go it should be the oldest, while the reading order
+  // follows the stream underneath — new arrivals appear at the bottom, so the
+  // Lane and the stream never scroll in opposite directions.
+  rows.sort((a, b) => b[1] - a[1]);
+  state.matched = rows.slice(0, MATCH_MAX).reverse().map((r) => r[0]);
+}
+
+/* Answer the current terms from what has ALREADY been paid for: the live
+   session plus the corpus. No requests, no cursor, no waiting. */
+function laneRematch(){
+  const ids = corpusMatches();
+  for (const tx of state.txs.values()) if (txMatchesTerms(tx)) ids.push(tx.id);
+  laneSetMatched(ids);
+}
+
+/* A corpus hit we have never fully parsed cannot be rendered, because the Lane
+   has exactly one row renderer and it needs kind/route/block. Fetch those, and
+   only those — one request each, bounded by MATCH_MAX and batched like
+   runReconcile does. */
+async function laneHydrate(token){
+  const missing = state.matched.filter((id) => !state.txs.has(id) && !state.laneTxs.has(id));
+  if (!missing.length || !state.chronik || typeof state.chronik.tx !== 'function') return;
+  for (let i = 0; i < missing.length; i += 8){
+    if (token !== laneRunToken) return;             // a term changed under us
+    const batch = missing.slice(i, i + 8);
+    const res = await Promise.allSettled(batch.map((id) => state.chronik.tx(id)));
+    for (const r of res){
+      if (r.status !== 'fulfilled' || !r.value) continue;
+      const tx = laneParseTx(r.value);
+      if (tx) laneHold(tx);
+    }
+    if (state.laneOpen) renderLane();
+    await new Promise((r) => setTimeout(r, 0));
+  }
 }
 
 async function runLaneBackfill(){
   if (laneBusy || laneDeepDone || !enabledTerms().length) return;
   laneBusy = true; renderLaneMore();
+  const token = laneRunToken;
   if (!laneBf){
     laneBf = createBackfill({
       chronik: state.chronik, lokads: MESSAGE_LOKADS, pageSize: LANE_PAGE,
       prefilter: lanePrefilter,
-      // Same finishing work histCard() does for F11 history. parseTransactionCore
-      // alone is NOT enough: without txKind() a backfilled row has no tx.kind, so
-      // kindLabel() falls through to "Payment" for every message — and the icon
-      // only looked right because it lands on the IC.msg fallback. Classify, then
-      // route, then state, then time.
-      parse: (d) => {
-        let tx;
-        try { tx = scrubTx(parseTransactionCore(d)); } catch { return null; }
-        if (!tx) return null;
-        const k = txKind(tx); tx.kind = k.kind; tx.f = k.f; tx.icon = k.icon;
-        try { const r = deriveRoute(d); tx.from = r.from; tx.to = r.to; tx._addrSet = r.allAddrs; } catch {}
-        tx._hist = true;              // never renders a duration (F11 rule)
-        tx.ttf = null;                // we did not witness it, so there is none
-        tx.block = (d.block && d.block.height) || null;
-        tx.final = !!(tx.block || d.isFinal);
-        // Age comes from the block it landed in, falling back to first-seen. Left
-        // UNSET when neither is known — a Lane mixing today with 2023 must not
-        // guess, and an absent time reads as unknown rather than as "just now".
-        const bts = d.block && Number(d.block.timestamp);
-        const fts = Number(d.timeFirstSeen);
-        if (Number.isFinite(bts) && bts > 0) tx.ts = bts * 1000;
-        else if (Number.isFinite(fts) && fts > 0) tx.ts = fts * 1000;
-        return tx;
-      },
+      parse: laneParseTx,
       keep: (tx) => txMatchesTerms(tx),
       onBatch: (txs) => {
-        for (const tx of txs){
-          tx._hist = true;                       // never claims a TTF it did not witness
-          if (state.laneTxs.has(tx.id)) continue;
-          state.laneTxs.set(tx.id, tx);
-          while (state.laneTxs.size > MATCH_MAX){
-            const oldest = state.laneTxs.keys().next().value;
-            state.laneTxs.delete(oldest);
-            const i = state.matched.indexOf(oldest);
-            if (i !== -1) state.matched.splice(i, 1);
-          }
-          if (!state.matched.includes(tx.id)) state.matched.push(tx.id);
-        }
+        if (token !== laneRunToken) return;         // orphaned run, drop its output
+        for (const tx of txs) laneHold(tx);
+        laneRematch();
       },
     });
-    const saved = loadLaneCursor();
-    if (saved) laneBf.load(saved);
+    if (laneSavedCursor) laneBf.load(laneSavedCursor);   // restored at boot, with its corpus
   }
   let cov = null;
   try { cov = await laneBf.run({ requests: LANE_REQUESTS }); }
   catch { /* a total failure is still coverage, reported by the counters below */ }
-  saveLaneCursor();   // persist even on a partial run: those pages were still read
-  if (cov){
-    laneDeepScanned = cov.scanned; laneDeepKept = cov.kept;
-    laneDeepHoles = cov.holes.length; laneDeepOldest = cov.oldestTs; laneDeepDone = cov.done;
-  }
+  if (token !== laneRunToken) return;               // superseded; do not touch shared state
+  saveLaneStore();    // persist even on a partial run: those pages were still read
+  if (cov){ laneDeepHoles = cov.holes.length; laneDeepDone = cov.done; }
+  laneRematch();
   laneBusy = false;
   if (state.laneOpen) renderLane();
   else renderLaneMore();
+  await laneHydrate(token);
+}
+
+/* Turning a topic on now SEARCHES, once, instead of only lighting a chip.
+
+   Before this, a restored topic came back lit after a reload while nothing had
+   been looked at: a followed term does not touch the stream at all (only a muted
+   one does), so the chip was a promise with nothing behind it, and the reader had
+   to know to press a second button before anything happened.
+
+   It stays light by refusing to run when it would learn nothing: if the corpus
+   already answers this term, the answer is on screen without a single request.
+   So the cost is paid once per genuinely new topic, not once per page load. */
+function maybeAutoBackfill(){
+  if (!enabledTerms().length || laneBusy || laneDeepDone) return;
+  if (!state.chronik || typeof state.chronik.lokadId !== 'function') return;
+  if (laneCorpus.size && corpusMatches().length) return;   // already answered locally
+  runLaneBackfill();
 }
 
 function renderLaneMore(){
@@ -3847,52 +4030,41 @@ function muteCount(q){
 function laneAdd(tx){
   if (!tx || !tx.id) return;
   if (state.matched.includes(tx.id)) return;
-  state.matched.push(tx.id);
-  while (state.matched.length > MATCH_MAX) state.matched.shift();
+  laneSetMatched([tx.id, ...state.matched]);   // one owner, one cap; order decided there
   if (state.laneOpen) renderLane();
   renderTermChips();                       // the count badge on the chips
 }
-// Seed from what this session already holds. NOT a network scan: state.txs is
-// in-memory (cap 2500) and already includes anything "Load older" pulled in, so
-// this costs nothing and touches nobody's node. Without it a brand-new topic
-// would show an empty Lane until a matching tx happened to arrive, which on this
-// chain can be days — and would look broken rather than honest.
-function seedLane(){
-  state.matched = [];
-  laneSeedScanned = 0; laneSeedSkipped = 0;
-  const terms = enabledTerms();
-  if (!terms.length) return;
+// Session coverage, recomputed on demand rather than latched. It used to be set
+// only when the terms changed, so the figure the Lane calls its primary readout
+// froze at whatever the session held at that instant and never moved again while
+// the stream kept arriving.
+//
+// txMatchesTerms(), NOT matchAny() — the same rules as a live arrival, and only
+// that function knows a mute outranks a follow. This shipped wrong once: the
+// stream hid the muted cards while the Lane kept showing them, because the seed
+// had its own copy of the test.
+function sessionCoverage(){
+  let scanned = 0, noText = 0;
   for (const tx of state.txs.values()){
-    laneSeedScanned++;
-    if (!tx._hay){ laneSeedSkipped++; continue; }
-    // txMatchesTerms(), NOT matchAny() — the seed must apply the same rules as a
-    // live arrival, and only that function knows a mute outranks a follow. This
-    // shipped wrong once: the stream hid the muted cards while the Lane kept
-    // showing them, because the seed had its own copy of the test.
-    if (txMatchesTerms(tx)) state.matched.push(tx.id);
+    scanned++;
+    if (!tx._hay) noText++;
   }
-  while (state.matched.length > MATCH_MAX) state.matched.shift();
+  return { scanned, noText };
 }
 
 // Build <mark> from DOM nodes. The term is user input and must NEVER be
 // concatenated into an innerHTML string.
+//
+// Spans come from findAllSpans(), which runs the SAME normalize/fold pipeline as
+// matchTerm(). The first version used a plain indexOf on a lowercased copy and
+// therefore disagreed with the matcher in both directions: a folded term matched
+// "Quán ăn ngon" and highlighted nothing, and a word-mode term "an" highlighted
+// the middle of "banana" it had never matched. A highlight that does not mark
+// what matched is worse than none — it tells the reader the wrong reason.
 function highlightInto(el, text, terms){
   el.textContent = '';
-  const lower = text.toLowerCase();
-  const spans = [];
-  for (const t of terms){
-    const needle = String(t.q || '').toLowerCase();
-    if (!needle) continue;
-    let i = lower.indexOf(needle);
-    while (i !== -1){ spans.push([i, i + needle.length]); i = lower.indexOf(needle, i + needle.length); }
-  }
-  if (!spans.length){ el.textContent = text; return; }
-  spans.sort((a, b) => a[0] - b[0]);
-  const merged = [spans[0]];
-  for (const s of spans.slice(1)){
-    const last = merged[merged.length - 1];
-    if (s[0] <= last[1]) last[1] = Math.max(last[1], s[1]); else merged.push(s);
-  }
+  const merged = findAllSpans(text, terms);
+  if (!merged.length){ el.textContent = text; return; }
   let pos = 0;
   for (const [a, b] of merged){
     if (a > pos) el.appendChild(document.createTextNode(text.slice(pos, a)));
@@ -3907,6 +4079,7 @@ function highlightInto(el, text, terms){
 function laneRow(tx){
   const row = document.createElement('button');
   row.type = 'button'; row.className = 'lane-row';
+  row.dataset.txid = tx.id;                // lets a re-render find this row again
   row.tabIndex = -1;                       // roving: normalizeLaneRoving() picks the one stop
   row.setAttribute('aria-expanded', 'false');
   const ic = document.createElement('span');
@@ -3924,6 +4097,16 @@ function laneRow(tx){
 
   const det = document.createElement('div');
   det.className = 'lane-detail';
+  // Re-assert the open panel after a rebuild. renderLane() empties the list on
+  // every live match, so without this an open detail closed under the reader
+  // mid-read — and state.laneExpandedId, the variable that should have prevented
+  // it, was written in three places and read in none.
+  if (state.laneExpandedId === tx.id){
+    det.innerHTML = buildDetailHtml(tx);
+    wireDetail(det, tx);
+    det.classList.add('open');
+    row.setAttribute('aria-expanded', 'true');
+  }
   row.addEventListener('click', () => {
     const open = !det.classList.contains('open');
     // one open at a time, same accordion rule as the stream
@@ -3975,28 +4158,55 @@ laneList.addEventListener('keydown', (e) => {
 });
 
 function renderLane(){
+  /* This rebuilds the whole list, and it runs on every live match. Two things
+     therefore have to survive it, because losing them mid-read is the difference
+     between a live list and an unusable one: which detail is open (handled in
+     laneRow via state.laneExpandedId) and where the keyboard was. */
+  const active = document.activeElement;
+  const focusedId = (active && active.classList && active.classList.contains('lane-row'))
+    ? active.dataset.txid : null;
+  // An open detail whose row is no longer in the answer cannot be restored, and
+  // leaving the id set would re-open it the moment the row came back.
+  if (state.laneExpandedId && !state.matched.includes(state.laneExpandedId)) state.laneExpandedId = null;
   laneList.textContent = '';
   let shown = 0, gone = 0;
   for (const id of state.matched){
     const tx = state.txs.get(id) || state.laneTxs.get(id);
-    if (!tx){ gone++; continue; }            // aged out of state.txs (cap 2500)
+    // A corpus hit we have not fetched yet is PENDING, not lost. Counting it as
+    // "aged out of memory" claimed data had been dropped when the truth was that
+    // hydration had not run — two different states, and only one of them is a
+    // gap in what we can offer.
+    if (!tx){ if (!laneCorpus.has(id)) gone++; continue; }
     const [row, det] = laneRow(tx);
     laneList.appendChild(row); laneList.appendChild(det);
     shown++;
   }
   normalizeLaneRoving();   // exactly one tab stop, however many rows landed
+  if (focusedId){
+    const again = laneList.querySelector('.lane-row[data-txid="' + CSS.escape(focusedId) + '"]');
+    // Only restore focus if it was already inside the Lane — never steal it.
+    if (again){ again.tabIndex = 0; laneRows().forEach(r => { if (r !== again) r.tabIndex = -1; }); again.focus(); }
+  }
   laneCount.textContent = shown ? tf('lane.count', { n: fmtInt(shown) }) : '';
   // Coverage first, always: what was looked at, not merely what was found.
-  const cov = [tf('lane.scanned', { n: fmtInt(laneSeedScanned) })];
-  if (laneSeedSkipped) cov.push(tf('lane.noText', { n: fmtInt(laneSeedSkipped) }));
+  const sc = sessionCoverage();
+  const cov = [tf('lane.scanned', { n: fmtInt(sc.scanned) })];
+  if (sc.noText) cov.push(tf('lane.noText', { n: fmtInt(sc.noText) }));
   if (gone) cov.push(tf('lane.aged', { n: fmtInt(gone) }));
-  // What the retrospective walk actually read, kept separate from the session
-  // figure above: they answer different questions and merging them would let a
-  // big index number imply the live stream had been that thorough.
-  if (laneDeepScanned) cov.push(tf('lane.deepScanned', { n: fmtInt(laneDeepScanned) }));
-  // Reach is the honest headline for a backward walk, and it is stated only
-  // when a real timestamp was seen — never derived from "now minus something".
-  if (laneDeepOldest) cov.push(tf('lane.reach', { d: fmtDate(laneDeepOldest * 1000) }));
+  // What the retrospective walk read, kept separate from the session figure
+  // above: they answer different questions, and merging them would let a big
+  // index number imply the live stream had been that thorough.
+  //
+  // Both now describe the CORPUS, not the current run. That matters: the figures
+  // used to be whatever the last run happened to return, so a new term inherited
+  // the previous term's reach and claimed coverage it had never read.
+  if (laneCorpus.size) cov.push(tf('lane.deepScanned', { n: fmtInt(laneCorpus.size) }));
+  // Reach is the honest headline for a backward walk, and it is stated only when
+  // a real timestamp was seen — never derived from "now minus something". It is
+  // the oldest entry actually held, and the walk is continuous from newest back
+  // to it apart from the holes reported next.
+  const reach = laneReach();
+  if (reach) cov.push(tf('lane.reach', { d: fmtDate(reach * 1000) }));
   // A page that failed is a HOLE, said out loud. Silence would read as absence.
   if (laneDeepHoles) cov.push(tf('lane.holes', { n: fmtInt(laneDeepHoles) }));
   laneCov.textContent = cov.join(' · ');
@@ -4100,13 +4310,21 @@ function onTermsChanged(){
     if (tx.el) tx.el.classList.toggle('muted', txIsMuted(tx));
   }
   applyFilter();
-  // The backfill's cursor and its results are answers to the OLD question — a
-  // changed term set makes both meaningless, so start the walk over rather than
-  // resuming it against a different predicate.
-  laneResetBackfill();
-  seedLane();
+  // A new question is answered from what has ALREADY been read — the live session
+  // plus the corpus — with no requests and no cursor involved.
+  //
+  // The earlier version threw the results away but kept the cursor, so a fresh
+  // term resumed mid-walk and the NEWEST pages of every protocol were unreachable
+  // for it, permanently. Reproduced live: a new term began at page 3 of all six.
+  // Nothing here resets a thing that cost a request; only the answer is rebuilt.
+  laneRunToken++;              // any run still in flight stops writing shared state
+  laneBusy = false;
+  laneDeepDone = false;        // "searched everything" belonged to the old question
+  laneRematch();
   renderTermChips();
   renderLaneMore();
+  laneHydrate(laneRunToken);   // fetch only the corpus hits we cannot render yet
+  maybeAutoBackfill();         // a brand-new topic searches once instead of just lighting up
   if (!enabledTerms().length){
     // User decision (2026-08-03): turning the last term off closes the Lane
     // rather than leaving the reader stranded on an empty screen.
@@ -5461,6 +5679,10 @@ async function boot(){
   renderAllWatch();      // MUST follow loadMyAddr(): the panel renders the saved address + its ✕
   updateWatchBadge();
   loadTerms();           // saved topics → the chips row (the Lane opens only on demand)
+  // Corpus BEFORE the first render: a saved topic must show what was already
+  // paid for in an earlier session, not an empty Lane it then has to re-fetch.
+  restoreLaneStore();
+  laneRematch();
   renderTermChips();
   renderLaneMore();      // MUST follow loadTerms(): the backfill button only exists once a topic does
   initHeroBanner();      // first-visit thesis banner (mobile; CSS hides it on desktop)

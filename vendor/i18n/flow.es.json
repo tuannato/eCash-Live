@@ -79,7 +79,7 @@
     "lane.searching": "Buscando…",
     "lane.deepEnd": "Se buscó todo en la cadena",
     "lane.deepScanned": "{n} mensajes leídos del índice de la cadena",
-    "lane.reach": "hasta {d}",
+    "lane.reach": "búsqueda completa hasta {d}",
     "lane.holes": "{n} páginas no se pudieron cargar",
     "term.add": "+ Tema",
     "term.title": "Añadir un tema",

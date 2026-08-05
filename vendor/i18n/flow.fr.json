@@ -79,7 +79,7 @@
     "lane.searching": "Recherche…",
     "lane.deepEnd": "Toute la chaîne a été parcourue",
     "lane.deepScanned": "{n} messages lus depuis l’index de la chaîne",
-    "lane.reach": "jusqu’au {d}",
+    "lane.reach": "recherche complète jusqu’au {d}",
     "lane.holes": "{n} pages n’ont pas pu être chargées",
     "term.add": "+ Sujet",
     "term.title": "Ajouter un sujet",

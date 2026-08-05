@@ -79,7 +79,7 @@
     "lane.searching": "検索中…",
     "lane.deepEnd": "チェーン全体を検索しました",
     "lane.deepScanned": "チェーンの索引から {n} 件のメッセージを読み込みました",
-    "lane.reach": "{d} まで",
+    "lane.reach": "{d} まで全件検索済み",
     "lane.holes": "{n} ページを読み込めませんでした",
     "term.add": "+ トピック",
     "term.title": "トピックを追加",

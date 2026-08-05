@@ -79,7 +79,7 @@
     "lane.searching": "搜索中…",
     "lane.deepEnd": "链上内容已全部搜索",
     "lane.deepScanned": "已从链索引读取 {n} 条消息",
-    "lane.reach": "回溯至 {d}",
+    "lane.reach": "已完整搜索至 {d}",
     "lane.holes": "{n} 页无法加载",
     "term.add": "+ 主题",
     "term.title": "添加主题",

@@ -79,7 +79,7 @@
     "lane.searching": "กำลังค้นหา…",
     "lane.deepEnd": "ค้นครบทั้งเชนแล้ว",
     "lane.deepScanned": "อ่าน {n} ข้อความจากดัชนีของเชน",
-    "lane.reach": "ย้อนถึง {d}",
+    "lane.reach": "ค้นครบถึง {d}",
     "lane.holes": "โหลดไม่ได้ {n} หน้า",
     "term.add": "+ หัวข้อ",
     "term.title": "เพิ่มหัวข้อ",
