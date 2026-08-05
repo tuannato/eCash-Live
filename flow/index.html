@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-W2wshu9s5P7IYndMmaxFuoNWxn8RqDS08/7el/JavSw=';
+  script-src 'self' 'sha256-Rhp3N+2ZgGHwY2m/UbfUezBcpxXTVPuUmnJXnhRleM8=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -1263,7 +1263,7 @@
 <script type="module">
 import { parseTransactionCore, encodeOutputScript, validateCashAddress, parseOpReturn, MESSAGE_LOKADS } from '../vendor/txparse.js?v=p5';
 import { matchAny, findAllSpans } from '../vendor/core/match.js?v=2';
-import { createBackfill } from '../vendor/core/backfill.js?v=2';
+import { createBackfill } from '../vendor/core/backfill.js?v=3';
 import { isCashtabExtension, requestAddress as ctRequestAddress, sendBip21 as ctSendBip21 } from '../vendor/cashtab-connect.js?v=1';
 "use strict";
 const $ = (id) => document.getElementById(id);
@@ -3932,11 +3932,23 @@ function laneSetMatched(ids){
   state.matched = rows.slice(0, MATCH_MAX).reverse().map((r) => r[0]);
 }
 
-/* Answer the current terms from what has ALREADY been paid for: the live
-   session plus the corpus. No requests, no cursor, no waiting. */
+/* Answer the current terms from everything ALREADY paid for: the live session,
+   the corpus, and the transactions the backfill has already parsed.
+
+   All three are required. Leaving out laneTxs looked harmless while the corpus
+   still had room — every scanned transaction went into it, so every match was
+   in it. The moment the corpus filled, matches found by a deeper page were held
+   in laneTxs and then dropped from the answer on the very next rebuild: the
+   walk kept reading, the reported date kept moving back, and not one new row
+   ever appeared. Reproduced at 59 rows before and 59 after a page that
+   demonstrably advanced the floor.
+
+   Each source is re-tested against the current terms rather than trusted, so a
+   changed term still drops what no longer matches. */
 function laneRematch(){
   const ids = corpusMatches();
   for (const tx of state.txs.values()) if (txMatchesTerms(tx)) ids.push(tx.id);
+  for (const tx of state.laneTxs.values()) if (txMatchesTerms(tx)) ids.push(tx.id);
   laneSetMatched(ids);
 }
 

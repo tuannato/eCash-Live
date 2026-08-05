@@ -73,6 +73,7 @@ export function createBackfill({ chronik, lokads, parse, prefilter, keep, onBatc
 
   const size = Math.max(1, Math.min(MAX_PAGE_SIZE, pageSize | 0));
   const seen = new Set();
+  let rrIndex = 0;
 
   const cursor = {};
   for (const id of lokads) {
@@ -104,30 +105,29 @@ export function createBackfill({ chronik, lokads, parse, prefilter, keep, onBatc
     };
   }
 
-  /** Read whichever protocol is HOLDING THE FLOOR BACK.
+  /** One page from each unread protocol per pass — plain round-robin.
    *
-   *  Coverage is only as deep as the shallowest protocol — that is what makes a
-   *  single "searched back to <date>" honest — so the page worth fetching is
-   *  always the one belonging to the protocol with the newest oldest-entry.
+   *  A previous version chose the protocol holding the coverage floor, which is
+   *  optimal for moving the reported date and WRONG for the product. On real
+   *  data the floor is held by PayButton, whose text field is machine-generated
+   *  order identifiers, so every request went to the one protocol that can
+   *  essentially never contain human writing: the date advanced steadily while
+   *  the result count did not move at all. Measured — six pages of PayButton,
+   *  zero new matches, on a topic with fifty-nine existing ones.
    *
-   *  Plain round-robin advanced all six equally, which sounds fair and is not:
-   *  the floor is set by the densest protocol, and a page is a fixed 50
-   *  transactions, so the sparse ones raced years ahead while the dense one
-   *  crawled and the reported date barely moved. Measured on chain: PayButton
-   *  needs 368 pages and Alias 24, so five sixths of every round was being spent
-   *  where it could not lower the floor.
-   *
-   *  A protocol never read comes first: with no oldest-entry it contributes no
-   *  floor at all, so nothing can be claimed until it has been looked at once. */
+   *  Round-robin is not the wasteful option it looks like, because it settles
+   *  itself: a protocol that runs out is marked done and stops taking a share,
+   *  so the sparse ones cost a bounded number of pages and then step aside. The
+   *  price is that the reported floor moves only as fast as the densest
+   *  protocol allows — which is not a scheduling artifact but the truth about
+   *  how deep the coverage actually is.
+   */
   function nextLokad() {
-    let best = null, bestTs = -Infinity;
-    for (const id of lokads) {
-      const c = cursor[id];
-      if (c.done) continue;
-      if (c.oldestTs == null) return id;          // unread — no claim possible without it
-      if (c.oldestTs > bestTs) { bestTs = c.oldestTs; best = id; }
+    for (let i = 0; i < lokads.length; i++) {
+      const id = lokads[(rrIndex + i) % lokads.length];
+      if (!cursor[id].done) { rrIndex = (rrIndex + i + 1) % lokads.length; return id; }
     }
-    return best;
+    return null;
   }
 
   return {
