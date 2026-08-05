@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-RNeXHg41Z3vQN5zcgiBvCwxOQD41vgfwUP8qRLeXWHk=';
+  script-src 'self' 'sha256-0CvJwCy/32HXH0JXMNpAJD5PcR04zi0ZJfF44wETesg=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -582,7 +582,7 @@
                border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;}
   .lane-detail.open{display:block;}
   .lane-empty{font-size:12px;color:var(--ink3);line-height:1.7;padding:18px 4px;text-align:center;}
-  .lane-more{display:block;width:100%;margin:6px 0 2px;padding:11px 14px;border:1px solid var(--line);
+  .lane-more{display:block;width:100%;margin:2px 0 8px;padding:11px 14px;border:1px solid var(--line);
     border-radius:12px;background:var(--card);color:var(--ink2);font:inherit;font-size:12.5px;
     cursor:pointer;position:relative;}
   .lane-more:hover:not(:disabled){border-color:var(--accent);color:var(--ink);}
@@ -1076,13 +1076,14 @@
              message is the predictable abuse. -->
         <div class="safety-line" data-i18n="safety.lane">Anyone can put any word in a message. Treat links and offers here as untrusted.</div>
         <div class="lane-cov" id="lane-cov"></div>
+        <!-- Retrospective half, and it sits ABOVE the list because that is the
+             direction it grows. Rows read oldest-first like the stream, so
+             "search further back" adds to the TOP; a button below the newest row
+             would point away from the results it produces. One click = one page
+             per protocol; the coverage line above says how far back it got. -->
+        <button class="lane-more" id="lane-more" type="button" hidden></button>
         <div id="lane-list"></div>
         <div class="lane-empty" id="lane-empty" hidden></div>
-        <!-- Retrospective half. The live stream only ever moves forward, so this
-             is the only way a topic reaches anything written before today. One
-             click = one page per protocol; the coverage line above says how far
-             back it got. -->
-        <button class="lane-more" id="lane-more" type="button" hidden></button>
       </div>
       <!-- Shared-receipt state (F14): a ?tx= link opens a PINNED receipt over the
            stream instead of appending a card that scrolls away. Dismissing it
@@ -3990,8 +3991,22 @@ function loadTerms(){
       if (state.terms.length >= TERM_MAX) break;
       const q = typeof e === 'string' ? e : (e && e.q);
       if (!q || typeof q !== 'string') continue;
-      state.terms.push({ q: q.slice(0, 40), on: e.on !== false, mode: e.mode === 'contains' ? 'contains' : 'word',
-                         fold: !!e.fold, mute: !!e.mute });   // missing mute == followed (older saves)
+      const mute = !!e.mute;
+      // A FOLLOW comes back OFF; a MUTE comes back ON.
+      //
+      // They are different kinds of thing. A follow is an action — "search this
+      // now" — and a lit chip after a reload claimed an action had been taken
+      // when nothing had been looked at: a followed term does not touch the
+      // stream, so the chip was the only evidence of a search that never ran.
+      // The topic is still saved and one tap re-runs it, now instantly, because
+      // the corpus survived.
+      //
+      // A mute is not an action, it is a standing preference, and it is the
+      // reader's defence against term-stuffing. Resetting it would let the thing
+      // it was set up to hide come back on every page load, so it persists.
+      state.terms.push({ q: q.slice(0, 40), on: mute ? (e.on !== false) : false,
+                         mode: e.mode === 'contains' ? 'contains' : 'word',
+                         fold: !!e.fold, mute });   // missing mute == followed (older saves)
     }
   } catch {}
 }
