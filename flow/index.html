@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-9Mfx0XyBaZuvlmEH6jJEMOja5VFYUVm+K5CXe60yY28=';
+  script-src 'self' 'sha256-+PG/Pl5CSEYqMpZFXFkHvMz5OFB0bjH4TXzFwmm2dgA=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -4350,11 +4350,44 @@ laneList.addEventListener('keydown', (e) => {
   if (next && next !== document.activeElement) next.focus();
 });
 
+/* Scroll position is anchored to the DISTANCE FROM THE BOTTOM, not to scrollTop.
+   Rows read oldest-first, so a deeper search PREPENDS older ones and every
+   absolute offset shifts underneath the reader — they were thrown back to
+   messages from months ago and had to scroll down again after every click.
+   Distance-from-bottom is invariant under a prepend, and it also does the right
+   thing at the other end: someone sitting at the bottom stays pinned to the
+   newest as live matches arrive, exactly like the stream, while someone who has
+   scrolled up is left where they were. One anchor, both behaviours. */
+// One-shot: openLane() asks to land at the newest end, because at that moment
+// the list may still be empty and there is nothing to measure.
+let laneToBottomOnce = true;
+
 function renderLane(){
-  /* This rebuilds the whole list, and it runs on every live match. Two things
-     therefore have to survive it, because losing them mid-read is the difference
-     between a live list and an unusable one: which detail is open (handled in
-     laneRow via state.laneExpandedId) and where the keyboard was. */
+  /* This rebuilds the whole list, and it runs on every live match. Three things
+     therefore have to survive it, because losing any of them mid-read is the
+     difference between a live list and an unusable one: which detail is open
+     (handled in laneRow via state.laneExpandedId), where the keyboard was, and
+     where the reader had scrolled to. */
+  // MEASURED here, not tracked by a scroll listener. Deriving it from the live
+  // DOM is both simpler and more robust: an event-tracked flag goes stale
+  // whenever a scroll happens that the listener does not see — and a
+  // programmatic scrollTop assignment is exactly such a case in some engines,
+  // which is how this was found.
+  const atBottom = laneToBottomOnce ||
+    (laneEl.scrollHeight - laneEl.scrollTop - laneEl.clientHeight) < 24;
+  /* Anchor on the ROW the reader is looking at, not on an offset.
+     Distance-from-the-bottom holds only while rows are added at one end, and
+     they are not: results are ordered by date, so a page from three weeks ago
+     lands in the MIDDLE. Measured — the offset was preserved exactly and the
+     text under it still changed. Pinning the row itself survives insertions
+     anywhere; the offset is kept as the fallback for when that row is gone. */
+  const laneTop = laneEl.getBoundingClientRect().top;
+  let anchorId = null, anchorOffset = 0;
+  for (const r of laneList.querySelectorAll('.lane-row')){
+    const rt = r.getBoundingClientRect();
+    if (rt.bottom > laneTop + 4){ anchorId = r.dataset.txid; anchorOffset = rt.top - laneTop; break; }
+  }
+  const fromBottom = laneEl.scrollHeight - laneEl.scrollTop;
   const active = document.activeElement;
   const focusedId = (active && active.classList && active.classList.contains('lane-row'))
     ? active.dataset.txid : null;
@@ -4375,6 +4408,23 @@ function renderLane(){
     shown++;
   }
   normalizeLaneRoving();   // exactly one tab stop, however many rows landed
+  // Restore before anything else touches the scroller, so a focus() below cannot
+  // fight it. Sticking to the bottom wins over the saved offset: it is what the
+  // reader asked for by being there.
+  if (atBottom){
+    laneEl.scrollTop = laneEl.scrollHeight;
+  } else {
+    const again = anchorId
+      ? laneList.querySelector('.lane-row[data-txid="' + CSS.escape(anchorId) + '"]')
+      : null;
+    if (again){
+      const delta = (again.getBoundingClientRect().top - laneEl.getBoundingClientRect().top) - anchorOffset;
+      laneEl.scrollTop = Math.max(0, laneEl.scrollTop + delta);
+    } else {
+      laneEl.scrollTop = Math.max(0, laneEl.scrollHeight - fromBottom);
+    }
+  }
+  laneToBottomOnce = false;
   if (focusedId){
     const again = laneList.querySelector('.lane-row[data-txid="' + CSS.escape(focusedId) + '"]');
     // Only restore focus if it was already inside the Lane — never steal it.
@@ -4429,6 +4479,10 @@ function openLane(){
   state.laneOpen = true;
   laneEl.hidden = false;
   showAnimated(laneEl, 'show');
+  // Open at the NEWEST end. Rows read oldest-first, so without this the Lane
+  // opened on the oldest thing it had — a message from months ago — and the
+  // reader had to scroll all the way down to reach anything recent.
+  laneToBottomOnce = true;
   renderLane();
   updateFabAway();                     // the "+" steps aside while the Lane covers the stream
   syncInert();   // the stream underneath must stop taking Tab
