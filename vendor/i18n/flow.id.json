@@ -81,6 +81,7 @@
     "lane.deepScanned": "{n} pesan dibaca dari indeks rantai",
     "lane.reach": "dicari lengkap sampai {d}",
     "lane.holes": "{n} halaman gagal dimuat",
+    "lane.unread": "{n} protokol tidak dapat dibaca — cakupan tidak dinyatakan untuk mereka",
     "lane.cacheFull": "memori penuh — halaman lama masih dicari untuk topik ini, tetapi tidak disimpan untuk topik lain",
     "term.add": "+ Topik",
     "term.any": "kata apa pun",

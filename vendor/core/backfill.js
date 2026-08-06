@@ -125,7 +125,10 @@ export function createBackfill({ chronik, lokads, parse, prefilter, keep, onBatc
   function nextLokad() {
     for (let i = 0; i < lokads.length; i++) {
       const id = lokads[(rrIndex + i) % lokads.length];
-      if (!cursor[id].done) { rrIndex = (rrIndex + i + 1) % lokads.length; return id; }
+      // Abandoned is skipped for THIS run — there is nothing more to try now —
+      // but it is not `done`, so it never counts as covered.
+      const c = cursor[id];
+      if (!c.done && !c.failed) { rrIndex = (rrIndex + i + 1) % lokads.length; return id; }
     }
     return null;
   }
@@ -157,6 +160,9 @@ export function createBackfill({ chronik, lokads, parse, prefilter, keep, onBatc
      * and that is the unit a node actually feels.
      */
     async run({ requests: budget = 6, signal } = {}) {
+      // A new run is the caller asking again, so give an abandoned protocol
+      // another chance. Its holes stay on the record; only the giving-up resets.
+      for (const id of lokads){ cursor[id].failed = false; cursor[id].fails = 0; }
       let used = 0;
       while (used < budget) {
         if (signal && signal.aborted) break;
@@ -173,7 +179,13 @@ export function createBackfill({ chronik, lokads, parse, prefilter, keep, onBatc
           holes.push({ lokad: id, page: st.page, err: String((err && err.message) || err) });
           st.fails = (st.fails || 0) + 1;
           st.page++;
-          if (st.fails >= FAIL_MAX) { st.done = true; st.failed = true; }
+          // ABANDONED IS NOT DONE. Marking a protocol whose node kept failing
+          // as `done` made it indistinguishable from one read to genesis, and
+          // every consumer of `done` then treated it as fully covered: the reach
+          // floor skipped it, the overall `done` flipped true, and the caller's
+          // button said "searched everything" and disabled itself, so the reader
+          // could not even retry. Two different facts need two different flags.
+          if (st.fails >= FAIL_MAX) st.failed = true;
           else if (st.numPages != null && st.page >= st.numPages) st.done = true;
           continue;
         }

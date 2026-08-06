@@ -56,19 +56,48 @@ export function foldLatinMarks(s) {
 // Thai correctly despite those scripts not separating words with spaces. The
 // regex fallback exists only for environments without it and is knowingly worse
 // for those scripts.
+//
+// ONE Segmenter for the process. Constructing it is not free — measured at 16 ms
+// per 2000 constructions, which was ~18% of a corpus pass spent building the
+// same object over and over.
+let _segmenter;
+function segmenter() {
+  if (_segmenter !== undefined) return _segmenter;
+  _segmenter = null;
+  if (typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function') {
+    try { _segmenter = new Intl.Segmenter(undefined, { granularity: 'word' }); } catch { _segmenter = null; }
+  }
+  return _segmenter;
+}
+
+/* Segmentation is memoised because the same haystacks are segmented again on
+   every pass: the corpus text does not change, and a re-match runs across all of
+   it each time a term or a page arrives. Measured before: 91 ms per 2000 entries
+   in word mode against 4 ms for a plain substring, nearly all of it re-doing
+   identical work.
+
+   Bounded, per §10 — the keys are corpus text, so the cap is set just above the
+   corpus itself and eviction is FIFO. A miss costs one segmentation, never a
+   wrong answer, so this can be dropped entirely without changing behaviour. */
+const SEG_CACHE_MAX = 2500;
+const _segCache = new Map();
 export function segmentWords(s) {
   if (!s) return [];
-  if (typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function') {
+  const key = String(s);
+  const hit = _segCache.get(key);
+  if (hit) return hit;
+  let out;
+  const seg = segmenter();
+  if (seg) {
     try {
-      const seg = new Intl.Segmenter(undefined, { granularity: 'word' });
-      const out = [];
-      for (const part of seg.segment(String(s))) {
-        if (part.isWordLike) out.push(part.segment);
-      }
-      return out;
-    } catch { /* fall through */ }
+      out = [];
+      for (const part of seg.segment(key)) if (part.isWordLike) out.push(part.segment);
+    } catch { out = undefined; }
   }
-  return String(s).split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  if (!out) out = key.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  _segCache.set(key, out);
+  if (_segCache.size > SEG_CACHE_MAX) _segCache.delete(_segCache.keys().next().value);
+  return out;
 }
 
 // matchTerm(haystack, term, { mode, fold })
@@ -117,9 +146,9 @@ export function matchTerm(haystack, term, opts) {
 // honest.
 function segmentsWithIndex(s) {
   const str = String(s == null ? '' : s);
-  if (typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function') {
+  const seg = segmenter();
+  if (seg) {
     try {
-      const seg = new Intl.Segmenter(undefined, { granularity: 'word' });
       const out = [];
       for (const part of seg.segment(str)) {
         if (part.isWordLike) out.push({ text: part.segment, index: part.index });

@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-+PG/Pl5CSEYqMpZFXFkHvMz5OFB0bjH4TXzFwmm2dgA=';
+  script-src 'self' 'sha256-ePjJucrJaWF69RY51bT5XHA/njBDIpHlG0E3unvwj4Y=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -1324,8 +1324,8 @@
 
 <script type="module">
 import { parseTransactionCore, encodeOutputScript, validateCashAddress, parseOpReturn, MESSAGE_LOKADS } from '../vendor/txparse.js?v=p5';
-import { matchAny, matchEvery, findAllSpans } from '../vendor/core/match.js?v=3';
-import { createBackfill } from '../vendor/core/backfill.js?v=3';
+import { matchAny, matchEvery, findAllSpans } from '../vendor/core/match.js?v=4';
+import { createBackfill } from '../vendor/core/backfill.js?v=4';
 import { isCashtabExtension, requestAddress as ctRequestAddress, sendBip21 as ctSendBip21 } from '../vendor/cashtab-connect.js?v=1';
 "use strict";
 const $ = (id) => document.getElementById(id);
@@ -1494,6 +1494,7 @@ const FLOW_STRINGS_EN = {
   'lane.deepScanned':'read {n} messages from the chain index',
   'lane.reach':'searched in full back to {d}',
   'lane.holes':'{n} pages could not be loaded',
+  'lane.unread':'{n} protocols could not be read — coverage is not stated for them',
   'lane.cacheFull':'memory full — older pages are still searched for this topic, but not kept for other ones',
   'term.add':'+ Topic',
   'term.any':'any word',
@@ -1629,7 +1630,7 @@ function tf(key, vars){
   return String(t(key)).replace(/\{(\w+)\}/g, (_, k) => (vars && vars[k] != null ? vars[k] : ''));
 }
 function localeFor(code){ try { new Intl.NumberFormat(code); return code; } catch { return 'en'; } }
-const I18N_V = '11';   // bump whenever any vendor/i18n/flow.*.json changes
+const I18N_V = '12';   // bump whenever any vendor/i18n/flow.*.json changes
 async function loadPack(code){
   if (code === 'en'){ pack = null; return; }
   try {
@@ -3805,7 +3806,12 @@ const CORPUS_MAX = 2000;
 // and no results live here; those are in TERMS_KEY and in memory.
 const LANE_CURSOR_KEY = 'ecashlive:flow:lane-cursor';
 let laneBf = null, laneBusy = false, laneRunToken = 0;
-let laneDeepHoles = 0, laneDeepDone = false;
+// The engine has always accepted an AbortSignal; Flow never passed one. Without
+// it, a term change orphaned the in-flight run's OUTPUT but not its REQUESTS —
+// they kept arriving, and because the busy flag was cleared at the same moment,
+// a second run started alongside and the budget silently doubled to 12.
+let laneAbort = null;
+let laneDeepHoles = 0, laneDeepDone = false, laneUnread = 0;
 
 /* THE CORPUS, and why it exists — this is the fix for a real bug, recorded so it
    is not "simplified" away.
@@ -3825,7 +3831,6 @@ let laneDeepHoles = 0, laneDeepDone = false;
    fact about the cache, so persisting it is correct). Only genuine matches that
    are not already parsed cost a request, and only one each. */
 const laneCorpus = new Map();   // txid -> {text, ts}
-let corpusOldest = null;        // oldest ts seen anywhere — NOT the reported reach
 
 /* THE REPORTED REACH IS THE FLOOR, NOT THE DEEPEST POINT.
    Measured on real data: after two rounds, Cashtab had reached 2026-07-03 while
@@ -3844,7 +3849,11 @@ function laneReach(){
   let floor = null;
   for (const id of MESSAGE_LOKADS){
     const c = cur[id];
-    if (!c || c.done) continue;               // exhausted -> covers everything
+    // ONLY a genuinely exhausted protocol is skipped. One abandoned after
+    // repeated failures keeps done:false on purpose, so it constrains the floor
+    // exactly like an unfinished one — and if it never got a page at all, the
+    // next line refuses to make any claim, which is the whole point.
+    if (!c || c.done) continue;               // read to genesis -> covers everything
     if (!c.oldestTs) return null;             // never read -> no honest claim
     floor = (floor == null) ? c.oldestTs : Math.max(floor, c.oldestTs);
   }
@@ -3853,16 +3862,15 @@ function laneReach(){
 
 /* When full the corpus REFUSES new entries instead of evicting. Eviction would
    break the one property the reach line depends on: the corpus is a contiguous
-   window from the newest message backwards, so `corpusOldest` means "everything
-   from now back to here is held". A Map evicts in insertion order and the walk
-   inserts newest-first, so evicting would have deleted the NEWEST entries and
-   left a hole at the near end while still claiming the far date. */
+   window from the newest message backwards, so the reported reach means
+   "everything from now back to here is held". A Map evicts in insertion order
+   and the walk inserts newest-first, so evicting would have deleted the NEWEST
+   entries and left a hole at the near end while still claiming the far date. */
 let corpusFull = false;
 function corpusAdd(txid, text, ts){
   if (laneCorpus.has(txid)) return;
   if (laneCorpus.size >= CORPUS_MAX){ corpusFull = true; return; }
   laneCorpus.set(txid, { text, ts: ts || null });
-  if (ts && (corpusOldest == null || ts < corpusOldest)) corpusOldest = ts;
 }
 
 // Cheap gate AND the corpus filler. Reading only the first output's OP_RETURN
@@ -4057,6 +4065,7 @@ async function laneHydrate(token){
 async function runLaneBackfill(){
   if (laneBusy || laneDeepDone || !enabledTerms().length) return;
   laneBusy = true; renderLaneMore();
+  laneAbort = new AbortController();
   const token = laneRunToken;
   if (!laneBf){
     laneBf = createBackfill({
@@ -4073,11 +4082,14 @@ async function runLaneBackfill(){
     if (laneSavedCursor) laneBf.load(laneSavedCursor);   // restored at boot, with its corpus
   }
   let cov = null;
-  try { cov = await laneBf.run({ requests: LANE_REQUESTS }); }
+  try { cov = await laneBf.run({ requests: LANE_REQUESTS, signal: laneAbort.signal }); }
   catch { /* a total failure is still coverage, reported by the counters below */ }
   if (token !== laneRunToken) return;               // superseded; do not touch shared state
   saveLaneStore();    // persist even on a partial run: those pages were still read
-  if (cov){ laneDeepHoles = cov.holes.length; laneDeepDone = cov.done; }
+  if (cov){
+    laneDeepHoles = cov.holes.length; laneDeepDone = cov.done;
+    laneUnread = Object.values(cov.perLokad).filter(c => c.failed).length;
+  }
   laneRematch();
   laneBusy = false;
   if (state.laneOpen) renderLane();
@@ -4198,11 +4210,25 @@ function txIsMuted(tx){
 const muteCounts = new Map();     // term.q -> how many held txs it is hiding
 function muteApply(tx, delta){
   if (!tx || !tx._hay) return;
+  let changed = false;
   for (const m of state.terms){
     if (!m.mute || !m.on || !m.q) continue;
     if (!matchAny(tx._hay, [m])) continue;
     muteCounts.set(m.q, Math.max(0, (muteCounts.get(m.q) || 0) + delta));
+    changed = true;
   }
+  // The count was right and nothing painted it. The only repaint on the arrival
+  // path was inside laneAdd(), which a muted transaction can never reach —
+  // txMatchesTerms() returns false the moment txIsMuted() is true — so with
+  // mutes and no followed term the badge froze at whatever the last full
+  // recount produced. Coalesced, because this runs once per transaction.
+  if (changed) scheduleChipRepaint();
+}
+let chipRepaintQueued = false;
+function scheduleChipRepaint(){
+  if (chipRepaintQueued) return;
+  chipRepaintQueued = true;
+  requestAnimationFrame(() => { chipRepaintQueued = false; renderTermChips(); });
 }
 // Full recount, for when the QUESTION changes rather than the data: a new or
 // edited mute has no history to count up from.
@@ -4452,6 +4478,10 @@ function renderLane(){
   if (reach) cov.push(tf('lane.reach', { d: fmtDate(reach * 1000) }));
   // A page that failed is a HOLE, said out loud. Silence would read as absence.
   if (laneDeepHoles) cov.push(tf('lane.holes', { n: fmtInt(laneDeepHoles) }));
+  // A protocol abandoned after repeated failures now keeps done:false, so
+  // laneReach() either narrows or refuses to answer. Say WHY, or the fix trades
+  // a false coverage claim for a silent missing date, which is no better.
+  if (laneUnread) cov.push(tf('lane.unread', { n: fmtInt(laneUnread) }));
   // Said out loud once the corpus stops growing. Without it the "read N messages"
   // figure simply freezes while the date keeps moving back, which reads as a
   // stuck counter — and hides the real consequence: pages read past this point
@@ -4606,6 +4636,9 @@ function onTermsChanged(){
   // Nothing here resets a thing that cost a request; only the answer is rebuilt.
   recountMutes();              // a changed mute set has no history to count up from
   laneRunToken++;              // any run still in flight stops writing shared state
+  // Stop it FETCHING too, not just stop it being heard. Clearing the busy flag
+  // without this is what let a second run start on top of the first.
+  if (laneAbort) laneAbort.abort();
   laneBusy = false;
   laneDeepDone = false;        // "searched everything" belonged to the old question
   laneRematch();

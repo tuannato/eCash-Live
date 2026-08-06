@@ -81,6 +81,7 @@
     "lane.deepScanned": "{n} mensajes leídos del índice de la cadena",
     "lane.reach": "búsqueda completa hasta {d}",
     "lane.holes": "{n} páginas no se pudieron cargar",
+    "lane.unread": "{n} protocolos no se pudieron leer — no se indica cobertura para ellos",
     "lane.cacheFull": "memoria llena: las páginas más antiguas se siguen buscando para este tema, pero no se guardan para otros",
     "term.add": "+ Tema",
     "term.any": "cualquier palabra",

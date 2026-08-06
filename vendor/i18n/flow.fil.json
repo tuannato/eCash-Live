@@ -81,6 +81,7 @@
     "lane.deepScanned": "{n} mensahe ang nabasa mula sa chain index",
     "lane.reach": "kumpletong nahanap hanggang {d}",
     "lane.holes": "{n} pahina ang hindi na-load",
+    "lane.unread": "{n} protokol ang hindi nabasa — walang isinasaad na saklaw para sa mga ito",
     "lane.cacheFull": "puno na ang memorya — hinahanap pa rin ang mas lumang pahina para sa paksang ito, pero hindi itinatago para sa iba",
     "term.add": "+ Paksa",
     "term.any": "kahit anong salita",

@@ -81,6 +81,7 @@
     "lane.deepScanned": "已从链索引读取 {n} 条消息",
     "lane.reach": "已完整搜索至 {d}",
     "lane.holes": "{n} 页无法加载",
+    "lane.unread": "{n} 个协议无法读取 — 不为它们标注覆盖范围",
     "lane.cacheFull": "内存已满 — 更早的页面仍会为此主题搜索，但不会为其他主题保留",
     "term.add": "+ 主题",
     "term.any": "任意词",
