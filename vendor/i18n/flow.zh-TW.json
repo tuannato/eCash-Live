@@ -40,6 +40,7 @@
     "divider.block": "區塊 {h} · 封存 {n} 筆",
     "divider.blockNoCount": "區塊 {h}",
     "divider.more": "… 還有 {n} 筆",
+    "divider.recent": "自上一個區塊以來已最終確認的交易 — 並非本區塊的內容",
     "newpill": "↓ {n} 筆新交易",
     "hist.load": "↑ 載入更早",
     "hist.loading": "載入中…",

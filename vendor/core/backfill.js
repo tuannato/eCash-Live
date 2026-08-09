@@ -38,6 +38,14 @@ const FAIL_MAX = 3;
 // it; unbounded is the actual bug (§10).
 const SEEN_CAP = 5000;
 
+// Holes are a permanent record — the walk never re-reads a failed page — so the
+// list only ever grows, and against an unreachable node it grows every click:
+// measured at 240 entries after 40 clicks across six protocols, with snapshot()
+// copying the whole array once per page. The COUNT is what the coverage line
+// states and it stays exact; the entries themselves are diagnostics, and the
+// oldest ones stop being useful long before the newest do (§10).
+const HOLES_CAP = 200;
+
 const yieldToUI = () => new Promise((r) => setTimeout(r, 0));
 
 function tsOf(txData) {
@@ -80,6 +88,7 @@ export function createBackfill({ chronik, lokads, parse, prefilter, keep, onBatc
     cursor[id] = { page: 0, pagesDone: 0, numPages: null, numTxs: null, oldestTs: null, done: false, failed: false };
   }
   const holes = [];
+  let holeCount = 0;   // exact, unlike holes.length once the cap bites
   let requests = 0, scanned = 0, deduped = 0, kept = 0, skipped = 0;
 
   function noteSeen(txid) {
@@ -93,6 +102,8 @@ export function createBackfill({ chronik, lokads, parse, prefilter, keep, onBatc
     return {
       perLokad,
       requests, scanned, deduped, kept, skipped,
+      // Read holeCount, not holes.length: the list is capped, the count is not.
+      holeCount,
       holes: holes.slice(),
       // The single honest summary the coverage line needs: how far back the
       // walk actually reached across every protocol it managed to read. null
@@ -176,7 +187,9 @@ export function createBackfill({ chronik, lokads, parse, prefilter, keep, onBatc
           used++; requests++;
         } catch (err) {
           used++; requests++;
+          holeCount++;
           holes.push({ lokad: id, page: st.page, err: String((err && err.message) || err) });
+          if (holes.length > HOLES_CAP) holes.shift();
           st.fails = (st.fails || 0) + 1;
           st.page++;
           // ABANDONED IS NOT DONE. Marking a protocol whose node kept failing
@@ -198,11 +211,20 @@ export function createBackfill({ chronik, lokads, parse, prefilter, keep, onBatc
         for (const txData of ((page && page.txs) || [])) {
           const txid = txData && txData.txid;
           if (!txid) continue;
+          // HOW FAR BACK THIS PAGE REACHED IS A FACT ABOUT THE PAGE, so it is
+          // recorded before the dedupe rather than after it. A transaction can
+          // legitimately appear in more than one lokad history — an eMPP payload
+          // carries several ids and chronik indexes the tx under each — so
+          // dropping the timestamp along with the duplicate left a protocol that
+          // had genuinely been read reporting oldestTs null. That is the exact
+          // input laneReach() treats as "never read", so it refused to state any
+          // date at all, and the caller then reported the protocol as unread.
+          // Found by verifying the caller's fix, not by reading this file.
+          const ts = tsOf(txData);
+          if (ts != null) st.oldestTs = st.oldestTs == null ? ts : Math.min(st.oldestTs, ts);
           if (seen.has(txid)) { deduped++; continue; }
           noteSeen(txid);
           scanned++;
-          const ts = tsOf(txData);
-          if (ts != null) st.oldestTs = st.oldestTs == null ? ts : Math.min(st.oldestTs, ts);
           // Cheap gate before the expensive parse — see the note on `prefilter`.
           // A throw here is treated as "not interesting" rather than fatal, for
           // the same reason the parse below is guarded.

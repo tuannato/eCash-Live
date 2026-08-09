@@ -40,6 +40,7 @@
     "divider.block": "Block {h} · {n} Tx versiegelt",
     "divider.blockNoCount": "Block {h}",
     "divider.more": "… und {n} weitere",
+    "divider.recent": "seit dem vorherigen Block finalisiert — nicht der Inhalt dieses Blocks",
     "newpill": "↓ {n} neu",
     "hist.load": "↑ Ältere laden",
     "hist.loading": "Lädt…",

@@ -122,10 +122,15 @@ export const LOKAD_NAMES = {
 };
 
 // ---- Display-only token name/ticker/url overrides ----
+// A `url` here ADDS something the chain does not carry. A tokenName/tokenTicker
+// REPLACES something it does, which is a different act: the genesis metadata is
+// what the issuer actually committed to, and renaming it in our UI makes us the
+// source of a name nobody can verify against the chain. Firma was being shown as
+// "Firma Alpha" / "FIRMA α" for that reason and is now shown as minted.
 export const TOKEN_DISPLAY_OVERRIDES = {
   // Firma
   '0387947fd575db4fb19a3e322f635dec37fd192b5941625b66bc4b2c3008cbf0': {
-    tokenName: 'Firma Alpha', tokenTicker: 'FIRMA α', url: 'firmaprotocol.com',
+    url: 'firma.cash',
   },
 };
 

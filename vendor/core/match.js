@@ -76,10 +76,17 @@ function segmenter() {
    in word mode against 4 ms for a plain substring, nearly all of it re-doing
    identical work.
 
-   Bounded, per §10 — the keys are corpus text, so the cap is set just above the
-   corpus itself and eviction is FIFO. A miss costs one segmentation, never a
-   wrong answer, so this can be dropped entirely without changing behaviour. */
-const SEG_CACHE_MAX = 2500;
+   Bounded, per §10. SIZING IS THE PART THAT WAS WRONG THE FIRST TIME: the key is
+   the string AFTER folding, so a folded topic and an unfolded one produce TWO
+   keys for every corpus entry, not one. A cap "just above the corpus" was
+   therefore sized for half the real working set, and the cache thrashed the
+   moment someone ran an accent-folded topic alongside a plain one — which is an
+   ordinary Vietnamese reader. Measured on 2000 entries: one variant settles at
+   2.7-6.8 ms, two variants at 11-19 ms, four times worse and never settling.
+   Two fold variants is the maximum that can exist, so the corpus needs
+   2 x CORPUS_MAX; the rest is headroom for live transactions, which are
+   segmented too. A miss only costs one segmentation, never a wrong answer. */
+const SEG_CACHE_MAX = 5000;
 const _segCache = new Map();
 export function segmentWords(s) {
   if (!s) return [];
@@ -95,6 +102,12 @@ export function segmentWords(s) {
     } catch { out = undefined; }
   }
   if (!out) out = key.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  // Frozen because the cache hands out the SAME array to every later caller.
+  // Both callers here only read it, but this is exported and meant for neo to
+  // adopt: a future caller that sorts or splices the result in place would
+  // corrupt every subsequent match, silently and unrepeatably. Freezing turns
+  // that into a loud failure at the mutation instead.
+  Object.freeze(out);
   _segCache.set(key, out);
   if (_segCache.size > SEG_CACHE_MAX) _segCache.delete(_segCache.keys().next().value);
   return out;

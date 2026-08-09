@@ -40,6 +40,7 @@
     "divider.block": "блок {h} · запечатано {n} тр.",
     "divider.blockNoCount": "блок {h}",
     "divider.more": "… і ще {n}",
+    "divider.recent": "фіналізовані після попереднього блоку — це не вміст цього блоку",
     "newpill": "↓ {n} нових",
     "hist.load": "↑ Завантажити давніші",
     "hist.loading": "Завантаження…",

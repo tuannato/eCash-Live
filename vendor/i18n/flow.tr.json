@@ -40,6 +40,7 @@
     "divider.block": "blok {h} · {n} işlem mühürlendi",
     "divider.blockNoCount": "blok {h}",
     "divider.more": "… ve {n} tane daha",
+    "divider.recent": "önceki bloktan bu yana kesinleşenler — bu bloğun içeriği değil",
     "newpill": "↓ {n} yeni",
     "hist.load": "↑ Daha eskiyi yükle",
     "hist.loading": "Yükleniyor…",

@@ -40,6 +40,7 @@
     "divider.block": "khối {h} · niêm phong {n} giao dịch",
     "divider.blockNoCount": "khối {h}",
     "divider.more": "… và {n} nữa",
+    "divider.recent": "đã chốt vĩnh viễn kể từ khối trước — không phải nội dung của khối này",
     "newpill": "↓ {n} mới",
     "hist.load": "↑ Tải cũ hơn",
     "hist.loading": "Đang tải…",

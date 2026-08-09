@@ -40,6 +40,7 @@
     "divider.block": "bloc {h} · {n} tx scellées",
     "divider.blockNoCount": "bloc {h}",
     "divider.more": "… et {n} de plus",
+    "divider.recent": "finalisées depuis le bloc précédent — pas le contenu de ce bloc",
     "newpill": "↓ {n} nouvelles",
     "hist.load": "↑ Charger plus ancien",
     "hist.loading": "Chargement…",

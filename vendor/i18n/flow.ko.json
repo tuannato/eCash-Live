@@ -40,6 +40,7 @@
     "divider.block": "블록 {h} · {n}건 봉인",
     "divider.blockNoCount": "블록 {h}",
     "divider.more": "… 외 {n}건",
+    "divider.recent": "이전 블록 이후 확정된 거래 — 이 블록의 내용이 아닙니다",
     "newpill": "↓ 새 거래 {n}건",
     "hist.load": "↑ 이전 불러오기",
     "hist.loading": "불러오는 중…",

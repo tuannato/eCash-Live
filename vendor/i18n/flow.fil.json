@@ -40,6 +40,7 @@
     "divider.block": "block {h} · {n} tx na-seal",
     "divider.blockNoCount": "block {h}",
     "divider.more": "… at {n} pa",
+    "divider.recent": "na-finalize mula noong nakaraang block — hindi ang laman ng block na ito",
     "newpill": "↓ {n} bago",
     "hist.load": "↑ Mag-load ng mas luma",
     "hist.loading": "Naglo-load…",

@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-ePjJucrJaWF69RY51bT5XHA/njBDIpHlG0E3unvwj4Y=';
+  script-src 'self' 'sha256-e4hCslOSaiDUnQb4aDz5CeaI2pe7Qkm1FLBpxg++aE8=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -478,6 +478,9 @@
   .div-detail{display:none;margin:-4px 18px 14px;padding:9px 14px;border-left:2px solid var(--accent-ln);
               font-size:11.5px;color:var(--ink3);font-family:var(--mono);line-height:1.9;}
   .div-detail.open{display:block;animation:drop .2s ease-out;}
+  /* Names what the list under it is. Not mono and not the row colour, so it
+     reads as a heading rather than as the first entry. */
+  .div-detail .dd-head{font-family:inherit;font-size:10.5px;color:var(--ink3);opacity:.85;}
   @keyframes drop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
   .grp-detail{display:none;margin:-4px 12px 10px 42px;font-size:11.5px;color:var(--ink3);
               font-family:var(--mono);line-height:1.8;}
@@ -1323,9 +1326,9 @@
 </div>
 
 <script type="module">
-import { parseTransactionCore, encodeOutputScript, validateCashAddress, parseOpReturn, MESSAGE_LOKADS } from '../vendor/txparse.js?v=p5';
-import { matchAny, matchEvery, findAllSpans } from '../vendor/core/match.js?v=4';
-import { createBackfill } from '../vendor/core/backfill.js?v=4';
+import { parseTransactionCore, encodeOutputScript, validateCashAddress, parseOpReturn, MESSAGE_LOKADS } from '../vendor/txparse.js?v=p6';
+import { matchAny, matchEvery, findAllSpans } from '../vendor/core/match.js?v=5';
+import { createBackfill } from '../vendor/core/backfill.js?v=5';
 import { isCashtabExtension, requestAddress as ctRequestAddress, sendBip21 as ctSendBip21 } from '../vendor/cashtab-connect.js?v=1';
 "use strict";
 const $ = (id) => document.getElementById(id);
@@ -1425,6 +1428,7 @@ const FLOW_STRINGS_EN = {
   'divider.block':'block {h} · sealed {n} tx',
   'divider.blockNoCount':'block {h}',
   'divider.more':'… and {n} more',
+  'divider.recent':'finalized since the previous block — not this block\'s contents',
   'newpill':'↓ {n} new',
   'hist.load':'↑ Load older',
   'hist.loading':'Loading…',
@@ -1630,7 +1634,7 @@ function tf(key, vars){
   return String(t(key)).replace(/\{(\w+)\}/g, (_, k) => (vars && vars[k] != null ? vars[k] : ''));
 }
 function localeFor(code){ try { new Intl.NumberFormat(code); return code; } catch { return 'en'; } }
-const I18N_V = '12';   // bump whenever any vendor/i18n/flow.*.json changes
+const I18N_V = '13';   // bump whenever any vendor/i18n/flow.*.json changes
 async function loadPack(code){
   if (code === 'en'){ pack = null; return; }
   try {
@@ -2017,16 +2021,43 @@ function hbDraw(w, t){
 // old unconditional rAF recursion repainted a flat line ~60x/s forever, which on a
 // phone is a genuine battery cost for zero information. hbDraw() returns false
 // once nothing is animating; hbSignal() (and a resize / retint) wakes it again.
+let hbRafId = 0;
 function hbLoop(ts){
+  hbRafId = 0;
   const w = hbResize();
-  if (hbDraw(w, ts)) requestAnimationFrame(hbLoop);
+  if (hbDraw(w, ts)) hbRafId = requestAnimationFrame(hbLoop);
   else { hbRunning = false; hbFlat(w); }   // settle on the resting line, then stop
 }
 function hbKick(){
   if (hbRunning || reduced) return;
   hbRunning = true;
-  requestAnimationFrame(hbLoop);
+  hbRafId = requestAnimationFrame(hbLoop);
 }
+/* THE PARK FLAG HAD NO WAY BACK, AND THAT IS A PERMANENT FAILURE.
+   hbRunning is set by hbKick and cleared ONLY inside hbLoop, so the loop is the
+   only thing that can release its own guard. A queued rAF callback that never
+   runs — a bfcache restore is the reliable case, and iOS does it whenever the
+   page is left and returned to — leaves hbRunning true with no frame pending,
+   and hbKick's first line then refuses every later event. Measured on this exact
+   state machine: after the pending frame is dropped, 100 further tx/final/block
+   signals schedule ZERO frames. The canvas keeps whatever was painted last (a
+   block pluck is a flat amber band; hbFlat only ever paints cyan), so it does
+   not even look stopped — it looks like a strip that stopped meaning anything.
+
+   Cancelling by id first is what makes this safe to call at any time: on a wake
+   where the frame WAS still queued, resetting the flag alone would start a
+   second loop alongside it and everything would decay at double speed. */
+function hbWake(){
+  if (reduced) return;
+  if (hbRafId) cancelAnimationFrame(hbRafId);
+  hbRafId = 0; hbRunning = false;
+  if (hbPlucks.length) hbKick();
+  else hbFlat(hbResize());
+}
+// bfcache restore fires pageshow and NOT visibilitychange, so both are needed.
+// neo already listens for pageshow (index.html, radarCtl._resumeIfNeeded); Flow
+// listened for neither.
+window.addEventListener('pageshow', hbWake);
 // Real network-event hooks. beat() keeps its name (called from finalize()).
 // Reduced motion → no plucks accumulate (strip stays a static flat line).
 function hbSignal(kind){
@@ -2188,9 +2219,16 @@ function announce(msg){ const el = $('a11y-live'); if (!el) return; el.textConte
    three self-healing, and can't retain a detached node (see the tx.el leak fixed
    in appended()). Detail panels are siblings, not roving items: their buttons and
    links stay normally tabbable, so Tab still walks from a card into its detail. */
+/* Membership is decided by whether the node ACTS, not by its class. Two dividers
+   are plain <div>s on purpose — the history one, and a live one whose preview
+   list came out empty — because a control that cannot do anything takes a tab
+   stop and lies to a screen reader. Selecting on the class alone put them in the
+   ring anyway and then assigned tabIndex, which is precisely what makes a <div>
+   focusable: the arrow keys stopped on a dead node. */
 function rovingAll(){
   return [...stream.children].filter(el =>
-    el.classList.contains('card') || el.classList.contains('divider'));
+    (el.classList.contains('card') || el.classList.contains('divider')) &&
+    (el.tagName === 'BUTTON' || el.getAttribute('role') === 'button'));
 }
 function rovingVisible(){ return rovingAll().filter(el => !el.classList.contains('hide')); }
 // Guarantee exactly one tab stop. Called after anything that adds, removes,
@@ -2855,21 +2893,44 @@ function sealBlock(height, realTxCount){
   const n = realTxCount != null ? realTxCount : null;
   const lbl = n != null ? tf('divider.block', { h: fmtInt(height), n: fmtInt(n) })
                         : tf('divider.blockNoCount', { h: fmtInt(height) });
-  const div = document.createElement('button');
-  div.className = 'divider'; div.type = 'button';
+  /* THE PREVIEW IS OFTEN EMPTY, AND IT USED TO OFFER ITSELF ANYWAY.
+     `sealed` is what finalized since the LAST divider, and two everyday things
+     leave it at zero: markFinal() returns before finalize() for dust and folded
+     run-groups, so a stretch of bot traffic contributes nothing at all; and a
+     burst of blocks (a reconnect, or a wake replaying queued messages) empties
+     it for the second and third divider. The node still built a <button> with
+     aria-expanded, so tapping "sealed 52 tx" opened a panel with nothing in it —
+     the reported bug, and it reads as broken rather than as empty.
+
+     No preview => no affordance. A plain <div>, exactly like the history divider
+     below, which is already a <div> for the same reason: a control that cannot
+     do anything takes a tab stop and lies to a screen reader. */
+  const hasPreview = sealed.length > 0;
+  const div = document.createElement(hasPreview ? 'button' : 'div');
+  div.className = 'divider'; if (hasPreview) div.type = 'button';
   div.innerHTML = '<span class="ln"></span><span class="lbl">' + IC.cube + ' ' +
     esc(lbl) + '</span><span class="ln"></span>';
-  const det = document.createElement('div');
-  det.className = 'div-detail';
-  det.innerHTML = sealed.slice(0,6).map(tx => esc((cardStrings(tx).t1 || '') + ' · ' + tx.id.slice(0,10) + '…')).join('<br>') +
-    (sealed.length > 6 ? '<br>' + esc(tf('divider.more', { n: fmtInt(sealed.length-6) })) : '');
-  div.setAttribute('aria-expanded', 'false');   // A8: the divider expands a preview list
-  div.addEventListener('click', () => {
-    div.setAttribute('aria-expanded', String(det.classList.toggle('open')));
-  });
+  let det = null;
+  if (hasPreview){
+    det = document.createElement('div');
+    det.className = 'div-detail';
+    /* The label states the block's REAL numTxs; this list is the txs we watched
+       finalize since the previous divider. They are different sets — the miner
+       picks a subset and a just-finalized tx usually lands in the NEXT block
+       (see the note above) — so the panel says which one it is. Without the
+       heading it reads as "here are the 52", and we measured it listing 9 rows
+       under a label promising 3. */
+    det.innerHTML = '<span class="dd-head">' + esc(t('divider.recent')) + '</span><br>' +
+      sealed.slice(0,6).map(tx => esc((cardStrings(tx).t1 || '') + ' · ' + tx.id.slice(0,10) + '…')).join('<br>') +
+      (sealed.length > 6 ? '<br>' + esc(tf('divider.more', { n: fmtInt(sealed.length-6) })) : '');
+    div.setAttribute('aria-expanded', 'false');   // A8: the divider expands a preview list
+    div.addEventListener('click', () => {
+      div.setAttribute('aria-expanded', String(det.classList.toggle('open')));
+    });
+  }
   div._blockData = { height, n };
   hideEmpty();
-  stream.appendChild(div); stream.appendChild(det);
+  stream.appendChild(div); if (det) stream.appendChild(det);
   state.lastGroup = null;  // start a fresh dust group after a block
   appended();
   firstTime('block', 'echan.firstBlock', 'observing', 'block');   // → Learn "what a block is for"
@@ -3391,12 +3452,28 @@ function updateStatsUI(){
   }
   updateScrollHints();   // A2: TPS / 24h pills just changed width — re-measure the row
 }
+/* A socket that stops delivering without closing is the failure this feed had no
+   answer for. Recovery was `ws.onclose -> schedule()` and nothing else, so a
+   connection killed while the device slept — the TCP peer gone, no close event
+   ever dispatched — stayed readyState OPEN forever. isFresh() correctly turned
+   the 24h figures to "—", which is honest, but nothing ANYWHERE tried to
+   reconnect: node-precise TTF was gone for the rest of the session and every
+   later finalize fell back to the perceived number. neo does not have this hole
+   (12s ping probe + _renderPingFailure, index.html PING_INTERVAL_MS); Flow did.
+
+   The relay emits a stats frame every 5 seconds, so silence on an OPEN socket is
+   proof of death, not of a quiet network — which is what makes this safe to act
+   on. Three times the freshness gate before we conclude it. */
+const STATS_DEAD_MS = 45_000;
+let statsWake = () => {};
 function connectStats(){
-  let ws, reconnectMs = 1000, closed = false;
+  let ws, reconnectMs = 1000, closed = false, lastRxAt = 0;
   const open = () => {
     try { ws = new WebSocket(TTF_FEED_URL); } catch { schedule(); return; }
     state.ttfWs = ws;
+    lastRxAt = Date.now();   // baseline: a socket that never says anything is dead too
     ws.onmessage = (ev) => {
+      lastRxAt = Date.now();
       let d; try { d = JSON.parse(ev.data); } catch { return; }
       if (d.type === 'stats'){
         if (d.warmup === true){ state.relayStats = { warmup:true, currentClients: d.currentClients }; state.relayStatsAt = Date.now(); updateStatsUI(); return; }
@@ -3405,21 +3482,82 @@ function connectStats(){
         upgradeTtf(d.txid, d.ttfMs);
       }
     };
-    ws.onopen = () => { reconnectMs = 1000; };
+    ws.onopen = () => { reconnectMs = 1000; lastRxAt = Date.now(); };
     ws.onclose = () => { state.ttfWs = null; if (!closed) schedule(); };
     ws.onerror = () => { try { ws.close(); } catch {} };
   };
   // Full jitter on the backoff. Without it every open tab reconnects on the same
   // schedule, so a relay restart brings the whole audience back in lockstep bursts
   // — the one moment the relay is least able to absorb them.
+  // ONE pending reopen at a time, held by id: onerror closes the socket and
+  // onclose then schedules, so the paths can already double up, and statsWake
+  // below has to be able to pull the pending one forward rather than add to it.
+  let reopenTimer = null;
   const schedule = () => {
-    setTimeout(open, Math.round(reconnectMs * (0.5 + Math.random() * 0.5)));
+    if (reopenTimer || closed) return;
+    reopenTimer = setTimeout(() => { reopenTimer = null; open(); },
+                             Math.round(reconnectMs * (0.5 + Math.random() * 0.5)));
     reconnectMs = Math.min(reconnectMs * 1.7, 30000);
+  };
+  // Closing is the whole repair: onclose already owns reconnection, so the
+  // watchdog only has to make the dead socket admit it. Never runs while hidden
+  // — the browser throttles delivery there, and a tab nobody is looking at does
+  // not need a live feed.
+  const probe = () => {
+    if (document.hidden || closed) return;
+    if (!ws || ws.readyState !== 1) return;             // connecting/closed: schedule() owns it
+    if (Date.now() - lastRxAt > STATS_DEAD_MS){ try { ws.close(); } catch {} }
+  };
+  setInterval(probe, 15_000);
+  /* On a wake the backoff may have grown to 30 s, and after a real sleep that is
+     the one moment the reader is looking at the page. Pull the pending reopen
+     forward instead of opening alongside it — a second socket would leave the
+     first one connected and unreferenced. */
+  statsWake = () => {
+    probe();
+    if (closed) return;
+    if (ws && (ws.readyState === 0 || ws.readyState === 1)) return;   // connecting or alive
+    if (reopenTimer){ clearTimeout(reopenTimer); reopenTimer = null; }
+    reconnectMs = 1000;
+    open();
   };
   open();
 }
 
 /* ------------------------------------------------------------------ chronik */
+/* THE TIP WAS READ ONCE, AT BOOT, AND THEN ONLY EVER FROM A LIVE BLOCK MESSAGE.
+   So after a sleep the header kept counting up from whatever it last saw:
+   "block 961,527 · 26m ago" while the chain had moved several blocks on. That is
+   not a stale pixel, it is a claim about the NETWORK derived from local state we
+   know to be old — the header states the tip, not "the last tip we happened to
+   catch" — and nothing corrected it until the next live block arrived, which on
+   a dead socket is never.
+
+   Advancing lastSealedHeight along with it is the same decision boot already
+   makes: blocks that landed while we were away were not witnessed, so they get
+   no in-stream divider. The divider means "a block sealed while you were
+   watching"; back-filling one for a block whose transactions were never shown
+   would put a marker in the stream for something the reader did not see.
+
+   Monotonic on purpose. This races the WS — a block message can land while the
+   fetch is in flight — and a tip that moves backwards would re-seal a height
+   that already has a divider. */
+async function refreshTip(){
+  if (!state.chronik) return;
+  let h = null;
+  try { const info = await state.chronik.blockchainInfo(); h = info && info.tipHeight; } catch { return; }
+  if (!Number.isFinite(h) || h <= state.height) return;
+  state.height = h;
+  if (h > state.lastSealedHeight) state.lastSealedHeight = h;
+  $('height').textContent = fmtInt(h); setStat('height', fmtInt(h));
+  // The block's REAL timestamp, so "· 4 min ago" is measured and not assumed.
+  // A failure leaves the previous value rather than inventing or blanking one.
+  try {
+    const tb = await state.chronik.block(h);
+    const ts = tb?.blockInfo?.timestamp != null ? Number(tb.blockInfo.timestamp) * 1000 : 0;
+    if (isFinite(ts) && ts > 0){ state.lastBlockAt = ts; renderBlockAge(); }
+  } catch {}
+}
 async function connectChronik(){
   let ChronikClient;
   try { ({ ChronikClient } = await import('../vendor/chronik-client.js')); }
@@ -3428,16 +3566,7 @@ async function connectChronik(){
   try { state.chronik = new ChronikClient(CHRONIK_URLS); }
   catch (e){ setConn('conn.offline', 'warn'); console.warn('[flow] chronik init failed', e); return; }
 
-  // initial tip
-  try { const info = await state.chronik.blockchainInfo(); if (info?.tipHeight){ state.height = info.tipHeight; state.lastSealedHeight = info.tipHeight; $('height').textContent = fmtInt(info.tipHeight); setStat('height', fmtInt(info.tipHeight)); } } catch {}
-  // tip block's real timestamp, so "block N · 4 min ago" is honest from the first paint
-  try {
-    if (state.height){
-      const tb = await state.chronik.block(state.height);
-      const ts = tb?.blockInfo?.timestamp != null ? Number(tb.blockInfo.timestamp) * 1000 : 0;
-      if (isFinite(ts) && ts > 0){ state.lastBlockAt = ts; renderBlockAge(); }
-    }
-  } catch {}
+  await refreshTip();   // same call the wake path makes — see below
 
   const openWs = () => {
     let ws;
@@ -3445,7 +3574,7 @@ async function connectChronik(){
       ws = state.chronik.ws({
         onMessage: (msg) => handleWs(ws, msg),
         onReconnect: () => setConn('conn.reconnecting', 'warn'),
-        onConnect: () => { setConn('conn.live', 'live'); scheduleReconcile(); laneHydrate(laneRunToken); maybeAutoBackfill(); },   // reconnect → catch blocks/confirms missed while dropped (A2); hydrate restored hits, and search once for a topic nothing has answered yet
+        onConnect: () => { setConn('conn.live', 'live'); refreshTip(); scheduleReconcile(); laneHydrate(laneRunToken); maybeAutoBackfill('reconnect'); },   // reconnect → re-read the tip (blocks landed while we were dropped) + catch confirms missed (A2); hydrate restored hits, and search once for a topic nothing has answered yet
         onError: () => setConn('conn.reconnecting', 'warn'),
       });
     } catch (e){ setConn('conn.offline', 'warn'); return; }
@@ -3983,16 +4112,34 @@ function laneParseTx(d){
   return tx;
 }
 
+/* ONE rule for "how old is this result", used by the holder and by the answer.
+   They disagreed, and the disagreement was invisible: laneSetMatched sorts by
+   timestamp, laneHold evicted by INSERTION order, and the backward walk inserts
+   newest-first — so eviction dropped precisely the entries the answer wanted to
+   keep. Measured at MATCH_MAX 200: 260 matches scanned left 60 of them held but
+   unrenderable, 300 left 100, and from 400 the overlap is EMPTY — the Lane
+   rendered zero rows while reporting 200 matches and a reach of years, and
+   laneHydrate re-fetched 200 transactions it already had on every run.
+   Deriving both from this function is what makes the two unable to drift. */
+function laneTsOf(id, tx){
+  const t = tx || state.txs.get(id) || state.laneTxs.get(id);
+  const c = laneCorpus.get(id);
+  return (t && t.ts) || (c && c.ts) || 0;   // unknown sorts oldest, in both places
+}
 function laneHold(tx){
   if (!tx || !tx.id || state.laneTxs.has(tx.id)) return;
   state.laneTxs.set(tx.id, tx);
-  // Evicting here can only drop a transaction the Lane is no longer showing,
-  // because laneSetMatched() caps the visible set to the SAME bound and keeps
-  // the newest. Dropping the map entry without the id would leave an orphan
-  // holding memory it can never render from.
+  // Drop the OLDEST BY TIME, which is exactly the entry laneSetMatched() would
+  // have sliced off. Linear over a 200-entry map and only when full, so it costs
+  // nothing measurable; correctness here is worth more than an index.
   while (state.laneTxs.size > MATCH_MAX){
-    const oldest = state.laneTxs.keys().next().value;
-    state.laneTxs.delete(oldest);
+    let victim = null, victimTs = Infinity;
+    for (const [id, held] of state.laneTxs){
+      const ts = laneTsOf(id, held);
+      if (ts < victimTs){ victimTs = ts; victim = id; }
+    }
+    if (victim == null) break;
+    state.laneTxs.delete(victim);
   }
 }
 
@@ -4009,9 +4156,7 @@ function laneSetMatched(ids){
   for (const id of ids){
     if (seen.has(id)) continue;
     seen.add(id);
-    const tx = state.txs.get(id) || state.laneTxs.get(id);
-    const c = laneCorpus.get(id);
-    rows.push([id, (tx && tx.ts) || (c && c.ts) || 0]);
+    rows.push([id, laneTsOf(id)]);   // same rule laneHold() evicts by
   }
   // Cap by RECENCY but display OLDEST FIRST. Those are two different decisions:
   // when something has to go it should be the oldest, while the reading order
@@ -4081,14 +4226,46 @@ async function runLaneBackfill(){
     });
     if (laneSavedCursor) laneBf.load(laneSavedCursor);   // restored at boot, with its corpus
   }
+  // Snapshot BEFORE the run. Everything on the cursor is a lifetime total that
+  // backfill.load() restores from storage, so no test written against the values
+  // alone can tell "read nothing" from "read nothing THIS TIME" — see below.
+  const before = laneBf.cursor;
   let cov = null;
   try { cov = await laneBf.run({ requests: LANE_REQUESTS, signal: laneAbort.signal }); }
   catch { /* a total failure is still coverage, reported by the counters below */ }
   if (token !== laneRunToken) return;               // superseded; do not touch shared state
   saveLaneStore();    // persist even on a partial run: those pages were still read
   if (cov){
-    laneDeepHoles = cov.holes.length; laneDeepDone = cov.done;
-    laneUnread = Object.values(cov.perLokad).filter(c => c.failed).length;
+    laneDeepHoles = cov.holeCount;   // exact; cov.holes is capped for memory
+    laneDeepDone = cov.done;
+    /* WHAT THE READER HAS TO BE TOLD, in the two cases where the coverage line
+       would otherwise go quiet.
+
+       This started as a test on `failed`, which needs FAIL_MAX (3) consecutive
+       misses inside ONE run — unreachable at Flow's shape, where a run is
+       LANE_REQUESTS (6) spread over MESSAGE_LOKADS (6) and each protocol gets
+       exactly one attempt per click. It was then rewritten as
+       `page > 0 && pagesDone === 0 && oldestTs == null`, which fires correctly
+       on a first visit and is BLIND to the common case: those three fields are
+       lifetime totals, restored by load(), so a returning reader whose earlier
+       session read pages gets 6 recorded holes and a count of 0. Measured both
+       ways. Two facts are wanted and neither is a property of the cursor's
+       current value alone:
+
+       (a) attempted during THIS run and returned nothing — a page number that
+           moved while the pages-read number did not. Diffing against `before`
+           says that no matter what any previous session achieved.
+       (b) nothing has EVER been read from it, which is the exact condition that
+           makes laneReach() refuse to state a date. Without it the line could
+           show no date and no reason, which is the failure the previous attempt
+           set out to fix, one cell over. A protocol read to genesis is `done`
+           and constrains nothing, so it is excluded. */
+    laneUnread = MESSAGE_LOKADS.filter((id) => {
+      const a = cov.perLokad[id], b = before[id];
+      if (!a || a.done) return false;
+      if (!a.oldestTs) return true;                                  // (b)
+      return b && a.page > b.page && a.pagesDone === b.pagesDone;    // (a)
+    }).length;
   }
   laneRematch();
   laneBusy = false;
@@ -4107,10 +4284,21 @@ async function runLaneBackfill(){
    It stays light by refusing to run when it would learn nothing: if the corpus
    already answers this term, the answer is on screen without a single request.
    So the cost is paid once per genuinely new topic, not once per page load. */
-function maybeAutoBackfill(){
+let lastAutoBackfillAt = 0;
+const AUTO_BACKFILL_COOLDOWN_MS = 60_000;
+function maybeAutoBackfill(trigger){
   if (!enabledTerms().length || laneBusy || laneDeepDone) return;
   if (!state.chronik || typeof state.chronik.lokadId !== 'function') return;
   if (laneCorpus.size && corpusMatches().length) return;   // already answered locally
+  /* A RECONNECT IS NOT A NEW QUESTION. onConnect fires on every chronik
+     reconnect, and the guard above only stops a topic that HAS local matches —
+     a topic with none (exactly the one this function exists for) re-ran the full
+     LANE_REQUESTS budget every single time. A phone changing cell, or waking
+     repeatedly, therefore hammered six requests per reconnect at the same pages
+     that had just answered nothing. A term the reader typed is a different event
+     and is never delayed by this. */
+  if (trigger === 'reconnect' && Date.now() - lastAutoBackfillAt < AUTO_BACKFILL_COOLDOWN_MS) return;
+  lastAutoBackfillAt = Date.now();
   runLaneBackfill();
 }
 
@@ -4645,7 +4833,7 @@ function onTermsChanged(){
   renderTermChips();
   renderLaneMore();
   laneHydrate(laneRunToken);   // fetch only the corpus hits we cannot render yet
-  maybeAutoBackfill();         // a brand-new topic searches once instead of just lighting up
+  maybeAutoBackfill('terms');  // a brand-new topic searches once instead of just lighting up — never cooled down
   if (!enabledTerms().length){
     // User decision (2026-08-03): turning the last term off closes the Lane
     // rather than leaving the reader stranded on an empty screen.
@@ -4716,9 +4904,48 @@ document.addEventListener('visibilitychange', () => {
     // finalize/confirm/block that happened during sleep shows up immediately (F6).
     // pollMempool only scans the mempool; scheduleReconcile catches txs already
     // mined out of it (stuck on "sending…" otherwise) — A2.
-    if (!state.paused){ pollMempool(); scheduleReconcile(); }
+    if (!state.paused){ pollMempool(); scheduleReconcile(); refreshTip(); }
+    hbWake();        // the rAF queued before the sleep may simply be gone
+    statsWake();     // and the relay socket may have died without saying so
   }
 });
+// bfcache restore fires pageshow and NOT visibilitychange, so the same repairs
+// have to hang off both. hbWake is registered at the heartbeat; the two network
+// ones belong here, where the reasoning about a wake lives.
+window.addEventListener('pageshow', () => {
+  if (document.hidden || state.paused) return;
+  statsWake(); refreshTip(); scheduleReconcile();
+});
+
+/* A SECOND SLEEP DETECTOR, BECAUSE THE FIRST ONE IS AN EVENT WE DO NOT CONTROL.
+   state.hiddenAt only moves when visibilitychange fires, and markFinal's guard
+   is built entirely on it: if the event is skipped, a finalize replayed on wake
+   computes `now - anchor` over the whole sleep and PUBLISHES it. Measured on
+   Flow's own expression — a ten-minute sleep prints 600000 ms, and TTF_SANITY_
+   MAX_MS does not stop it because that constant is a clock-skew backstop, not a
+   slowness ceiling (a genuinely slow finalize must still be reported honestly).
+   neo hit exactly this and answered it with a 4s defer buffer, noting that some
+   Android Chrome builds skip visibilitychange on a hot wake.
+
+   A timer proves the same fact without depending on any event: one that should
+   fire every 5s and fires ten minutes late means JS was frozen, whichever events
+   did or did not arrive. Recording the moment BEFORE the gap is all that is
+   needed — the existing guard then discards those anchors, which is the honest
+   move, never an estimate.
+
+   Deliberately never moves hiddenAt backwards, and a hidden tab throttled to one
+   tick a minute trips it too: that tab really was asleep, so the conclusion is
+   the same one visibilitychange would have reached. The only false positive is a
+   20s main-thread stall on a visible tab, which costs a discarded sample — the
+   direction this project always errs in. */
+const CLOCK_TICK_MS = 5_000;
+const CLOCK_GAP_MS = 20_000;   // 4x the tick: ordinary throttling never reaches it
+let clockLast = Date.now();
+setInterval(() => {
+  const now = Date.now();
+  if (now - clockLast > CLOCK_GAP_MS && clockLast > state.hiddenAt) state.hiddenAt = clockLast;
+  clockLast = now;
+}, CLOCK_TICK_MS);
 
 /* ------------------------------------------------------------------ expand-in-place detail
    Replaces the popup sheet: tapping a card drops an inline detail panel right

@@ -40,6 +40,7 @@
     "divider.block": "bloque {h} · {n} tx selladas",
     "divider.blockNoCount": "bloque {h}",
     "divider.more": "… y {n} más",
+    "divider.recent": "finalizadas desde el bloque anterior — no el contenido de este bloque",
     "newpill": "↓ {n} nuevas",
     "hist.load": "↑ Cargar anteriores",
     "hist.loading": "Cargando…",

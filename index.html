@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-ZayFww6Iewu3J5JkOiJCfbEpffOoRpgMke7V1uYgHBQ=';
+  script-src 'self' 'sha256-ZfbCYI+HvcTzfpiDf5JtR4cNm3RoIvpIkBYaTmirRW4=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -8061,10 +8061,15 @@ const CHRONIK_URLS = URL_PARAM_ENDPOINT
 // data source (fetchTokenInfo) + at tx-parse time, so every consumer (feed, Agora,
 // detail panel, watchlist) shows the override. The detail URL helper prepends https://
 // to scheme-less hosts, so a bare domain is fine.
+// A `url` here ADDS something the chain does not carry. A tokenName/tokenTicker
+// REPLACES something it does, which is a different act: the genesis metadata is
+// what the issuer actually committed to, and renaming it in our UI makes us the
+// source of a name nobody can verify against the chain. Firma was being shown as
+// "Firma Alpha" / "FIRMA α" for that reason and is now shown as minted.
 const TOKEN_DISPLAY_OVERRIDES = {
   // Firma
   '0387947fd575db4fb19a3e322f635dec37fd192b5941625b66bc4b2c3008cbf0': {
-    tokenName: 'Firma Alpha', tokenTicker: 'FIRMA α', url: 'firmaprotocol.com',
+    url: 'firma.cash',
   },
 };
 function applyTokenOverride(tokenId, o) {

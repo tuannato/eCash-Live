@@ -40,6 +40,7 @@
     "divider.block": "blok {h} · {n} tx disegel",
     "divider.blockNoCount": "blok {h}",
     "divider.more": "… dan {n} lagi",
+    "divider.recent": "difinalisasi sejak blok sebelumnya — bukan isi blok ini",
     "newpill": "↓ {n} baru",
     "hist.load": "↑ Muat lebih lama",
     "hist.loading": "Memuat…",
