@@ -718,7 +718,15 @@ export function parseTransactionCore(txData) {
     outputs: (txData.outputs || []).length,
     size: txData.size || 0,
     firstSeenLocal: Date.now(),
+    // `firstSeen` FABRICATES when the node did not report one, and it has to keep
+    // doing so: ordering and TTF-anchor code downstream assume a number. But a
+    // fabricated value is indistinguishable from a real one, and chronik reports
+    // timeFirstSeen: 0 for any transaction it never saw in its own mempool — i.e.
+    // every historical one. Display code was reading it and printing "now" for a
+    // transaction from 2023. So the FACT is published alongside it; consumers that
+    // show a time to a human must check this, not the value.
     firstSeen: txData.timeFirstSeen ? Number(txData.timeFirstSeen) * 1000 : Date.now(),
+    firstSeenKnown: !!Number(txData.timeFirstSeen),
     state: 'pending',
     confidence: 0,
     raw: txData,

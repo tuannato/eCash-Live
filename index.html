@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-ZfbCYI+HvcTzfpiDf5JtR4cNm3RoIvpIkBYaTmirRW4=';
+  script-src 'self' 'sha256-EpPoqy92MCDEIsi50/0GjDBWK+4i3EXCfNA9b/ENzIU=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -11104,7 +11104,13 @@ function parseTransaction(txData) {
     outputs: (txData.outputs || []).length,
     size: txData.size || 0,
     firstSeenLocal: Date.now(),
+    // Mirrors vendor/txparse.js — see the note there. `firstSeen` still fabricates
+    // (ordering keys and TTF anchors below assume a number), but whether it is REAL
+    // is now published, because chronik reports timeFirstSeen: 0 for anything it
+    // never saw in its own mempool and neo parses historical transactions in six
+    // places (block-tx list, watchlist history) that all feed the detail panel.
     firstSeen: txData.timeFirstSeen ? Number(txData.timeFirstSeen) * 1000 : Date.now(),
+    firstSeenKnown: !!Number(txData.timeFirstSeen),
     state: 'pending',
     confidence: 0,
     raw: txData,
@@ -12925,7 +12931,11 @@ function _renderDetailInner(tx) {
       }
     }
   }
-  $('d-first').textContent = tx.firstSeen ? fmt.time(tx.firstSeen) : '—';
+  // The "—" branch was written for exactly this case and its own parser had made
+  // it unreachable: firstSeen falls back to Date.now(), so it is never falsy, and
+  // a transaction pulled from the block list or a watchlist history — where
+  // chronik reports timeFirstSeen: 0 — printed the current clock instead.
+  $('d-first').textContent = tx.firstSeenKnown ? fmt.time(tx.firstSeen) : '—';
 
   // Token section
   const tokenSec = $('d-token-section');

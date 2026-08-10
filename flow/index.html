@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-e4hCslOSaiDUnQb4aDz5CeaI2pe7Qkm1FLBpxg++aE8=';
+  script-src 'self' 'sha256-WWlo7kZeoulZXpdX23awK+nX3xdKbW1axkm2nrysmIY=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -475,12 +475,6 @@
                 background:linear-gradient(105deg, transparent, rgba(255,255,255,.14), transparent);
                 animation:shim 1.5s ease-out .2s 1 both;}
   @keyframes shim{from{transform:translateX(-130%)}to{transform:translateX(340%)}}
-  .div-detail{display:none;margin:-4px 18px 14px;padding:9px 14px;border-left:2px solid var(--accent-ln);
-              font-size:11.5px;color:var(--ink3);font-family:var(--mono);line-height:1.9;}
-  .div-detail.open{display:block;animation:drop .2s ease-out;}
-  /* Names what the list under it is. Not mono and not the row colour, so it
-     reads as a heading rather than as the first entry. */
-  .div-detail .dd-head{font-family:inherit;font-size:10.5px;color:var(--ink3);opacity:.85;}
   @keyframes drop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
   .grp-detail{display:none;margin:-4px 12px 10px 42px;font-size:11.5px;color:var(--ink3);
               font-family:var(--mono);line-height:1.8;}
@@ -514,6 +508,12 @@
     --z-echan:4;      /* ambient narrator bubble — lowest, must never cover a control */
     --z-pill:5;       /* #new-pill / #load-older — stream affordances */
     --z-lane:6;       /* #lane — topic overlay; a STATE over the stream, not a dialog */
+    --z-block:6;      /* #block-panel — same tier, and that is SAFE only because the
+                         two can never be open together: the Lane covers the stream,
+                         so the divider that opens this one is unreachable while it
+                         is up, and openBlockPanel() closes the Lane anyway. Sharing
+                         a tier without that guarantee is what tied #toast to
+                         #cmp-panel and let DOM order decide (see above). */
     --z-fab:7;        /* #fab and #cmp-backdrop (the backdrop hides the FAB) */
     --z-panel:8;      /* #cmp-panel / #term-editor — focused-action dialogs */
     --z-receipt:10;   /* #receipt — opaque, covers the whole stream (9 is taken) */
@@ -580,13 +580,25 @@
         padding:12px 12px calc(16px + env(safe-area-inset-bottom));
         opacity:0;transition:opacity .18s;}
   #lane.show{opacity:1;}
+  /* Same shell, deliberately: a block panel and a topic Lane are the same shape
+     (a covering state with a head, a close, and a list) and sharing the rules
+     means they cannot drift apart visually. What differs is the CONTENT rule,
+     and that lives in JS, not here. */
+  #block-panel{position:absolute;inset:0;z-index:var(--z-block);background:var(--bg-app);
+        overflow-y:auto;padding:12px 12px calc(16px + env(safe-area-inset-bottom));
+        opacity:0;transition:opacity .18s;}
+  #block-panel.show{opacity:1;}
+  /* The stream's own cards, re-used verbatim inside the panel — a transaction has
+     to look the same wherever it is shown. Only the outer margin differs, because
+     here there is no stream gutter around them. */
+  #bp-list .card{margin-left:0;margin-right:0;}
   .lane-head{display:flex;align-items:center;gap:9px;margin-bottom:10px;}
   .lane-title{font-size:13px;font-weight:700;color:var(--ink);}
   .lane-count{font-size:11px;color:var(--ink3);font-variant-numeric:tabular-nums;}
-  #lane-close{margin-left:auto;position:relative;border:0;background:none;color:var(--ink3);
+  #lane-close,#bp-close{margin-left:auto;position:relative;border:0;background:none;color:var(--ink3);
               font-size:16px;cursor:pointer;line-height:1;padding:3px 6px;border-radius:6px;}
-  #lane-close:hover{color:var(--ink);}
-  #lane-close:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  #lane-close:hover,#bp-close:hover{color:var(--ink);}
+  #lane-close:focus-visible,#bp-close:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   /* Coverage line — the primary readout. It states what was searched, never just
      what was found, so an empty Lane reads as "nothing matched in X" and never
      as the unfounded claim "there is nothing". */
@@ -1124,7 +1136,9 @@
         </select>
         <span class="chip kind-face" aria-hidden="true"><span id="kind-label">All</span><span class="caret">▾</span></span>
       </span>
-      <div class="chips hscroll" role="group" data-i18n-aria="lane.aria" aria-label="Saved topics"></div>
+      <!-- Its own name: this row and #lane both said "Saved topics", so a screen
+           reader met two different landmarks with one identity. -->
+      <div class="chips hscroll" role="group" data-i18n-aria="chips.topicsAria" aria-label="Topic filters"></div>
       <button class="chip warn" id="safety-chip" type="button" aria-haspopup="true"
               data-i18n-aria="safety.chipAria" aria-label="Safety notice">!</button>
     </div>
@@ -1177,6 +1191,21 @@
         <button class="lane-more" id="lane-more" type="button" hidden></button>
         <div id="lane-list"></div>
         <div class="lane-empty" id="lane-empty" hidden></div>
+      </div>
+      <!-- Block panel: what a divider promises. Same STATE-over-the-stream shape
+           as #lane (region, no backdrop, no aria-modal) — opened only by a
+           divider, so it is always about a specific block and never a blank
+           surface a newcomer has to interpret. A single transaction is NOT its
+           job: #receipt already owns that, and two surfaces telling one story is
+           how they start disagreeing. -->
+      <div id="block-panel" role="region" data-i18n-aria="block.aria" aria-label="Block contents" hidden>
+        <div class="lane-head">
+          <span class="lane-title" id="bp-title"></span>
+          <span class="lane-count" id="bp-count"></span>
+          <button id="bp-close" type="button" data-i18n-aria="lane.close" aria-label="Back to the live stream">✕</button>
+        </div>
+        <div id="bp-list"></div>
+        <div class="lane-empty" id="bp-empty" hidden></div>
       </div>
       <!-- Shared-receipt state (F14): a ?tx= link opens a PINNED receipt over the
            stream instead of appending a card that scrolls away. Dismissing it
@@ -1326,7 +1355,7 @@
 </div>
 
 <script type="module">
-import { parseTransactionCore, encodeOutputScript, validateCashAddress, parseOpReturn, MESSAGE_LOKADS } from '../vendor/txparse.js?v=p6';
+import { parseTransactionCore, encodeOutputScript, validateCashAddress, parseOpReturn, MESSAGE_LOKADS } from '../vendor/txparse.js?v=p7';
 import { matchAny, matchEvery, findAllSpans } from '../vendor/core/match.js?v=5';
 import { createBackfill } from '../vendor/core/backfill.js?v=5';
 import { isCashtabExtension, requestAddress as ctRequestAddress, sendBip21 as ctSendBip21 } from '../vendor/cashtab-connect.js?v=1';
@@ -1427,8 +1456,12 @@ const FLOW_STRINGS_EN = {
   'group.hint':'bot & dust — tap to view',
   'divider.block':'block {h} · sealed {n} tx',
   'divider.blockNoCount':'block {h}',
-  'divider.more':'… and {n} more',
-  'divider.recent':'finalized since the previous block — not this block\'s contents',
+  'block.aria':'Block contents',
+  'block.title':'block {h}',
+  'block.showing':'showing {n} of {total}',
+  'block.loading':'Loading this block…',
+  'block.empty':'No transactions came back for this block.',
+  'block.failed':'This block could not be loaded.',
   'newpill':'↓ {n} new',
   'hist.load':'↑ Load older',
   'hist.loading':'Loading…',
@@ -1451,6 +1484,7 @@ const FLOW_STRINGS_EN = {
   'a11y.finalNoTime':'{label} {amount}, permanently final',
   'a11y.sending':'{label} {amount}, sending',
   'chips.aria':'Filter transactions',
+  'chips.topicsAria':'Topic filters',
   'chip.all':'All',
   'chip.pay':'Payments',
   'chip.msg':'Messages',
@@ -1500,6 +1534,7 @@ const FLOW_STRINGS_EN = {
   'lane.holes':'{n} pages could not be loaded',
   'lane.unread':'{n} protocols could not be read — coverage is not stated for them',
   'lane.cacheFull':'memory full — older pages are still searched for this topic, but not kept for other ones',
+  'lane.capped':'showing the newest {n} of {total} matches',
   'term.add':'+ Topic',
   'term.any':'any word',
   'term.all':'all words',
@@ -1634,7 +1669,7 @@ function tf(key, vars){
   return String(t(key)).replace(/\{(\w+)\}/g, (_, k) => (vars && vars[k] != null ? vars[k] : ''));
 }
 function localeFor(code){ try { new Intl.NumberFormat(code); return code; } catch { return 'en'; } }
-const I18N_V = '13';   // bump whenever any vendor/i18n/flow.*.json changes
+const I18N_V = '14';   // bump whenever any vendor/i18n/flow.*.json changes
 async function loadPack(code){
   if (code === 'en'){ pack = null; return; }
   try {
@@ -1675,12 +1710,13 @@ async function setLang(code){
   if (typeof renderBlockAge === 'function') renderBlockAge();         // Intl-formatted age, JS-set
   if (typeof updateScrollHints === 'function') updateScrollHints();   // label widths changed
   // Same guard as initScrollHints(): a row carrying its own data-i18n-aria (the
-  // chips row says "Filter transactions") keeps it — applyStatic() has just set
-  // it, and overwriting it here would undo that on every language switch.
+  // chips row says "Topic filters") keeps it — applyStatic() has just set it,
+  // and overwriting it here would undo that on every language switch.
   document.querySelectorAll('.hscroll:not([data-i18n-aria])').forEach(el => el.setAttribute('aria-label', t('a11y.scrollRow')));
   if (typeof renderKindFace === 'function') renderKindFace();          // applyStatic() just retranslated the <option>s
   if (typeof renderTermChips === 'function') renderTermChips();       // JS-built chips + the "+ Topic" label
   if (state.laneOpen) renderLane();                                   // kind labels / relative time in the new language
+  if (bpOpen) bpRenderHead();                                         // JS-set title + "showing N of M"
   // The "search further back" label is JS-set and STATEFUL (idle / searching /
   // exhausted), so applyStatic() cannot restore it — the B3 rule. renderLane()
   // already covers the open case; this catches the closed one.
@@ -1826,7 +1862,6 @@ function shortAddr(a){
 const state = {
   txs: new Map(),          // txid -> tx object (with .el)
   finals: [],              // recent final {id, ttf} for the session p50
-  sinceBlock: [],          // txs finalized since the last block divider (for stamping)
   count: 0,                // session finalized count
   height: 0,               // latest known tip height (display only)
   lastSealedHeight: 0,     // last height a divider was actually sealed for (B5 guard)
@@ -1838,6 +1873,7 @@ const state = {
   terms: [],               // saved topics [{q,on,mode,fold}], cap TERM_MAX
   termMode: 'any',         // 'any' = a topic widens the Lane; 'all' = it narrows it
   matched: [],             // txids matching an enabled term, newest last, cap MATCH_MAX
+  matchedTotal: 0,         // how many matched BEFORE that cap — disclosed, not hidden
   laneTxs: new Map(),      // txid -> tx pulled by the retrospective backfill, cap MATCH_MAX.
                            // Separate from .txs on purpose: a result that cost a
                            // network round trip must not be evicted by live churn.
@@ -2125,7 +2161,7 @@ function initScrollHints(){
     // (a focused row scrolls with the arrow keys).
     el.setAttribute('role', 'group');
     // Only label rows that have nothing better to say. .chips carries its own
-    // data-i18n-aria ("Filter transactions"), which is more useful than "this
+    // data-i18n-aria ("Topic filters"), which is more useful than "this
     // scrolls" — and overwriting it here would also start a fight with
     // applyStatic(), which restores it on every language switch (CLAUDE.md §6).
     if (!el.hasAttribute('aria-label') && !el.hasAttribute('data-i18n-aria')){
@@ -2143,10 +2179,10 @@ function initScrollHints(){
 function updateFabAway(){
   if (!fabEl || !cmpPanel) return;
   if (!cmpPanel.hidden) return;                       // composer open → FAB is hidden anyway
-  // The Lane is an opaque overlay BELOW the FAB's tier, so without this the "+"
-  // floats over the topic list — the same covering-the-content problem .away
-  // exists to solve for the stream.
-  fabEl.classList.toggle('away', !state.atBottom || state.laneOpen);
+  // The Lane and the block panel are opaque overlays BELOW the FAB's tier, so
+  // without this the "+" floats over their content — the same covering-the-content
+  // problem .away exists to solve for the stream.
+  fabEl.classList.toggle('away', !state.atBottom || state.laneOpen || bpOpen);
 }
 // A10: #stream carries scroll-behavior:smooth, which animates EVERY programmatic
 // scrollTop write — including the pin-to-bottom fired once per admitted card, so
@@ -2192,10 +2228,11 @@ function appended(){
       expTx._detail = null;
     }
     // Evict the node together with any inline detail trailing it (card-detail /
-    // grp-detail / div-detail) so a detail panel is never orphaned above the stream.
+    // grp-detail) so a detail panel is never orphaned above the stream. Dividers
+    // no longer carry one — they open the block panel instead.
     const sib = node.nextElementSibling;
     node.remove();
-    if (sib && (sib.classList.contains('card-detail') || sib.classList.contains('grp-detail') || sib.classList.contains('div-detail'))) sib.remove();
+    if (sib && (sib.classList.contains('card-detail') || sib.classList.contains('grp-detail'))) sib.remove();
     // Detaching the node is not releasing it: state.txs holds up to 2500 entries,
     // each still pointing at its card via tx.el, so an evicted subtree (with any
     // decoded token image) stayed reachable for the rest of the session. Bounded,
@@ -2674,7 +2711,6 @@ function finalize(tx, ttfMs, source){
     // counts, since bootPollDone is true by then.
     bumpSessionCount(tx, source);
     recordFinalSample(tx);
-    state.sinceBlock.push(tx);
     stopTicking(tx.id);   // sending stopwatch (v2 port): this tx is no longer pending
     const el = tx.el;
     if (el){
@@ -2873,6 +2909,31 @@ function foldRun(tx, gkey){
   }
 }
 
+/* ---- block divider ----
+   ONE builder for both dividers in the stream: the live one from sealBlock() and
+   the historical one loadOlder() emits under each batch. They were different
+   elements for a reason that no longer exists — the live one expanded a preview
+   in place and the history one had nothing to expand, so it was a plain <div>.
+
+   That preview was built from state.sinceBlock, "what finalized since the last
+   divider", which is a DIFFERENT SET from the block the label names: the miner
+   picks a subset, dust and folded run-groups never entered it at all, and a burst
+   of blocks emptied it entirely. It was measured listing nine rows under a label
+   promising three, and empty under a label promising fifty-two.
+
+   Now the divider promises the block and delivers the block — tapping it fetches
+   that height's transactions. sinceBlock is gone, and with it the empty panel,
+   the mismatched set, the untranslated preview after a language switch, and the
+   one container in this file that had no cap. */
+function blockDivider(height, n, lbl){
+  const div = document.createElement('button');
+  div.className = 'divider'; div.type = 'button';
+  div.innerHTML = '<span class="ln"></span><span class="lbl">' + IC.cube + ' ' +
+    esc(lbl) + '</span><span class="ln"></span>';
+  div._blockData = { height, n };
+  div.addEventListener('click', () => openBlockPanel(height, n));
+  return div;
+}
 /* ---- block divider ---- */
 function sealBlock(height, realTxCount){
   state.height = height;
@@ -2880,57 +2941,21 @@ function sealBlock(height, realTxCount){
   hbSignal('block');   // heartbeat: a block sealed → tall amber column
   $('height').textContent = fmtInt(height);
   setStat('height', fmtInt(height));
-  // We deliberately do NOT stamp tx.block = height for these here. A tx
-  // finalized since the last divider is NOT necessarily in THIS block — the
-  // miner picks a subset, and a just-finalized tx usually lands in the NEXT
-  // block (neo proved this; see index.html "BLOCK ARRIVAL" note). The real
-  // per-card block number comes from TX_CONFIRMED (confirmTx). This list is
-  // only a "recently finalized" preview for the divider's expand (F1).
-  const sealed = state.sinceBlock.splice(0);
+  // We still do NOT stamp tx.block = height on anything here. A tx finalized
+  // since the last divider is NOT necessarily in THIS block — the miner picks a
+  // subset, and a just-finalized tx usually lands in the NEXT block (neo proved
+  // this; see index.html "BLOCK ARRIVAL" note). The real per-card block number
+  // comes from TX_CONFIRMED (confirmTx).
+  //
   // Honesty (A5): only show a tx count when chronik.block() actually returned
-  // numTxs. On fetch failure, OMIT the count rather than mislabel sealed.length
-  // (the "finalized since last divider" preview set) as the block's real tx count.
+  // numTxs; on fetch failure OMIT it rather than substitute a number from a
+  // different set. That rule is what the divider's contents now honour too —
+  // see blockDivider().
   const n = realTxCount != null ? realTxCount : null;
   const lbl = n != null ? tf('divider.block', { h: fmtInt(height), n: fmtInt(n) })
                         : tf('divider.blockNoCount', { h: fmtInt(height) });
-  /* THE PREVIEW IS OFTEN EMPTY, AND IT USED TO OFFER ITSELF ANYWAY.
-     `sealed` is what finalized since the LAST divider, and two everyday things
-     leave it at zero: markFinal() returns before finalize() for dust and folded
-     run-groups, so a stretch of bot traffic contributes nothing at all; and a
-     burst of blocks (a reconnect, or a wake replaying queued messages) empties
-     it for the second and third divider. The node still built a <button> with
-     aria-expanded, so tapping "sealed 52 tx" opened a panel with nothing in it —
-     the reported bug, and it reads as broken rather than as empty.
-
-     No preview => no affordance. A plain <div>, exactly like the history divider
-     below, which is already a <div> for the same reason: a control that cannot
-     do anything takes a tab stop and lies to a screen reader. */
-  const hasPreview = sealed.length > 0;
-  const div = document.createElement(hasPreview ? 'button' : 'div');
-  div.className = 'divider'; if (hasPreview) div.type = 'button';
-  div.innerHTML = '<span class="ln"></span><span class="lbl">' + IC.cube + ' ' +
-    esc(lbl) + '</span><span class="ln"></span>';
-  let det = null;
-  if (hasPreview){
-    det = document.createElement('div');
-    det.className = 'div-detail';
-    /* The label states the block's REAL numTxs; this list is the txs we watched
-       finalize since the previous divider. They are different sets — the miner
-       picks a subset and a just-finalized tx usually lands in the NEXT block
-       (see the note above) — so the panel says which one it is. Without the
-       heading it reads as "here are the 52", and we measured it listing 9 rows
-       under a label promising 3. */
-    det.innerHTML = '<span class="dd-head">' + esc(t('divider.recent')) + '</span><br>' +
-      sealed.slice(0,6).map(tx => esc((cardStrings(tx).t1 || '') + ' · ' + tx.id.slice(0,10) + '…')).join('<br>') +
-      (sealed.length > 6 ? '<br>' + esc(tf('divider.more', { n: fmtInt(sealed.length-6) })) : '');
-    div.setAttribute('aria-expanded', 'false');   // A8: the divider expands a preview list
-    div.addEventListener('click', () => {
-      div.setAttribute('aria-expanded', String(det.classList.toggle('open')));
-    });
-  }
-  div._blockData = { height, n };
   hideEmpty();
-  stream.appendChild(div); if (det) stream.appendChild(det);
+  stream.appendChild(blockDivider(height, n, lbl));
   state.lastGroup = null;  // start a fresh dust group after a block
   appended();
   firstTime('block', 'echan.firstBlock', 'observing', 'block');   // → Learn "what a block is for"
@@ -3176,6 +3201,14 @@ function removeTx(txid){
   muteApply(tx, -1);
   state.txs.delete(txid);
   state.subscribed.delete(txid);
+  // Drop it from the Lane's answer too. Left in, it stayed a match with nothing
+  // behind it and renderLane() counted it under lane.aged — "left memory" — when
+  // it had actually been replaced or orphaned out of the mempool. A true count
+  // for the wrong reason is still the wrong reason.
+  if (state.matched.includes(txid)){
+    laneSetMatched(state.matched.filter((id) => id !== txid));
+    if (state.laneOpen) renderLane();
+  }
 }
 
 // ---- reconcile-lite (A1/A2): the ONLY honest source of a per-card block ----
@@ -3246,6 +3279,7 @@ function histCard(tx, d, height){
   tx.final = true;                                             // it is in a block
   tx.ttf = null;                                               // never fabricated
   tx.block = (d.block && d.block.height) || height || null;
+  stampTs(tx, d);                                              // real date, not parse time
   if ((tx.kind === 'token' || tx.kind === 'trade') && tx.token && tx.token.tokenId){
     const rec = resolvedTokenRec(tx.token.tokenId);
     if (rec) applyTokenInfo(tx, rec);
@@ -3318,18 +3352,14 @@ function prependHistory(txDatas, height, realTxCount){
   // BELOW the transactions it contains, and only states a count when chronik
   // actually gave us one.
   if (frag.childNodes.length){
-    // A plain <div>, NOT a button: unlike the live divider this one has no
-    // "recently finalized" preview to expand, and a button that does nothing is
-    // worse than no button (it takes a tab stop and lies to screen readers).
-    const div = document.createElement('div');
-    div.className = 'divider';
+    // Identical to the live divider now, and interactive for the same reason:
+    // whether we watched the block or walked back to it, tapping it fetches the
+    // same thing. It used to be a plain <div> because it had no preview to
+    // expand — that distinction died with the preview.
     const n = (realTxCount != null) ? realTxCount : null;
     const lbl = n != null ? tf('divider.block', { h: fmtInt(height), n: fmtInt(n) })
                           : tf('divider.blockNoCount', { h: fmtInt(height) });
-    div.innerHTML = '<span class="ln"></span><span class="lbl">' + IC.cube + ' ' + esc(lbl) +
-      '</span><span class="ln"></span>';
-    div._blockData = { height, n };   // so relabelDynamic re-renders it on a language switch
-    frag.appendChild(div);
+    frag.appendChild(blockDivider(height, n, lbl));
   }
   if (!frag.childNodes.length) return 0;
   hideEmpty();
@@ -3533,22 +3563,31 @@ function connectStats(){
    catch" — and nothing corrected it until the next live block arrived, which on
    a dead socket is never.
 
-   Advancing lastSealedHeight along with it is the same decision boot already
-   makes: blocks that landed while we were away were not witnessed, so they get
-   no in-stream divider. The divider means "a block sealed while you were
-   watching"; back-filling one for a block whose transactions were never shown
-   would put a marker in the stream for something the reader did not see.
+   IT MUST NOT TOUCH lastSealedHeight OUTSIDE BOOT, and the first version did.
+   That watermark is what onBlock() checks before drawing a divider, so raising it
+   to the live tip on every reconnect, wake and bfcache restore made the next
+   blocks the WS actually announced disappear: the header knew 961,697 while the
+   newest divider was 961,695. The justification written here was that a block
+   landing while we were away was "not witnessed" and should get no marker — but
+   sealBlock() has exactly ONE caller, this file's onBlock(), driven purely by live
+   messages. There was no back-fill path to defend against; the watermark defended
+   nothing and suppressed the real thing. It also feeds eChan's staleness rule, so
+   every reconnect was quietly dropping queued block commentary too.
+
+   Boot is different and still needs it: the tip existed before the page did, so a
+   replayed BLK_FINALIZED for an older block must not draw a divider for something
+   nobody here watched. Hence an explicit flag rather than a default.
 
    Monotonic on purpose. This races the WS — a block message can land while the
-   fetch is in flight — and a tip that moves backwards would re-seal a height
-   that already has a divider. */
-async function refreshTip(){
+   fetch is in flight — and a tip that moves backwards would re-seal a height that
+   already has a divider. */
+async function refreshTip({ atBoot = false } = {}){
   if (!state.chronik) return;
   let h = null;
   try { const info = await state.chronik.blockchainInfo(); h = info && info.tipHeight; } catch { return; }
   if (!Number.isFinite(h) || h <= state.height) return;
   state.height = h;
-  if (h > state.lastSealedHeight) state.lastSealedHeight = h;
+  if (atBoot && h > state.lastSealedHeight) state.lastSealedHeight = h;
   $('height').textContent = fmtInt(h); setStat('height', fmtInt(h));
   // The block's REAL timestamp, so "· 4 min ago" is measured and not assumed.
   // A failure leaves the previous value rather than inventing or blanking one.
@@ -3566,7 +3605,7 @@ async function connectChronik(){
   try { state.chronik = new ChronikClient(CHRONIK_URLS); }
   catch (e){ setConn('conn.offline', 'warn'); console.warn('[flow] chronik init failed', e); return; }
 
-  await refreshTip();   // same call the wake path makes — see below
+  await refreshTip({ atBoot: true });   // the ONLY caller allowed to claim the tip as sealed
 
   const openWs = () => {
     let ws;
@@ -3631,9 +3670,35 @@ function handleWs(ws, msg){
     scheduleReconcile();   // a block arrived → tracked txs may now be mined; stamp real blocks (A1)
   }
 }
+/* Heights with a fetch IN FLIGHT — and read this before assuming it does more.
+
+   IT IS NOT PROTECTING THE DIVIDER. A review argued that because the
+   lastSealedHeight guard in onBlockInner() is read after `await chronik.block()`,
+   two messages for one height (BLK_CONNECTED + BLK_FINALIZED, the normal pair)
+   could both pass it and draw two dividers. That was tested and it is FALSE:
+   there is no await between the guard and sealBlock(), so the check and the write
+   are one synchronous run and whichever resumes first always wins. The control
+   case built to demonstrate the duplicate produced exactly one. Recorded here
+   because the argument is plausible enough to be re-derived.
+
+   What it does do is skip the REDUNDANT FETCH. Both messages arrive for every
+   block, and each used to spend its own chronik.block() round trip to learn a
+   height and a tx count the first one had already fetched — one wasted request
+   per block, forever. Only messages carrying a height can claim (the rest learn
+   theirs from the fetch, by which point there is nothing left to skip). Released
+   in `finally`, so a throw cannot wedge a height shut. */
+const sealing = new Set();
 async function onBlock(msg){
   // Resolve height + real tx count for an honest divider label.
   let height = msg.blockHeight || (msg.block && msg.block.blockInfo && msg.block.blockInfo.height) || null;
+  if (height != null){
+    if (sealing.has(height)) return;
+    sealing.add(height);
+  }
+  try { await onBlockInner(msg, height); }
+  finally { if (height != null) sealing.delete(height); }
+}
+async function onBlockInner(msg, height){
   let numTxs = null;
   const hashOrHeight = msg.blockHash || (msg.block && msg.block.blockInfo && msg.block.blockInfo.hash) || height;
   try {
@@ -3648,10 +3713,12 @@ async function onBlock(msg){
   } catch {}
   if (height == null){ try { const info = await state.chronik.blockchainInfo(); height = info.tipHeight; } catch {} }
   if (height == null) return;
-  // Guard on lastSealedHeight, NOT state.height/sinceBlock — a tx finalizing
-  // between BLK_CONNECTED and BLK_FINALIZED for the SAME height must not
-  // trigger a second seal (B5: previously produced a duplicate divider and
-  // mis-stamped the tx into the wrong block).
+  // Guard on lastSealedHeight, NOT state.height — a tx finalizing between
+  // BLK_CONNECTED and BLK_FINALIZED for the SAME height must not trigger a
+  // second seal (B5: previously produced a duplicate divider). It is read after
+  // an await, which looks unsafe and is not: nothing awaits between this line
+  // and sealBlock(), so the check and the write cannot be interleaved. See the
+  // note on `sealing` above, which was written for a race that does not exist.
   if (height <= state.lastSealedHeight){
     if (height > state.height){ state.height = height; $('height').textContent = fmtInt(height); }
     return;
@@ -4102,13 +4169,7 @@ function laneParseTx(d){
   tx.ttf = null;                // we did not witness it, so there is none
   tx.block = (d.block && d.block.height) || null;
   tx.final = !!(tx.block || d.isFinal);
-  // Age comes from the block it landed in, falling back to first-seen. Left
-  // UNSET when neither is known — a Lane mixing today with 2023 must not guess,
-  // and an absent time reads as unknown rather than as "just now".
-  const bts = d.block && Number(d.block.timestamp);
-  const fts = Number(d.timeFirstSeen);
-  if (Number.isFinite(bts) && bts > 0) tx.ts = bts * 1000;
-  else if (Number.isFinite(fts) && fts > 0) tx.ts = fts * 1000;
+  stampTs(tx, d);
   return tx;
 }
 
@@ -4163,6 +4224,13 @@ function laneSetMatched(ids){
   // follows the stream underneath — new arrivals appear at the bottom, so the
   // Lane and the stream never scroll in opposite directions.
   rows.sort((a, b) => b[1] - a[1]);
+  // The cap has to be SAID. The count beside the title reports rendered rows, so
+  // 1000 matches read as "200 found" — a coverage line that is otherwise
+  // scrupulous about holes, unread protocols, aged-out entries and a full cache
+  // was silent about the one limit the reader actually hits. Worse, it reproduces
+  // the exact symptom of a bug already fixed once (the reach date moves, the
+  // count does not), which nobody can tell apart from a fault.
+  state.matchedTotal = rows.length;
   state.matched = rows.slice(0, MATCH_MAX).reverse().map((r) => r[0]);
 }
 
@@ -4209,7 +4277,12 @@ async function laneHydrate(token){
 
 async function runLaneBackfill(){
   if (laneBusy || laneDeepDone || !enabledTerms().length) return;
-  laneBusy = true; renderLaneMore();
+  // The SAME guard maybeAutoBackfill() has, and the click handler never had it.
+  // createBackfill() throws 'backfill: chronik client required' from outside the
+  // try that wraps run(), and laneBusy was already set — so one click before
+  // chronik connected (or ever, if its import failed) disabled "Search further
+  // back" for the rest of the session, escapable only by editing a term.
+  if (!state.chronik || typeof state.chronik.lokadId !== 'function') return;
   laneAbort = new AbortController();
   const token = laneRunToken;
   if (!laneBf){
@@ -4226,6 +4299,8 @@ async function runLaneBackfill(){
     });
     if (laneSavedCursor) laneBf.load(laneSavedCursor);   // restored at boot, with its corpus
   }
+  // Only once construction has actually succeeded — see the guard above.
+  laneBusy = true; renderLaneMore();
   // Snapshot BEFORE the run. Everything on the cursor is a lifetime total that
   // backfill.load() restores from storage, so no test written against the values
   // alone can tell "read nothing" from "read nothing THIS TIME" — see below.
@@ -4675,6 +4750,11 @@ function renderLane(){
   // stuck counter — and hides the real consequence: pages read past this point
   // still answer the CURRENT topic, but a future one will not find them.
   if (corpusFull) cov.push(t('lane.cacheFull'));
+  // The render cap, stated. Without it "{n} found" is a claim about the search
+  // when it is really a fact about the list.
+  if (state.matchedTotal > state.matched.length){
+    cov.push(tf('lane.capped', { n: fmtInt(state.matched.length), total: fmtInt(state.matchedTotal) }));
+  }
   laneCov.textContent = cov.join(' · ');
   laneEmpty.hidden = shown > 0;
   if (!shown) laneEmpty.textContent = t('lane.empty');
@@ -4689,8 +4769,9 @@ function renderLane(){
    needed. Deriving it is the same fix as matchesFilter: one place decides. */
 function syncInert(){
   const receiptOpen = !$('receipt').hidden;
-  try { stream.inert = receiptOpen || state.laneOpen; } catch {}
+  try { stream.inert = receiptOpen || state.laneOpen || bpOpen; } catch {}
   try { laneEl.inert = receiptOpen; } catch {}   // the receipt covers the Lane too
+  try { bpEl.inert = receiptOpen; } catch {}     // …and the block panel, which it opens over
 }
 function openLane(){
   if (!enabledTerms().length) return;
@@ -4715,6 +4796,112 @@ function closeLane(){
   setTimeout(() => { if (!state.laneOpen) laneEl.hidden = true; }, 180);
 }
 $('lane-close').addEventListener('click', closeLane);
+
+/* ------------------------------------------------------------------ block panel
+   What the divider promises, delivered. The label states the block's real numTxs
+   and tapping it now fetches THAT block's transactions — the same set — instead
+   of the "finalized since the last divider" list, which shared no guaranteed
+   membership with it and was frequently empty.
+
+   Cards are the stream's own, built by cardFor(), because a transaction has to
+   look the same wherever it is shown. Two rules keep them honest:
+
+     - A transaction we WITNESSED is rendered from the live object, so it keeps
+       the real TTF it earned. One we had to fetch gets histCard()'s stamps
+       (_hist, ttf null) and can never show a duration it did not have.
+     - Everything is rendered from a SHALLOW COPY. cardFor() assigns tx.el, so
+       building a panel card from a live tx object would steal the stream card's
+       own element and every later setCardText() would write into the wrong one.
+       A copy is not a compromise here: a sealed block is finished, so there is
+       nothing live left to update.
+
+   The panel owns the LIST. One transaction belongs to #receipt, which already
+   renders it through buildDetailHtml — tapping a row opens that, and it sits on
+   a higher tier so it covers this panel and returns to it on close. */
+const BP_PAGE = 25;                      // one page per open; the count line says so
+const bpEl = $('block-panel');
+let bpHeight = null, bpTotal = null, bpToken = 0, bpOpen = false;
+function bpCard(txData, height){
+  const live = state.txs.get(txData.txid);
+  let view;
+  if (live){
+    view = Object.assign({}, live);      // snapshot: never steal the stream card's el
+  } else {
+    try { view = scrubTx(parseTransactionCore(txData)); } catch { return null; }
+    if (!view) return null;
+    const k = txKind(view); view.kind = k.kind; view.f = k.f; view.icon = k.icon;
+    try { const r = deriveRoute(txData); view.from = r.from; view.to = r.to; view._addrSet = r.allAddrs; } catch {}
+    view._hist = true;                   // we did not watch it — never a duration
+    view.ttf = null;
+    view.final = true;                   // it is in a block
+    view.block = (txData.block && txData.block.height) || height || null;
+    stampTs(view, txData);
+    if ((view.kind === 'token' || view.kind === 'trade') && view.token && view.token.tokenId){
+      const rec = resolvedTokenRec(view.token.tokenId);
+      if (rec) applyTokenInfo(view, rec);
+      fetchTokenTicker(view.token.tokenId);
+    }
+  }
+  const built = cardFor(view);
+  built.classList.remove('enter', 'is-sending');
+  built.classList.add('is-final');
+  const c = built.querySelector('.checks'); if (c) c.innerHTML = IC.checks;
+  const sl = built.querySelector('.seal');
+  if (sl && view.block){ sl.textContent = '· ' + t('pill.block') + ' ' + fmtInt(view.block); sl.classList.add('show'); }
+  setCardText(view);
+  // Clone to drop cardFor()'s accordion listeners: this card opens the receipt,
+  // it does not expand in place. (The token-icon error fallback is delegated on
+  // the document, so it survives the clone.)
+  const node = built.cloneNode(true);
+  node.classList.remove('hide', 'muted');   // panel shows the block, not your filter
+  const open = () => openReceipt(view);
+  node.addEventListener('click', open);
+  node.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(); } });
+  return node;
+}
+function bpRenderHead(){
+  $('bp-title').textContent = bpHeight != null ? tf('block.title', { h: fmtInt(bpHeight) }) : '';
+  const shown = $('bp-list').childElementCount;
+  // Never "25" on its own under a label promising 500 — that is the defect this
+  // panel exists to end, and it would just have moved one surface over.
+  $('bp-count').textContent = (bpTotal != null && shown)
+    ? tf('block.showing', { n: fmtInt(shown), total: fmtInt(bpTotal) })
+    : (shown ? fmtInt(shown) : '');
+}
+async function openBlockPanel(height, n){
+  if (state.laneOpen) closeLane();       // never two covering states at one tier
+  bpHeight = height; bpTotal = (n != null) ? n : null; bpOpen = true;
+  const token = ++bpToken;
+  const list = $('bp-list'), empty = $('bp-empty');
+  list.textContent = ''; empty.hidden = false; empty.textContent = t('block.loading');
+  bpRenderHead();
+  bpEl.hidden = false;
+  showAnimated(bpEl, 'show');
+  syncInert();
+  updateFabAway();
+  requestAnimationFrame(() => { try { $('bp-close').focus(); } catch {} });
+  let res = null;
+  try { res = await state.chronik.blockTxs(height, 0, BP_PAGE); }
+  catch { if (token === bpToken){ empty.hidden = false; empty.textContent = t('block.failed'); } return; }
+  if (token !== bpToken) return;         // a different block was opened meanwhile
+  if (Number.isInteger(res && res.numTxs)) bpTotal = res.numTxs;   // authoritative
+  const txs = (res && res.txs) || [];
+  const frag = document.createDocumentFragment();
+  for (const d of txs){ const el = bpCard(d, height); if (el) frag.appendChild(el); }
+  list.appendChild(frag);
+  empty.hidden = list.childElementCount > 0;
+  if (!list.childElementCount) empty.textContent = t('block.empty');
+  bpRenderHead();
+}
+function closeBlockPanel(){
+  bpOpen = false; bpToken++;             // orphan any fetch still in flight
+  bpEl.classList.remove('show');
+  syncInert();
+  updateFabAway();
+  setTimeout(() => { if (!bpOpen){ bpEl.hidden = true; $('bp-list').textContent = ''; } }, 180);
+}
+$('bp-close').addEventListener('click', closeBlockPanel);
+
 // The ! chip reuses the Learn surface rather than adding a fourth footer bar:
 // Learn is already the place things get explained, already an accordion, and
 // already has both a desktop rail and a mobile bar.
@@ -4728,6 +4915,22 @@ const chipsRow = document.querySelector('.chips');
    eye already is, and the button that creates it does not drift further away
    with every addition. state.terms is therefore rendered newest-first. */
 function renderTermChips(){
+  /* This runs on EVERY live match (laneAdd) and every muted arrival
+     (scheduleChipRepaint), and it removes every chip and rebuilds them — so on a
+     busy minute it was throwing away the reader's focus and the row's horizontal
+     scroll several times a minute, while renderLane() beside it carefully
+     preserves focus, scroll AND the open panel.
+
+     Focus is not cosmetic here: Delete/Backspace on a focused chip is the only
+     keyboard way to remove a topic, so losing focus loses the function. And with
+     every child gone the scroller's width collapses, so scrollLeft clamps to 0
+     and a row of eight topics jumps back to the left on each arrival. */
+  const active = document.activeElement;
+  const keepQ = (active && active.classList && active.classList.contains('term'))
+    ? active.dataset.q : null;
+  const keepAdd = !!(active && active.classList && active.classList.contains('addterm'));
+  const keepMode = !!(active && active.classList && active.classList.contains('termmode'));
+  const keepScroll = chipsRow.scrollLeft;
   // Every JS-built chip must be listed here. `.chip.term` does NOT match
   // `.chip.termmode` — different class, not a variant — so the mode chip
   // survived each render and a second one was appended on top of it, leaving
@@ -4795,8 +4998,19 @@ function renderTermChips(){
       term.on = !term.on;
       saveTerms(); onTermsChanged();
     });
+    b.dataset.q = term.q;                 // lets the rebuild below find this chip again
     chipsRow.appendChild(b);
   }
+  // Put the reader back where they were. Scroll first: restoring focus to an
+  // off-screen chip would scroll the row itself and undo the position.
+  chipsRow.scrollLeft = keepScroll;
+  const again = keepQ != null
+    ? chipsRow.querySelector('.chip.term[data-q="' + CSS.escape(keepQ) + '"]')
+    : (keepAdd ? chipsRow.querySelector('.chip.addterm')
+               : (keepMode ? chipsRow.querySelector('.chip.termmode') : null));
+  // Only ever RESTORE focus that was already in this row — never steal it.
+  if (again){ try { again.focus({ preventScroll: true }); } catch { again.focus(); }
+              chipsRow.scrollLeft = keepScroll; }
   updateScrollHints();   // A2: the row just changed width by content
 }
 function removeTerm(q){
@@ -4952,9 +5166,40 @@ setInterval(() => {
    after it (accordion — one open at a time). A ?tx= shared receipt renders as an
    auto-expanded card in the stream, not a modal. ONE detail builder keeps the
    card, the detail, and a shared receipt telling the same truth (core value #6). */
+/* WHEN DID THIS HAPPEN — one owner, because there were two answers.
+
+   A Lane row read tx.ts and said "1,115d ago"; the detail panel for the SAME
+   transaction read `tx.firstSeen || tx.firstSeenLocal` and said "now", and
+   tickDetailTime re-wrote that every 10 seconds. Both came from the same object,
+   one tap apart. The cause is parseTransactionCore's fabricated firstSeen (see
+   the note in txparse.js): chronik reports timeFirstSeen: 0 for every transaction
+   it never saw in its own mempool, so `firstSeen` silently became parse time.
+
+   Order of evidence, best first:
+     tx.ts            the block's own timestamp, stamped by stampTs()
+     firstSeen        only when firstSeenKnown says the node really reported it
+     firstSeenLocal   LIVE cards only — "we saw it just now" is true for those
+   and null when none of them holds, which callers must render as absent rather
+   than as a guess. It reaches the F11 history and the ?tx= receipt, which is the
+   landing surface of every shared link. */
+function stampTs(tx, d){
+  const bts = d && d.block && Number(d.block.timestamp);
+  const fts = d && Number(d.timeFirstSeen);
+  if (Number.isFinite(bts) && bts > 0) tx.ts = bts * 1000;
+  else if (Number.isFinite(fts) && fts > 0) tx.ts = fts * 1000;
+  return tx;
+}
+function txWhenMs(tx){
+  if (!tx) return null;
+  if (tx.ts) return tx.ts;
+  if (tx.firstSeenKnown && tx.firstSeen) return tx.firstSeen;
+  if (!tx._hist && tx.firstSeenLocal) return tx.firstSeenLocal;
+  return null;
+}
 function fmtClock(tx){
-  try { return new Date(tx.firstSeen || tx.firstSeenLocal || Date.now())
-    .toLocaleTimeString(localeFor(lang), { hour: '2-digit', minute: '2-digit' }); }
+  const ms = txWhenMs(tx);
+  if (!ms) return '';
+  try { return new Date(ms).toLocaleTimeString(localeFor(lang), { hour: '2-digit', minute: '2-digit' }); }
   catch { return ''; }
 }
 // Full (un-clipped) token/NFT art for the expanded detail — the reveal of the
@@ -5119,9 +5364,14 @@ function buildDetailHtml(tx){
   // time: absolute clock + localized relative ("2 minutes ago"). data-role lets
   // tickDetailTime() refresh just this cell so the age stays live without
   // re-rendering the panel (which would drop focus / a copy in progress).
-  const ago = fmtAgo(tx.firstSeen || tx.firstSeenLocal);
-  rows.push('<div><dt>' + esc(t('sh.time')) + '</dt><dd data-role="time">' +
-            esc(fmtClock(tx) + (ago ? ' · ' + ago : '')) + '</dd></div>');
+  // OMITTED when we have no real timestamp, like every other row here — a
+  // transaction whose time nobody recorded must not be given one.
+  const when = txWhenMs(tx);
+  if (when){
+    const ago = fmtAgo(when);
+    rows.push('<div><dt>' + esc(t('sh.time')) + '</dt><dd data-role="time">' +
+              esc(fmtClock(tx) + (ago ? ' · ' + ago : '')) + '</dd></div>');
+  }
   if (tx.from && tx.to){
     rows.push(row(t('sh.route'), cp(tx.from, shortAddr(tx.from)) + ' → ' + cp(tx.to, shortAddr(tx.to))));
   }
@@ -5202,7 +5452,8 @@ function tickDetailTime(){
   const write = (root, tx) => {
     if (!root || !tx) return;
     const cell = root.querySelector('[data-role="time"]'); if (!cell) return;
-    const ago = fmtAgo(tx.firstSeen || tx.firstSeenLocal);
+    const when = txWhenMs(tx); if (!when) return;   // no cell was rendered either
+    const ago = fmtAgo(when);
     cell.textContent = fmtClock(tx) + (ago ? ' · ' + ago : '');
   };
   if (state.expandedId){
@@ -5248,6 +5499,9 @@ function toast(msg){ const el = $('toast'); el.textContent = msg; el.classList.a
 const ESC_STACK = [
   // topmost first
   { is: () => { const rc = $('receipt'); return rc && !rc.hidden; }, close: () => closeReceipt() },
+  // Above the Lane because the receipt can open OVER the block panel, so the
+  // panel has to be dismissible before whatever is under it.
+  { is: () => bpOpen,                   close: () => closeBlockPanel() },
   { is: () => state.laneOpen,           close: () => closeLane() },
   { is: () => !!state.expandedId,       close: () => {
       const tx = state.txs.get(state.expandedId); if (tx) collapseCard(tx);
