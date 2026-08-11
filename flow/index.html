@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-dtP4Ma9C3gScvActTAjre20zUfKWYPjiN4wVbgaK1iw=';
+  script-src 'self' 'sha256-zBunfHg6GceAPglMu/+CnYc42LzJke8Y59RN9id23kg=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -1385,36 +1385,40 @@ const $ = (id) => document.getElementById(id);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ------------------------------------------------------------------ config */
-// Public Chronik REST endpoints (fallback chain) — SAME list + order as neo.
-// chronik.e.cash first; chronik1.ecashlive.net LAST.
+// Chronik REST endpoints — OUR OWN NODE FIRST, then the public fallback chain.
 //
-// IT IS LAST BECAUSE IT SENDS NO Access-Control-Allow-Origin AT ALL, and this
-// has now been established twice, the second time the expensive way. Moving it
-// first was tried on the belief that its CORS allowlist was merely scoped to the
-// production origin. It is not scoped — it is absent. Production console, from
-// https://ecashlive.net itself:
+// The reason is not speed, it is not freeloading: chronik.e.cash is Bitcoin ABC's
+// and the fabien.cash / pay2stay mirrors are community-run, so sending every
+// visitor's queries there while operating a node of our own is living on someone
+// else's infrastructure. The node is already running — it serves the relay.
 //
-//   Access to XMLHttpRequest at 'https://chronik1.ecashlive.net/blockchain-info'
-//   from origin 'https://ecashlive.net' has been blocked by CORS policy:
-//   No 'Access-Control-Allow-Origin' header is present on the requested resource.
-//   GET .../blockchain-info net::ERR_FAILED 200 (OK)
+// IT ONLY WORKS BECAUSE nginx NOW SENDS THE HEADER. Until 2026-08-11 this vhost
+// answered 200 and added no Access-Control-Allow-Origin, so a browser discarded
+// every response; `location /` (the chronik HTTP proxy, NOT /ws or /ttf-feed)
+// now carries `add_header Access-Control-Allow-Origin "https://ecashlive.net"
+// always;`. Verified from the deployed page's own console:
+// `fetch('https://chronik1.ecashlive.net/blockchain-info')` -> status 200.
 //
-// The 200 is the tell: the node answers, nginx just never adds the header, so
-// the browser discards a perfectly good response. `mode:'no-cors'` returning an
-// opaque body and the WebSocket opening prove reachability and prove nothing
-// about CORS — neither is subject to it. Do not read either as evidence again.
+// TWO THINGS THAT CANNOT ANSWER THIS QUESTION, both of which were mistaken for
+// evidence once: `mode:'no-cors'` returning an opaque body, and the WebSocket
+// opening. Neither is subject to CORS. The only test that decides it is a real
+// browser on the real origin — and note that once this list no longer reaches the
+// node, a clean console proves nothing either; call fetch() directly.
 //
-// The socket paths are unaffected and already prefer this node: TTF_FEED_URL
-// points at it exclusively. Putting it first HERE only costs every visitor a
-// failed request before the fallback. If nginx ever does add the header, this
-// order can change — but verify it from a real browser on the real origin first.
+// If the node is down the cost is ONE slow request per session, not one per call:
+// the client remembers the endpoint that answered. Measured from a blocked origin
+// (a localhost preview, which is exactly the node-unreachable case) — 17 chronik
+// requests in a page load, exactly ONE of them to the first entry at 2085 ms, and
+// the other 16 straight to the fallback with no retry. The page came up fully:
+// live socket, tip divider, 24h p50. The site already depends on this host for
+// node-precise TTF and the 24h stats, so this adds no new point of failure.
 const CHRONIK_URLS = [
+  'https://chronik1.ecashlive.net',
   'https://chronik.e.cash',
   'https://chronik-native1.fabien.cash',
   'https://chronik-native2.fabien.cash',
   'https://chronik-native3.fabien.cash',
   'https://chronik.pay2stay.com/xec',
-  'https://chronik1.ecashlive.net',
 ];
 const TTF_FEED_URL = 'wss://chronik1.ecashlive.net/ttf-feed';
 // Price is fetched DIRECTLY, unlike token icons and POWR titles.
@@ -1434,6 +1438,12 @@ const TTF_FEED_URL = 'wss://chronik1.ecashlive.net/ttf-feed';
 const PRICE_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=ecash&vs_currencies=usd';
 const STATS_FRESH_MS = 15_000;
 const POLL_MS = 5_000;
+// How many missed blocks refreshTip() will draw dividers for after a sleep or a
+// dropped socket. Ten is roughly ninety minutes of chain; past that the absence
+// is long enough that a run of dividers would be the whole stream, so only the
+// tip is marked and the jump in the heights discloses the rest. Also caps the
+// requests: one chronik.block() per gap divider, for its real tx count.
+const TIP_GAP_MAX = 10;
 const RENDER_CAP = 120;          // hard cap of DOM cards in the stream
 const DUST_XEC = 5.46;           // payments below this fold into the bot/dust group
 const TTF_SANITY_MAX_MS = 3_600_000;
@@ -3706,6 +3716,37 @@ async function refreshTip(){
   if (state.paused){
     state.lastSealedHeight = h;                 // stay honest; no divider while frozen
     return;
+  }
+  /* THE BLOCKS IN BETWEEN GET A DIVIDER TOO.
+     Sealing only the tip left the stream jumping 961,898 -> 961,903 with the four
+     blocks between them marked nowhere. The heights disclosed the gap, which is
+     why it was left, but a reader looking for a block that happened while they
+     were away simply could not find it — and the divider is now a real entry
+     point to that block's transactions, so the omission costs something concrete.
+
+     Bounded, because a page left open overnight wakes to well over a hundred
+     blocks and a stream of nothing but dividers is not a stream. Up to
+     TIP_GAP_MAX gaps are filled completely; a larger absence keeps the single
+     tip divider and lets the jump in the numbers say so. Boot has
+     lastSealedHeight 0, so the whole chain reads as "too large" and it correctly
+     marks only the tip. */
+  const gapFrom = state.lastSealedHeight;
+  const missing = (gapFrom > 0 && h - gapFrom - 1 > 0 && h - gapFrom - 1 <= TIP_GAP_MAX)
+    ? Array.from({ length: h - gapFrom - 1 }, (_, i) => gapFrom + 1 + i)
+    : [];
+  // Fetch every label first, THEN seal in one synchronous ascending run: no await
+  // between the counts and the dividers, so a block message arriving mid-flight
+  // cannot interleave and produce a height twice.
+  let counts = [];
+  if (missing.length){
+    const res = await Promise.allSettled(missing.map((m) => state.chronik.block(m)));
+    counts = res.map((r) => {
+      const n = r.status === 'fulfilled' ? r.value?.blockInfo?.numTxs : null;
+      return Number.isInteger(n) ? n : undefined;   // unknown -> the label omits it
+    });
+  }
+  for (let i = 0; i < missing.length; i++){
+    if (missing[i] > state.lastSealedHeight) sealBlock(missing[i], counts[i], { announce: false });
   }
   sealBlock(h, numTxs != null ? numTxs : undefined, { announce: false });
 }

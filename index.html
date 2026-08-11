@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-EpPoqy92MCDEIsi50/0GjDBWK+4i3EXCfNA9b/ENzIU=';
+  script-src 'self' 'sha256-nYFM1TuvN2MRmZ75NyXkdUoNmbHfVt8ovf4iV/A4J+g=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -8040,6 +8040,24 @@ const URL_PARAM_ENDPOINT = new URLSearchParams(window.location.search).get('endp
 const CHRONIK_URLS = URL_PARAM_ENDPOINT
   ? URL_PARAM_ENDPOINT.split(',').map(s => s.trim()).filter(Boolean)
   : [
+      // OUR OWN NODE FIRST. It used to be last, so that traffic "preferentially
+      // hits the public mirrors" — but chronik.e.cash is Bitcoin ABC's and the
+      // rest are community-run, so sending every visitor there while operating a
+      // node of our own is living on someone else's infrastructure. The node is
+      // already up: it feeds /ttf-feed for node-precise TTF.
+      //
+      // This only works because nginx on that host was given
+      // `add_header Access-Control-Allow-Origin "https://ecashlive.net" always;`
+      // on `location /` (2026-08-11). Before that it answered 200 with no header
+      // and every browser discarded the response. If the vhost is rebuilt without
+      // it, every visitor's first request fails — see CLAUDE.md §6, which also
+      // records the two signals that CANNOT test this (an opaque `no-cors`
+      // response, and the WebSocket opening; neither is subject to CORS).
+      //
+      // A dead first entry costs ONE slow request per session, not one per call:
+      // measured from a blocked origin, 17 chronik requests in a page load with
+      // exactly one to the first entry and no retry.
+      'https://chronik1.ecashlive.net',
       // Official endpoint per docs.e.cash/chronik/chronik-client/connect
       'https://chronik.e.cash',
       // Community mirrors
@@ -8047,13 +8065,6 @@ const CHRONIK_URLS = URL_PARAM_ENDPOINT
       'https://chronik-native2.fabien.cash',
       'https://chronik-native3.fabien.cash',
       'https://chronik.pay2stay.com/xec',
-      // Personal fallback node — listed last so traffic preferentially
-      // hits the public mirrors above (better availability, more
-      // geographically distributed). chronik1 still gets used when all
-      // public endpoints are unreachable. This is also the node that
-      // feeds /ttf-feed for node-precise TTF samples (see TTF feed
-      // module further down).
-      'https://chronik1.ecashlive.net',
     ];
 
 // Token display overrides. On-chain genesis metadata is immutable; UI apps apply
