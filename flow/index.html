@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-uNjrQoUIoOMw8ItJbMAWwZfoGsKfI8OeCPZ0XI0/Q/0=';
+  script-src 'self' 'sha256-ULyiqX3Zn64it7rq6AmZi6X9vXU3r7vEosMsNduFn1M=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -589,8 +589,11 @@
      (a covering state with a head, a close, and a list) and sharing the rules
      means they cannot drift apart visually. What differs is the CONTENT rule,
      and that lives in JS, not here. */
+  /* Bottom room for the back control, mirroring what #stream reserves for the
+     "+": the FAB is pinned to this corner and stays visible here, so without it
+     the last row of every block sits under a 52px button. */
   #block-panel{position:absolute;inset:0;z-index:var(--z-block);background:var(--bg-app);
-        overflow-y:auto;padding:12px 12px calc(16px + env(safe-area-inset-bottom));
+        overflow-y:auto;padding:12px 12px calc(84px + env(safe-area-inset-bottom));
         opacity:0;transition:opacity .18s;}
   #block-panel.show{opacity:1;}
   /* The stream's own cards, re-used verbatim inside the panel — a transaction has
@@ -789,6 +792,15 @@
        display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,116,194,.42);
        transition:transform .18s;}
   #fab svg{width:24px;height:24px;}
+  #fab .fab-back{display:none;}
+  /* Back state: a different JOB deserves a different colour, not just a different
+     glyph — the composer's brand gradient means "start something", and stepping
+     out of a block panel is not that. Neutral card surface with a real border, so
+     it reads as a control over content rather than a primary action. */
+  #fab.back{background:var(--card2);color:var(--ink);border:1px solid var(--line);
+            box-shadow:0 6px 18px rgba(0,0,0,.30);}
+  #fab.back .fab-plus{display:none;}
+  #fab.back .fab-back{display:block;}
   #fab:hover{transform:scale(1.06);}
   #fab:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
   #fab.pulse{animation:fabpulse 1.8s ease-out 3;}
@@ -1228,9 +1240,13 @@
       <!-- FAB composer (F3/F4/F6): a round "+" opens the send panel (message and/or
            pure-XEC). Recipient required; your own txs are matched via myAddr. -->
       <div id="cmp-backdrop" hidden></div>
+      <!-- Two states, one control, because the corner can only hold one and the
+           block panel needs a way back that a thumb can reach. Both glyphs ship
+           in the markup and CSS swaps them, so the icon cannot lag the state. -->
       <button id="fab" type="button" aria-haspopup="dialog" aria-expanded="false"
               data-i18n-aria="cmp.title" aria-label="Send on-chain">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        <svg class="fab-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        <svg class="fab-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
       </button>
       <div id="cmp-panel" role="dialog" aria-modal="true" aria-labelledby="cmp-title" hidden>
         <div class="cmp-head">
@@ -1369,17 +1385,27 @@ const $ = (id) => document.getElementById(id);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ------------------------------------------------------------------ config */
-// Public Chronik REST endpoints (fallback chain) — SAME list + order as neo.
-// chronik.e.cash first (official, CORS-enabled for browsers); chronik1.ecashlive.net
-// LAST — it is the relay/ttf-feed node and does NOT serve general Chronik HTTP with
-// CORS, so it must only be a last resort here (and is used on its own for TTF_FEED_URL).
+// Chronik endpoints, OUR OWN NODE FIRST, then the public fallback chain.
+//
+// It used to be last, on the belief that it "does not serve Chronik HTTP with
+// CORS". It does — the allowlist is scoped to https://ecashlive.net, which is
+// why it fails from any other origin and why the earlier conclusion looked
+// right. Measured from a localhost preview: `no-cors` returns an OPAQUE
+// response and `wss://chronik1.ecashlive.net/ws` opens, so the host answers and
+// only the Access-Control-Allow-Origin header is withheld from that origin.
+//
+// CONSEQUENCE FOR DEVELOPMENT, so nobody re-derives the old conclusion: from
+// localhost, file:// or any preview host, every request to this node fails and
+// the client falls through to chronik.e.cash. That is the fallback chain doing
+// its job, not a fault — but it means a local session is NOT exercising the
+// first entry, and timings measured there do not describe production.
 const CHRONIK_URLS = [
+  'https://chronik1.ecashlive.net',
   'https://chronik.e.cash',
   'https://chronik-native1.fabien.cash',
   'https://chronik-native2.fabien.cash',
   'https://chronik-native3.fabien.cash',
   'https://chronik.pay2stay.com/xec',
-  'https://chronik1.ecashlive.net',
 ];
 const TTF_FEED_URL = 'wss://chronik1.ecashlive.net/ttf-feed';
 // Price is fetched DIRECTLY, unlike token icons and POWR titles.
@@ -1721,11 +1747,15 @@ async function setLang(code){
   if (typeof renderKindFace === 'function') renderKindFace();          // applyStatic() just retranslated the <option>s
   if (typeof renderTermChips === 'function') renderTermChips();       // JS-built chips + the "+ Topic" label
   if (state.laneOpen) renderLane();                                   // kind labels / relative time in the new language
-  if (bpOpen){ bpRenderHead(); bpRelabel(); }                         // heading AND the rows under it
   // The "search further back" label is JS-set and STATEFUL (idle / searching /
   // exhausted), so applyStatic() cannot restore it — the B3 rule. renderLane()
   // already covers the open case; this catches the closed one.
   else if (typeof renderLaneMore === 'function') renderLaneMore();
+  if (bpOpen){ bpRenderHead(); bpRelabel(); }                         // heading AND the rows under it
+  // B3 again: #fab carries data-i18n-aria="cmp.title", which applyStatic() has
+  // just re-applied — but in the block panel it is the BACK control and says so.
+  // A node whose label encodes runtime state has to re-assert it here.
+  updateFabAway();
   if (typeof tickDetailTime === 'function') tickDetailTime();         // relative time in the new language
   if (typeof renderAllLearn === 'function') renderAllLearn();   // JS-built accordion, re-render in the new language
   if (typeof renderAllWatch === 'function') renderAllWatch();   // re-render the watchlist panel (labels/placeholders)
@@ -2184,10 +2214,17 @@ function initScrollHints(){
 function updateFabAway(){
   if (!fabEl || !cmpPanel) return;
   if (!cmpPanel.hidden) return;                       // composer open → FAB is hidden anyway
-  // The Lane and the block panel are opaque overlays BELOW the FAB's tier, so
-  // without this the "+" floats over their content — the same covering-the-content
-  // problem .away exists to solve for the stream.
-  fabEl.classList.toggle('away', !state.atBottom || state.laneOpen || bpOpen);
+  // Inside the block panel the FAB is not the composer, it is the way back — so
+  // it must NOT step aside there, and it does not follow the stream's scroll
+  // position either. #block-panel reserves the same bottom room #stream does, so
+  // it can never sit on the last row.
+  // The Lane keeps hiding it: that overlay has its own ✕ and its own meaning, and
+  // a "+" floating over a topic list is the covering-the-content problem .away
+  // exists to solve.
+  fabEl.classList.toggle('back', bpOpen);
+  fabEl.setAttribute('aria-label', bpOpen ? t('lane.close') : t('cmp.title'));
+  fabEl.setAttribute('aria-haspopup', bpOpen ? 'false' : 'dialog');
+  fabEl.classList.toggle('away', state.laneOpen || (!bpOpen && !state.atBottom));
 }
 // A10: #stream carries scroll-behavior:smooth, which animates EVERY programmatic
 // scrollTop write — including the pin-to-bottom fired once per admitted card, so
@@ -2940,7 +2977,12 @@ function blockDivider(height, n, lbl){
   return div;
 }
 /* ---- block divider ---- */
-function sealBlock(height, realTxCount){
+/* `announce` separates the two things this used to do as one. The DIVIDER is a
+   fact about the chain and is always drawn. The heartbeat pulse, the first-block
+   explanation and eChan's block line are claims that a block just landed — true
+   for a socket message, false for the tip refreshTip() finds at boot or after a
+   sleep, which landed minutes ago. */
+function sealBlock(height, realTxCount, { announce = true } = {}){
   // MONOTONIC. refreshTip() now raises state.height without raising the
   // watermark, so the two can legitimately diverge — and a late message for a
   // height below the tip but above the watermark seals correctly (we were told
@@ -2954,7 +2996,7 @@ function sealBlock(height, realTxCount){
     setStat('height', fmtInt(height));
   }
   state.lastSealedHeight = height;
-  hbSignal('block');   // heartbeat: a block sealed → tall amber column
+  if (announce) hbSignal('block');   // heartbeat: a block sealed → tall amber column
   // We still do NOT stamp tx.block = height on anything here. A tx finalized
   // since the last divider is NOT necessarily in THIS block — the miner picks a
   // subset, and a just-finalized tx usually lands in the NEXT block (neo proved
@@ -2972,8 +3014,10 @@ function sealBlock(height, realTxCount){
   stream.appendChild(blockDivider(height, n, lbl));
   state.lastGroup = null;  // start a fresh dust group after a block
   appended();
-  firstTime('block', 'echan.firstBlock', 'observing', 'block');   // → Learn "what a block is for"
-  echanEvent('block', { height, txCount: realTxCount });    // E1: block commentary (stale once a newer block seals)
+  if (announce){
+    firstTime('block', 'echan.firstBlock', 'observing', 'block');   // → Learn "what a block is for"
+    echanEvent('block', { height, txCount: realTxCount });    // E1: block commentary (stale once a newer block seals)
+  }
 }
 
 /* ---- relabel dynamic text on language change ---- */
@@ -3410,12 +3454,39 @@ async function loadOlder(){
 $('load-older').addEventListener('click', loadOlder);
 
 /* ------------------------------------------------------------------ price */
+/* A NEW RATE HAS TO REACH EVERY SURFACE THAT ALREADY PRINTED ONE.
+   This used to set state.xecUsd and call renderPrice(), which repaints the price
+   pill and nothing else — so a card kept the USD figure from the moment it
+   arrived while any panel opened afterwards computed a fresh one. Seen live: a
+   card reading $2.75 whose own detail, one tap below it, read ~$2.72. Both are
+   `valueXec * state.xecUsd`; only the moment differed.
+   The XEC amount is exact and never moves; the dollar figure is a conversion at
+   a rate that does, so the only coherent rule is that all of them show the same
+   rate — the one in the header. A rate change is the same kind of event as a
+   language change, and repaints the same surfaces. */
+function repriceAll(){
+  relabelDynamic();                                   // every card, group and divider
+  if (bpOpen) bpRelabel();                            // the block panel's rows
+  if (state.laneOpen) renderLane();                   // lane rows carry amounts too
+  if (state.expandedId){
+    const tx = state.txs.get(state.expandedId);
+    if (tx) refreshExpandedDetail(tx);
+  }
+  // In place, like refreshReceipt() — NOT openReceipt(), which would re-run the
+  // open animation and steal focus for a background price tick.
+  if (receiptTx){ const b = $('rc-body'); b.innerHTML = buildDetailHtml(receiptTx); wireDetail(b, receiptTx); }
+}
 async function fetchPrice(){
+  const before = state.xecUsd;
   try {
     const r = await fetch(PRICE_URL, { cache:'no-store' });
     if (r.ok){ const j = await r.json(); const p = j?.ecash?.usd; if (typeof p === 'number' && p > 0){ state.xecUsd = p; } }
   } catch {}
   renderPrice();
+  // Only when it actually moved: this runs every 120s and the walk is bounded by
+  // what is rendered, but repainting the whole stream for an unchanged number is
+  // pure waste.
+  if (state.xecUsd !== before) repriceAll();
 }
 function renderPrice(){
   const el = $('price-pill');
@@ -3577,39 +3648,57 @@ function connectStats(){
    catch" — and nothing corrected it until the next live block arrived, which on
    a dead socket is never.
 
-   IT MUST NOT TOUCH lastSealedHeight OUTSIDE BOOT, and the first version did.
-   That watermark is what onBlock() checks before drawing a divider, so raising it
-   to the live tip on every reconnect, wake and bfcache restore made the next
-   blocks the WS actually announced disappear: the header knew 961,697 while the
-   newest divider was 961,695. The justification written here was that a block
-   landing while we were away was "not witnessed" and should get no marker — but
-   sealBlock() has exactly ONE caller, this file's onBlock(), driven purely by live
-   messages. There was no back-fill path to defend against; the watermark defended
-   nothing and suppressed the real thing. It also feeds eChan's staleness rule, so
-   every reconnect was quietly dropping queued block commentary too.
+   IT DRAWS WHAT IT DISCOVERS. Two earlier versions got this wrong in opposite
+   directions and both produced the same symptom — a header ahead of the stream.
+   The first raised lastSealedHeight on every reconnect, so the blocks the socket
+   then announced were refused and no divider appeared. The second stopped
+   raising it, which fixed that, and left the tip THIS function finds with no
+   marker at all: a page opened at block 961,856 showed "block 961,856 · 8m ago"
+   in the header and, in the stream, nothing — no boundary anywhere for the block
+   the header was naming, only cards sealed into 961,855.
 
-   Boot is different and still needs it: the tip existed before the page did, so a
-   replayed BLK_FINALIZED for an older block must not draw a divider for something
-   nobody here watched. Hence an explicit flag rather than a default.
+   Claiming without drawing was the mistake, not the claiming. The old
+   justification — "we did not witness it, so do not mark it" — belonged to the
+   preview that listed what we had watched finalize. That preview is gone; a
+   divider now fetches the block's real transactions on demand, so marking a block
+   nobody watched costs no honesty at all.
+
+   What it must NOT do is announce. A heartbeat pulse and eChan's block line are
+   claims that something is happening NOW, and the tip found at boot landed
+   minutes ago. The divider is a fact about the chain; the pulse is a claim about
+   the moment. Only the first is warranted here.
+
+   A wake that skipped several blocks draws one divider, for the newest. The gap
+   discloses itself — the previous divider states its own height, so 961,856
+   followed by 961,860 is visible in the numbers.
 
    Monotonic on purpose. This races the WS — a block message can land while the
    fetch is in flight — and a tip that moves backwards would re-seal a height that
    already has a divider. */
-async function refreshTip({ atBoot = false } = {}){
+async function refreshTip(){
   if (!state.chronik) return;
   let h = null;
   try { const info = await state.chronik.blockchainInfo(); h = info && info.tipHeight; } catch { return; }
   if (!Number.isFinite(h) || h <= state.height) return;
   state.height = h;
-  if (atBoot && h > state.lastSealedHeight) state.lastSealedHeight = h;
   $('height').textContent = fmtInt(h); setStat('height', fmtInt(h));
-  // The block's REAL timestamp, so "· 4 min ago" is measured and not assumed.
-  // A failure leaves the previous value rather than inventing or blanking one.
+  // The block's REAL timestamp, so "· 4 min ago" is measured and not assumed, and
+  // its real numTxs for the divider label. A failure leaves the previous value
+  // rather than inventing or blanking one, and omits the count.
+  let numTxs = null;
   try {
     const tb = await state.chronik.block(h);
-    const ts = tb?.blockInfo?.timestamp != null ? Number(tb.blockInfo.timestamp) * 1000 : 0;
+    const bi = tb?.blockInfo || {};
+    const ts = bi.timestamp != null ? Number(bi.timestamp) * 1000 : 0;
     if (isFinite(ts) && ts > 0){ state.lastBlockAt = ts; renderBlockAge(); }
+    if (Number.isInteger(bi.numTxs)) numTxs = bi.numTxs;
   } catch {}
+  if (h <= state.lastSealedHeight) return;      // the socket already marked it
+  if (state.paused){
+    state.lastSealedHeight = h;                 // stay honest; no divider while frozen
+    return;
+  }
+  sealBlock(h, numTxs != null ? numTxs : undefined, { announce: false });
 }
 async function connectChronik(){
   let ChronikClient;
@@ -3619,7 +3708,9 @@ async function connectChronik(){
   try { state.chronik = new ChronikClient(CHRONIK_URLS); }
   catch (e){ setConn('conn.offline', 'warn'); console.warn('[flow] chronik init failed', e); return; }
 
-  await refreshTip({ atBoot: true });   // the ONLY caller allowed to claim the tip as sealed
+  // Before the socket and the poll, so the tip's divider lands at the TOP of an
+  // empty stream and everything that arrives after it is genuinely newer.
+  await refreshTip();
 
   const openWs = () => {
     let ws;
@@ -6403,6 +6494,7 @@ function closeComposer(){
   setTimeout(() => { cmpPanel.hidden = true; cmpBackdrop.hidden = true; fabEl.hidden = false; updateFabAway(); try { fabEl.focus(); } catch {} }, 180);
 }
 fabEl.addEventListener('click', () => {
+  if (bpOpen){ closeBlockPanel(); return; }   // it is the back control there
   fabEl.classList.remove('pulse');
   if (!seen['fabUsed']) markSeen('fabUsed');
   openComposer();
