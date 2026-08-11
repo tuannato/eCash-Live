@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-ULyiqX3Zn64it7rq6AmZi6X9vXU3r7vEosMsNduFn1M=';
+  script-src 'self' 'sha256-dtP4Ma9C3gScvActTAjre20zUfKWYPjiN4wVbgaK1iw=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -1385,27 +1385,36 @@ const $ = (id) => document.getElementById(id);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ------------------------------------------------------------------ config */
-// Chronik endpoints, OUR OWN NODE FIRST, then the public fallback chain.
+// Public Chronik REST endpoints (fallback chain) — SAME list + order as neo.
+// chronik.e.cash first; chronik1.ecashlive.net LAST.
 //
-// It used to be last, on the belief that it "does not serve Chronik HTTP with
-// CORS". It does — the allowlist is scoped to https://ecashlive.net, which is
-// why it fails from any other origin and why the earlier conclusion looked
-// right. Measured from a localhost preview: `no-cors` returns an OPAQUE
-// response and `wss://chronik1.ecashlive.net/ws` opens, so the host answers and
-// only the Access-Control-Allow-Origin header is withheld from that origin.
+// IT IS LAST BECAUSE IT SENDS NO Access-Control-Allow-Origin AT ALL, and this
+// has now been established twice, the second time the expensive way. Moving it
+// first was tried on the belief that its CORS allowlist was merely scoped to the
+// production origin. It is not scoped — it is absent. Production console, from
+// https://ecashlive.net itself:
 //
-// CONSEQUENCE FOR DEVELOPMENT, so nobody re-derives the old conclusion: from
-// localhost, file:// or any preview host, every request to this node fails and
-// the client falls through to chronik.e.cash. That is the fallback chain doing
-// its job, not a fault — but it means a local session is NOT exercising the
-// first entry, and timings measured there do not describe production.
+//   Access to XMLHttpRequest at 'https://chronik1.ecashlive.net/blockchain-info'
+//   from origin 'https://ecashlive.net' has been blocked by CORS policy:
+//   No 'Access-Control-Allow-Origin' header is present on the requested resource.
+//   GET .../blockchain-info net::ERR_FAILED 200 (OK)
+//
+// The 200 is the tell: the node answers, nginx just never adds the header, so
+// the browser discards a perfectly good response. `mode:'no-cors'` returning an
+// opaque body and the WebSocket opening prove reachability and prove nothing
+// about CORS — neither is subject to it. Do not read either as evidence again.
+//
+// The socket paths are unaffected and already prefer this node: TTF_FEED_URL
+// points at it exclusively. Putting it first HERE only costs every visitor a
+// failed request before the fallback. If nginx ever does add the header, this
+// order can change — but verify it from a real browser on the real origin first.
 const CHRONIK_URLS = [
-  'https://chronik1.ecashlive.net',
   'https://chronik.e.cash',
   'https://chronik-native1.fabien.cash',
   'https://chronik-native2.fabien.cash',
   'https://chronik-native3.fabien.cash',
   'https://chronik.pay2stay.com/xec',
+  'https://chronik1.ecashlive.net',
 ];
 const TTF_FEED_URL = 'wss://chronik1.ecashlive.net/ttf-feed';
 // Price is fetched DIRECTLY, unlike token icons and POWR titles.
