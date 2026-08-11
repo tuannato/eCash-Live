@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-WWlo7kZeoulZXpdX23awK+nX3xdKbW1axkm2nrysmIY=';
+  script-src 'self' 'sha256-uNjrQoUIoOMw8ItJbMAWwZfoGsKfI8OeCPZ0XI0/Q/0=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -508,12 +508,17 @@
     --z-echan:4;      /* ambient narrator bubble — lowest, must never cover a control */
     --z-pill:5;       /* #new-pill / #load-older — stream affordances */
     --z-lane:6;       /* #lane — topic overlay; a STATE over the stream, not a dialog */
-    --z-block:6;      /* #block-panel — same tier, and that is SAFE only because the
-                         two can never be open together: the Lane covers the stream,
-                         so the divider that opens this one is unreachable while it
-                         is up, and openBlockPanel() closes the Lane anyway. Sharing
-                         a tier without that guarantee is what tied #toast to
-                         #cmp-panel and let DOM order decide (see above). */
+    --z-block:6;      /* #block-panel — shares the Lane's tier, which is safe ONLY
+                         because openBlockPanel() and openLane() each close the
+                         other. Do not weaken either call.
+                         An earlier version of this note claimed the two "can never
+                         be open together" and cited the Lane covering the stream —
+                         true, and irrelevant, because it only argues one direction.
+                         The chips row lives OUTSIDE .stream-wrap, so syncInert()
+                         never covered it and a topic chip stayed tappable with the
+                         panel up; the Lane then opened INVISIBLY under it, still
+                         taking Tab. Sharing a tier on an unenforced guarantee is
+                         exactly what tied #toast to #cmp-panel (see above). */
     --z-fab:7;        /* #fab and #cmp-backdrop (the backdrop hides the FAB) */
     --z-panel:8;      /* #cmp-panel / #term-editor — focused-action dialogs */
     --z-receipt:10;   /* #receipt — opaque, covers the whole stream (9 is taken) */
@@ -1716,7 +1721,7 @@ async function setLang(code){
   if (typeof renderKindFace === 'function') renderKindFace();          // applyStatic() just retranslated the <option>s
   if (typeof renderTermChips === 'function') renderTermChips();       // JS-built chips + the "+ Topic" label
   if (state.laneOpen) renderLane();                                   // kind labels / relative time in the new language
-  if (bpOpen) bpRenderHead();                                         // JS-set title + "showing N of M"
+  if (bpOpen){ bpRenderHead(); bpRelabel(); }                         // heading AND the rows under it
   // The "search further back" label is JS-set and STATEFUL (idle / searching /
   // exhausted), so applyStatic() cannot restore it — the B3 rule. renderLane()
   // already covers the open case; this catches the closed one.
@@ -2936,11 +2941,20 @@ function blockDivider(height, n, lbl){
 }
 /* ---- block divider ---- */
 function sealBlock(height, realTxCount){
-  state.height = height;
+  // MONOTONIC. refreshTip() now raises state.height without raising the
+  // watermark, so the two can legitimately diverge — and a late message for a
+  // height below the tip but above the watermark seals correctly (we were told
+  // about it) while an unconditional write here dragged the header BACKWARDS,
+  // e.g. tip 961,697 displayed, message for 961,696 arrives, header shows
+  // 961,696 until the next block ten minutes later. The divider is right; only
+  // the header claim was wrong.
+  if (height > state.height){
+    state.height = height;
+    $('height').textContent = fmtInt(height);
+    setStat('height', fmtInt(height));
+  }
   state.lastSealedHeight = height;
   hbSignal('block');   // heartbeat: a block sealed → tall amber column
-  $('height').textContent = fmtInt(height);
-  setStat('height', fmtInt(height));
   // We still do NOT stamp tx.block = height on anything here. A tx finalized
   // since the last divider is NOT necessarily in THIS block — the miner picks a
   // subset, and a just-finalized tx usually lands in the NEXT block (neo proved
@@ -3699,15 +3713,19 @@ async function onBlock(msg){
   finally { if (height != null) sealing.delete(height); }
 }
 async function onBlockInner(msg, height){
-  let numTxs = null;
+  let numTxs = null, blockTs = 0;
   const hashOrHeight = msg.blockHash || (msg.block && msg.block.blockInfo && msg.block.blockInfo.hash) || height;
   try {
     if (hashOrHeight != null && state.chronik){
       const b = await state.chronik.block(hashOrHeight);
       const bi = b?.blockInfo || {};
-      // real chain timestamp for the "how long ago" pill (falls back to now)
+      // HELD, not applied — see below. This used to be written straight into
+      // state.lastBlockAt right here, before the guard, so a message for a block
+      // the guard was about to REJECT still dragged the "· N min ago" pill back
+      // off the tip. Harmless while onBlock was the only writer of that field;
+      // refreshTip() now sets it from the real tip, so a stale message can undo it.
       const ts = bi.timestamp != null ? Number(bi.timestamp) * 1000 : 0;
-      state.lastBlockAt = (isFinite(ts) && ts > 0) ? ts : Date.now();
+      blockTs = (isFinite(ts) && ts > 0) ? ts : 0;
       height = bi.height ?? height; numTxs = bi.numTxs ?? null;
     }
   } catch {}
@@ -3723,6 +3741,12 @@ async function onBlockInner(msg, height){
     if (height > state.height){ state.height = height; $('height').textContent = fmtInt(height); }
     return;
   }
+  // Past the guard: this height really is new, so its time is the tip's time.
+  // Falling back to now is honest for a block we are being told about live —
+  // unlike refreshTip(), which keeps the old value rather than invent one,
+  // because there we may be reading a tip that landed long before we asked.
+  state.lastBlockAt = blockTs || Date.now();
+  renderBlockAge();
   if (state.paused){
     // Stream is frozen — advance the height display + sealed marker so we don't
     // later back-fill a divider for a block whose txs were never shown, but skip
@@ -4775,6 +4799,14 @@ function syncInert(){
 }
 function openLane(){
   if (!enabledTerms().length) return;
+  // The other half of the mutual exclusion --z-block depends on. Only the
+  // Lane->panel direction was enforced, and the reverse is reachable through the
+  // ordinary UI: the chips row sits OUTSIDE .stream-wrap, so syncInert() never
+  // covered it, and tapping a topic chip or saving a new one while the panel was
+  // up opened the Lane underneath it — same tier, same opaque background, and
+  // #block-panel later in the DOM, so the Lane was invisible while still taking
+  // Tab. An invariant enforced in one direction is not an invariant.
+  if (bpOpen) closeBlockPanel();
   state.laneOpen = true;
   laneEl.hidden = false;
   showAnimated(laneEl, 'show');
@@ -4826,6 +4858,13 @@ function bpCard(txData, height){
   let view;
   if (live){
     view = Object.assign({}, live);      // snapshot: never steal the stream card's el
+    // The height the PANEL is holding, which is the one fact this branch was
+    // missing. confirmTx() returns before stamping .block for dust and folded
+    // run-groups, so a folded transaction's live object never carries one — and
+    // it then rendered with a blank seal beside five neighbours all showing
+    // "· block N", inside the panel for that very block. chronik returned it
+    // for this height; that is what the height means.
+    if (view.block == null) view.block = (txData.block && txData.block.height) || height || null;
   } else {
     try { view = scrubTx(parseTransactionCore(txData)); } catch { return null; }
     if (!view) return null;
@@ -4843,22 +4882,81 @@ function bpCard(txData, height){
     }
   }
   const built = cardFor(view);
-  built.classList.remove('enter', 'is-sending');
-  built.classList.add('is-final');
-  const c = built.querySelector('.checks'); if (c) c.innerHTML = IC.checks;
-  const sl = built.querySelector('.seal');
-  if (sl && view.block){ sl.textContent = '· ' + t('pill.block') + ' ' + fmtInt(view.block); sl.classList.add('show'); }
-  setCardText(view);
   // Clone to drop cardFor()'s accordion listeners: this card opens the receipt,
   // it does not expand in place. (The token-icon error fallback is delegated on
   // the document, so it survives the clone.)
   const node = built.cloneNode(true);
-  node.classList.remove('hide', 'muted');   // panel shows the block, not your filter
+  node.classList.remove('enter', 'is-sending', 'hide', 'muted');   // the block, not your filter
+  node.classList.add('is-final');
+  // cardFor() marks a card as an in-place accordion. This one is not: it opens
+  // #receipt, a separate surface. Saying "collapsed" about something that never
+  // expands is the same lie the empty divider told, one commit earlier.
+  node.removeAttribute('aria-expanded');
+  // view.el must point at the node that is actually IN the panel, or bpRelabel()
+  // below rewrites the discarded pre-clone element and the language never changes.
+  view.el = node;
+  node._view = view;
+  const c = node.querySelector('.checks'); if (c) c.innerHTML = IC.checks;
+  bpPaintCard(view);
   const open = () => openReceipt(view);
   node.addEventListener('click', open);
   node.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(); } });
   return node;
 }
+/* Everything language-dependent on a panel card, in ONE place so the first paint
+   and a later language switch cannot disagree. */
+function bpPaintCard(view){
+  if (!view || !view.el) return;
+  const sl = view.el.querySelector('.seal');
+  if (sl){
+    if (view.block){ sl.textContent = '· ' + t('pill.block') + ' ' + fmtInt(view.block); sl.classList.add('show'); }
+    else { sl.textContent = ''; sl.classList.remove('show'); }
+  }
+  setCardText(view);
+}
+/* THE DEFECT THE PREVIOUS COMMIT CLAIMED TO HAVE KILLED, MOVED HOUSE.
+   Its message said the preview "that kept its old language after a switch" died
+   with state.sinceBlock. It did not: setLang() only re-ran bpRenderHead(), so the
+   heading changed language while the 25 rows under it did not — the same defect,
+   six lines grown to twenty-five. relabelDynamic() cannot reach them either; it
+   walks state.txs and the stream, and these views are neither. */
+function bpRelabel(){
+  for (const node of $('bp-list').children){
+    if (node._view) bpPaintCard(node._view);
+  }
+}
+/* ONE tab stop for the list, like the stream's. cardFor() hands out tabIndex -1
+   and relies on the stream's roving to promote one; the panel had none, so every
+   row sat at -1 permanently — unreachable by keyboard, which also made the
+   Enter/Space handler above dead code. Same stateless shape as normalizeRoving():
+   the roving item is simply the one with tabIndex 0, read back from the DOM. */
+function bpRows(){ return [...$('bp-list').children]; }
+function normalizeBpRoving(){
+  const all = bpRows();
+  if (!all.length) return;
+  let cur = all.find(el => el.tabIndex === 0) || all[0];
+  all.forEach(el => { el.tabIndex = (el === cur) ? 0 : -1; });
+}
+$('bp-list').addEventListener('focusin', (e) => {
+  const items = bpRows();
+  if (!items.includes(e.target)) return;
+  items.forEach(el => { el.tabIndex = (el === e.target) ? 0 : -1; });
+});
+$('bp-list').addEventListener('keydown', (e) => {
+  const items = bpRows();
+  const i = items.indexOf(e.target);
+  if (i < 0) return;
+  let j;
+  if (e.key === 'ArrowDown')      j = Math.min(i + 1, items.length - 1);
+  else if (e.key === 'ArrowUp')   j = Math.max(i - 1, 0);
+  else if (e.key === 'Home')      j = 0;
+  else if (e.key === 'End')       j = items.length - 1;
+  else return;
+  e.preventDefault();
+  items.forEach(el => { el.tabIndex = -1; });
+  items[j].tabIndex = 0;
+  items[j].focus();
+});
 function bpRenderHead(){
   $('bp-title').textContent = bpHeight != null ? tf('block.title', { h: fmtInt(bpHeight) }) : '';
   const shown = $('bp-list').childElementCount;
@@ -4889,6 +4987,7 @@ async function openBlockPanel(height, n){
   const frag = document.createDocumentFragment();
   for (const d of txs){ const el = bpCard(d, height); if (el) frag.appendChild(el); }
   list.appendChild(frag);
+  normalizeBpRoving();                   // exactly one tab stop, however many landed
   empty.hidden = list.childElementCount > 0;
   if (!list.childElementCount) empty.textContent = t('block.empty');
   bpRenderHead();
