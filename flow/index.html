@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-//VdkPFAUU+CcQpqmJBymEwFgDerGsToMFABsmMoBGU=';
+  script-src 'self' 'sha256-nQaHhOharvNdM7z1agAuc2RnklpNzyZ/Y2BFGTKd76s=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -1260,6 +1260,16 @@
           <div class="ls-panel" id="ls-panel" hidden></div>
           <div class="ls-hint" id="ls-hint" role="status" aria-live="polite"></div>
         </div>
+        <!-- The date window, its OWN control rather than a section inside the
+             protocol picker. They read as one question but they are answered on
+             completely different terms: the protocols are a fixed list of six,
+             while a window is typed, and burying a text field at the bottom of a
+             checkbox dropdown means opening the wrong thing to reach it. -->
+        <div class="lane-scope lane-range">
+          <button class="ls-summary" id="lr-summary" type="button"
+                  aria-expanded="false" aria-controls="lr-panel"></button>
+          <div class="ls-panel" id="lr-panel" hidden></div>
+        </div>
         <!-- Retrospective half, and it sits ABOVE the list because that is the
              direction it grows. Rows read oldest-first like the stream, so
              "search further back" adds to the TOP; a button below the newest row
@@ -1858,6 +1868,7 @@ async function setLang(code){
   // to be rebuilt here. The protocol NAMES are the exception and stay put: they
   // are proper names, like "Agora" in the detail panel.
   if (typeof renderLaneScope === 'function') renderLaneScope();
+  if (typeof renderLaneRange === 'function') renderLaneRange();
   if (state.laneOpen) renderLane();                                   // kind labels / relative time in the new language
   // The "search further back" label is JS-set and STATEFUL (idle / searching /
   // exhausted), so applyStatic() cannot restore it — the B3 rule. renderLane()
@@ -4900,6 +4911,7 @@ async function runLaneBackfill(){
   laneRematch();
   laneBusy = false;
   refreshLaneScope();   // pages-read and the per-protocol totals just moved
+  refreshLaneRange();
   if (state.laneOpen) renderLane();
   else renderLaneMore();
   await laneHydrate(token);
@@ -5026,7 +5038,6 @@ function renderLaneScope(){
       });
       lsPanel.appendChild(row);
     }
-    lsPanel.appendChild(buildRangeRow());
   }
   refreshLaneScope();
 }
@@ -5038,51 +5049,105 @@ function renderLaneScope(){
    locale formatting free, the same reasoning the kind filter uses a native
    <select> instead of a popup we would have to build and trap. */
 const RANGE_PRESETS = [30, 90, 365];
-function buildRangeRow(){
-  const wrap = document.createElement('div');
-  wrap.className = 'ls-range';
-  const lab = document.createElement('div');
-  lab.className = 'ls-range-lab'; lab.textContent = t('scope.range');
-  wrap.appendChild(lab);
-  const pre = document.createElement('div'); pre.className = 'ls-presets';
-  const active = (d) => {
-    if (!rangeActive()) return d === 0;
-    if (laneRange.to != null) return false;          // a real window, not a preset
-    const want = Date.now() - d * 864e5;
-    return d > 0 && Math.abs((laneRange.from || 0) - want) < 864e5 / 2;
-  };
-  for (const d of [...RANGE_PRESETS, 0]){
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'ls-preset' + (active(d) ? ' on' : '');
-    b.setAttribute('aria-pressed', String(active(d)));
-    b.textContent = d ? tf('scope.days', { n: fmtInt(d) }) : t('scope.allTime');
-    b.addEventListener('click', () => {
-      onRangeChanged(d ? { from: Date.now() - d * 864e5, to: null } : { from: null, to: null });
-    });
-    pre.appendChild(b);
+const lrSummary = $('lr-summary'), lrPanel = $('lr-panel');
+let lrOpen = false;
+const isoDay = (ms) => {
+  try { const d = new Date(ms); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
+  catch { return ''; }
+};
+function presetActive(d){
+  if (!rangeActive()) return d === 0;
+  if (laneRange.to != null) return false;            // a typed window, not a preset
+  const want = Date.now() - d * 864e5;
+  return d > 0 && Math.abs((laneRange.from || 0) - want) < 864e5 / 2;
+}
+// What the collapsed row says, so the window is answerable without opening it.
+function rangeLabel(){
+  if (!rangeActive()) return t('scope.allTime');
+  for (const d of RANGE_PRESETS) if (presetActive(d)) return tf('scope.days', { n: fmtInt(d) });
+  const a = laneRange.from ? fmtDate(laneRange.from) : '…';
+  const b = laneRange.to ? fmtDate(laneRange.to) : t('lane.now');
+  return a + ' → ' + b;
+}
+
+/* BUILD ONCE, then only ever REFRESH — because one of these controls is typed
+   into. `<input type="date">` fires `change` the moment the segments make a
+   valid date, and the first version answered that by re-rendering the panel:
+   the field the reader was still typing in was destroyed and replaced, so the
+   caret vanished and the control appeared to fire on its own. That is the same
+   defect renderTermChips() carries a comment about and syncPickHighlight() was
+   written to avoid, reproduced in the one place where it costs the reader an
+   input they cannot finish. Nothing below rebuilds on a value change. */
+function refreshLaneRange(){
+  if (!lrSummary) return;
+  lrSummary.textContent = t('scope.range') + ': ' + rangeLabel();
+  lrSummary.setAttribute('aria-label', t('scope.range'));
+  lrSummary.setAttribute('aria-expanded', String(lrOpen));
+  for (const b of lrPanel.querySelectorAll('.ls-preset')){
+    const on = presetActive(Number(b.dataset.days));
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', String(on));
   }
-  wrap.appendChild(pre);
-  const dates = document.createElement('div'); dates.className = 'ls-dates';
-  const mkDate = (which, label, val) => {
-    const i = document.createElement('input');
-    i.type = 'date'; i.className = 'ls-date'; i.value = val || '';
-    i.setAttribute('aria-label', label);
-    i.addEventListener('change', () => {
-      const from = which === 'from' ? dayStart(i.value) : laneRange.from;
-      const to   = which === 'to'   ? dayEnd(i.value)   : laneRange.to;
-      onRangeChanged({ from, to });
-    });
-    return i;
-  };
-  const iso = (ms) => { try { const d = new Date(ms); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); } catch { return ''; } };
-  dates.appendChild(mkDate('from', t('scope.from'), laneRange.from ? iso(laneRange.from) : ''));
-  const arrow = document.createElement('span'); arrow.className = 'ls-arrow'; arrow.textContent = '→';
-  arrow.setAttribute('aria-hidden', 'true');
-  dates.appendChild(arrow);
-  dates.appendChild(mkDate('to', t('scope.to'), laneRange.to ? iso(laneRange.to) : ''));
-  wrap.appendChild(dates);
-  return wrap;
+}
+/* Write the dates back into the EXISTING fields. Only a preset calls this — it
+   is the one path that changes the window without the reader touching a field,
+   so it is also the only one allowed to overwrite what is in them. */
+function syncDateInputs(){
+  const f = lrPanel.querySelector('.ls-date[data-which="from"]');
+  const tt = lrPanel.querySelector('.ls-date[data-which="to"]');
+  if (f) f.value = laneRange.from ? isoDay(laneRange.from) : '';
+  if (tt) tt.value = laneRange.to ? isoDay(laneRange.to) : '';
+}
+function renderLaneRange(){
+  if (!lrSummary) return;
+  lrPanel.hidden = !lrOpen;
+  lrPanel.textContent = '';
+  if (lrOpen){
+    const pre = document.createElement('div'); pre.className = 'ls-presets';
+    for (const d of [...RANGE_PRESETS, 0]){
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'ls-preset'; b.dataset.days = String(d);
+      b.textContent = d ? tf('scope.days', { n: fmtInt(d) }) : t('scope.allTime');
+      b.addEventListener('click', () => {
+        onRangeChanged(d ? { from: Date.now() - d * 864e5, to: null } : { from: null, to: null });
+        syncDateInputs();
+      });
+      pre.appendChild(b);
+    }
+    lrPanel.appendChild(pre);
+    const dates = document.createElement('div'); dates.className = 'ls-dates';
+    const mkDate = (which, label) => {
+      const i = document.createElement('input');
+      i.type = 'date'; i.className = 'ls-date'; i.dataset.which = which;
+      /* THE FIELD MUST NEVER OUTLIVE THE STATE IT DESCRIBES. Browsers restore
+         form values across a reload and a back/forward, and laneRange is
+         deliberately not persisted — so without this the window is off while the
+         box still shows last session's date, and the reader is told a filter is
+         active that is not. That is worse than either behaviour on its own:
+         nothing they can click matches what they can see. */
+      i.autocomplete = 'off';
+      i.value = (which === 'from' ? laneRange.from : laneRange.to) ? isoDay(which === 'from' ? laneRange.from : laneRange.to) : '';
+      i.setAttribute('aria-label', label);
+      // `change` only — never `input`. On a date field `input` fires per segment,
+      // so half a date would be read as a whole one and searched for.
+      i.addEventListener('change', () => {
+        const from = which === 'from' ? dayStart(i.value) : laneRange.from;
+        const to   = which === 'to'   ? dayEnd(i.value)   : laneRange.to;
+        onRangeChanged({ from, to }, 'typed');
+      });
+      return i;
+    };
+    dates.appendChild(mkDate('from', t('scope.from')));
+    const arrow = document.createElement('span'); arrow.className = 'ls-arrow';
+    arrow.textContent = '→'; arrow.setAttribute('aria-hidden', 'true');
+    dates.appendChild(arrow);
+    dates.appendChild(mkDate('to', t('scope.to')));
+    lrPanel.appendChild(dates);
+  }
+  refreshLaneRange();
+}
+if (lrSummary){
+  lrSummary.addEventListener('click', () => { lrOpen = !lrOpen; renderLaneRange(); });
 }
 
 /* A window is a change to the QUESTION, like a term or a scope — so it stops the
@@ -5090,7 +5155,7 @@ function buildRangeRow(){
    a date bound is a per-run argument, and the pages already on the cursor stay
    exactly as valid. laneDeepDone survives for the same reason (whether the chain
    was read to genesis is not a fact about the window); laneRangeDone does not. */
-function onRangeChanged(next){
+function onRangeChanged(next, src){
   const from = Number.isFinite(next.from) ? next.from : null;
   const to = Number.isFinite(next.to) ? next.to : null;
   if (from === laneRange.from && to === laneRange.to) return;
@@ -5100,13 +5165,22 @@ function onRangeChanged(next){
   laneBusy = false;
   laneRangeDone = false;
   laneRematch();
-  renderLaneScope();          // the presets and both date fields re-paint from state
+  refreshLaneRange();         // NEVER renderLaneRange: a date field may have focus
   renderLaneMore();
   if (state.laneOpen) renderLane();
   laneHydrate(laneRunToken);
+  /* A TYPED WINDOW USUALLY HAS A SECOND HALF COMING. The filter is local and
+     lands immediately either way; only the network kick waits. Six hundred
+     milliseconds is right for a checkbox and far too short for someone who has
+     just finished the first of two dates — the first date alone is a valid
+     "since" query, so we would spend a whole budget answering a question the
+     reader was still in the middle of asking. A preset is a complete thought on
+     its own and keeps the short delay. */
   clearTimeout(scopeKickTimer);
-  scopeKickTimer = setTimeout(() => maybeAutoBackfill('range'), SCOPE_KICK_MS);
+  scopeKickTimer = setTimeout(() => maybeAutoBackfill('range'),
+                              src === 'typed' ? RANGE_KICK_MS : SCOPE_KICK_MS);
 }
+const RANGE_KICK_MS = 2500;
 
 if (lsSummary){
   lsSummary.addEventListener('click', () => { lsOpen = !lsOpen; renderLaneScope(); });
@@ -5582,6 +5656,7 @@ function openLane(){
   // reader had to scroll all the way down to reach anything recent.
   laneToBottomOnce = true;
   renderLaneScope();                   // built here, never from renderLane() — see its note
+  renderLaneRange();                   // its own control now, same build-once rule
   renderLane();
   updateFabAway();                     // the "+" steps aside while the Lane covers the stream
   syncInert();   // the stream underneath must stop taking Tab
@@ -6033,7 +6108,14 @@ document.addEventListener('visibilitychange', () => {
 // bfcache restore fires pageshow and NOT visibilitychange, so the same repairs
 // have to hang off both. hbWake is registered at the heartbeat; the two network
 // ones belong here, where the reasoning about a wake lives.
-window.addEventListener('pageshow', () => {
+window.addEventListener('pageshow', (e) => {
+  /* A BFCACHE RESTORE HANDS BACK THE OLD DOM, form fields included, while the
+     module's own state is whatever it was. laneRange is not persisted, so the
+     date fields have to be repainted from it or they show a window that is not
+     applied. Runs before the early return on purpose: this is a correctness
+     repair, not live traffic, and it matters most on exactly the restore that
+     arrives hidden or paused. */
+  if (e && e.persisted && typeof renderLaneRange === 'function') renderLaneRange();
   if (document.hidden || state.paused) return;
   statsWake(); refreshTip(); scheduleReconcile();
 });
@@ -7540,6 +7622,7 @@ async function boot(){
   renderTermChips();
   renderLaneMore();      // MUST follow loadTerms(): the backfill button only exists once a topic does
   renderLaneScope();     // MUST follow loadTerms() too: it paints the restored selection
+  renderLaneRange();     // the window is never restored, but the summary still needs painting
   initHeroBanner();      // first-visit thesis banner (mobile; CSS hides it on desktop)
   loadTtf30();           // rolling 30-day median, hidden unless the history answers
   renderNarratorLog();   // paint the empty-state caption into whichever log exists
