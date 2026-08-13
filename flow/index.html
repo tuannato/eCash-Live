@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-5r8QptoxMch/DFiiqdpg/nafbG8hakTpJiUNYBzsZZk=';
+  script-src 'self' 'sha256-//VdkPFAUU+CcQpqmJBymEwFgDerGsToMFABsmMoBGU=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -636,6 +636,23 @@
     font-variant-numeric:tabular-nums;}
   .ls-hint{font-size:10.5px;color:var(--warn-ink);margin-top:6px;}
   .ls-hint:empty{display:none;}
+  /* Date window, inside the same panel as the protocols: they answer one
+     question between them — what gets searched. */
+  .ls-range{border-top:1px solid var(--line2);padding:9px 2px 4px;}
+  .ls-range-lab{font-size:10px;color:var(--ink3);margin-bottom:6px;}
+  .ls-presets{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px;}
+  .ls-preset{border:1px solid var(--line2);background:var(--bg-app);color:var(--ink2);
+    font:inherit;font-size:11px;padding:5px 9px;border-radius:999px;cursor:pointer;}
+  .ls-preset:hover{border-color:var(--accent);color:var(--accent);}
+  .ls-preset:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .ls-preset.on{border-color:var(--accent);background:var(--accent);color:#fff;font-weight:600;}
+  .ls-dates{display:flex;align-items:center;gap:6px;}
+  /* min-width:0 so the two fields shrink instead of pushing the panel wider than
+     #lane — the same overflow the composer's number input caused once. */
+  .ls-date{flex:1;min-width:0;border:1px solid var(--line2);background:var(--bg-app);
+    color:var(--ink);font:inherit;font-size:11.5px;padding:5px 7px;border-radius:8px;}
+  .ls-date:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .ls-arrow{flex:none;color:var(--ink3);font-size:11px;}
   .lane-row{display:flex;width:100%;gap:10px;align-items:flex-start;text-align:left;
             background:var(--card);border:1px solid var(--line);border-radius:12px;
             padding:9px 11px;margin-bottom:7px;cursor:pointer;color:inherit;font:inherit;}
@@ -870,6 +887,13 @@
   .cmp-pick:hover{border-color:var(--accent);color:var(--accent);}
   .cmp-pick:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
   .cmp-pick.mine{border-color:var(--accent);color:var(--accent-deep);background:var(--accent-bg);}
+  /* The RESOLVED destination, lit. This is the disclosure that replaces a
+     paragraph of explanation, so it has to read as chosen rather than merely
+     hovered: filled, not outlined. `.on` sits after `.mine` on purpose — an
+     unlit "My wallet" keeps its accent tint, a lit one wins the fill. */
+  .cmp-pick.on{border-color:var(--accent);background:var(--accent);color:#fff;font-weight:600;}
+  .cmp-pick.on .dot{background:#fff;}
+  .cmp-pick.on:hover{color:#fff;}
   .cmp-pick .dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex:none;opacity:.75;}
   .cmp-amt-toggle{align-self:flex-start;border:0;background:none;color:var(--accent);font-size:12.5px;
                   font-weight:600;cursor:pointer;padding:0;}
@@ -1136,7 +1160,7 @@
     </div>
   </aside>
 
-  <main id="app" data-version="v2.5.0">
+  <main id="app" data-version="v2.6.0">
     <div class="app-head">
       <div class="ah-top">
         <a class="brand" href="https://e.cash" target="_blank" rel="noopener noreferrer"
@@ -1635,6 +1659,18 @@ const FLOW_STRINGS_EN = {
   'scope.read':'read {n} of {total} pages',
   'scope.unread':'not read yet',
   'scope.machine':'order ids, not writing',
+  'scope.range':'Time range',
+  'scope.days':'{n} days',
+  'scope.allTime':'All time',
+  'scope.from':'From date',
+  'scope.to':'To date',
+  'lane.window':'window {a} → {b}',
+  'lane.now':'now',
+  'lane.noDate':'{n} matches carry no date and fall outside it',
+  'lane.windowBeyond':'your window starts before what has been searched — search further back to reach it',
+  'lane.plusWindow':'plus {a} → {b}',
+  'lane.moreWindows':'and {n} more windows read',
+  'lane.rangeEnd':'Window covered',
   'term.add':'+ Topic',
   'term.any':'any word',
   'term.all':'all words',
@@ -1718,6 +1754,8 @@ const FLOW_STRINGS_EN = {
   'cmp.to':'Recipient',
   'cmp.toPh':'Recipient address',
   'cmp.myWallet':'My wallet',
+  'cmp.tipJar':'Tip jar',
+  'cmp.dest':'to {who}',
   'cmp.msgPh':'Message (optional)',
   'cmp.amtToggle':'+ XEC amount',
   'cmp.amount':'Amount in XEC',
@@ -1769,7 +1807,7 @@ function tf(key, vars){
   return String(t(key)).replace(/\{(\w+)\}/g, (_, k) => (vars && vars[k] != null ? vars[k] : ''));
 }
 function localeFor(code){ try { new Intl.NumberFormat(code); return code; } catch { return 'en'; } }
-const I18N_V = '16';   // bump whenever any vendor/i18n/flow.*.json changes
+const I18N_V = '18';   // bump whenever any vendor/i18n/flow.*.json changes
 async function loadPack(code){
   if (code === 'en'){ pack = null; return; }
   try {
@@ -4268,6 +4306,8 @@ let laneBf = null, laneBusy = false, laneRunToken = 0;
 // a second run started alongside and the budget silently doubled to 12.
 let laneAbort = null;
 let laneDeepHoles = 0, laneDeepDone = false, laneUnread = 0;
+// Covered the WINDOW, which is a fact about the question rather than the chain.
+let laneRangeDone = false;
 
 /* THE CORPUS, and why it exists — this is the fix for a real bug, recorded so it
    is not "simplified" away.
@@ -4326,10 +4366,51 @@ function laneReach(){
     // exactly like an unfinished one — and if it never got a page at all, the
     // next line refuses to make any claim, which is the whole point.
     if (!c || c.done) continue;               // read to genesis -> covers everything
-    if (!c.oldestTs) return null;             // never read -> no honest claim
-    floor = (floor == null) ? c.oldestTs : Math.max(floor, c.oldestTs);
+    /* THE PREFIX, NEVER `oldestTs`. Since the engine can seek, oldestTs is the
+       oldest thing seen ANYWHERE — a window read around 2022 would otherwise let
+       this sentence claim 2022 while everything between then and now is unread.
+       ranges[0] is the contiguous run from page 0 and is the only interval that
+       can speak for "in full back to". A cursor saved before ranges existed
+       carries a watermark instead, and for it the two are the same number. */
+    const pre = Array.isArray(c.ranges) ? (c.ranges[0] && c.ranges[0][0] === 0 ? c.ranges[0][2] : null)
+                                        : c.oldestTs;
+    if (!pre) return null;                    // never read -> no honest claim
+    floor = (floor == null) ? pre : Math.max(floor, pre);
   }
   return floor;
+}
+
+/* THE RUNS READ OUT OF ORDER — everything except the one starting at page 0.
+   They exist only after a seek, and they are NOT part of the "in full back to"
+   sentence: that describes the run from the newest message and nothing else.
+   Naming them separately is what lets both statements be true at once.
+
+   Merged across the selected protocols and then across each other, because a
+   reader sets one window at a time and each further click extends it — without
+   merging, the same window would be printed once per page read. Capped, with the
+   remainder counted rather than dropped (§10). Engine timestamps are seconds;
+   the coverage line formats milliseconds. */
+const WINDOWS_SHOWN = 3;
+function laneWindows(){
+  const cur = laneBf ? laneBf.cursor : (laneSavedCursor || {});
+  const raw = [];
+  for (const id of state.laneScope){
+    const c = cur[id];
+    if (!c || !Array.isArray(c.ranges)) continue;
+    for (const r of c.ranges){
+      if (r[0] === 0) continue;                 // the prefix has its own sentence
+      if (r[2] == null || r[3] == null) continue;
+      raw.push([r[2] * 1000, r[3] * 1000]);     // [oldest, newest]
+    }
+  }
+  raw.sort((a, b) => a[0] - b[0]);
+  const merged = [];
+  for (const w of raw){
+    const last = merged[merged.length - 1];
+    if (last && w[0] <= last[1]) last[1] = Math.max(last[1], w[1]);
+    else merged.push([w[0], w[1]]);
+  }
+  return merged;
 }
 
 /* When full the corpus REFUSES new entries instead of evicting. Eviction would
@@ -4367,6 +4448,38 @@ function sanitizeScope(list){
     if (typeof id === 'string' && MESSAGE_LOKADS.includes(id) && !out.includes(id)) out.push(id);
   }
   return out.length ? out : [LOKAD.CASHTAB_MSG];
+}
+/* THE DATE WINDOW IS A QUESTION, NOT A PREFERENCE, so it lives here rather than
+   in state and is never written to storage — structurally, not by discipline.
+   The same asymmetry loadTerms() applies to follows and mutes: a follow comes
+   back off because it is an action, a mute comes back on because it is a
+   standing defence. A window that survived a reload would silently hide today's
+   messages from someone who had forgotten they set it, and the Lane would look
+   broken rather than filtered.
+
+   MILLISECONDS, matching Date.now(), tx.ts and the corpus. The chain and the
+   backfill engine work in seconds, and that conversion happens at exactly one
+   place — where the bound is handed to the engine — so there is one line to get
+   wrong instead of six. */
+let laneRange = { from: null, to: null };
+function rangeActive(){ return laneRange.from != null || laneRange.to != null; }
+/* A calendar day is a DAY, not an instant: the reader picked a date in their own
+   timezone while the index timestamps in UTC, so a window legitimately includes
+   a few hours either side of what a UTC reading would give. Widening at both
+   ends is the honest direction — it can show something just outside, never hide
+   something just inside. */
+function dayStart(iso){ const d = new Date(iso + 'T00:00:00'); const n = d.getTime(); return isFinite(n) ? n : null; }
+function dayEnd(iso){ const d = new Date(iso + 'T23:59:59.999'); const n = d.getTime(); return isFinite(n) ? n : null; }
+/* A result with no timestamp cannot be placed in a window. It is EXCLUDED and
+   counted, never quietly kept: including it would put an undated row inside a
+   date filter, which is the one thing a date filter must not do. */
+let laneNoDate = 0;
+function inRange(ts){
+  if (!rangeActive()) return true;
+  if (!ts) return false;
+  if (laneRange.from != null && ts < laneRange.from) return false;
+  if (laneRange.to != null && ts > laneRange.to) return false;
+  return true;
 }
 // Display order follows MESSAGE_LOKADS so the picker and the summary agree.
 function scopeLabel(){
@@ -4412,16 +4525,20 @@ function lanePrefilter(txData, lokadId){
 let laneScopeHidden = 0;
 function corpusMatches(){
   const out = [];
-  const hidden = new Set();
+  const hidden = new Set(), noDate = new Set();
   const follow = enabledTerms(), mutes = activeMutes();
-  if (!follow.length) return { ids: out, hidden };
+  if (!follow.length) return { ids: out, hidden, noDate };
   for (const [txid, e] of laneCorpus){
     if (mutes.length && matchAny(e.text, mutes)) continue;
     if (!matchTerms(e.text, follow)) continue;
     if (!inScope(e.lokad)){ hidden.add(txid); continue; }
+    // The window is applied AFTER the scope, and counted apart from it: they are
+    // two different reasons a match is not on screen, and one checkbox brings
+    // back only one of them.
+    if (!inRange(e.ts)){ if (!e.ts) noDate.add(txid); continue; }
     out.push(txid);
   }
-  return { ids: out, hidden };
+  return { ids: out, hidden, noDate };
 }
 
 /* NOTE: there is deliberately no "reset the backfill" function any more.
@@ -4558,13 +4675,28 @@ function laneTsOf(id, tx){
 function laneHold(tx){
   if (!tx || !tx.id || state.laneTxs.has(tx.id)) return;
   state.laneTxs.set(tx.id, tx);
-  // Drop the OLDEST BY TIME, which is exactly the entry laneSetMatched() would
-  // have sliced off. Linear over a 200-entry map and only when full, so it costs
-  // nothing measurable; correctness here is worth more than an index.
+  /* EVICT WHAT THE ANSWER DOES NOT WANT, and only then the oldest.
+     Oldest-by-time alone was right while the Lane always looked at the newest
+     end, and it is exactly wrong the moment a date window points into the past:
+     every result the reader asked for IS the oldest thing held, so each one was
+     evicted the instant it was hydrated, in favour of recent rows the window
+     excludes. Measured live — a Jun 2023 window read four real pages, hydrated
+     95 transactions and rendered zero.
+
+     So the first candidates are entries that fail the CURRENT question — out of
+     scope, or outside the window. They are held only because they were fetched
+     under an earlier one, and dropping them costs the reader nothing they can
+     see. Oldest-by-time stays as the tiebreak, which is what laneSetMatched()
+     would have sliced off anyway. Linear over a 200-entry map and only when
+     full, so it costs nothing measurable. */
   while (state.laneTxs.size > MATCH_MAX){
-    let victim = null, victimTs = Infinity;
+    let victim = null, victimTs = Infinity, victimWanted = true;
     for (const [id, held] of state.laneTxs){
       const ts = laneTsOf(id, held);
+      const wanted = inScope(held._lokad) && inRange(ts) && txMatchesTerms(held);
+      // An unwanted entry always beats a wanted one, whatever their ages.
+      if (victimWanted && !wanted){ victim = id; victimTs = ts; victimWanted = false; continue; }
+      if (victimWanted !== wanted) continue;
       if (ts < victimTs){ victimTs = ts; victim = id; }
     }
     if (victim == null) break;
@@ -4627,14 +4759,27 @@ function laneRematch(){
   const cm = corpusMatches();
   const ids = cm.ids;
   const hidden = cm.hidden;                  // a Set, so the two sources cannot double-count
-  for (const tx of state.txs.values()) if (txMatchesTerms(tx)) ids.push(tx.id);
+  const noDate = cm.noDate;
+  /* THE WINDOW APPLIES TO THE LIVE HALF TOO, unlike the scope. They are
+     different kinds of restriction: the scope says which INDEX to read, and the
+     live stream comes from no index at all, so it cannot be scoped. A date is a
+     property every transaction has, so a reader who asked for "last 90 days"
+     means it about everything on screen — a live arrival appearing under a
+     window that excludes it would just look like a bug. */
+  for (const tx of state.txs.values()){
+    if (!txMatchesTerms(tx)) continue;
+    if (!inRange(tx.ts)){ if (!tx.ts) noDate.add(tx.id); continue; }
+    ids.push(tx.id);
+  }
   for (const tx of state.laneTxs.values()){
     if (!txMatchesTerms(tx)) continue;
     // A held result carries the tag of the page it came off, or the one its
     // corpus row supplied at hydration. Same rule: unknown is in.
     if (!inScope(tx._lokad)){ hidden.add(tx.id); continue; }
+    if (!inRange(tx.ts)){ if (!tx.ts) noDate.add(tx.id); continue; }
     ids.push(tx.id);
   }
+  laneNoDate = noDate.size;
   // Counted here rather than per render: this is the single owner of the answer,
   // and it runs on a term change, a scope change and each backfill batch — not
   // on every live arrival, which can only add untagged (never hidden) rows.
@@ -4700,13 +4845,29 @@ async function runLaneBackfill(){
   // alone can tell "read nothing" from "read nothing THIS TIME" — see below.
   const before = laneBf.cursor;
   let cov = null;
-  try { cov = await laneBf.run({ requests: LANE_REQUESTS, signal: laneAbort.signal }); }
+  /* THE ONLY MILLISECONDS-TO-SECONDS CONVERSION IN THE FEATURE. laneRange is in
+     ms to match Date.now(), tx.ts and the corpus; the chain and the engine work
+     in seconds. Keeping the boundary to this one line is what stops a units bug
+     from turning a 2026 window into a 1970 one. */
+  const toSec = (ms) => (ms == null ? null : Math.floor(ms / 1000));
+  try {
+    cov = await laneBf.run({
+      requests: LANE_REQUESTS, signal: laneAbort.signal,
+      minTs: toSec(laneRange.from), maxTs: toSec(laneRange.to),
+    });
+  }
   catch { /* a total failure is still coverage, reported by the counters below */ }
   if (token !== laneRunToken) return;               // superseded; do not touch shared state
   saveLaneStore();    // persist even on a partial run: those pages were still read
   if (cov){
     laneDeepHoles = cov.holeCount;   // exact; cov.holes is capped for memory
     laneDeepDone = cov.done;
+    /* FINISHED THE WINDOW IS NOT FINISHED THE CHAIN. Every selected protocol
+       stopped, but a date bound is what stopped them, so the button must not
+       read "read all of Cashtab Msg" — it says the window is covered instead,
+       and the same click without a window is still free to go deeper. */
+    laneRangeDone = rangeActive() &&
+      state.laneScope.every((id) => { const c = cov.perLokad[id]; return !c || c.done || c.rangeDone; });
     /* WHAT THE READER HAS TO BE TOLD, in the two cases where the coverage line
        would otherwise go quiet.
 
@@ -4865,8 +5026,86 @@ function renderLaneScope(){
       });
       lsPanel.appendChild(row);
     }
+    lsPanel.appendChild(buildRangeRow());
   }
   refreshLaneScope();
+}
+
+/* THE DATE WINDOW, in the same panel as the protocols, because they are one
+   question: what gets searched. Presets first — they are what almost everyone
+   wants and they need no typing — then the two dates for a real window.
+   `<input type="date">` brings the platform's own picker, keyboard handling and
+   locale formatting free, the same reasoning the kind filter uses a native
+   <select> instead of a popup we would have to build and trap. */
+const RANGE_PRESETS = [30, 90, 365];
+function buildRangeRow(){
+  const wrap = document.createElement('div');
+  wrap.className = 'ls-range';
+  const lab = document.createElement('div');
+  lab.className = 'ls-range-lab'; lab.textContent = t('scope.range');
+  wrap.appendChild(lab);
+  const pre = document.createElement('div'); pre.className = 'ls-presets';
+  const active = (d) => {
+    if (!rangeActive()) return d === 0;
+    if (laneRange.to != null) return false;          // a real window, not a preset
+    const want = Date.now() - d * 864e5;
+    return d > 0 && Math.abs((laneRange.from || 0) - want) < 864e5 / 2;
+  };
+  for (const d of [...RANGE_PRESETS, 0]){
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'ls-preset' + (active(d) ? ' on' : '');
+    b.setAttribute('aria-pressed', String(active(d)));
+    b.textContent = d ? tf('scope.days', { n: fmtInt(d) }) : t('scope.allTime');
+    b.addEventListener('click', () => {
+      onRangeChanged(d ? { from: Date.now() - d * 864e5, to: null } : { from: null, to: null });
+    });
+    pre.appendChild(b);
+  }
+  wrap.appendChild(pre);
+  const dates = document.createElement('div'); dates.className = 'ls-dates';
+  const mkDate = (which, label, val) => {
+    const i = document.createElement('input');
+    i.type = 'date'; i.className = 'ls-date'; i.value = val || '';
+    i.setAttribute('aria-label', label);
+    i.addEventListener('change', () => {
+      const from = which === 'from' ? dayStart(i.value) : laneRange.from;
+      const to   = which === 'to'   ? dayEnd(i.value)   : laneRange.to;
+      onRangeChanged({ from, to });
+    });
+    return i;
+  };
+  const iso = (ms) => { try { const d = new Date(ms); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); } catch { return ''; } };
+  dates.appendChild(mkDate('from', t('scope.from'), laneRange.from ? iso(laneRange.from) : ''));
+  const arrow = document.createElement('span'); arrow.className = 'ls-arrow'; arrow.textContent = '→';
+  arrow.setAttribute('aria-hidden', 'true');
+  dates.appendChild(arrow);
+  dates.appendChild(mkDate('to', t('scope.to'), laneRange.to ? iso(laneRange.to) : ''));
+  wrap.appendChild(dates);
+  return wrap;
+}
+
+/* A window is a change to the QUESTION, like a term or a scope — so it stops the
+   run in flight the same way. It does NOT drop the engine: unlike the lokad set,
+   a date bound is a per-run argument, and the pages already on the cursor stay
+   exactly as valid. laneDeepDone survives for the same reason (whether the chain
+   was read to genesis is not a fact about the window); laneRangeDone does not. */
+function onRangeChanged(next){
+  const from = Number.isFinite(next.from) ? next.from : null;
+  const to = Number.isFinite(next.to) ? next.to : null;
+  if (from === laneRange.from && to === laneRange.to) return;
+  laneRange = { from, to };
+  laneRunToken++;
+  if (laneAbort) laneAbort.abort();
+  laneBusy = false;
+  laneRangeDone = false;
+  laneRematch();
+  renderLaneScope();          // the presets and both date fields re-paint from state
+  renderLaneMore();
+  if (state.laneOpen) renderLane();
+  laneHydrate(laneRunToken);
+  clearTimeout(scopeKickTimer);
+  scopeKickTimer = setTimeout(() => maybeAutoBackfill('range'), SCOPE_KICK_MS);
 }
 
 if (lsSummary){
@@ -4876,12 +5115,13 @@ if (lsSummary){
 function renderLaneMore(){
   const on = enabledTerms().length > 0;
   laneMore.hidden = !on;
-  laneMore.disabled = laneBusy || laneDeepDone;
+  laneMore.disabled = laneBusy || laneDeepDone || laneRangeDone;
   // "Searched everything on chain" was true only while the walk covered all six
   // protocols. At a chosen scope it has to name what it finished, or the button
   // claims coverage of five indexes it never opened.
   laneMore.textContent = laneBusy ? t('lane.searching')
                        : laneDeepDone ? tf('lane.deepEnd', { p: scopeLabel() })
+                       : laneRangeDone ? t('lane.rangeEnd')
                        : t('lane.older');
 }
 laneMore.addEventListener('click', runLaneBackfill);
@@ -5275,6 +5515,29 @@ function renderLane(){
      rather than as a filter, and the reader has no way to know one tick brings
      every one of them back with no request. */
   if (laneScopeHidden) cov.push(tf('lane.scopeHidden', { n: fmtInt(laneScopeHidden) }));
+  /* THE WINDOW, and everything it costs, said next to the results it shaped.
+     A date filter that silently drops undated matches would be the same defect
+     as a mute with no count: the reader cannot tell "nothing there" from "not
+     shown". And a window reaching further back than the walk has read is not an
+     empty result — it is a question that has not been answered yet, which is a
+     completely different thing to put on screen. */
+  if (rangeActive()){
+    cov.push(tf('lane.window', {
+      a: laneRange.from ? fmtDate(laneRange.from) : '…',
+      b: laneRange.to ? fmtDate(laneRange.to) : t('lane.now'),
+    }));
+    if (laneNoDate) cov.push(tf('lane.noDate', { n: fmtInt(laneNoDate) }));
+    if (reach && laneRange.from != null && laneRange.from < reach * 1000){
+      cov.push(t('lane.windowBeyond'));
+    }
+  }
+  /* Windows read out of order are on the record as their own runs, and they are
+     NOT part of the "in full back to" claim above — that sentence describes the
+     run from the newest message only. Naming them separately is what lets both
+     be true at once. */
+  const wins = laneWindows();
+  for (const w of wins.slice(0, WINDOWS_SHOWN)) cov.push(tf('lane.plusWindow', { a: fmtDate(w[0]), b: fmtDate(w[1]) }));
+  if (wins.length > WINDOWS_SHOWN) cov.push(tf('lane.moreWindows', { n: fmtInt(wins.length - WINDOWS_SHOWN) }));
   /* And the two things the picker cannot govern, because a control that lists
      six protocols implies those six are the whole of what exists. The live
      stream reads every protocol, and writing that carries no LOKAD id at all —
@@ -6880,18 +7143,69 @@ function renderCmpChips(){
 // One-tap recipients so nobody has to paste an address: your own wallet (known
 // from the neo sync, or fetched from the Cashtab extension on demand) and the
 // addresses already on the watchlist, by their names.
+/* The project's tip jar, byte-identical to neo's `_TIP_ADDRESS_LITERAL`.
+   neo guards it with Object.defineProperty because it lives on a global that a
+   later assignment could redirect; here a module-scope `const` cannot be
+   reassigned at all, which is the stronger guarantee and needs no ceremony.
+   It is a destination for the reader's money, so it is written once, in full,
+   and never composed from parts. */
+const TIP_ADDRESS = 'ecash:qracka0grwnxs8exfzw0mlgw0uhauk8njqwnpetmgl';
+
+/* WHERE AN EMPTY RECIPIENT FIELD SENDS TO — decided in ONE place, so the preview
+   line, the lit pick and the send itself can never name different destinations.
+
+   Typed always wins. Then your own wallet, which makes a blank field a
+   self-send: the natural thing for someone trying the network out. Then the tip
+   jar, because a reader with no wallet linked still has to send somewhere and
+   that is the only address we can honestly offer them.
+
+   Money moving on a default has to be SEEN rather than explained: the preview
+   states the destination on every keystroke and the matching pick is lit, so the
+   answer is on screen before the wallet ever opens — and Cashtab shows it again
+   before anything is signed. That is the disclosure, in place of a paragraph. */
+function resolveRecipient(){
+  const typed = normAddr($('compose-addr').value);
+  // A destination is named for WHAT IT IS, not for how it was reached. Pasting
+  // the tip jar by hand and picking it from the row are the same send, so they
+  // must read the same way and light the same chip — otherwise the panel shows
+  // a bare hash for an address it has a name for one tap away.
+  if (typed && typed === TIP_ADDRESS) return { addr: typed, kind: 'tip' };
+  if (typed && myAddr && typed === myAddr) return { addr: typed, kind: 'mine' };
+  if (typed) return { addr: typed, kind: 'typed' };
+  if (myAddr) return { addr: myAddr, kind: 'mine' };
+  // The extension knows an address we have not asked for yet. The destination is
+  // still the reader's own wallet, so say so rather than naming the tip jar and
+  // then sending somewhere else.
+  if (isCashtabExtension()) return { addr: null, kind: 'mine' };
+  return { addr: TIP_ADDRESS, kind: 'tip' };
+}
+// Short, human name for a destination. A watchlist entry answers with the name
+// the reader gave it; anything else with its own short form.
+function recipientLabel(r){
+  if (r.kind === 'mine') return t('cmp.myWallet');
+  if (r.kind === 'tip') return t('cmp.tipJar');
+  return state.watchNames.get(r.addr) || shortAddr(r.addr);
+}
 function renderCmpPicks(){
   const c = $('cmp-picks'); if (!c) return;
+  const r = resolveRecipient();
   const parts = [];
   if (myAddr || isCashtabExtension()){
-    parts.push('<button type="button" class="cmp-pick mine" data-pick="me"><span class="dot"></span>' + esc(t('cmp.myWallet')) + '</button>');
+    parts.push('<button type="button" class="cmp-pick mine' + (r.kind === 'mine' ? ' on' : '') +
+      '" aria-pressed="' + (r.kind === 'mine') + '" data-pick="me"><span class="dot"></span>' + esc(t('cmp.myWallet')) + '</button>');
   }
   let n = 0;
   for (const a of state.watchSet){
     if (n++ >= 4) break;
     const nm = state.watchNames.get(a) || shortAddr(a);
-    parts.push('<button type="button" class="cmp-pick" data-pick="' + esc(a) + '">' + esc(nm) + '</button>');
+    const on = r.kind === 'typed' && r.addr === a;
+    parts.push('<button type="button" class="cmp-pick' + (on ? ' on' : '') +
+      '" aria-pressed="' + on + '" data-pick="' + esc(a) + '">' + esc(nm) + '</button>');
   }
+  // Last, and only when it is reachable as a default or a choice — it is our
+  // address, so it never sits ahead of the reader's own.
+  parts.push('<button type="button" class="cmp-pick tip' + (r.kind === 'tip' ? ' on' : '') +
+    '" aria-pressed="' + (r.kind === 'tip') + '" data-pick="tip">' + esc(t('cmp.tipJar')) + '</button>');
   c.innerHTML = parts.join('');
   c.querySelectorAll('.cmp-pick').forEach(b => b.addEventListener('click', async () => {
     const v = b.getAttribute('data-pick');
@@ -6903,7 +7217,8 @@ function renderCmpPicks(){
         try { const got = await ctRequestAddress(); if (saveMyAddr(got)) inp.value = myAddr; hint('', false); }
         catch (e){ hint(t(e && e.message === 'timeout' ? 'try.timeout' : 'try.denied'), true, true); return; }
       }
-    } else { inp.value = v; }
+    } else if (v === 'tip'){ inp.value = TIP_ADDRESS; }
+    else { inp.value = v; }
     updateCmpPreview();
     try { $('compose-in').focus(); } catch {}
   }));
@@ -6934,7 +7249,31 @@ function updateCmpPreview(){
     parts.push(s);
   }
   if (msg) parts.push(t('cmp.previewMsg'));
-  $('cmp-preview').textContent = parts.join(' + ');
+  // THE DESTINATION IS ALWAYS NAMED, and it is named here rather than in a block
+  // of explanation: this line already existed, already updates on every
+  // keystroke, and sits directly above Send. An empty field resolves to a real
+  // address, so the reader must never have to infer which one.
+  const line = parts.join(' + ');
+  const who = recipientLabel(resolveRecipient());
+  $('cmp-preview').textContent = line ? line + ' ' + tf('cmp.dest', { who }) : '';
+  syncPickHighlight();       // the lit pick follows what is actually resolved
+}
+/* Toggle only — NOT a rebuild. This runs on every keystroke in the address
+   field, and renderCmpPicks() replaces the whole row's innerHTML: re-running it
+   here would destroy and recreate buttons a screen reader is reading, several
+   times a second, for a change that is one class. Same lesson renderTermChips()
+   and the scope panel both carry. */
+function syncPickHighlight(){
+  const c = $('cmp-picks'); if (!c) return;
+  const r = resolveRecipient();
+  for (const b of c.querySelectorAll('.cmp-pick')){
+    const v = b.getAttribute('data-pick');
+    const on = (v === 'me' && r.kind === 'mine')
+            || (v === 'tip' && r.kind === 'tip')
+            || (r.kind === 'typed' && v === r.addr);
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', String(on));
+  }
 }
 function setAmountOpen(open){
   tryPrefs.amountOpen = open;
@@ -7000,6 +7339,10 @@ $('cmp-amt-range').addEventListener('input', e => setAmount(e.target.value, 'ran
 $('cmp-amt-num').addEventListener('input', e => setAmount(e.target.value, 'num'));
 $('cmp-amt-num').addEventListener('blur', saveTryPrefs);
 $('compose-in').addEventListener('input', updateCmpPreview);
+// The address field had no listener at all, so the preview never followed it.
+// It has to now: the destination line is the disclosure, and a disclosure that
+// lags a keystroke behind the field it describes is worse than none.
+$('compose-addr').addEventListener('input', updateCmpPreview);
 // NOTE: #compose-addr is the RECIPIENT field, so nothing here may saveMyAddr().
 // It used to persist the field on blur, which meant merely typing — or tapping a
 // watchlist name in the pick row — silently claimed that address as your wallet.
@@ -7023,14 +7366,20 @@ async function sendTry(){
   // panel is open at this point and paints over the toast (A1).
   if (msg){ opret = encodeCashtabMsgOpReturn(msg); if (!opret){ hint(t('try.toolong'), true, true); return; } }
   const addrInput = $('compose-addr');
-  let addr = normAddr(addrInput.value);
-  const hasExt = isCashtabExtension();
-  if (!addr && hasExt){
-    // No address typed — ask the extension for the user's own (self-send).
+  // ONE resolver for the preview and for the send, so what the reader was shown
+  // is what actually goes out. An empty field is no longer an error: it means
+  // "the default", and the default has been named on screen the whole time.
+  const picked = resolveRecipient();
+  let addr = picked.addr;
+  if (!addr && picked.kind === 'mine'){
+    // Extension present, own address not fetched yet — the destination the
+    // preview promised. Asking is what turns it into a string.
     hint(t('try.confirm'), true);
-    try { const got = await ctRequestAddress(); if (saveMyAddr(got)){ addr = myAddr; addrInput.value = myAddr; } }
+    try { const got = await ctRequestAddress(); if (saveMyAddr(got)){ addr = myAddr; addrInput.value = myAddr; } hint('', false); }
     catch (e){ hint(t(e && e.message === 'timeout' ? 'try.timeout' : 'try.denied'), true, true); return; }
   }
+  // Only reachable if the extension answered with nothing usable; the field is
+  // then the way forward, so say so rather than sending somewhere unasked.
   if (!addr){ hint(t('try.needAddr'), true); try { addrInput.focus(); } catch {}; return; }
   if (!validateCashAddress(addr)){ hint(t('try.badAddr'), true, true); return; }
   // NOTE: do NOT saveMyAddr(addr) here. `addr` is the RECIPIENT — typed, or picked
