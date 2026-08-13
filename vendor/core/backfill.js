@@ -58,11 +58,19 @@ function tsOf(txData) {
  * @param {object}   o
  * @param {object}   o.chronik     chronik client exposing lokadId(id).history(page, size)
  * @param {string[]} o.lokads      ids to walk (see MESSAGE_LOKADS in txparse.js)
- * @param {function} o.parse       (txData) => tx|null — the door's parse + scrub
- * @param {function} [o.prefilter] (txData) => boolean — CHEAP test run BEFORE parse
+ * @param {function} o.parse       (txData, lokadId) => tx|null — the door's parse + scrub
+ * @param {function} [o.prefilter] (txData, lokadId) => boolean — CHEAP test run BEFORE parse
  * @param {function} [o.keep]      (tx) => boolean — the door's matcher; default keep-all
- * @param {function} [o.onBatch]   (txs, coverage) => void
+ * @param {function} [o.onBatch]   (txs, coverage, lokadId) => void
  * @param {number}   [o.pageSize]
+ *
+ * WHICH INDEX PRODUCED A TRANSACTION is knowledge only this walk has, so it is
+ * handed to every caller-supplied function as a trailing argument. A door that
+ * lets the reader choose protocols needs it to tag what it caches: the script
+ * cannot answer the question, because an eMPP payload carries several LOKAD ids
+ * and chronik indexes the tx under each — "the index it was found under" is a
+ * fact about the walk, not about the bytes. The argument is additive; a callback
+ * that ignores it behaves exactly as before.
  *
  * USE `prefilter`. It is the difference between a usable feature and an
  * unusable one, measured, not guessed: full-parsing one 200-tx page of Cashtab
@@ -230,13 +238,13 @@ export function createBackfill({ chronik, lokads, parse, prefilter, keep, onBatc
           // the same reason the parse below is guarded.
           if (prefilter) {
             let want = false;
-            try { want = !!prefilter(txData); } catch { want = false; }
+            try { want = !!prefilter(txData, id); } catch { want = false; }
             if (!want) { skipped++; continue; }
           }
           let tx = null;
           // One unparseable tx must not end the walk — it would turn a single
           // malformed script into the disappearance of everything older.
-          try { tx = parse(txData); } catch { tx = null; }
+          try { tx = parse(txData, id); } catch { tx = null; }
           if (!tx) continue;
           if (keep && !keep(tx)) continue;
           out.push(tx);
@@ -247,7 +255,7 @@ export function createBackfill({ chronik, lokads, parse, prefilter, keep, onBatc
         st.page++;
         if (st.numPages != null && st.page >= st.numPages) st.done = true;
 
-        if (out.length && onBatch) onBatch(out, snapshot());
+        if (out.length && onBatch) onBatch(out, snapshot(), id);
         await yieldToUI();
       }
       return snapshot();
