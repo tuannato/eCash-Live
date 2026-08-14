@@ -115,6 +115,7 @@
     "lane.rangeEnd": "Zeitraum abgedeckt",
     "term.add": "+ Thema",
     "term.fromRead": "aus den {n} gelesenen Nachrichten",
+    "term.addTag": "{q} als Thema folgen",
     "term.any": "irgendein Wort",
     "term.all": "alle Wörter",
     "term.modeAria": "Irgendein Wort oder alle Wörter treffen",

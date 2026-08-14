@@ -115,6 +115,7 @@
     "lane.rangeEnd": "Période couverte",
     "term.add": "+ Sujet",
     "term.fromRead": "d’après les {n} messages lus",
+    "term.addTag": "Suivre {q} comme sujet",
     "term.any": "un mot",
     "term.all": "tous les mots",
     "term.modeAria": "Correspondre à un mot ou à tous les mots",

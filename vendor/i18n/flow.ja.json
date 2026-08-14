@@ -115,6 +115,7 @@
     "lane.rangeEnd": "期間を網羅しました",
     "term.add": "+ トピック",
     "term.fromRead": "読み込んだ {n} 件から",
+    "term.addTag": "{q} をトピックとして追う",
     "term.any": "いずれかの語",
     "term.all": "すべての語",
     "term.modeAria": "いずれかの語かすべての語で一致",

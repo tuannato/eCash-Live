@@ -127,10 +127,52 @@ export function segmentWords(s) {
 // "Vn" matches "seven"/"even"/"given". It does not — none of them contain the
 // pair v-n. The conclusion was right and the example was never checked; it is
 // corrected here rather than quietly dropped, because it was cited as proof.)
+/* A TERM WRITTEN WITH A LEADING '#' IS A HASHTAG, not the word after it.
+ *
+ * Derived from the term string rather than carried as another stored flag: it is
+ * exactly what the reader typed, it round-trips through storage unchanged, and
+ * every caller — matchTerm, findTermSpans, matchAny, matchEvery, findAllSpans —
+ * picks it up without a signature change or a migration.
+ *
+ * This exists because word mode DROPS the '#'. Intl.Segmenter classifies it as
+ * punctuation, so `#firma` segments to ["firma"] and matched plain `firma`
+ * anywhere, including inside `hash#firma` — and the highlight proved it, marking
+ * the bare word every time. Accepting a term the reader means as a hashtag and
+ * silently searching for something else is the failure; the tokenizer is right.
+ *
+ * '#' alone is not a hashtag: there is no word in it.
+ */
+function hashtagOf(term) {
+  const s = String(term == null ? '' : term);
+  return s.length > 1 && s[0] === '#' ? s.slice(1) : null;
+}
+/* The '#' must sit immediately before the word AND itself start at a boundary,
+ * so "hash#firma" is not a hashtag — the same rule the page applies when it
+ * decides which runs of text to make tappable. The two must agree, or a tag you
+ * can tap would not be findable by the term it creates. */
+const TAG_WORDCHAR = /[\p{L}\p{N}_]/u;
+function hashAt(str, wordIndex) {
+  if (wordIndex < 1 || str[wordIndex - 1] !== '#') return false;
+  if (wordIndex === 1) return true;
+  return !TAG_WORDCHAR.test(str[wordIndex - 2]);
+}
+
 export function matchTerm(haystack, term, opts) {
   const mode = (opts && opts.mode) || 'word';
   const fold = !!(opts && opts.fold);
   if (haystack == null || term == null) return false;
+
+  const tag = hashtagOf(term);
+  if (tag !== null) {
+    const prep = (x) => (fold ? foldLatinMarks(normalize(x)) : normalize(x));
+    const want = prep(tag);
+    if (!want) return false;
+    const str = String(haystack);
+    for (const s of segmentsWithIndex(str)) {
+      if (prep(s.text) === want && hashAt(str, s.index)) return true;
+    }
+    return false;
+  }
 
   let hay = normalize(haystack);
   let needle = normalize(term);
@@ -200,6 +242,22 @@ export function findTermSpans(haystack, term, opts) {
   const segs = segmentsWithIndex(haystack);
   if (!segs.length) return [];
   const spans = [];
+
+  /* THE '#' IS PART OF WHAT MATCHED, so it is part of what gets marked. Marking
+     only the word would repeat the defect this mode was added to fix: the reader
+     asked for a hashtag and the highlight would point at a bare word. */
+  const tag = hashtagOf(term);
+  if (tag !== null) {
+    const want = prep(tag);
+    if (!want) return [];
+    const str = String(haystack);
+    for (const s of segs) {
+      if (prep(s.text) === want && hashAt(str, s.index)) {
+        spans.push([s.index - 1, s.index + s.text.length]);
+      }
+    }
+    return spans;
+  }
 
   if (mode === 'contains') {
     for (const s of segs) {

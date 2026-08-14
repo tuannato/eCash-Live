@@ -115,6 +115,7 @@
     "lane.rangeEnd": "范围已覆盖",
     "term.add": "+ 主题",
     "term.fromRead": "来自已读的 {n} 条消息",
+    "term.addTag": "把 {q} 加为主题",
     "term.any": "任意词",
     "term.all": "全部词",
     "term.modeAria": "匹配任意词或全部词",

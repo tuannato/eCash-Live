@@ -115,6 +115,7 @@
     "lane.rangeEnd": "範圍已涵蓋",
     "term.add": "+ 主題",
     "term.fromRead": "來自已讀的 {n} 則訊息",
+    "term.addTag": "把 {q} 加為主題",
     "term.any": "任一詞",
     "term.all": "全部詞",
     "term.modeAria": "比對任一詞或全部詞",

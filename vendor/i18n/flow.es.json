@@ -115,6 +115,7 @@
     "lane.rangeEnd": "Rango cubierto",
     "term.add": "+ Tema",
     "term.fromRead": "de los {n} mensajes leídos",
+    "term.addTag": "Seguir {q} como tema",
     "term.any": "cualquier palabra",
     "term.all": "todas las palabras",
     "term.modeAria": "Coincidir con cualquier palabra o con todas",

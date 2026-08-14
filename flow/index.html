@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-YsKlCZfmq1pVgKkAQJQj0Um84HeoZyMcrg1B0Ozxie8=';
+  script-src 'self' 'sha256-YoQxqpDv2tg+ZYOqUVTne+Lu4EeiLcci/5NT6cmjaOU=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -638,6 +638,15 @@
      is the third place chips appear and inventing a fourth shape would make the
      panel read as a different product. */
   .term-suggest{margin:-2px 0 2px;}
+  /* A hashtag someone wrote, offered as a topic. Underlined rather than given a
+     background: it sits inside running text and a filled pill would break the
+     line it is part of. */
+  .term-opt.off{opacity:.45;}
+  .term-opt.off input{cursor:default;}
+  .tag{color:var(--accent-deep);cursor:pointer;text-decoration:underline;
+    text-decoration-style:dotted;text-underline-offset:2px;}
+  .tag:hover{text-decoration-style:solid;}
+  .tag:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-radius:3px;}
   .ts-cap{font-size:10px;color:var(--ink3);margin-bottom:6px;}
   .ts-chips{display:flex;flex-wrap:wrap;gap:5px;}
   .ts-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line2);
@@ -1473,7 +1482,7 @@ import { parseTransactionCore, encodeOutputScript, validateCashAddress, parseOpR
 // segmentWords + normalize are new imports and need NO ?v bump: both have been
 // exported from match.js since before p5, so the copy a returning visitor holds
 // already has them.
-import { matchAny, matchEvery, findAllSpans, segmentWords, normalize as normalizeTerm } from '../vendor/core/match.js?v=5';
+import { matchAny, matchEvery, findAllSpans, segmentWords, normalize as normalizeTerm } from '../vendor/core/match.js?v=6';
 import { createBackfill } from '../vendor/core/backfill.js?v=6';
 import { isCashtabExtension, requestAddress as ctRequestAddress, sendBip21 as ctSendBip21 } from '../vendor/cashtab-connect.js?v=1';
 "use strict";
@@ -1706,6 +1715,7 @@ const FLOW_STRINGS_EN = {
   'lane.rangeEnd':'Window covered',
   'term.add':'+ Topic',
   'term.fromRead':'from the {n} messages read so far',
+  'term.addTag':'Follow {q} as a topic',
   'term.any':'any word',
   'term.all':'all words',
   'term.modeAria':'Match any word or all words',
@@ -1841,7 +1851,7 @@ function tf(key, vars){
   return String(t(key)).replace(/\{(\w+)\}/g, (_, k) => (vars && vars[k] != null ? vars[k] : ''));
 }
 function localeFor(code){ try { new Intl.NumberFormat(code); return code; } catch { return 'en'; } }
-const I18N_V = '19';   // bump whenever any vendor/i18n/flow.*.json changes
+const I18N_V = '20';   // bump whenever any vendor/i18n/flow.*.json changes
 async function loadPack(code){
   if (code === 'en'){ pack = null; return; }
   try {
@@ -2850,7 +2860,13 @@ function setCardText(tx){
   const el = tx.el; if (!el) return;
   const cs = cardStrings(tx);         // {t1, t2} per kind, in the current language
   const label = kindLabel(tx);
-  el.querySelector('.t1').textContent = cs.t1;
+  const t1 = el.querySelector('.t1');
+  t1.textContent = cs.t1;
+  /* Only a message card, and only its own writing: the same .t1 slot carries
+     parser-composed labels ("+3 small transactions") on group cards, and a '#'
+     inside one of those is ours, not something a reader wrote. Not focusable —
+     .card is a role=button (see linkifyTags). */
+  if (tx.kind === 'msg' && tx._hay) linkifyTags(t1, false);
   // watched/mine prefix on the mono route line (mock _t2), block stays on .seal
   let pfx = '';
   if (tx._mine) pfx = t('t2.mine');
@@ -5560,6 +5576,77 @@ function highlightInto(el, text, terms){
   if (pos < text.length) el.appendChild(document.createTextNode(text.slice(pos)));
 }
 
+/* TAPPABLE HASHTAGS — walk the TEXT NODES of an element and wrap every #tag.
+ *
+ * Text nodes only, never innerHTML: the string is chain-supplied, and the one
+ * rule this file has no exceptions to is that it reaches the DOM as a text node
+ * or through esc(). It also means this can be run over output that already
+ * contains <mark> elements and it will leave them alone — so in the Lane a
+ * hashtag the reader ALREADY follows stays highlighted as a match, and only the
+ * ones they do not follow are offered. That is the right behaviour and it falls
+ * out of the implementation rather than being special-cased.
+ *
+ * `focusable` is false inside .lane-row and .card, which are themselves a
+ * <button> and a role=button: a nested control there is invalid and screen
+ * readers handle it badly. The same action stays reachable by keyboard through
+ * the detail panel (where the container is a plain div and this IS focusable)
+ * and through "+ Topic", whose first tier of suggestions is hashtags.
+ */
+function linkifyTags(root, focusable){
+  if (!root) return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const targets = [];
+  for (let n = walker.nextNode(); n; n = walker.nextNode()){
+    if (n.nodeValue && n.nodeValue.indexOf('#') !== -1) targets.push(n);
+  }
+  for (const node of targets){
+    const s = node.nodeValue;
+    HASHTAG_RE.lastIndex = 0;
+    let m, pos = 0;
+    const frag = document.createDocumentFragment();
+    while ((m = HASHTAG_RE.exec(s)) !== null){
+      // The pattern carries a leading boundary character so "a#b" is not a tag;
+      // the tag itself therefore starts at the '#', not at the match index.
+      const start = m.index + m[0].length - (m[1].length + 1);
+      if (start > pos) frag.appendChild(document.createTextNode(s.slice(pos, start)));
+      const tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.dataset.tag = '#' + m[1];
+      tag.textContent = '#' + m[1];
+      tag.setAttribute('title', tf('term.addTag', { q: '#' + m[1] }));
+      if (focusable){
+        tag.setAttribute('role', 'button');
+        tag.tabIndex = 0;
+        tag.setAttribute('aria-label', tf('term.addTag', { q: '#' + m[1] }));
+      }
+      frag.appendChild(tag);
+      pos = start + m[1].length + 1;
+    }
+    if (!pos) continue;                       // nothing matched — leave the node alone
+    if (pos < s.length) frag.appendChild(document.createTextNode(s.slice(pos)));
+    node.parentNode.replaceChild(frag, node);
+  }
+}
+/* ONE delegated listener for the whole page. A per-tag handler would be hundreds
+   of closures on a busy stream, and they would have to be re-attached on every
+   re-render; this survives all of it. stopPropagation is not optional — without
+   it the tap also reaches the card or the Lane row underneath and toggles it. */
+document.addEventListener('click', (e) => {
+  const tag = e.target && e.target.closest && e.target.closest('.tag[data-tag]');
+  if (!tag) return;
+  e.stopPropagation();
+  e.preventDefault();
+  openTermEditorWith(tag.dataset.tag);
+}, true);
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const tag = e.target && e.target.closest && e.target.closest('.tag[data-tag][role="button"]');
+  if (!tag) return;
+  e.stopPropagation();
+  e.preventDefault();
+  openTermEditorWith(tag.dataset.tag);
+}, true);
+
 function laneRow(tx){
   const row = document.createElement('button');
   row.type = 'button'; row.className = 'lane-row';
@@ -5571,6 +5658,7 @@ function laneRow(tx){
   const body = document.createElement('span'); body.className = 'lr-body';
   const txt = document.createElement('span'); txt.className = 'lr-text';
   highlightInto(txt, tx._hay || '', enabledTerms());
+  linkifyTags(txt, false);   // after the marks: a followed hashtag stays a match, not an offer
   const meta = document.createElement('span'); meta.className = 'lr-meta';
   const bits = [kindLabel(tx)];
   if (tx.ts) { const ago = fmtAgo(tx.ts, 'narrow'); if (ago) bits.push(ago); }
@@ -6262,12 +6350,42 @@ function renderTermSuggest(){
     chips.appendChild(b);
   }
 }
+/* Tapping a hashtag does not add it — it ASKS. Re-using the editor rather than
+   minting a confirm dialog is deliberate: it already traps focus, already says
+   "you are already following that" and "8 topics is the limit", and already
+   carries the fold / contains / mute switches, so the reader keeps every choice
+   they would have had.
+
+   FOCUS STAYS ON THE INPUT, which is where openTermEditor() already puts it, and
+   an earlier version queued a second rAF to move it to Save instead. That was
+   worse in both directions: it raced the first rAF for no gain, and it would
+   land a screen-reader user on "Save topic" without ever reading them the thing
+   they are about to save. The field already answers Enter with saveTerm(), so
+   confirming is still one keystroke — and now the value is announced first. */
+function openTermEditorWith(q){
+  openTermEditor();
+  $('term-input').value = q;
+  syncTermMode();
+}
+/* A leading '#' decides the match mode on its own, so the substring switch has
+   nothing left to say. Disabling it is the wordless version of explaining that
+   — the panel already refuses to grow another sentence. */
+function syncTermMode(){
+  const isTag = ($('term-input').value || '').trim().startsWith('#');
+  const c = $('term-contains');
+  if (!c) return;
+  if (isTag) c.checked = false;
+  c.disabled = isTag;
+  const lab = c.closest('.term-opt');
+  if (lab) lab.classList.toggle('off', isTag);
+}
 function openTermEditor(){
   renderTermSuggest();
   $('term-input').value = '';
   $('term-fold').checked = false;
   $('term-contains').checked = false;
   $('term-mute').checked = false;
+  syncTermMode();
   setTermHint('', false);
   termBackdrop.hidden = false; termEditor.hidden = false;
   showAnimated(termBackdrop, 'show'); showAnimated(termEditor, 'show');
@@ -6294,6 +6412,7 @@ function saveTerm(){
 }
 $('term-save').addEventListener('click', saveTerm);
 $('term-input').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); saveTerm(); } });
+$('term-input').addEventListener('input', syncTermMode);
 $('term-close').addEventListener('click', closeTermEditor);
 termBackdrop.addEventListener('click', closeTermEditor);
 
@@ -6615,6 +6734,9 @@ function buildDetailHtml(tx){
 // detail and the pinned ?tx= receipt so both behave identically (core value #6).
 function wireDetail(d, tx){
   if (!d) return;
+  // The full message lives here and nothing wraps it in a button, so this is
+  // the surface where a hashtag can be reached by keyboard.
+  linkifyTags(d.querySelector('.cd-msg'), true);
   const sb = d.querySelector('[data-act="share"]'); if (sb) sb.addEventListener('click', (e) => { e.stopPropagation(); shareTx(tx); });
   const eb = d.querySelector('[data-act="explorer"]'); if (eb) eb.addEventListener('click', (e) => { e.stopPropagation(); window.open('https://explorer.e.cash/tx/' + tx.id, '_blank', 'noopener'); });
   const cb = d.querySelector('[data-act="chat"]'); if (cb) cb.addEventListener('click', (e) => { e.stopPropagation(); chatWith(cb.getAttribute('data-peer')); });
@@ -7680,6 +7802,14 @@ async function sendTry(){
   // is what actually goes out. An empty field is no longer an error: it means
   // "the default", and the default has been named on screen the whole time.
   const picked = resolveRecipient();
+  /* Restored: rewriting the block above deleted this declaration and left the
+     use of it eighty lines below, so every send threw ReferenceError. sendTry is
+     async, so the throw became a rejected promise nobody awaits — the button did
+     nothing at all, with no hint and no toast, which is the worst shape a
+     failure can take. `node --check` passed throughout; the previous round of
+     live verification exercised the preview line and the picks and never once
+     pressed Send. */
+  const hasExt = isCashtabExtension();
   let addr = picked.addr;
   if (!addr && picked.kind === 'mine'){
     // Extension present, own address not fetched yet — the destination the

@@ -115,6 +115,7 @@
     "lane.rangeEnd": "Đã phủ hết khoảng",
     "term.add": "+ Chủ đề",
     "term.fromRead": "từ {n} tin đã đọc",
+    "term.addTag": "Theo dõi {q} như một chủ đề",
     "term.any": "bất kỳ từ nào",
     "term.all": "tất cả các từ",
     "term.modeAria": "Khớp bất kỳ từ nào hoặc tất cả các từ",

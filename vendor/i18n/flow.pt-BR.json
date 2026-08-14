@@ -115,6 +115,7 @@
     "lane.rangeEnd": "Período coberto",
     "term.add": "+ Tópico",
     "term.fromRead": "dos {n} mensagens lidas",
+    "term.addTag": "Seguir {q} como tópico",
     "term.any": "qualquer palavra",
     "term.all": "todas as palavras",
     "term.modeAria": "Corresponder a qualquer palavra ou a todas",
