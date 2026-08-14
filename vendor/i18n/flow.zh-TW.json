@@ -114,6 +114,7 @@
     "lane.moreWindows": "以及另外 {n} 個已讀範圍",
     "lane.rangeEnd": "範圍已涵蓋",
     "term.add": "+ 主題",
+    "term.fromRead": "來自已讀的 {n} 則訊息",
     "term.any": "任一詞",
     "term.all": "全部詞",
     "term.modeAria": "比對任一詞或全部詞",

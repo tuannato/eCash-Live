@@ -114,6 +114,7 @@
     "lane.moreWindows": "et {n} autres périodes lues",
     "lane.rangeEnd": "Période couverte",
     "term.add": "+ Sujet",
+    "term.fromRead": "d’après les {n} messages lus",
     "term.any": "un mot",
     "term.all": "tous les mots",
     "term.modeAria": "Correspondre à un mot ou à tous les mots",

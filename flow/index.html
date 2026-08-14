@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-nQaHhOharvNdM7z1agAuc2RnklpNzyZ/Y2BFGTKd76s=';
+  script-src 'self' 'sha256-YsKlCZfmq1pVgKkAQJQj0Um84HeoZyMcrg1B0Ozxie8=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -634,6 +634,19 @@
   .ls-name{display:block;font-size:12px;color:var(--ink);}
   .ls-meta{display:block;font-size:10px;color:var(--ink3);margin-top:2px;line-height:1.5;
     font-variant-numeric:tabular-nums;}
+  /* Topic suggestions. Same pill as .ls-preset and .cmp-chip on purpose — this
+     is the third place chips appear and inventing a fourth shape would make the
+     panel read as a different product. */
+  .term-suggest{margin:-2px 0 2px;}
+  .ts-cap{font-size:10px;color:var(--ink3);margin-bottom:6px;}
+  .ts-chips{display:flex;flex-wrap:wrap;gap:5px;}
+  .ts-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line2);
+    background:var(--bg-app);color:var(--ink2);font:inherit;font-size:11.5px;
+    padding:5px 10px;border-radius:999px;cursor:pointer;max-width:100%;}
+  .ts-chip:hover{border-color:var(--accent);color:var(--accent);}
+  .ts-chip:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .ts-n{font-size:10px;color:var(--ink3);font-variant-numeric:tabular-nums;}
+  .ts-chip:hover .ts-n{color:var(--accent);}
   .ls-hint{font-size:10.5px;color:var(--warn-ink);margin-top:6px;}
   .ls-hint:empty{display:none;}
   /* Date window, inside the same panel as the protocols: they answer one
@@ -1350,6 +1363,13 @@
           <span id="term-title" data-i18n="term.title">Add a topic</span>
           <button id="term-close" type="button" data-i18n-aria="cmp.close" aria-label="Close">✕</button>
         </div>
+        <!-- Suggestions, mined from the corpus the Lane has already read. Built
+             by renderTermSuggest(); the whole block hides itself when there is
+             nothing to offer, like .cmp-picks. -->
+        <div class="term-suggest" id="term-suggest" hidden>
+          <div class="ts-cap" id="ts-cap"></div>
+          <div class="ts-chips" id="ts-chips"></div>
+        </div>
         <input id="term-input" type="text" maxlength="40" autocapitalize="none" autocorrect="off"
                spellcheck="false" data-i18n-ph="term.ph" placeholder="A word to follow, e.g. gm" />
         <label class="term-opt"><input id="term-fold" type="checkbox" />
@@ -1450,7 +1470,10 @@
 // been exported from txparse.js since before p7, so the copy a returning visitor
 // already holds carries them. Only adding or renaming an export forces the bump.
 import { parseTransactionCore, encodeOutputScript, validateCashAddress, parseOpReturn, MESSAGE_LOKADS, LOKAD, LOKAD_NAMES } from '../vendor/txparse.js?v=p7';
-import { matchAny, matchEvery, findAllSpans } from '../vendor/core/match.js?v=5';
+// segmentWords + normalize are new imports and need NO ?v bump: both have been
+// exported from match.js since before p5, so the copy a returning visitor holds
+// already has them.
+import { matchAny, matchEvery, findAllSpans, segmentWords, normalize as normalizeTerm } from '../vendor/core/match.js?v=5';
 import { createBackfill } from '../vendor/core/backfill.js?v=6';
 import { isCashtabExtension, requestAddress as ctRequestAddress, sendBip21 as ctSendBip21 } from '../vendor/cashtab-connect.js?v=1';
 "use strict";
@@ -1682,6 +1705,7 @@ const FLOW_STRINGS_EN = {
   'lane.moreWindows':'and {n} more windows read',
   'lane.rangeEnd':'Window covered',
   'term.add':'+ Topic',
+  'term.fromRead':'from the {n} messages read so far',
   'term.any':'any word',
   'term.all':'all words',
   'term.modeAria':'Match any word or all words',
@@ -1817,7 +1841,7 @@ function tf(key, vars){
   return String(t(key)).replace(/\{(\w+)\}/g, (_, k) => (vars && vars[k] != null ? vars[k] : ''));
 }
 function localeFor(code){ try { new Intl.NumberFormat(code); return code; } catch { return 'en'; } }
-const I18N_V = '18';   // bump whenever any vendor/i18n/flow.*.json changes
+const I18N_V = '19';   // bump whenever any vendor/i18n/flow.*.json changes
 async function loadPack(code){
   if (code === 'en'){ pack = null; return; }
   try {
@@ -1984,9 +2008,16 @@ function esc(s){ return clean(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 function fmtInt(n){ try { return Number(n).toLocaleString(localeFor(lang)); } catch { return String(n); } }
 // Calendar date only — the Lane's "reached back to" figure is a boundary, not a
 // moment, and a clock time would imply a precision the walk does not have.
+/* The year is dropped inside the current one. "Aug 3, 2026" read in 2026 spends
+   a third of the chip on a digit the reader already knows; "Jun 1, 2023" keeps
+   it, because there the year is the whole point. */
 function fmtDate(ms){
-  try { return new Date(ms).toLocaleDateString(localeFor(lang), { year:'numeric', month:'short', day:'numeric' }); }
-  catch { return ''; }
+  try {
+    const d = new Date(ms);
+    const o = { month: 'short', day: 'numeric' };
+    if (d.getFullYear() !== new Date().getFullYear()) o.year = 'numeric';
+    return d.toLocaleDateString(localeFor(lang), o);
+  } catch { return ''; }
 }
 // Magnitude-aware TPS (matches neo/echan.js fmtTps): eCash's real finalized-tx
 // rate is a fraction of 1 TPS, so plain rounding shows a misleading "0" — keep
@@ -4431,14 +4462,43 @@ function laneWindows(){
    and the walk inserts newest-first, so evicting would have deleted the NEWEST
    entries and left a hole at the near end while still claiming the far date. */
 let corpusFull = false;
-function corpusAdd(txid, text, ts, lokad){
+function corpusAdd(txid, text, ts, lokad, from){
   const had = laneCorpus.get(txid);
   // A row restored without a tag is UPGRADED in place when the walk meets the
   // same transaction again. Returning early here — the obvious shape — would
   // leave a legacy row untagged forever, since the corpus never evicts.
-  if (had){ if (!had.lokad && lokad) had.lokad = lokad; return; }
+  if (had){ if (!had.lokad && lokad) had.lokad = lokad; if (!had.from && from) had.from = from; return; }
   if (laneCorpus.size >= CORPUS_MAX){ corpusFull = true; return; }
-  laneCorpus.set(txid, { text, ts: ts || null, lokad: lokad || null });
+  laneCorpus.set(txid, { text, ts: ts || null, lokad: lokad || null, from: from || null });
+}
+
+/* WHO WROTE IT, as eight hex characters.
+   Measured, and it is the whole reason the suggestion list is usable: ranking
+   words by how OFTEN they appear returns the busiest bot's script — over 1,000
+   real Cashtab messages the top of that list was congratulations·119, win·115,
+   casino·57, darts·51, all from one or two senders. Ranking by how many
+   DIFFERENT people wrote a word separates a campaign from a topic exactly:
+   casino collapses to 1 sender while thanks, on 21 messages, has 20.
+
+   FNV-1a, not a cryptographic hash, and it does not need to be — it exists only
+   to tell one sender apart from another, and a collision costs one suggestion
+   its rank. Taken from inputs[0] of a transaction the walk has already fetched,
+   so it adds no request and no full parse. Stored beside chain-public message
+   text that is far more identifying than this is; it says nothing about the
+   reader. */
+function senderTag(script){
+  if (!script || typeof script !== 'string') return null;
+  let h = 0x811c9dc5;
+  for (let i = 0; i < script.length; i++){
+    h ^= script.charCodeAt(i);
+    h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+  }
+  return h.toString(16).padStart(8, '0');
+}
+function senderOf(txData){
+  const i = txData && txData.inputs && txData.inputs[0];
+  if (!i) return null;
+  return senderTag(i.outputScript || (i.prevOut && i.prevOut.outputScript) || null);
 }
 
 /* THE ONE PLACE THAT DECIDES WHETHER A RESULT IS IN SCOPE.
@@ -4517,9 +4577,130 @@ function lanePrefilter(txData, lokadId){
   const fts = Number(txData.timeFirstSeen);
   const ts = (Number.isFinite(bts) && bts > 0) ? bts * 1000
            : (Number.isFinite(fts) && fts > 0) ? fts * 1000 : null;
-  corpusAdd(txData.txid, hay, ts, lokadId);
+  corpusAdd(txData.txid, hay, ts, lokadId, senderOf(txData));
   if (activeMutes().length && matchAny(hay, activeMutes())) return false;
   return matchTerms(hay, enabledTerms());
+}
+
+/* ---- topic suggestions ------------------------------------------------------
+   Mined from the corpus, which is real writing the reader has already paid to
+   fetch, so this costs no request at all. Three tiers, highest signal first,
+   and every threshold below came from measuring 1,000 live Cashtab messages
+   rather than from taste:
+
+     1. HASHTAGS. Someone typing #x is declaring a topic. Rare in Cashtab Msg
+        today (2 per 1,000) and kept first anyway, because the moment they
+        become common they are the best answer on the page — and because the
+        tokenizer drops '#', they are invisible to every other tier.
+     2. TICKERS / SHOUTED WORDS — FIRMA, CACHET, BTX. Named entities, no
+        language handling, no noise.
+     3. ORDINARY WORDS, and this is the tier that needed the most work.
+
+   WHY TIER 3 COUNTS PEOPLE, NOT MESSAGES. Ranked by frequency it returns the
+   busiest bot's script: congratulations·119, win·115, casino·57, darts·51.
+   Ranked by how many DIFFERENT senders wrote the word, casino is 1 and thanks
+   — on a quarter of the messages — is 20. That is the campaign/topic boundary,
+   and nothing else measured drew it.
+
+   WHAT NO THRESHOLD FIXES, stated because it will be visible: ordinary function
+   words ("you", "for", "to") are written by everyone, so they score well on
+   exactly the axis that defeats the bots. Removing them needs a stopword list
+   per language, which is sixteen translations and a correctness trap in Thai
+   and Vietnamese. A suggestion is a chip nobody has to tap, so the cost of one
+   dull entry is low and the cost of a wrong stopword list is not. */
+const SUGGEST_MAX = 8;            // two comfortable rows on a phone; median term is 5 chars
+const SUGGEST_MIN_DF = 3;         // in at least three distinct messages
+const SUGGEST_DF_CEIL = 0.30;     // and not in more than a third of them
+const SUGGEST_MIN_SENDERS = 4;    // tier 3 only: written by four different people
+const SUGGEST_MAX_LEN = 20;       // beyond this it is an address or a URL, not a topic
+const HASHTAG_RE = /(?:^|[\s(\[,.!?;:])#([\p{L}\p{N}_]{2,30})/gu;
+const SHOUT_RE = /\b[A-Z][A-Z0-9]{2,11}\b/g;
+const SHOUT_ONE = /^[A-Z][A-Z0-9]{2,11}$/;   // /g is stateful — never .test() with it
+
+let laneSuggestCache = null, laneSuggestAt = 0;
+function laneSuggestInvalidate(){ laneSuggestCache = null; }
+
+/* Pure over the corpus, so it is testable without a DOM and cannot surprise the
+   caller. Deduped by message text first: 41% of the corpus measured as exact
+   repeats, and without that one broadcast repeated fifty times outvotes fifty
+   people. */
+function computeSuggestions(){
+  const df = new Map(), senders = new Map(), shown = new Map();
+  const seenText = new Set();
+  let docs = 0;
+  const bump = (m, k) => m.set(k, (m.get(k) || 0) + 1);
+  const addSender = (k, s) => {
+    if (!s) return;
+    let set = senders.get(k); if (!set){ set = new Set(); senders.set(k, set); }
+    set.add(s);
+  };
+  for (const e of laneCorpus.values()){
+    if (!e.text || !inScope(e.lokad)) continue;
+    const key = normalizeTerm(e.text);
+    const fresh = !seenText.has(key);
+    if (fresh){ seenText.add(key); docs++; }
+    const here = new Set();
+    HASHTAG_RE.lastIndex = 0;
+    let m;
+    while ((m = HASHTAG_RE.exec(e.text)) !== null) here.add('#' + m[1]);
+    for (const w of (e.text.match(SHOUT_RE) || [])) here.add(w);
+    for (const w of segmentWords(key)){
+      if (w.length > 1 && w.length <= SUGGEST_MAX_LEN) here.add(w);
+    }
+    for (const w of here){
+      if (fresh) bump(df, w);
+      addSender(w, e.from);
+      if (!shown.has(w)) shown.set(w, w);      // remember the cased form as written
+    }
+  }
+  if (!docs) return [];
+  const taken = new Set(state.terms.map(x => normalizeTerm(x.q)));
+  const out = [];
+  const push = (w, tier) => {
+    const n = df.get(w) || 0;
+    if (n < SUGGEST_MIN_DF || n / docs > SUGGEST_DF_CEIL) return;
+    if (w.length > SUGGEST_MAX_LEN) return;
+    const norm = normalizeTerm(w);
+    if (taken.has(norm)) return;               // already a topic, or muted
+    if (out.some(x => normalizeTerm(x.term) === norm)) return;
+    if (tier === 3 && (senders.get(w) || { size: 0 }).size < SUGGEST_MIN_SENDERS) return;
+    taken.add(norm);
+    out.push({ term: w, n, tier });
+  };
+  const rank = (pred) => [...df.keys()].filter(pred).sort((a, b) => df.get(b) - df.get(a));
+  for (const w of rank(w => w[0] === '#')) push(w, 1);
+  for (const w of rank(w => w[0] !== '#' && SHOUT_ONE.test(w))) push(w, 2);
+  for (const w of rank(w => w[0] !== '#' && w === w.toLowerCase())) push(w, 3);
+  return out.slice(0, SUGGEST_MAX);
+}
+// Recomputed on idle, and only when the corpus has actually moved: measured at
+// 101 ms per 1,000 messages, so a 5,000-row corpus is a third of a second and
+// has no business on the path of a click.
+/* NEVER computed on the path of a click. I wrote the note above about idle
+   scheduling and then called this straight from openTermEditor, which at a full
+   corpus is a third of a second of frozen dialog — the measurement was already
+   on the page and the code ignored it. A cold cache now returns nothing and
+   schedules the work; the chips appear a moment later, which is the right
+   trade for a suggestion nobody is waiting on. */
+function laneSuggestions(){
+  if (laneSuggestCache && laneSuggestAt === laneCorpus.size) return laneSuggestCache;
+  scheduleSuggest();
+  return laneSuggestCache || [];
+}
+let suggestQueued = false;
+function scheduleSuggest(){
+  if (suggestQueued || !laneCorpus.size) return;
+  suggestQueued = true;
+  const run = () => {
+    suggestQueued = false;
+    laneSuggestCache = computeSuggestions();
+    laneSuggestAt = laneCorpus.size;
+    // Only repaint if the editor is actually open; otherwise the next open reads
+    // the warm cache and shows them immediately.
+    if (termEditor && !termEditor.hidden) renderTermSuggest();
+  };
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(run, { timeout: 2000 });
+  else setTimeout(run, 250);
 }
 
 // Answer a term from the corpus alone. No requests, no cursor, instant.
@@ -4597,7 +4778,7 @@ function saveLaneStore(){
   // Fourth element is the protocol tag; rows written before it exists are three
   // long and stay readable, so this needs no version bump. R3's `ranges` cursor
   // is a real schema change and gets one.
-  for (const [id, e] of laneCorpus) rows.push([id, e.text, e.ts, e.lokad || null]);
+  for (const [id, e] of laneCorpus) rows.push([id, e.text, e.ts, e.lokad || null, e.from || null]);
   /* NEWEST FIRST, so a trim takes from the far end. The corpus is a contiguous
      window from the newest message backwards and the reach line depends on it;
      cutting the near end would leave a hole beside the date being claimed. This
@@ -4643,7 +4824,8 @@ function restoreLaneStore(){
     // row[3] is absent on everything written before the scope picker; null there
     // means "protocol unknown", which inScope() reads as in — never as out.
     corpusAdd(row[0], row[1], Number.isFinite(row[2]) ? row[2] : null,
-              typeof row[3] === 'string' ? row[3] : null);
+              typeof row[3] === 'string' ? row[3] : null,
+              typeof row[4] === 'string' ? row[4] : null);
   }
   laneSavedCursor = s.cursor;
   return s.cursor;
@@ -4795,6 +4977,7 @@ function laneRematch(){
   // and it runs on a term change, a scope change and each backfill batch — not
   // on every live arrival, which can only add untagged (never hidden) rows.
   laneScopeHidden = hidden.size;
+  laneSuggestInvalidate();   // scope decides which corpus rows are eligible
   laneSetMatched(ids);
 }
 
@@ -4912,6 +5095,7 @@ async function runLaneBackfill(){
   laneBusy = false;
   refreshLaneScope();   // pages-read and the per-protocol totals just moved
   refreshLaneRange();
+  scheduleSuggest();    // corpus grew: recompute the topic chips while idle
   if (state.laneOpen) renderLane();
   else renderLaneMore();
   await laneHydrate(token);
@@ -6049,7 +6233,37 @@ function setTermHint(msg, err){
   termHint.classList.toggle('err', !!msg && !!err);
   termHint.textContent = msg || '';
 }
+/* Chips carry the count so the reader can tell a topic worth following from one
+   that will return three rows, and the caption says WHERE the number comes from:
+   it describes the messages this browser has read, never the chain. Tapping only
+   FILLS THE FIELD — the fold / contains / mute switches below still have to be
+   set, and this dialog exists to end in one deliberate commit. */
+function renderTermSuggest(){
+  const box = $('term-suggest'), chips = $('ts-chips'), cap = $('ts-cap');
+  if (!box) return;
+  const list = laneSuggestions();
+  chips.textContent = '';
+  if (!list.length || !laneCorpus.size){ box.hidden = true; return; }
+  box.hidden = false;
+  cap.textContent = tf('term.fromRead', { n: fmtInt(laneCorpus.size) });
+  for (const s of list){
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'ts-chip';
+    b.appendChild(document.createTextNode(s.term));      // corpus text — never innerHTML
+    const c = document.createElement('span');
+    c.className = 'ts-n'; c.textContent = fmtInt(s.n);
+    b.appendChild(c);
+    b.addEventListener('click', () => {
+      const input = $('term-input');
+      input.value = s.term;
+      setTermHint('', false);
+      try { input.focus(); input.setSelectionRange(input.value.length, input.value.length); } catch {}
+    });
+    chips.appendChild(b);
+  }
+}
 function openTermEditor(){
+  renderTermSuggest();
   $('term-input').value = '';
   $('term-fold').checked = false;
   $('term-contains').checked = false;
@@ -6228,10 +6442,24 @@ function fmtXecAmt(xec, withUsd){
 }
 // Localized "2 minutes ago" via Intl (no new i18n keys); '' if unavailable.
 // style 'narrow' gives the compact form used by the top-bar block pill.
+/* PAST A WEEK, A COUNT OF DAYS STOPS BEING INFORMATION. "1,168 days ago" is not
+   a time anybody can place — nobody converts it in their head — and the Lane
+   routinely returns results years old, so the format that reads as precision was
+   the one carrying the least. A calendar date is the answer there.
+
+   Below a week the relative form is the more useful of the two, because the
+   question changes: "3m ago" answers "is this happening right now", which a
+   clock time does not. So both survive, each where it means something.
+
+   The detail panel gains the most: fmtClock() shows the time of day and no date
+   at all, so a 2023 transaction read "14:32 · 1,168 days ago" and its date
+   appeared nowhere on the page. */
+const AGO_DATE_AFTER_SEC = 7 * 86400;
 function fmtAgo(ms, style){
   if (!ms) return '';
   const sec = Math.round((Date.now() - ms) / 1000);
   if (!isFinite(sec) || sec < 0) return '';
+  if (sec >= AGO_DATE_AFTER_SEC) return fmtDate(ms);
   try {
     const rtf = new Intl.RelativeTimeFormat(localeFor(lang), { numeric: 'auto', style: style || 'long' });
     if (sec < 60) return rtf.format(-sec, 'second');

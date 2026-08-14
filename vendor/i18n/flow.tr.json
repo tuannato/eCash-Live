@@ -114,6 +114,7 @@
     "lane.moreWindows": "ve {n} aralık daha okundu",
     "lane.rangeEnd": "Aralık tarandı",
     "term.add": "+ Konu",
+    "term.fromRead": "okunan {n} mesajdan",
     "term.any": "herhangi bir kelime",
     "term.all": "tüm kelimeler",
     "term.modeAria": "Herhangi bir kelimeyle mi tüm kelimelerle mi eşleşsin",

@@ -114,6 +114,7 @@
     "lane.moreWindows": "e {n} outros períodos lidos",
     "lane.rangeEnd": "Período coberto",
     "term.add": "+ Tópico",
+    "term.fromRead": "dos {n} mensagens lidas",
     "term.any": "qualquer palavra",
     "term.all": "todas as palavras",
     "term.modeAria": "Corresponder a qualquer palavra ou a todas",
