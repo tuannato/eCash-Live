@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-YoQxqpDv2tg+ZYOqUVTne+Lu4EeiLcci/5NT6cmjaOU=';
+  script-src 'self' 'sha256-UY4mcTlPWDUSh30rMJXw+NimIsJzUqg2S3FRbSJQN6E=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -4629,7 +4629,15 @@ const SUGGEST_MIN_DF = 3;         // in at least three distinct messages
 const SUGGEST_DF_CEIL = 0.30;     // and not in more than a third of them
 const SUGGEST_MIN_SENDERS = 4;    // tier 3 only: written by four different people
 const SUGGEST_MAX_LEN = 20;       // beyond this it is an address or a URL, not a topic
-const HASHTAG_RE = /(?:^|[\s(\[,.!?;:])#([\p{L}\p{N}_]{2,30})/gu;
+/* THE BOUNDARY IS "NOT A WORD CHARACTER", never a list of punctuation.
+   The first version enumerated [\s(\[,.!?;:] and missed the one delimiter this
+   page puts there itself: a message card wraps text in typographic quotes, so
+   a tag at the start of a message sits after “ and was not linkified — while
+   the same tag mid-sentence was. Worse, match.js's hashAt() already used the
+   correct rule, so the two disagreed: the search found `#firma` in a message
+   whose `#firma` the reader could not tap. I wrote the comment saying these two
+   must agree and then shipped two different rules. */
+const HASHTAG_RE = /(?:^|[^\p{L}\p{N}_])#([\p{L}\p{N}_]{2,30})/gu;
 const SHOUT_RE = /\b[A-Z][A-Z0-9]{2,11}\b/g;
 const SHOUT_ONE = /^[A-Z][A-Z0-9]{2,11}$/;   // /g is stateful — never .test() with it
 
