@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-gnkWCJcKSXvpq0lbIWCphEPS/rz0I2lZcBAt8GXmwNQ=';
+  script-src 'self' 'sha256-wWJ/V7SjRSY8YmhQdC3irRQpmSisln88cG963YxsYL4=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -314,10 +314,33 @@
   .chips-row .chip.warn.yield{max-width:0;min-width:0;opacity:0;padding-left:0;
              padding-right:0;margin-left:0;margin-right:0;border-width:0;}
   @media (prefers-reduced-motion: reduce){ .chip.warn{transition:none;} }
-  .lane-exit{flex:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
-    min-width:34px;font-size:14px;line-height:1;
-    border-color:var(--accent);color:var(--accent-deep);background:var(--accent-bg);font-weight:600;}
-  .lane-exit:hover{background:var(--accent);color:#fff;}
+  /* FILLED, not tinted, and an inline SVG rather than the "←" character.
+     Two reasons, both learned here. The tinted version used --accent-bg against
+     a dark row of already-tinted topic chips and simply could not be found; this
+     is the one control in that row that leaves the Lane, so it has to read as a
+     control at a glance. And a glyph renders at the mercy of whatever font the
+     platform substitutes — the same reason the TTF eye and spinner were moved to
+     inline SVG. The path is byte-identical to .fab-back, so the two ways out of
+     an overlay draw the same arrow.
+
+     Deliberately NOT the brand gradient: that language belongs to the composer,
+     which means "start something". This is the way back.
+
+     SELECTOR WEIGHT MATTERS HERE and it caught me twice in one session: the
+     chips row styles its children through `.chips-row .chip` at (0,2,0), so a
+     bare `.lane-exit` at (0,1,0) loses and the button silently kept the ordinary
+     chip surface — measured at 1.05:1 against the row, which is the "hard to
+     see" in the report. (0,3,0) wins it outright. */
+  .chips-row .chip.lane-exit{flex:none;display:inline-flex;align-items:center;justify-content:center;
+    cursor:pointer;min-width:40px;padding-left:10px;padding-right:10px;
+    border-color:var(--accent);background:var(--accent);color:var(--bg-app);}
+  .chips-row .chip.lane-exit svg{width:16px;height:16px;display:block;}
+  .chips-row .chip.lane-exit:hover{background:var(--accent-deep);border-color:var(--accent-deep);}
+  /* The arrow takes the PAGE background as its colour, not a hardcoded white.
+     --bg-app flips with the theme while --accent stays mid-tone in both, so one
+     declaration clears the 3:1 a graphical control owes in dark AND light —
+     white on the dark-theme accent measured 2.96, just under. */
+  .chips-row .chip.lane-exit:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   .kind-face{pointer-events:none;display:inline-flex;align-items:center;gap:6px;}
   .kind-face .caret{opacity:.6;font-size:10px;}
   .kind-wrap:hover .kind-face{border-color:var(--accent);color:var(--accent-deep);}
@@ -1251,7 +1274,7 @@
            A different job gets a different colour, the rule .fab.back follows in
            the block panel. -->
       <button class="chip lane-exit" id="lane-exit" type="button" hidden
-              data-i18n-aria="lane.close" aria-label="Back to the live stream">←</button>
+              data-i18n-aria="lane.close" aria-label="Back to the live stream"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
       <!-- Its own name: this row and #lane both said "Saved topics", so a screen
            reader met two different landmarks with one identity. -->
       <div class="chips hscroll" role="group" data-i18n-aria="chips.topicsAria" aria-label="Topic filters"></div>
@@ -4948,10 +4971,27 @@ function laneParseTx(d){
    rendered zero rows while reporting 200 matches and a reach of years, and
    laneHydrate re-fetched 200 transactions it already had on every run.
    Deriving both from this function is what makes the two unable to drift. */
+/* THROUGH txWhenMs(), not tx.ts — and that is the whole fix.
+   stampTs() only writes tx.ts when the chain supplied a time: a block timestamp,
+   or a timeFirstSeen the node actually recorded. A transaction still in the
+   mempool usually has neither, so tx.ts was undefined, this returned 0, and the
+   sort read 0 as "the oldest thing here" — putting the NEWEST arrivals at the
+   very top, which is backwards in a list that reads oldest-first. Visible in the
+   Lane as rows with no age at all sitting above rows from an hour ago.
+
+   The same applies to a mempool transaction that was already there before the
+   page opened, since it is admitted through the identical path; the boot poll
+   just supplies it instead of the socket.
+
+   txWhenMs() already ranks these correctly and is what the detail panel reads:
+   block time, then a KNOWN first-seen, then local arrival for live cards only.
+   A live arrival therefore sorts as now, which is what it is. Genuinely unknown
+   still falls to 0 and still sorts oldest — that part was right, and it is what
+   laneHold() wants to evict first. */
 function laneTsOf(id, tx){
   const t = tx || state.txs.get(id) || state.laneTxs.get(id);
   const c = laneCorpus.get(id);
-  return (t && t.ts) || (c && c.ts) || 0;   // unknown sorts oldest, in both places
+  return (t && txWhenMs(t)) || (c && c.ts) || 0;
 }
 function laneHold(tx){
   if (!tx || !tx.id || state.laneTxs.has(tx.id)) return;
@@ -5733,7 +5773,13 @@ function laneRow(tx){
   linkifyTags(txt, false);   // after the marks: a followed hashtag stays a match, not an offer
   const meta = document.createElement('span'); meta.className = 'lr-meta';
   const bits = [kindLabel(tx)];
-  if (tx.ts) { const ago = fmtAgo(tx.ts, 'narrow'); if (ago) bits.push(ago); }
+  /* The SAME clock the row is sorted by, and the same one the detail panel
+     shows. Reading tx.ts here left a live match with no age at all — the two
+     rows in the report that carried nothing but "Messages" while sitting above
+     results from an hour earlier. A row that will not say when it happened
+     cannot be checked against the order it was put in. */
+  const when = txWhenMs(tx);
+  if (when) { const ago = fmtAgo(when, 'narrow'); if (ago) bits.push(ago); }
   if (tx.block) bits.push(t('pill.block') + ' ' + fmtInt(tx.block));
   meta.textContent = bits.join(' · ');
   body.appendChild(txt); body.appendChild(meta);
