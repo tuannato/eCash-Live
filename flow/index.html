@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-CxC8ZdF0pxWsFAHvkt8a3wm2RaV3eySqzxag4u3BSWs=';
+  script-src 'self' 'sha256-UAhf49DUqq0wkAHzHPHssAzCe5/fCsLYrmZmW4yp+Eg=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -750,6 +750,25 @@
   .lane-more:hover:not(:disabled){border-color:var(--accent);color:var(--ink);}
   .lane-more:disabled{opacity:.6;cursor:default;}
   .lane-more:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  /* Deliberately quieter than .lane-more: one of these costs a request and the
+     other deletes everything read so far, so neither may compete with the
+     primary action for a thumb. Same 44px touch target the chips get, via a
+     vertical-only ::after overlay — the row is narrow and a horizontal one
+     would make the two buttons overlap each other. */
+  .lane-tools{display:flex;gap:6px;margin:-4px 0 10px;}
+  .lane-tool{flex:1;min-width:0;position:relative;border:1px solid var(--line2);
+    background:transparent;color:var(--ink3);font:inherit;font-size:11px;
+    padding:6px 8px;border-radius:9px;cursor:pointer;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .lane-tool::after{content:'';position:absolute;left:0;right:0;top:50%;
+    transform:translateY(-50%);height:44px;}
+  .lane-tool:hover:not(:disabled){border-color:var(--accent);color:var(--ink);}
+  .lane-tool:disabled{opacity:.5;cursor:default;}
+  .lane-tool:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .lane-tool.danger:hover:not(:disabled){border-color:var(--warn-ink);color:var(--warn-ink);}
+  /* Armed: the second tap deletes. It has to look different from the first
+     state or the confirmation is invisible. */
+  .lane-tool.danger.armed{border-color:var(--warn-ink);color:var(--warn-ink);font-weight:600;}
 
   /* ===== topic editor (a dialog, like #cmp-panel) ===== */
   #term-backdrop{position:absolute;inset:0;z-index:var(--z-fab);background:rgba(0,0,0,.28);opacity:0;transition:opacity .2s;}
@@ -1225,7 +1244,7 @@
     </div>
   </aside>
 
-  <main id="app" data-version="v2.6.2">
+  <main id="app" data-version="v2.7.0">
     <div class="app-head">
       <div class="ah-top">
         <a class="brand" href="https://e.cash" target="_blank" rel="noopener noreferrer"
@@ -1349,6 +1368,17 @@
              would point away from the results it produces. One click = one page
              per protocol; the coverage line above says how far back it got. -->
         <button class="lane-more" id="lane-more" type="button" hidden></button>
+        <!-- The two directions the stored index can move, kept together and kept
+             SECONDARY to the button above. "Search further back" goes deeper;
+             these two deal with the OTHER end and with the store itself:
+             refresh re-opens the pages that new messages have pushed out from
+             under the cursor, and clear throws the whole cache away. Both act on
+             exactly what the coverage line describes, which is why they sit
+             directly under it rather than in a settings surface. -->
+        <div class="lane-tools" id="lane-tools" hidden>
+          <button class="lane-tool" id="lane-refresh" type="button"></button>
+          <button class="lane-tool danger" id="lane-clear" type="button"></button>
+        </div>
         <div id="lane-list"></div>
         <div class="lane-empty" id="lane-empty" hidden></div>
       </div>
@@ -1734,6 +1764,17 @@ const FLOW_STRINGS_EN = {
   'lane.empty':'Nothing has matched yet. This topic keeps collecting while it stays on.',
   'lane.older':'Search further back',
   'lane.searching':'Searching…',
+  'lane.refresh':'Check for new',
+  'lane.refreshing':'Checking…',
+  'lane.refreshNone':'Already up to date',
+  'lane.refreshFound':'{n} new — searching',
+  'lane.refreshFailed':'Could not check',
+  'lane.notChecked':'not checked for messages written since the last search',
+  'lane.clear':'Clear searched data',
+  'lane.clearConfirm':'Tap again to delete {n} saved messages',
+  'lane.cleared':'Searched data cleared. Your topics were kept.',
+  'lane.clearNone':'There is nothing stored to clear',
+  'range.invert':'The second date must be on or after the first.',
   'lane.deepEnd':'Read all of {p}',
   'lane.deepScanned':'read {n} messages from the chain index',
   'lane.reach':'searched {p} in full back to {d}',
@@ -1902,7 +1943,7 @@ function tf(key, vars){
   return String(t(key)).replace(/\{(\w+)\}/g, (_, k) => (vars && vars[k] != null ? vars[k] : ''));
 }
 function localeFor(code){ try { new Intl.NumberFormat(code); return code; } catch { return 'en'; } }
-const I18N_V = '20';   // bump whenever any vendor/i18n/flow.*.json changes
+const I18N_V = '21';   // bump whenever any vendor/i18n/flow.*.json changes
 async function loadPack(code){
   if (code === 'en'){ pack = null; return; }
   try {
@@ -5325,6 +5366,172 @@ function reopenIndexIfUnanswered(){
   return true;
 }
 
+/* ---- the newest end of the index, and why it needs its own control ---------
+   THE CURSOR RECORDS PAGE NUMBERS, AND A PAGE NUMBER IS NOT STABLE OVER TIME.
+   chronik's lokad history is newest-first, so a message written after a session
+   is inserted at rank 0 and pushes every rank we have already read DOWN. The
+   walk only ever moves deeper — backfill.load() sets pos to the end of the
+   prefix — so nothing ever looks at the top again, and the prefix [0, N) goes on
+   claiming ranks that now hold messages nobody has read.
+
+   Measured against the real engine with an index that grows the way chronik's
+   does: 4 pages read, 120 messages written, then EIGHT more pages read across
+   two clicks — 0 of the 120 reached, while ranges[0] still said [0, 12) and
+   laneReach() still printed "searched in full back to <date>". The gap is
+   permanent and silent, and it is exactly what "searched in full" must not mean.
+
+   THE REPAIR IS CHEAP BECAUSE THE SIZE OF THE GAP IS FREE TO MEASURE. numTxs
+   comes back on every page response and the cursor already stores it; nothing
+   ever read it. One history(0, 1) probe — a single transaction, ~1.5 KB — gives
+   the current total, and the difference IS the number of ranks that were pushed
+   in at the top.
+
+   Then SHIFT rather than discard. Content read at old rank r now sits at r + d,
+   so a page interval [a, b) covers ranks that have moved to [a*size+d,
+   b*size+d); expressed back in whole pages that is [a + ceil(d/size),
+   b + floor(d/size)). Rounding outward at the start and inward at the end means
+   a partially-covered page is never claimed — the error is always in the
+   direction of re-reading something, never of skipping it. Every page of depth
+   the reader paid for is kept, which is the whole point: resetting to page 0
+   instead would cost 188 pages (~31 clicks) on Cashtab to recover what is
+   usually a single page of drift. At the measured ~2.3 Cashtab messages a day, a
+   week away is ~16 ranks — one page. */
+function shiftRangesForGrowth(ranges, delta, size){
+  const lead = Math.ceil(delta / size), tail = Math.floor(delta / size);
+  const out = [];
+  for (const r of (Array.isArray(ranges) ? ranges : [])){
+    const a = r[0] + lead, b = r[1] + tail;
+    if (b > a) out.push([a, b, r[2], r[3]]);   // the timestamps describe CONTENT, which did not move
+  }
+  return out;
+}
+
+/* Session-scoped, never persisted: "have we verified the top of the index since
+   this page loaded" is a fact about this session and nothing else. Set on EVERY
+   settled outcome, including "there was nothing to check", so a first visit does
+   not report itself as unverified. */
+let laneCheckedAt = 0, laneRefreshBusy = false, laneRefreshMsg = null;
+async function laneRefreshIndex(auto){
+  if (laneRefreshBusy || laneBusy) return;
+  if (!state.chronik || typeof state.chronik.lokadId !== 'function') return;
+  laneRefreshBusy = true;
+  laneRefreshMsg = null;
+  renderLaneTools();
+  const cur = scopeCursorView();
+  let grew = 0, reopened = 0, reached = 0, failed = 0;
+  for (const id of state.laneScope){
+    const c = cur[id];
+    /* Nothing read from the TOP means nothing to repair: the ordinary walk will
+       start at page 0 anyway, so a probe here would buy nothing. A cursor that
+       only holds seeked windows is this case too, and correctly so — laneReach()
+       already refuses to claim a date for it. */
+    const pre = (c && Array.isArray(c.ranges) && c.ranges[0] && c.ranges[0][0] === 0) ? c.ranges[0] : null;
+    if (!pre || !Number.isInteger(c.numTxs)) continue;
+    reached++;
+    let fresh = null;
+    try {
+      const p = await state.chronik.lokadId(id).history(0, 1);
+      if (Number.isInteger(p && p.numTxs)) fresh = p.numTxs;
+    } catch { failed++; continue; }
+    if (fresh == null){ failed++; continue; }
+    const delta = fresh - c.numTxs;
+    // A SHRINKING index is not something to reason about from here — a reorg or
+    // a re-index can only make our page numbers wrong in ways one number cannot
+    // describe. Leave it alone and let the ordinary walk and the dedupe cope.
+    if (delta <= 0) continue;
+    grew += delta;
+    if (!laneSavedCursor) laneSavedCursor = {};
+    /* SHIFT THE MERGED VIEW, never the stored half on its own. `c` is
+       scopeCursorView() — storage with the live engine layered on top — and it
+       is the same value `delta` was just measured against, so the ranges being
+       moved and the numTxs they are being moved by are guaranteed to describe
+       one state. Reading laneSavedCursor[id] here instead would be correct only
+       for as long as saveLaneStore() had merged after the last run, which is a
+       property of another function and not something this one can see. */
+    const next = Object.assign({}, c);
+    next.ranges = shiftRangesForGrowth(c.ranges, delta, LANE_PAGE);
+    next.numTxs = fresh;
+    next.numPages = Math.ceil(fresh / LANE_PAGE);
+    // The shift can only ever un-finish a protocol, never finish one.
+    next.done = false;
+    next.rangeDone = false;
+    laneSavedCursor[id] = next;
+    reopened += Math.ceil(delta / LANE_PAGE);
+  }
+  laneCheckedAt = Date.now();
+  laneRefreshBusy = false;
+  if (grew > 0){
+    // The engine's own cursor is now stale in exactly the way we just repaired,
+    // so it has to be rebuilt from the saved one — the same reason a scope change
+    // drops it. Its progress is already merged in by saveLaneStore().
+    laneBf = null;
+    laneDeepDone = false;
+    laneRangeDone = false;
+    saveLaneStore();
+    laneRefreshMsg = ['lane.refreshFound', { n: fmtInt(grew) }];
+    renderLaneTools();
+    // Read them straight away. Leaving the prefix punctured while telling the
+    // reader "12 new" and making them find a second button would be handing them
+    // a worse state than the one they started in.
+    await runLaneBackfill();
+  } else {
+    laneRefreshMsg = failed && failed === reached ? ['lane.refreshFailed', null]
+                                                 : ['lane.refreshNone', null];
+    if (state.laneOpen) renderLane(); else renderLaneTools();
+  }
+  // Transient by design: it reports one action, and leaving it up would make the
+  // control read as a status field the next tap has to clear.
+  const mine = laneRefreshMsg;
+  setTimeout(() => { if (laneRefreshMsg === mine){ laneRefreshMsg = null; renderLaneTools(); } }, 4000);
+  if (auto && grew === 0 && state.laneOpen) renderLane();   // the "not checked" line just went away
+}
+/* Once per session, on the first open, and only then. It costs one tiny request
+   per protocol that has actually been walked, which is a real cost and so is not
+   spent by anyone who never opens the Lane. A reader who wants it again has the
+   button. */
+function maybeAutoRefresh(){
+  if (laneCheckedAt || laneRefreshBusy) return;
+  if (!laneCorpus.size) return;             // nothing stored -> nothing can be stale
+  laneRefreshIndex(true);
+}
+
+/* EVERYTHING THE BACKWARD WALK PAID FOR, AND NOTHING ELSE.
+   The topics are not touched: they are the reader's question, not data, and a
+   button labelled "clear searched data" that also deleted eight saved topics
+   would be the worst kind of surprise. Live matches from this session are not
+   touched either — they came from the stream, never from the index, and they are
+   still in state.txs where laneRematch() will find them again. What goes is what
+   the coverage line describes: the corpus, the read cursor, and the transactions
+   hydrated from them. */
+function laneClearData(){
+  laneRunToken++;                  // any run in flight stops writing shared state
+  if (laneAbort) laneAbort.abort();
+  laneBusy = false;
+  laneCorpus.clear();
+  state.laneTxs.clear();
+  laneSavedCursor = null;
+  laneBf = null;
+  corpusFull = false;
+  laneStoreTrimmed = 0;
+  laneDeepHoles = 0;
+  laneDeepDone = false;
+  laneRangeDone = false;
+  laneUnread = 0;
+  laneScopeHidden = 0;
+  laneNoDate = 0;
+  // A fresh store is verified by construction, and the prefetch may run again.
+  laneCheckedAt = Date.now();
+  laneRefreshMsg = null;
+  suggestPrefetchP = null;
+  laneSuggestCache = null;
+  laneSuggestAt = -1;
+  try { localStorage.removeItem(LANE_CURSOR_KEY); } catch {}
+  laneRematch();
+  refreshLaneScope();              // every per-protocol total just became "not read yet"
+  if (state.laneOpen) renderLane(); else { renderLaneMore(); renderLaneTools(); }
+  toast(t('lane.cleared'));
+}
+
 let lastAutoBackfillAt = 0;
 const AUTO_BACKFILL_COOLDOWN_MS = 60_000;
 function maybeAutoBackfill(trigger){
@@ -5390,8 +5597,15 @@ function scopeMetaText(id){
 
 function refreshLaneScope(){
   if (!lsSummary) return;
+  /* NO aria-label HERE, and removing it was the fix. It overrode the text
+     below, so a screen reader heard "Change which protocols are searched,
+     collapsed, button" and never learned WHICH protocols — the one thing this
+     row exists to answer. The visible string already names itself
+     ("Searching back through: Cashtab Msg"), which is a complete accessible
+     name; an aria-label could only take information away. `scope.edit` stays in
+     the packs as the row's own description elsewhere. */
   lsSummary.textContent = t('scope.title') + ': ' + scopeLabel();
-  lsSummary.setAttribute('aria-label', t('scope.edit'));
+  lsSummary.removeAttribute('aria-label');
   lsSummary.setAttribute('aria-expanded', String(lsOpen));
   for (const el of lsPanel.querySelectorAll('.ls-row')){
     const id = el.dataset.lokad;
@@ -5453,11 +5667,34 @@ const isoDay = (ms) => {
   try { const d = new Date(ms); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
   catch { return ''; }
 };
+/* A PRESET HAS TO PRODUCE A DAY, NOT AN INSTANT, because the control beside it
+   only knows how to show days.
+   `Date.now() - d * 864e5` is a moment mid-afternoon, and syncDateInputs() then
+   writes isoDay() of it into the field — so the box said "2026-07-16" while the
+   filter actually began at 20:00 that evening. Verified against the shipped
+   inRange(): a message from 09:00 on the very day the field names was excluded.
+   A date control that names a day it does not include is the same defect as a
+   silent mute count, on the one surface built to be scrupulous about coverage.
+
+   Two more things fall out of snapping. Re-tapping the lit preset becomes a real
+   no-op — before, a second tap five minutes later produced a different `from`,
+   so onRangeChanged() ran, aborted the walk and re-spent the budget on an
+   unchanged question. And the chip stops going dark on its own: presetActive()
+   needed a ±12h tolerance to recognise its own value, so a page left open for
+   twelve hours un-lit the preset while nothing had been touched.
+
+   setDate/setHours rather than millisecond arithmetic: subtracting 30*864e5
+   lands an hour out across a DST boundary, and this is a calendar question. */
+function presetFrom(d){
+  const x = new Date();
+  x.setHours(0, 0, 0, 0);
+  x.setDate(x.getDate() - d);
+  return x.getTime();
+}
 function presetActive(d){
   if (!rangeActive()) return d === 0;
   if (laneRange.to != null) return false;            // a typed window, not a preset
-  const want = Date.now() - d * 864e5;
-  return d > 0 && Math.abs((laneRange.from || 0) - want) < 864e5 / 2;
+  return d > 0 && laneRange.from === presetFrom(d);  // exact: both are day starts
 }
 // What the collapsed row says, so the window is answerable without opening it.
 function rangeLabel(){
@@ -5478,8 +5715,11 @@ function rangeLabel(){
    input they cannot finish. Nothing below rebuilds on a value change. */
 function refreshLaneRange(){
   if (!lrSummary) return;
+  // Same removal, and worse here than one control up: the label was the bare
+  // words "Time range", so the answer — All time / 30 days / a typed window —
+  // was the exact part a screen reader could not reach.
   lrSummary.textContent = t('scope.range') + ': ' + rangeLabel();
-  lrSummary.setAttribute('aria-label', t('scope.range'));
+  lrSummary.removeAttribute('aria-label');
   lrSummary.setAttribute('aria-expanded', String(lrOpen));
   for (const b of lrPanel.querySelectorAll('.ls-preset')){
     const on = presetActive(Number(b.dataset.days));
@@ -5507,7 +5747,8 @@ function renderLaneRange(){
       b.type = 'button'; b.className = 'ls-preset'; b.dataset.days = String(d);
       b.textContent = d ? tf('scope.days', { n: fmtInt(d) }) : t('scope.allTime');
       b.addEventListener('click', () => {
-        onRangeChanged(d ? { from: Date.now() - d * 864e5, to: null } : { from: null, to: null });
+        setRangeHint('');
+        onRangeChanged(d ? { from: presetFrom(d), to: null } : { from: null, to: null });
         syncDateInputs();
       });
       pre.appendChild(b);
@@ -5524,6 +5765,13 @@ function renderLaneRange(){
          active that is not. That is worse than either behaviour on its own:
          nothing they can click matches what they can see. */
       i.autocomplete = 'off';
+      /* THE CHAIN HAS NO TOMORROW. Without a bound the platform picker offers
+         every future month as if a search could reach it, and a window that
+         starts after today can only ever return nothing — an empty Lane the
+         reader has no way to read as "impossible" rather than "none found".
+         Only `max`: there is no floor worth naming, since the index runs back to
+         genesis and a date before it simply searches everything. */
+      i.max = isoDay(Date.now());
       i.value = (which === 'from' ? laneRange.from : laneRange.to) ? isoDay(which === 'from' ? laneRange.from : laneRange.to) : '';
       i.setAttribute('aria-label', label);
       // `change` only — never `input`. On a date field `input` fires per segment,
@@ -5539,8 +5787,15 @@ function renderLaneRange(){
           i.value = (which === 'from'
             ? (laneRange.from ? isoDay(laneRange.from) : '')
             : (laneRange.to ? isoDay(laneRange.to) : ''));
+          /* AND SAY SO. The rewind above was correct and completely silent: the
+             field snapped back to its old value with nothing on the page to
+             explain it, which reads as the control refusing to work rather than
+             as a rule. The protocol picker has had `ls-hint` for exactly this
+             since it shipped; the window never got one. */
+          setRangeHint(t('range.invert'));
           return;
         }
+        setRangeHint('');
         onRangeChanged({ from, to }, 'typed');
       });
       return i;
@@ -5551,8 +5806,20 @@ function renderLaneRange(){
     dates.appendChild(arrow);
     dates.appendChild(mkDate('to', t('scope.to')));
     lrPanel.appendChild(dates);
+    // Same element and same role=status the protocol picker uses, so a refusal
+    // is spoken as well as shown. Built with the panel, not on demand: an
+    // aria-live region has to exist BEFORE the text lands in it, or the change
+    // is not announced.
+    const hint = document.createElement('div');
+    hint.className = 'ls-hint'; hint.id = 'lr-hint';
+    hint.setAttribute('role', 'status'); hint.setAttribute('aria-live', 'polite');
+    lrPanel.appendChild(hint);
   }
   refreshLaneRange();
+}
+function setRangeHint(msg){
+  const h = lrPanel && lrPanel.querySelector('#lr-hint');
+  if (h) h.textContent = msg || '';
 }
 if (lrSummary){
   lrSummary.addEventListener('click', () => { lrOpen = !lrOpen; renderLaneRange(); });
@@ -5605,8 +5872,60 @@ function renderLaneMore(){
                        : laneDeepDone ? tf('lane.deepEnd', { p: scopeLabel() })
                        : laneRangeDone ? t('lane.rangeEnd')
                        : t('lane.older');
+  renderLaneTools();   // one call site keeps the three buttons in one state
 }
 laneMore.addEventListener('click', runLaneBackfill);
+
+/* The two secondary controls, painted from state like renderLaneMore() and for
+   the same reason: both carry a transient result ("12 new", "already up to
+   date", "tap again to delete"), and a node whose text encodes runtime state
+   cannot be restored by applyStatic() on a language switch — the B3 rule.
+   renderLaneMore() calls this, so every existing call site already covers it. */
+const laneTools = $('lane-tools'), laneRefreshBtn = $('lane-refresh'), laneClearBtn = $('lane-clear');
+let laneClearArmed = 0;
+const CLEAR_ARM_MS = 4000;
+function renderLaneTools(){
+  if (!laneTools) return;
+  // Nothing to refresh and nothing to clear before a topic exists, and the row
+  // would then be two dead controls under a hidden primary button.
+  laneTools.hidden = !enabledTerms().length;
+  const stored = laneCorpus.size;
+  laneRefreshBtn.disabled = laneRefreshBusy || laneBusy;
+  laneRefreshBtn.textContent = laneRefreshBusy ? t('lane.refreshing')
+    : laneRefreshMsg ? (laneRefreshMsg[1] ? tf(laneRefreshMsg[0], laneRefreshMsg[1]) : t(laneRefreshMsg[0]))
+    : t('lane.refresh');
+  laneClearBtn.disabled = laneRefreshBusy;
+  laneClearBtn.classList.toggle('armed', !!laneClearArmed);
+  laneClearBtn.textContent = laneClearArmed ? tf('lane.clearConfirm', { n: fmtInt(stored) })
+                                            : t('lane.clear');
+}
+laneRefreshBtn.addEventListener('click', () => { disarmClear(); laneRefreshIndex(false); });
+let clearArmTimer = null;
+function disarmClear(){
+  if (!laneClearArmed) return;
+  laneClearArmed = 0;
+  clearTimeout(clearArmTimer);
+  renderLaneTools();
+}
+/* TWO TAPS, because one tap deletes every page the reader has ever paid a
+   request for and there is no undo. A native confirm() is the other option and
+   is worse here: it is the only modal on either door, it cannot be translated
+   by our own packs, and on mobile it lands as an OS alert over a surface that
+   deliberately has no dialogs in it. Arming the button itself says the same
+   thing in the reader's language, in place, and disarms on its own. */
+laneClearBtn.addEventListener('click', () => {
+  if (!laneCorpus.size && !laneSavedCursor){ toast(t('lane.clearNone')); return; }
+  if (!laneClearArmed){
+    laneClearArmed = Date.now();
+    renderLaneTools();
+    clearTimeout(clearArmTimer);
+    clearArmTimer = setTimeout(() => { laneClearArmed = 0; renderLaneTools(); }, CLEAR_ARM_MS);
+    return;
+  }
+  clearTimeout(clearArmTimer);
+  laneClearArmed = 0;
+  laneClearData();
+});
 
 function loadTerms(){
   try {
@@ -6051,6 +6370,15 @@ function renderLane(){
   // claim about a set the reader has changed underneath it.
   const reach = laneReach();
   if (reach) cov.push(tf('lane.reach', { p: scopeLabel(), d: fmtDate(reach * 1000) }));
+  /* "IN FULL BACK TO" IS A CLAIM ABOUT BOTH ENDS, and the far end is the only
+     one the cursor can defend on its own. Ranks shift down as messages are
+     written, so a prefix restored from a previous session covers everything
+     except the newest arrivals — measured at 0 of 120 reached across eight
+     further pages. maybeAutoRefresh() settles this on open and sets laneCheckedAt
+     whatever the answer, so this sentence appears only when the check could not
+     be made at all: offline, or chronik unreachable. Saying nothing there would
+     leave the reach line overstating itself with no way to tell. */
+  if (reach && !laneCheckedAt) cov.push(t('lane.notChecked'));
   // A page that failed is a HOLE, said out loud. Silence would read as absence.
   if (laneDeepHoles) cov.push(tf('lane.holes', { n: fmtInt(laneDeepHoles) }));
   // A protocol abandoned after repeated failures now keeps done:false, so
@@ -6149,6 +6477,10 @@ function openLane(){
   renderLaneScope();                   // built here, never from renderLane() — see its note
   renderLaneRange();                   // its own control now, same build-once rule
   renderLane();
+  /* Once per session, and only for a reader who actually came here. It repairs
+     the top of the cursor before "search further back" has a chance to claim
+     coverage of pages that have moved — see the note on laneRefreshIndex(). */
+  maybeAutoRefresh();
   syncLaneExit();                      // the kind filter has nothing to filter now
   updateFabAway();                     // the "+" steps aside while the Lane covers the stream
   syncInert();   // the stream underneath must stop taking Tab
@@ -6157,6 +6489,9 @@ function openLane(){
 function closeLane(){
   state.laneOpen = false;
   state.laneExpandedId = null;
+  // An armed delete must not survive the surface it was armed on: the next open
+  // would present a button whose first tap destroys everything.
+  disarmClear();
   syncLaneExit();
   laneEl.classList.remove('show');
   syncInert();   // may still need to stay contained if a receipt is up
