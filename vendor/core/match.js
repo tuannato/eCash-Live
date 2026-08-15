@@ -84,9 +84,10 @@ function segmenter() {
    ordinary Vietnamese reader. Measured on 2000 entries: one variant settles at
    2.7-6.8 ms, two variants at 11-19 ms, four times worse and never settling.
    Two fold variants is the maximum that can exist, so the corpus needs
-   2 x CORPUS_MAX; the rest is headroom for live transactions, which are
-   segmented too. A miss only costs one segmentation, never a wrong answer. */
-const SEG_CACHE_MAX = 5000;
+   2 x CORPUS_MAX (5000 in Flow); the rest is headroom for live transactions,
+   which are segmented too. A miss only costs one segmentation, never a wrong
+   answer. */
+const SEG_CACHE_MAX = 12000;
 const _segCache = new Map();
 export function segmentWords(s) {
   if (!s) return [];

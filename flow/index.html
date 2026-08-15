@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-wWJ/V7SjRSY8YmhQdC3irRQpmSisln88cG963YxsYL4=';
+  script-src 'self' 'sha256-02Xo/TVAhW/PI9uEfgETuiMegpNNkUSJQjh7ctD59MQ=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -1225,7 +1225,7 @@
     </div>
   </aside>
 
-  <main id="app" data-version="v2.6.0">
+  <main id="app" data-version="v2.6.1">
     <div class="app-head">
       <div class="ah-top">
         <a class="brand" href="https://e.cash" target="_blank" rel="noopener noreferrer"
@@ -1533,7 +1533,7 @@ import { parseTransactionCore, encodeOutputScript, validateCashAddress, parseOpR
 // segmentWords + normalize are new imports and need NO ?v bump: both have been
 // exported from match.js since before p5, so the copy a returning visitor holds
 // already has them.
-import { matchAny, matchEvery, findAllSpans, segmentWords, normalize as normalizeTerm } from '../vendor/core/match.js?v=6';
+import { matchAny, matchEvery, findAllSpans, segmentWords, normalize as normalizeTerm } from '../vendor/core/match.js?v=7';
 import { createBackfill } from '../vendor/core/backfill.js?v=6';
 import { isCashtabExtension, requestAddress as ctRequestAddress, sendBip21 as ctSendBip21 } from '../vendor/cashtab-connect.js?v=1';
 "use strict";
@@ -4022,7 +4022,7 @@ async function connectChronik(){
       ws = state.chronik.ws({
         onMessage: (msg) => handleWs(ws, msg),
         onReconnect: () => setConn('conn.reconnecting', 'warn'),
-        onConnect: () => { setConn('conn.live', 'live'); refreshTip(); scheduleReconcile(); laneHydrate(laneRunToken); maybeAutoBackfill('reconnect'); },   // reconnect → re-read the tip (blocks landed while we were dropped) + catch confirms missed (A2); hydrate restored hits, and search once for a topic nothing has answered yet
+        onConnect: () => { setConn('conn.live', 'live'); refreshTip(); scheduleReconcile(); laneHydrate(laneRunToken); if (termEditor && !termEditor.hidden) ensureSuggestPrefetch(); maybeAutoBackfill('reconnect'); },   // reconnect → re-read the tip (blocks landed while we were dropped) + catch confirms missed (A2); hydrate restored hits, and search once for a topic nothing has answered yet
         onError: () => setConn('conn.reconnecting', 'warn'),
       });
     } catch (e){ setConn('conn.offline', 'warn'); return; }
@@ -4558,12 +4558,13 @@ function laneWindows(){
   return merged;
 }
 
-/* When full the corpus REFUSES new entries instead of evicting. Eviction would
-   break the one property the reach line depends on: the corpus is a contiguous
-   window from the newest message backwards, so the reported reach means
-   "everything from now back to here is held". A Map evicts in insertion order
-   and the walk inserts newest-first, so evicting would have deleted the NEWEST
-   entries and left a hole at the near end while still claiming the far date. */
+/* The corpus is a window from the NEWEST held message backwards. A newest-first
+   walk only ever offers older rows once full, so those are refused. A seek that
+   filled from the middle first then left `done` on the cursor is the other
+   shape: page 0 arrives later, is newer than everything held, and MUST enter —
+   otherwise a new term is answered from 2023 while the messages it wants sat on
+   page 0, and "Read all of Cashtab Msg" is a lie. Evict the oldest in that case
+   only. Insertion-order eviction stays forbidden. */
 let corpusFull = false;
 function corpusAdd(txid, text, ts, lokad, from){
   const had = laneCorpus.get(txid);
@@ -4571,7 +4572,17 @@ function corpusAdd(txid, text, ts, lokad, from){
   // same transaction again. Returning early here — the obvious shape — would
   // leave a legacy row untagged forever, since the corpus never evicts.
   if (had){ if (!had.lokad && lokad) had.lokad = lokad; if (!had.from && from) had.from = from; return; }
-  if (laneCorpus.size >= CORPUS_MAX){ corpusFull = true; return; }
+  if (laneCorpus.size >= CORPUS_MAX){
+    let oldestId = null, oldestTs = Infinity;
+    for (const [id, e] of laneCorpus){
+      const t = e.ts || 0;
+      if (t < oldestTs){ oldestTs = t; oldestId = id; }
+    }
+    const incoming = ts || 0;
+    if (!oldestId || incoming <= oldestTs){ corpusFull = true; return; }
+    laneCorpus.delete(oldestId);
+    corpusFull = true;
+  }
   laneCorpus.set(txid, { text, ts: ts || null, lokad: lokad || null, from: from || null });
 }
 
@@ -4666,21 +4677,31 @@ function scopeLabel(){
 // chronik data) — the difference between a usable feature and a frozen tab.
 // Scrub first: a zero-width char mid-word would otherwise evade every matcher
 // while still rendering normally.
-function lanePrefilter(txData, lokadId){
+function hayFromTx(txData){
   const sc = txData && txData.outputs && txData.outputs[0] && txData.outputs[0].outputScript;
-  if (!sc || sc.slice(0, 2).toLowerCase() !== '6a') return false;
+  if (!sc || sc.slice(0, 2).toLowerCase() !== '6a') return null;
   let m = null;
-  try { m = parseOpReturn(sc); } catch { return false; }
-  if (!m || !m.text) return false;
+  try { m = parseOpReturn(sc); } catch { return null; }
+  if (!m || !m.text) return null;
   const hay = clean(m.text);
-  if (!hay) return false;
-  // Recorded BEFORE the term test, on purpose: the corpus answers future terms,
-  // not this one, so filtering it by today's question would defeat it entirely.
+  if (!hay) return null;
   const bts = txData.block && Number(txData.block.timestamp);
   const fts = Number(txData.timeFirstSeen);
   const ts = (Number.isFinite(bts) && bts > 0) ? bts * 1000
            : (Number.isFinite(fts) && fts > 0) ? fts * 1000 : null;
-  corpusAdd(txData.txid, hay, ts, lokadId, senderOf(txData));
+  return { hay, ts };
+}
+function ingestHistoryTx(txData, lokadId){
+  const got = hayFromTx(txData);
+  if (!got || !txData.txid) return null;
+  corpusAdd(txData.txid, got.hay, got.ts, lokadId, senderOf(txData));
+  return got.hay;
+}
+function lanePrefilter(txData, lokadId){
+  const hay = ingestHistoryTx(txData, lokadId);
+  if (!hay) return false;
+  // Recorded BEFORE the term test, on purpose: the corpus answers future terms,
+  // not this one, so filtering it by today's question would defeat it entirely.
   if (activeMutes().length && matchAny(hay, activeMutes())) return false;
   return matchTerms(hay, enabledTerms());
 }
@@ -4814,6 +4835,30 @@ function scheduleSuggest(){
   else setTimeout(run, 250);
 }
 
+/* ONE page, newest Cashtab (or the first selected protocol). Measured warm on
+   chronik1: 50 txs ~820 ms, 200 txs ~2.1 s, so 100 is the 1 s budget the
+   dialog can spend without blocking the field. Corpus only — never a cursor
+   page. Mixing page_size 100 into the walk's size-50 cursor would skip or
+   double-claim ranks. */
+const SUGGEST_PREFETCH = 100;
+let suggestPrefetchP = null;
+function ensureSuggestPrefetch(){
+  if (laneCorpus.size) return suggestPrefetchP;
+  if (suggestPrefetchP) return suggestPrefetchP;
+  if (!state.chronik || typeof state.chronik.lokadId !== 'function') return null;
+  const id = (state.laneScope && state.laneScope[0]) || LOKAD.CASHTAB_MSG;
+  suggestPrefetchP = (async () => {
+    try {
+      const page = await state.chronik.lokadId(id).history(0, SUGGEST_PREFETCH);
+      for (const tx of ((page && page.txs) || [])) ingestHistoryTx(tx, id);
+    } catch { /* next open retries */ }
+    if (!laneCorpus.size) suggestPrefetchP = null;
+    scheduleSuggest();
+    if (termEditor && !termEditor.hidden) renderTermSuggest();
+  })();
+  return suggestPrefetchP;
+}
+
 // Answer a term from the corpus alone. No requests, no cursor, instant.
 //
 // OUT-OF-SCOPE HITS ARE COUNTED, NOT JUST DROPPED. A returning reader's corpus
@@ -4883,8 +4928,8 @@ function loadLaneStore(){
    0 whenever everything fit, which is the ordinary case. */
 let laneStoreTrimmed = 0;
 function saveLaneStore(){
-  if (!laneBf) return;
-  laneSavedCursor = Object.assign({}, laneSavedCursor || {}, laneBf.cursor);
+  if (laneBf) laneSavedCursor = Object.assign({}, laneSavedCursor || {}, laneBf.cursor);
+  if (!laneSavedCursor) return;
   const rows = [];
   // Fourth element is the protocol tag; rows written before it exists are three
   // long and stay readable, so this needs no version bump. R3's `ranges` cursor
@@ -4893,7 +4938,7 @@ function saveLaneStore(){
   /* NEWEST FIRST, so a trim takes from the far end. The corpus is a contiguous
      window from the newest message backwards and the reach line depends on it;
      cutting the near end would leave a hole beside the date being claimed. This
-     is the same reasoning corpusAdd() refuses eviction for, applied to the copy
+     is the same newest-window rule corpusAdd() uses, applied to the copy
      that goes to disk. A row with no timestamp sorts oldest and goes first. */
   rows.sort((a, b) => (b[2] || 0) - (a[2] || 0));
   /* SHRINK, DO NOT DROP EVERYTHING.
@@ -4939,6 +4984,7 @@ function restoreLaneStore(){
               typeof row[4] === 'string' ? row[4] : null);
   }
   laneSavedCursor = s.cursor;
+  if (laneCorpus.size >= CORPUS_MAX) corpusFull = true;
   return s.cursor;
 }
 
@@ -5089,7 +5135,8 @@ function laneRematch(){
      window that excludes it would just look like a bug. */
   for (const tx of state.txs.values()){
     if (!txMatchesTerms(tx)) continue;
-    if (!inRange(tx.ts)){ if (!tx.ts) noDate.add(tx.id); continue; }
+    const ts = laneTsOf(tx.id, tx);
+    if (!inRange(ts)){ if (!ts) noDate.add(tx.id); continue; }
     ids.push(tx.id);
   }
   for (const tx of state.laneTxs.values()){
@@ -5097,7 +5144,8 @@ function laneRematch(){
     // A held result carries the tag of the page it came off, or the one its
     // corpus row supplied at hydration. Same rule: unknown is in.
     if (!inScope(tx._lokad)){ hidden.add(tx.id); continue; }
-    if (!inRange(tx.ts)){ if (!tx.ts) noDate.add(tx.id); continue; }
+    const ts = laneTsOf(tx.id, tx);
+    if (!inRange(ts)){ if (!ts) noDate.add(tx.id); continue; }
     ids.push(tx.id);
   }
   laneNoDate = noDate.size;
@@ -5151,7 +5199,7 @@ async function runLaneBackfill(){
       chronik: state.chronik, lokads: state.laneScope, pageSize: LANE_PAGE,
       prefilter: lanePrefilter,
       parse: laneParseTx,
-      keep: (tx) => txMatchesTerms(tx),
+      keep: (tx) => txMatchesTerms(tx) && inRange(laneTsOf(tx.id, tx)),
       onBatch: (txs, cov, lokadId) => {
         if (token !== laneRunToken) return;         // orphaned run, drop its output
         for (const tx of txs){ tx._lokad = lokadId; laneHold(tx); }
@@ -5215,8 +5263,10 @@ async function runLaneBackfill(){
     laneUnread = state.laneScope.filter((id) => {
       const a = cov.perLokad[id], b = before[id];
       if (!a || a.done) return false;
-      if (!a.oldestTs) return true;                                  // (b)
-      return b && a.page > b.page && a.pagesDone === b.pagesDone;    // (a)
+      if (!a.oldestTs) return a.pos > 0;                             // (b) tried, still nothing
+      // (a) — `page` died with the ranges cursor. pos advances over a hole;
+      // pagesDone does not.
+      return b && a.pos > (b.pos || 0) && a.pagesDone === b.pagesDone;
     }).length;
   }
   laneRematch();
@@ -5239,6 +5289,42 @@ async function runLaneBackfill(){
    It stays light by refusing to run when it would learn nothing: if the corpus
    already answers this term, the answer is on screen without a single request.
    So the cost is paid once per genuinely new topic, not once per page load. */
+/* A done cursor plus a full corpus is supposed to mean "page 0 through the
+   floor is held". After a seek-first fill it can mean "5000 old rows and we
+   will never look at page 0 again". A term the cache cannot answer then
+   lights the chip, reports Read all, and shows nothing. Punch the selected
+   protocols back to unread so the next run starts at page 0; newest rows
+   evict oldest via corpusAdd. */
+function reopenIndexIfUnanswered(){
+  if (!enabledTerms().length) return false;
+  if (corpusMatches().ids.length) return false;
+  const cur = Object.assign({}, laneSavedCursor || {}, laneBf ? laneBf.cursor : {});
+  let stuck = !!(laneDeepDone || laneCorpus.size >= CORPUS_MAX);
+  for (const id of state.laneScope){
+    if (cur[id] && cur[id].done) stuck = true;
+  }
+  if (!stuck) return false;
+  laneDeepDone = false;
+  laneRangeDone = false;
+  laneBf = null;
+  if (!laneSavedCursor) laneSavedCursor = {};
+  for (const id of state.laneScope){
+    const prev = laneSavedCursor[id] || cur[id] || {};
+    laneSavedCursor[id] = {
+      ranges: [],
+      pagesDone: 0,
+      numPages: Number.isInteger(prev.numPages) ? prev.numPages : null,
+      numTxs: Number.isInteger(prev.numTxs) ? prev.numTxs : null,
+      oldestTs: null,
+      done: false,
+      failed: false,
+      rangeDone: false,
+    };
+  }
+  saveLaneStore();
+  return true;
+}
+
 let lastAutoBackfillAt = 0;
 const AUTO_BACKFILL_COOLDOWN_MS = 60_000;
 function maybeAutoBackfill(trigger){
@@ -5468,10 +5554,18 @@ if (lrSummary){
    exactly as valid. laneDeepDone survives for the same reason (whether the chain
    was read to genesis is not a fact about the window); laneRangeDone does not. */
 function onRangeChanged(next, src){
-  const from = Number.isFinite(next.from) ? next.from : null;
-  const to = Number.isFinite(next.to) ? next.to : null;
-  if (from === laneRange.from && to === laneRange.to) return;
+  let from = Number.isFinite(next.from) ? next.from : null;
+  let to = Number.isFinite(next.to) ? next.to : null;
+  // A reversed pair is one window typed backwards, not an empty filter.
+  // Swap rather than refuse — no new string, and the fields must follow.
+  let swapped = false;
+  if (from != null && to != null && from > to){ const s = from; from = to; to = s; swapped = true; }
+  if (from === laneRange.from && to === laneRange.to){
+    if (swapped) syncDateInputs();
+    return;
+  }
   laneRange = { from, to };
+  if (swapped) syncDateInputs();
   laneRunToken++;
   if (laneAbort) laneAbort.abort();
   laneBusy = false;
@@ -5641,6 +5735,11 @@ function muteCount(q){
 }
 function laneAdd(tx){
   if (!tx || !tx.id) return;
+  // Same clock rematch and hold use. tx.ts is often missing on a live mempool
+  // card (admit never stampTs), so reading it here would let a window that
+  // excludes "now" still collect arrivals — the bug rematch already named.
+  if (!inRange(laneTsOf(tx.id, tx))) return;
+  laneHold(tx);                            // survive state.txs eviction
   if (state.matched.includes(tx.id)) return;
   laneSetMatched([tx.id, ...state.matched]);   // one owner, one cap; order decided there
   if (state.laneOpen) renderLane();
@@ -6378,20 +6477,27 @@ function onTermsChanged(){
   if (laneAbort) laneAbort.abort();
   laneBusy = false;
   laneDeepDone = false;        // "searched everything" belonged to the old question
-  laneRematch();
-  renderTermChips();
-  renderLaneMore();
-  laneHydrate(laneRunToken);   // fetch only the corpus hits we cannot render yet
-  maybeAutoBackfill('terms');  // a brand-new topic searches once instead of just lighting up — never cooled down
-  if (!enabledTerms().length){
-    // User decision (2026-08-03): turning the last term off closes the Lane
-    // rather than leaving the reader stranded on an empty screen.
-    if (state.laneOpen) closeLane();
-  } else if (state.laneOpen){
-    renderLane();
-  } else {
-    openLane();
-  }
+  const apply = () => {
+    reopenIndexIfUnanswered();
+    laneRematch();
+    renderTermChips();
+    renderLaneMore();
+    laneHydrate(laneRunToken);   // fetch only the corpus hits we cannot render yet
+    // Prefetch of 100 already answered this term → stay local. Otherwise one
+    // automatic walk, the same as pressing "Search further back" once.
+    maybeAutoBackfill('terms');
+    if (!enabledTerms().length){
+      // User decision (2026-08-03): turning the last term off closes the Lane
+      // rather than leaving the reader stranded on an empty screen.
+      if (state.laneOpen) closeLane();
+    } else if (state.laneOpen){
+      renderLane();
+    } else {
+      openLane();
+    }
+  };
+  if (suggestPrefetchP) suggestPrefetchP.then(apply);
+  else apply();
 }
 
 /* Changing the scope is a change to the QUESTION, exactly like changing a term,
@@ -6502,6 +6608,7 @@ function syncTermMode(){
 }
 function openTermEditor(){
   renderTermSuggest();
+  ensureSuggestPrefetch();
   $('term-input').value = '';
   $('term-fold').checked = false;
   $('term-contains').checked = false;
