@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-02Xo/TVAhW/PI9uEfgETuiMegpNNkUSJQjh7ctD59MQ=';
+  script-src 'self' 'sha256-CxC8ZdF0pxWsFAHvkt8a3wm2RaV3eySqzxag4u3BSWs=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -1225,7 +1225,7 @@
     </div>
   </aside>
 
-  <main id="app" data-version="v2.6.1">
+  <main id="app" data-version="v2.6.2">
     <div class="app-head">
       <div class="ah-top">
         <a class="brand" href="https://e.cash" target="_blank" rel="noopener noreferrer"
@@ -5531,6 +5531,16 @@ function renderLaneRange(){
       i.addEventListener('change', () => {
         const from = which === 'from' ? dayStart(i.value) : laneRange.from;
         const to   = which === 'to'   ? dayEnd(i.value)   : laneRange.to;
+        // Refuse an inverted pair HERE, and only rewind THIS field. Swapping
+        // both values (and writing them back) stole the date just typed and
+        // yanked the picker still open — the same "field cannot be finished"
+        // defect this panel was built not to do.
+        if (from != null && to != null && from > to){
+          i.value = (which === 'from'
+            ? (laneRange.from ? isoDay(laneRange.from) : '')
+            : (laneRange.to ? isoDay(laneRange.to) : ''));
+          return;
+        }
         onRangeChanged({ from, to }, 'typed');
       });
       return i;
@@ -5554,18 +5564,10 @@ if (lrSummary){
    exactly as valid. laneDeepDone survives for the same reason (whether the chain
    was read to genesis is not a fact about the window); laneRangeDone does not. */
 function onRangeChanged(next, src){
-  let from = Number.isFinite(next.from) ? next.from : null;
-  let to = Number.isFinite(next.to) ? next.to : null;
-  // A reversed pair is one window typed backwards, not an empty filter.
-  // Swap rather than refuse — no new string, and the fields must follow.
-  let swapped = false;
-  if (from != null && to != null && from > to){ const s = from; from = to; to = s; swapped = true; }
-  if (from === laneRange.from && to === laneRange.to){
-    if (swapped) syncDateInputs();
-    return;
-  }
+  const from = Number.isFinite(next.from) ? next.from : null;
+  const to = Number.isFinite(next.to) ? next.to : null;
+  if (from === laneRange.from && to === laneRange.to) return;
   laneRange = { from, to };
-  if (swapped) syncDateInputs();
   laneRunToken++;
   if (laneAbort) laneAbort.abort();
   laneBusy = false;
