@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-UY4mcTlPWDUSh30rMJXw+NimIsJzUqg2S3FRbSJQN6E=';
+  script-src 'self' 'sha256-gnkWCJcKSXvpq0lbIWCphEPS/rz0I2lZcBAt8GXmwNQ=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -298,6 +298,26 @@
      accessibility and the interaction; the face carries the look. Same structure
      as .lang-wrap in the footer, which has shipped since v1.5.0. */
   .kind-wrap{position:relative;display:inline-flex;align-items:center;flex:none;}
+  /* Collapsed, not display:none — the width animates away so the row does not
+     jump under a finger that is mid-swipe. */
+  /* min-width:0 is not decoration. A flex item's automatic minimum size is
+     min-content, and that OUTRANKS max-width:0 — without this the chip keeps its
+     full 31px while dutifully reporting the class that was supposed to collapse
+     it, which is exactly what the first measurement showed. */
+  .chip.warn{transition:max-width .18s ease, opacity .18s ease, padding .18s ease,
+             margin .18s ease, border-width .18s ease;max-width:60px;min-width:0;overflow:hidden;}
+  /* .chips-row .chip.warn is (0,3,0) and sets min-width:30px, which ties with a
+     bare .chip.warn.yield on specificity and wins on source order — and min-width
+     beats max-width outright, so the chip kept its full 31px while faithfully
+     carrying the class meant to collapse it. Measured that way twice before
+     reading the cascade. (0,4,0) settles it. */
+  .chips-row .chip.warn.yield{max-width:0;min-width:0;opacity:0;padding-left:0;
+             padding-right:0;margin-left:0;margin-right:0;border-width:0;}
+  @media (prefers-reduced-motion: reduce){ .chip.warn{transition:none;} }
+  .lane-exit{flex:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
+    min-width:34px;font-size:14px;line-height:1;
+    border-color:var(--accent);color:var(--accent-deep);background:var(--accent-bg);font-weight:600;}
+  .lane-exit:hover{background:var(--accent);color:#fff;}
   .kind-face{pointer-events:none;display:inline-flex;align-items:center;gap:6px;}
   .kind-face .caret{opacity:.6;font-size:10px;}
   .kind-wrap:hover .kind-face{border-color:var(--accent);color:var(--accent-deep);}
@@ -1224,6 +1244,14 @@
         </select>
         <span class="chip kind-face" aria-hidden="true"><span id="kind-label">All</span><span class="caret">▾</span></span>
       </span>
+      <!-- THE SAME SLOT, A DIFFERENT JOB. While the Lane covers the stream the
+           kind filter narrows something nobody can see, so it steps aside and
+           this takes its place. It is not decoration: #lane scrolls, so its own
+           ✕ is the first thing to leave the screen, while this row never moves.
+           A different job gets a different colour, the rule .fab.back follows in
+           the block panel. -->
+      <button class="chip lane-exit" id="lane-exit" type="button" hidden
+              data-i18n-aria="lane.close" aria-label="Back to the live stream">←</button>
       <!-- Its own name: this row and #lane both said "Saved topics", so a screen
            reader met two different landmarks with one identity. -->
       <div class="chips hscroll" role="group" data-i18n-aria="chips.topicsAria" aria-label="Topic filters"></div>
@@ -1896,6 +1924,7 @@ async function setLang(code){
   // and overwriting it here would undo that on every language switch.
   document.querySelectorAll('.hscroll:not([data-i18n-aria])').forEach(el => el.setAttribute('aria-label', t('a11y.scrollRow')));
   if (typeof renderKindFace === 'function') renderKindFace();          // applyStatic() just retranslated the <option>s
+  if (typeof syncLaneExit === 'function') syncLaneExit();               // its label is translated; applyStatic cannot know which is showing
   if (typeof renderTermChips === 'function') renderTermChips();       // JS-built chips + the "+ Topic" label
   // B3: the whole scope panel is JS-built, so applyStatic() cannot reach a word
   // of it — the summary, every row's meta line and the validation hint all have
@@ -2347,6 +2376,26 @@ stream.addEventListener('scroll', () => {
    `.hscroll` gets an edge fade on whichever side still has hidden content. Pure
    measurement — no assumptions about widths, so it self-corrects after a language
    switch, a font load, or a rotation. */
+/* THE SAFETY CHIP YIELDS SPACE WHILE THE READER IS MOVING through their topics,
+   and comes back a couple of seconds after they stop.
+
+   Driven by a TIMER, not by scroll position, and that is the load-bearing part:
+   hiding it widens the row, so a rule keyed on scrollLeft would let the topics
+   fit, clamp scrollLeft to 0 and bring the chip straight back — a flicker on the
+   first swipe, feeding itself. A timeout cannot do that.
+
+   WHAT IS HIDDEN IS A SHORTCUT, NOT THE WARNING. #lane carries .safety-line
+   permanently, above the results and never behind a control, and that is the
+   copy that matters — this chip only opens the popover. Hiding it for two
+   seconds costs the reader nothing they were relying on. */
+const SAFETY_HIDE_MS = 2500;
+let safetyTimer = null;
+function safetyYield(){
+  const c = $('safety-chip'); if (!c) return;
+  c.classList.add('yield');
+  clearTimeout(safetyTimer);
+  safetyTimer = setTimeout(() => c.classList.remove('yield'), SAFETY_HIDE_MS);
+}
 function updateScrollHints(){
   document.querySelectorAll('.hscroll').forEach(el => {
     const max = el.scrollWidth - el.clientWidth;
@@ -2359,7 +2408,13 @@ function updateScrollHints(){
 }
 function initScrollHints(){
   document.querySelectorAll('.hscroll').forEach(el => {
-    el.addEventListener('scroll', () => { el._hsUsed = true; updateScrollHints(); }, { passive: true });
+    el.addEventListener('scroll', () => {
+      el._hsUsed = true;
+      updateScrollHints();
+      // Only the topic row: the header stats and the footer tray are not what
+      // the safety chip is crowding.
+      if (el.classList.contains('chips')) safetyYield();
+    }, { passive: true });
     // Desktop has no horizontal gesture: turn a vertical wheel into sideways
     // scrolling, but only while this row can still move that way — otherwise the
     // page keeps scrolling as normal.
@@ -4290,6 +4345,15 @@ function applyFilter(){
    The visible face is redrawn from the select rather than toggled, so a language
    switch and a programmatic change both land in the same place. */
 const kindSelect = $('kind-select'), kindFaceLabel = $('kind-label');   // NOT kindLabel — that is the tx-kind text function above
+/* One owner, derived from state rather than toggled by whoever acted last —
+   the same reasoning syncInert() is built on. Called from openLane/closeLane and
+   re-asserted by setLang, since the button carries translated text. */
+function syncLaneExit(){
+  const wrap = document.querySelector('.kind-wrap'), exit = $('lane-exit');
+  if (!wrap || !exit) return;
+  wrap.hidden = !!state.laneOpen;
+  exit.hidden = !state.laneOpen;
+}
 function renderKindFace(){
   const opt = kindSelect.options[kindSelect.selectedIndex];
   kindFaceLabel.textContent = opt ? opt.textContent : '';
@@ -5938,6 +6002,7 @@ function openLane(){
   renderLaneScope();                   // built here, never from renderLane() — see its note
   renderLaneRange();                   // its own control now, same build-once rule
   renderLane();
+  syncLaneExit();                      // the kind filter has nothing to filter now
   updateFabAway();                     // the "+" steps aside while the Lane covers the stream
   syncInert();   // the stream underneath must stop taking Tab
   requestAnimationFrame(() => { try { $('lane-close').focus(); } catch {} });
@@ -5945,12 +6010,14 @@ function openLane(){
 function closeLane(){
   state.laneOpen = false;
   state.laneExpandedId = null;
+  syncLaneExit();
   laneEl.classList.remove('show');
   syncInert();   // may still need to stay contained if a receipt is up
   updateFabAway();
   setTimeout(() => { if (!state.laneOpen) laneEl.hidden = true; }, 180);
 }
 $('lane-close').addEventListener('click', closeLane);
+$('lane-exit').addEventListener('click', closeLane);
 
 /* ------------------------------------------------------------------ block panel
    What the divider promises, delivered. The label states the block's real numTxs
