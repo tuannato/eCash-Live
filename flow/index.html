@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-I531QJDyaBK8tYn5ZLM9qROS92Sv+ZdOB7JGm66A3O0=';
+  script-src 'self' 'sha256-VZGNqQed4PbASzhD6o9JGJSNgPVxHyKZ8B31SPrjipc=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -1244,7 +1244,7 @@
     </div>
   </aside>
 
-  <main id="app" data-version="v2.8.1">
+  <main id="app" data-version="v2.8.2">
     <div class="app-head">
       <div class="ah-top">
         <a class="brand" href="https://e.cash" target="_blank" rel="noopener noreferrer"
@@ -5483,11 +5483,15 @@ function shiftRangesForGrowth(ranges, delta, size){
   return out;
 }
 
-/* Session-scoped, never persisted: "have we verified the top of the index since
-   this page loaded" is a fact about this session and nothing else. Set on EVERY
-   settled outcome, including "there was nothing to check", so a first visit does
-   not report itself as unverified. */
-let laneCheckedAt = 0, laneRefreshBusy = false, laneRefreshMsg = null;
+/* Two session facts that look like one and are not.
+   laneProbeSpentAt is the request budget: one probe per load, set on every
+   settled outcome (failure included) so an offline reader does not fire again
+   on every openLane().
+   lanePrefixVerifiedAt is the honesty bit the coverage line reads: the
+   prefix's newest end was actually confirmed. They are deliberately not the
+   same fact — a failed probe spends the budget without verifying the date. */
+let laneProbeSpentAt = 0, lanePrefixVerifiedAt = 0;
+let laneRefreshBusy = false, laneRefreshMsg = null;
 async function laneRefreshIndex(auto){
   if (laneRefreshBusy || laneBusy) return;
   if (!state.chronik || typeof state.chronik.lokadId !== 'function') return;
@@ -5535,7 +5539,18 @@ async function laneRefreshIndex(auto){
     laneSavedCursor[id] = next;
     reopened += Math.ceil(delta / LANE_PAGE);
   }
-  laneCheckedAt = Date.now();
+  // Spent: every settled outcome, including "nothing to check" (reached === 0).
+  // That half of 07f3ca0 must stay — withholding this on failure would make
+  // maybeAutoRefresh fire a failing probe on every openLane().
+  laneProbeSpentAt = Date.now();
+  // Verified: nothing could be stale, or every probe that ran returned an
+  // integer. ANY failure leaves the stated date unverified — laneReach()'s
+  // floor is the shallowest unfinished protocol, and deciding whether the
+  // failed one holds that floor is extra machinery that can itself be wrong.
+  // Over-disclosing is the safe direction (soul #1). Do not "optimise" this
+  // to failed === reached.
+  if (failed === 0) lanePrefixVerifiedAt = Date.now();
+  else lanePrefixVerifiedAt = 0;
   laneRefreshBusy = false;
   if (grew > 0){
     // The engine's own cursor is now stale in exactly the way we just repaired,
@@ -5560,14 +5575,14 @@ async function laneRefreshIndex(auto){
   // control read as a status field the next tap has to clear.
   const mine = laneRefreshMsg;
   setTimeout(() => { if (laneRefreshMsg === mine){ laneRefreshMsg = null; renderLaneTools(); } }, 4000);
-  if (auto && grew === 0 && state.laneOpen) renderLane();   // the "not checked" line just went away
+  if (auto && grew === 0 && state.laneOpen) renderLane();   // qualifier may have appeared or gone
 }
 /* Once per session, on the first open, and only then. It costs one tiny request
    per protocol that has actually been walked, which is a real cost and so is not
    spent by anyone who never opens the Lane. A reader who wants it again has the
    button. */
 function maybeAutoRefresh(){
-  if (laneCheckedAt || laneRefreshBusy) return;
+  if (laneProbeSpentAt || laneRefreshBusy) return;
   if (!laneCorpus.size) return;             // nothing stored -> nothing can be stale
   laneRefreshIndex(true);
 }
@@ -5597,7 +5612,8 @@ function laneClearData(){
   laneScopeHidden = 0;
   laneNoDate = 0;
   // A fresh store is verified by construction, and the prefetch may run again.
-  laneCheckedAt = Date.now();
+  laneProbeSpentAt = Date.now();
+  lanePrefixVerifiedAt = Date.now();
   laneRefreshMsg = null;
   suggestPrefetchP = null;
   suggestSeenNumTxs = null;
@@ -6454,11 +6470,14 @@ function renderLane(){
      one the cursor can defend on its own. Ranks shift down as messages are
      written, so a prefix restored from a previous session covers everything
      except the newest arrivals — measured at 0 of 120 reached across eight
-     further pages. maybeAutoRefresh() settles this on open and sets laneCheckedAt
-     whatever the answer, so this sentence appears only when the check could not
-     be made at all: offline, or chronik unreachable. Saying nothing there would
-     leave the reach line overstating itself with no way to tell. */
-  if (reach && !laneCheckedAt) cov.push(t('lane.notChecked'));
+     further pages. maybeAutoRefresh() spends one probe on open.
+     lanePrefixVerifiedAt is set only when that probe actually confirmed the
+     newest end, or when nothing could be stale (no page-0 prefix to check).
+     A throw or a non-integer numTxs spends the budget without setting it, so
+     this sentence still appears: offline, chronik unreachable, or a partial
+     failure. Saying nothing there would leave the reach line overstating
+     itself with no way to tell. */
+  if (reach && !lanePrefixVerifiedAt) cov.push(t('lane.notChecked'));
   // A page that failed is a HOLE, said out loud. Silence would read as absence.
   if (laneDeepHoles) cov.push(tf('lane.holes', { n: fmtInt(laneDeepHoles) }));
   // A protocol abandoned after repeated failures now keeps done:false, so

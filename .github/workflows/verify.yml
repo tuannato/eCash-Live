@@ -111,11 +111,12 @@ jobs:
 
       - name: Offline parser and Lane harnesses
         # v2.8.0 made vendor/txparse.js the parser for all three surfaces.
-        # These nine suites used to live in gitignored internal/, so CI ran
-        # none of them. tools/ is already tracked (check-neo-i18n.py).
+        # These suites used to live in gitignored internal/, so CI ran none of
+        # them. tools/ is already tracked (check-neo-i18n.py).
         run: |
           node tools/test-lane-scope.mjs
           node tools/test-lane-refresh.mjs
+          node tools/test-lane-notchecked.mjs
           node tools/test-lane-corpus.mjs
           node tools/test-backfill.mjs
           node tools/test-backfill-ranges.mjs
