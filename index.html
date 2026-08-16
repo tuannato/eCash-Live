@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-EAStUU4fAlrjeMLSCUsvVB3qn7IULw63BKbzhySyA7c=';
+  script-src 'self' 'sha256-h7JrjM/Rwus5p6uf9tnc8tLhnJSjVfczMVNMYvnPEbQ=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -6927,7 +6927,7 @@
           </svg>
         </a>
         <span class="live-pill" id="conn-pill" title="Connection status"><span class="pulse-dot"></span><span id="conn-text">connecting…</span></span>
-        <span class="subtitle">Live <span class="accent accent-version" data-version="v2.8.0">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true"></span></span>
+        <span class="subtitle">Live <span class="accent accent-version" data-version="v2.8.1">transaction</span> monitor<span class="version-tip" id="version-tip" aria-hidden="true"></span></span>
       </div>
 
       <!-- Nav: What is eCash | Avalanche | Agora | Heartbeat
@@ -8108,6 +8108,9 @@ let activeEndpoint = CHRONIK_URLS[0];
 const TTF_FEED_URL = 'wss://chronik1.ecashlive.net/ttf-feed';
 const TTF_RECONNECT_MIN_MS = 1000;
 const TTF_RECONNECT_MAX_MS = 30000;
+// Three times the relay's 5s stats heartbeat. Silence that long on an
+// OPEN socket is death, not a quiet network. Mirrors flow/index.html.
+const STATS_DEAD_MS = 45_000;
 // How long a node-precise sample is kept in memory waiting for the
 // matching chronik tx data. In practice the buffer is rarely used —
 // chronik usually delivers the tx before the avalanche log line — but
@@ -8171,6 +8174,13 @@ const ttfFeedState = {
   // on initial mempool load, sustained high TPS). See scheduleTtfRender.
   renderRafId: 0,
   renderPending: false,
+  // Last inbound frame (any type) or last open. The 5s stats frame is
+  // the heartbeat that makes silence on an OPEN socket provable; ttf
+  // frames are sporadic and cannot prove liveness on their own.
+  lastRxAt: 0,
+  // ONE page-level watchdog interval. Created in startTtfFeedModule,
+  // never inside connectTtfFeed — that function runs on every reconnect.
+  probeTimer: null,
 };
 
 // rAF-coalesced render. Multiple call sites (applyTtfFromNode, the
@@ -9462,10 +9472,16 @@ function connectTtfFeed() {
     ttfFeedState.connected = true;
     ttfFeedState.everConnected = true;
     ttfFeedState.reconnectAttempt = 0;
+    // Baseline: a socket that never says anything is dead too.
+    ttfFeedState.lastRxAt = Date.now();
     updateTtfIndicator();
   });
 
   ws.addEventListener('message', (ev) => {
+    // Every inbound frame, including hello/stats/ttf and junk. The 5s
+    // stats heartbeat is what makes 45s of silence meaningful; ttf
+    // frames alone are too sparse to prove the socket is alive.
+    ttfFeedState.lastRxAt = Date.now();
     // M2 (v1.1.2): payload size guard. The relay we control sends
     // small JSON (~150 bytes typical), so anything over 4KB is either
     // garbage or hostile (compromised backend, or a MITM
@@ -9580,16 +9596,17 @@ function connectTtfFeed() {
       }
       return;
     }
-    // M3 (v1.1.2): added ttfMs >= 200 floor to match the relay's own
-    // MIN_REALISTIC_TTF_MS. A node-precise sample under 200ms would
-    // either be a clock anomaly or a forged/garbage frame — either
-    // way, not something we want polluting the rolling average.
+    // The relay emits raw node-precise values on purpose (no low floor;
+    // over-ceiling samples are reported separately rather than saturated).
+    // neo publishes what the node measured. The txid format gate and
+    // ttfMs > 0 reject garbage; they are not honesty filters. A
+    // node-precise value does not come from the browser clock, so
+    // TTF_SANITY_MAX_MS (clock-skew backstop) is not reused here.
     if (data.type === 'ttf'
         && typeof data.txid === 'string'
         && /^[0-9a-f]{64}$/.test(data.txid)
         && typeof data.ttfMs === 'number'
-        && data.ttfMs >= 200
-        && data.ttfMs < 60000) {
+        && data.ttfMs > 0) {
       applyTtfFromNode(data.txid, data.ttfMs);
     }
   });
@@ -9622,10 +9639,42 @@ function scheduleTtfReconnect() {
   ttfFeedState.reconnectTimer = setTimeout(connectTtfFeed, delay);
 }
 
+// Watchdog for a socket that stays readyState OPEN after the peer is
+// gone (sleep/kill with no close event). Closes it so the existing
+// onclose → scheduleTtfReconnect path runs the jittered backoff.
+// Never calls connectTtfFeed itself.
+function probeTtfFeed() {
+  if (document.hidden) return;
+  const ws = ttfFeedState.ws;
+  if (!ws || ws.readyState !== 1) return;  // connecting/closed: scheduleTtfReconnect owns it
+  if (Date.now() - ttfFeedState.lastRxAt > STATS_DEAD_MS) {
+    try { ws.close(); } catch {}
+  }
+}
+
+// ONE interval for the page. connectTtfFeed runs on every reconnect;
+// creating the timer there would leave N force-close loops after N
+// reconnects.
+function ensureTtfFeedProbe() {
+  if (ttfFeedState.probeTimer) return;
+  ttfFeedState.probeTimer = setInterval(probeTtfFeed, 15_000);
+}
+
+// Re-check liveness on wake instead of waiting up to 15s for the
+// interval. Does not pull a pending reconnect forward — that would
+// call connectTtfFeed and bypass the jittered backoff.
+function wakeTtfFeed() {
+  if (document.hidden) return;
+  probeTtfFeed();
+}
+
 function startTtfFeedModule() {
   // Idempotent — safe to call from multiple init paths.
   if (ttfFeedState.bufferCleanupTimer) return;
   ttfFeedState.bufferCleanupTimer = setInterval(cleanupTtfPendingBuffer, 10000);
+  ensureTtfFeedProbe();
+  document.addEventListener('visibilitychange', wakeTtfFeed);
+  window.addEventListener('pageshow', wakeTtfFeed);
   connectTtfFeed();
   // Debug handles: small live view of module state inspectable from the
   // DevTools console. v1.1.2: renamed from __ecashLive to
