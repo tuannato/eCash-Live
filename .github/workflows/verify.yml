@@ -109,6 +109,21 @@ jobs:
         # in v1.7.2 and translated in 15 packs ever since.
         run: python3 tools/check-neo-i18n.py
 
+      - name: Offline parser and Lane harnesses
+        # v2.8.0 made vendor/txparse.js the parser for all three surfaces.
+        # These nine suites used to live in gitignored internal/, so CI ran
+        # none of them. tools/ is already tracked (check-neo-i18n.py).
+        run: |
+          node tools/test-lane-scope.mjs
+          node tools/test-lane-refresh.mjs
+          node tools/test-lane-corpus.mjs
+          node tools/test-backfill.mjs
+          node tools/test-backfill-ranges.mjs
+          node tools/test-txparse-empp.mjs
+          node tools/test-prepend-divider.mjs
+          node tools/test-parser-parity.mjs
+          node tools/test-helper-parity.mjs
+
       - name: Relay compiles, and mirrors the bot's shared constant
         # ecash_bot.py is deliberately gitignored (secrets discipline, CLAUDE.md
         # §0.10), so it is ABSENT from a public checkout. Check the mirror when
