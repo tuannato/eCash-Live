@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-gAUiomkD7QieCl5VJye/+b41dVQZvivMdckkoe7Kcq8=';
+  script-src 'self' 'sha256-I531QJDyaBK8tYn5ZLM9qROS92Sv+ZdOB7JGm66A3O0=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -3287,7 +3287,8 @@ function blockDivider(height, n, lbl){
   div.innerHTML = '<span class="ln"></span><span class="lbl">' + IC.cube + ' ' +
     esc(lbl) + '</span><span class="ln"></span>';
   div._blockData = { height, n };
-  div.addEventListener('click', () => openBlockPanel(height, n));
+  // n is read late: prependHistory can upgrade a no-count boot divider in place.
+  div.addEventListener('click', () => openBlockPanel(height, div._blockData.n));
   return div;
 }
 /* ---- block divider ---- */
@@ -3736,9 +3737,26 @@ function prependHistory(txDatas, height, realTxCount){
     // same thing. It used to be a plain <div> because it had no preview to
     // expand — that distinction died with the preview.
     const n = (realTxCount != null) ? realTxCount : null;
-    const lbl = n != null ? tf('divider.block', { h: fmtInt(height), n: fmtInt(n) })
-                          : tf('divider.blockNoCount', { h: fmtInt(height) });
-    frag.appendChild(blockDivider(height, n, lbl));
+    // Derive "already sealed" from the live stream, not a Set. appended()
+    // evicts; if the boot divider has gone, history must draw one. A tracked
+    // height would suppress it forever.
+    let existing = null;
+    for (const div of stream.querySelectorAll('.divider')){
+      if (div._blockData && div._blockData.height === height){ existing = div; break; }
+    }
+    if (existing){
+      // Upgrade only: a boot divider drawn with no count (chronik.block threw)
+      // takes this batch's real count. Never the reverse.
+      if (n != null && existing._blockData.n == null){
+        existing._blockData.n = n;
+        const lbl = tf('divider.block', { h: fmtInt(height), n: fmtInt(n) });
+        existing.querySelector('.lbl').innerHTML = IC.cube + ' ' + esc(lbl);
+      }
+    } else {
+      const lbl = n != null ? tf('divider.block', { h: fmtInt(height), n: fmtInt(n) })
+                            : tf('divider.blockNoCount', { h: fmtInt(height) });
+      frag.appendChild(blockDivider(height, n, lbl));
+    }
   }
   if (!frag.childNodes.length) return 0;
   hideEmpty();
