@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-UAhf49DUqq0wkAHzHPHssAzCe5/fCsLYrmZmW4yp+Eg=';
+  script-src 'self' 'sha256-gAUiomkD7QieCl5VJye/+b41dVQZvivMdckkoe7Kcq8=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -1244,7 +1244,7 @@
     </div>
   </aside>
 
-  <main id="app" data-version="v2.7.0">
+  <main id="app" data-version="v2.7.1">
     <div class="app-head">
       <div class="ah-top">
         <a class="brand" href="https://e.cash" target="_blank" rel="noopener noreferrer"
@@ -3492,6 +3492,13 @@ function admit(txData){
   // somebody wrote, and a topic should collect it even though the stream chose
   // not to give it its own card.
   if (txMatchesTerms(tx)) laneAdd(tx);
+  // Session-only: so a hashtag that just went past can be a chip. Does not
+  // persist — saveLaneStore stays a fact about the walk.
+  if (tx._hay){
+    const fts = Number(txData.timeFirstSeen);
+    const ts = (Number.isFinite(fts) && fts > 0) ? fts * 1000 : Date.now();
+    corpusAdd(tx.id, tx._hay, ts, null, senderOf(txData));
+  }
 }
 function markFinal(txid, refMs){
   const tx = state.txs.get(txid);
@@ -4612,7 +4619,13 @@ function corpusAdd(txid, text, ts, lokad, from){
   // A row restored without a tag is UPGRADED in place when the walk meets the
   // same transaction again. Returning early here — the obvious shape — would
   // leave a legacy row untagged forever, since the corpus never evicts.
-  if (had){ if (!had.lokad && lokad) had.lokad = lokad; if (!had.from && from) had.from = from; return; }
+  if (had){
+    let bumped = false;
+    if (!had.lokad && lokad){ had.lokad = lokad; bumped = true; }
+    if (!had.from && from){ had.from = from; bumped = true; }
+    if (bumped) corpusGen++;
+    return;
+  }
   if (laneCorpus.size >= CORPUS_MAX){
     let oldestId = null, oldestTs = Infinity;
     for (const [id, e] of laneCorpus){
@@ -4625,6 +4638,7 @@ function corpusAdd(txid, text, ts, lokad, from){
     corpusFull = true;
   }
   laneCorpus.set(txid, { text, ts: ts || null, lokad: lokad || null, from: from || null });
+  corpusGen++;
 }
 
 /* WHO WROTE IT, as eight hex characters.
@@ -4774,9 +4788,12 @@ function lanePrefilter(txData, lokadId){
    and Vietnamese. A suggestion is a chip nobody has to tap, so the cost of one
    dull entry is low and the cost of a wrong stopword list is not. */
 const SUGGEST_MAX = 8;            // two comfortable rows on a phone; median term is 5 chars
-const SUGGEST_MIN_DF = 3;         // in at least three distinct messages
+const SUGGEST_MIN_DF = 3;         // shout + words: three distinct messages
+const SUGGEST_MIN_DF_TAG = 2;     // a hashtag is already a declared topic
 const SUGGEST_DF_CEIL = 0.30;     // and not in more than a third of them
 const SUGGEST_MIN_SENDERS = 4;    // tier 3 only: written by four different people
+const SUGGEST_MIN_SENDERS_TAG = 2; // one bot repeating #casino must not take a slot
+const SUGGEST_TAG_SOFT = 4;       // at most half the row while tiers 2/3 still have anyone
 const SUGGEST_MAX_LEN = 20;       // beyond this it is an address or a URL, not a topic
 /* THE BOUNDARY IS "NOT A WORD CHARACTER", never a list of punctuation.
    The first version enumerated [\s(\[,.!?;:] and missed the one delimiter this
@@ -4790,7 +4807,7 @@ const HASHTAG_RE = /(?:^|[^\p{L}\p{N}_])#([\p{L}\p{N}_]{2,30})/gu;
 const SHOUT_RE = /\b[A-Z][A-Z0-9]{2,11}\b/g;
 const SHOUT_ONE = /^[A-Z][A-Z0-9]{2,11}$/;   // /g is stateful — never .test() with it
 
-let laneSuggestCache = null, laneSuggestAt = 0;
+let laneSuggestCache = null, laneSuggestAt = -1, corpusGen = 0;
 function laneSuggestInvalidate(){ laneSuggestCache = null; }
 
 /* Pure over the corpus, so it is testable without a DOM and cannot surprise the
@@ -4828,23 +4845,40 @@ function computeSuggestions(){
   }
   if (!docs) return [];
   const taken = new Set(state.terms.map(x => normalizeTerm(x.q)));
-  const out = [];
-  const push = (w, tier) => {
+  const qualify = (w, tier) => {
     const n = df.get(w) || 0;
-    if (n < SUGGEST_MIN_DF || n / docs > SUGGEST_DF_CEIL) return;
-    if (w.length > SUGGEST_MAX_LEN) return;
+    const minDf = tier === 1 ? SUGGEST_MIN_DF_TAG : SUGGEST_MIN_DF;
+    if (n < minDf || n / docs > SUGGEST_DF_CEIL) return null;
+    if (w.length > SUGGEST_MAX_LEN) return null;
     const norm = normalizeTerm(w);
-    if (taken.has(norm)) return;               // already a topic, or muted
-    if (out.some(x => normalizeTerm(x.term) === norm)) return;
-    if (tier === 3 && (senders.get(w) || { size: 0 }).size < SUGGEST_MIN_SENDERS) return;
-    taken.add(norm);
-    out.push({ term: w, n, tier });
+    if (taken.has(norm)) return null;
+    const need = tier === 1 ? SUGGEST_MIN_SENDERS_TAG
+               : tier === 3 ? SUGGEST_MIN_SENDERS
+               : 0;
+    if (need && (senders.get(w) || { size: 0 }).size < need) return null;
+    return { term: shown.get(w) || w, n, tier, norm };
   };
   const rank = (pred) => [...df.keys()].filter(pred).sort((a, b) => df.get(b) - df.get(a));
-  for (const w of rank(w => w[0] === '#')) push(w, 1);
-  for (const w of rank(w => w[0] !== '#' && SHOUT_ONE.test(w))) push(w, 2);
-  for (const w of rank(w => w[0] !== '#' && w === w.toLowerCase())) push(w, 3);
-  return out.slice(0, SUGGEST_MAX);
+  const tags = [], shouts = [], words = [];
+  for (const w of rank(w => w[0] === '#')){ const row = qualify(w, 1); if (row) tags.push(row); }
+  for (const w of rank(w => w[0] !== '#' && SHOUT_ONE.test(w))){ const row = qualify(w, 2); if (row) shouts.push(row); }
+  for (const w of rank(w => w[0] !== '#' && w === w.toLowerCase())){ const row = qualify(w, 3); if (row) words.push(row); }
+  /* Soft cap: at most SUGGEST_TAG_SOFT hashtags while shout/word candidates
+     exist. Leftover slots refill from the remaining tags, so 8/8 hashtags
+     only happens when tiers 2 and 3 produced nobody. Fixed gates — no
+     self-raising threshold that would oscillate between two opens. */
+  const out = [];
+  const used = new Set();
+  const take = (row) => {
+    if (out.length >= SUGGEST_MAX || used.has(row.norm)) return;
+    used.add(row.norm);
+    out.push({ term: row.term, n: row.n, tier: row.tier });
+  };
+  for (const row of tags.slice(0, SUGGEST_TAG_SOFT)) take(row);
+  for (const row of shouts) take(row);
+  for (const row of words) take(row);
+  for (const row of tags.slice(SUGGEST_TAG_SOFT)) take(row);
+  return out;
 }
 // Recomputed on idle, and only when the corpus has actually moved: measured at
 // 101 ms per 1,000 messages, so a 5,000-row corpus is a third of a second and
@@ -4856,7 +4890,7 @@ function computeSuggestions(){
    schedules the work; the chips appear a moment later, which is the right
    trade for a suggestion nobody is waiting on. */
 function laneSuggestions(){
-  if (laneSuggestCache && laneSuggestAt === laneCorpus.size) return laneSuggestCache;
+  if (laneSuggestCache && laneSuggestAt === corpusGen) return laneSuggestCache;
   scheduleSuggest();
   return laneSuggestCache || [];
 }
@@ -4867,7 +4901,7 @@ function scheduleSuggest(){
   const run = () => {
     suggestQueued = false;
     laneSuggestCache = computeSuggestions();
-    laneSuggestAt = laneCorpus.size;
+    laneSuggestAt = corpusGen;
     // Only repaint if the editor is actually open; otherwise the next open reads
     // the warm cache and shows them immediately.
     if (termEditor && !termEditor.hidden) renderTermSuggest();
@@ -4880,22 +4914,47 @@ function scheduleSuggest(){
    chronik1: 50 txs ~820 ms, 200 txs ~2.1 s, so 100 is the 1 s budget the
    dialog can spend without blocking the field. Corpus only — never a cursor
    page. Mixing page_size 100 into the walk's size-50 cursor would skip or
-   double-claim ranks. */
+   double-claim ranks.
+
+   Every open probes the newest end. The 100-tx page is spent only when the
+   corpus is empty or numTxs grew (session probe, else the stored cursor).
+   A second open with nothing new costs one history(0,1). */
 const SUGGEST_PREFETCH = 100;
 let suggestPrefetchP = null;
+let suggestSeenNumTxs = null, suggestSeenLokad = null;
 function ensureSuggestPrefetch(){
-  if (laneCorpus.size) return suggestPrefetchP;
   if (suggestPrefetchP) return suggestPrefetchP;
   if (!state.chronik || typeof state.chronik.lokadId !== 'function') return null;
   const id = (state.laneScope && state.laneScope[0]) || LOKAD.CASHTAB_MSG;
   suggestPrefetchP = (async () => {
     try {
-      const page = await state.chronik.lokadId(id).history(0, SUGGEST_PREFETCH);
-      for (const tx of ((page && page.txs) || [])) ingestHistoryTx(tx, id);
+      const cur = scopeCursorView();
+      const known = (suggestSeenLokad === id && suggestSeenNumTxs != null)
+        ? suggestSeenNumTxs
+        : (cur[id] && Number.isInteger(cur[id].numTxs) ? cur[id].numTxs : null);
+      const ingest = (page) => {
+        for (const tx of ((page && page.txs) || [])) ingestHistoryTx(tx, id);
+        if (Number.isInteger(page && page.numTxs)){
+          suggestSeenNumTxs = page.numTxs;
+          suggestSeenLokad = id;
+        }
+      };
+      if (!laneCorpus.size){
+        ingest(await state.chronik.lokadId(id).history(0, SUGGEST_PREFETCH));
+      } else {
+        const p = await state.chronik.lokadId(id).history(0, 1);
+        const fresh = Number.isInteger(p && p.numTxs) ? p.numTxs : null;
+        if (fresh != null){ suggestSeenNumTxs = fresh; suggestSeenLokad = id; }
+        if (fresh != null && (known == null || fresh > known)){
+          ingest(await state.chronik.lokadId(id).history(0, SUGGEST_PREFETCH));
+        }
+      }
     } catch { /* next open retries */ }
-    if (!laneCorpus.size) suggestPrefetchP = null;
-    scheduleSuggest();
-    if (termEditor && !termEditor.hidden) renderTermSuggest();
+    suggestPrefetchP = null;
+    if (!laneSuggestCache || laneSuggestAt !== corpusGen){
+      scheduleSuggest();
+      if (termEditor && !termEditor.hidden) renderTermSuggest();
+    }
   })();
   return suggestPrefetchP;
 }
@@ -5523,8 +5582,11 @@ function laneClearData(){
   laneCheckedAt = Date.now();
   laneRefreshMsg = null;
   suggestPrefetchP = null;
+  suggestSeenNumTxs = null;
+  suggestSeenLokad = null;
   laneSuggestCache = null;
   laneSuggestAt = -1;
+  corpusGen++;
   try { localStorage.removeItem(LANE_CURSOR_KEY); } catch {}
   laneRematch();
   refreshLaneScope();              // every per-protocol total just became "not read yet"
@@ -6857,6 +6919,8 @@ function onScopeChanged(next){
   if (cleaned.join(',') === state.laneScope.join(',')) return;
   state.laneScope = cleaned;
   saveTerms();
+  suggestSeenNumTxs = null;
+  suggestSeenLokad = null;
   laneRunToken++;
   if (laneAbort) laneAbort.abort();
   laneBusy = false;
@@ -6943,7 +7007,14 @@ function syncTermMode(){
   const lab = c.closest('.term-opt');
   if (lab) lab.classList.toggle('off', isTag);
 }
+function ingestLiveHay(){
+  for (const tx of state.txs.values()){
+    if (!tx || !tx.id || !tx._hay) continue;
+    corpusAdd(tx.id, tx._hay, laneTsOf(tx.id, tx) || Date.now(), tx._lokad || null, null);
+  }
+}
 function openTermEditor(){
+  ingestLiveHay();
   renderTermSuggest();
   ensureSuggestPrefetch();
   $('term-input').value = '';
