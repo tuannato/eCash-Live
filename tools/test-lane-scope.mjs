@@ -1,12 +1,14 @@
 // Harness for the Lane scope picker (R1, 2026-08-13).
 //   node tools/test-lane-scope.mjs
 //
-// Unlike test-lane-corpus.mjs, which re-states the functions and says so, this
-// file EXTRACTS them from flow/index.html and runs the shipped bodies. The Lane
-// lives inside an inline module and cannot be imported, but these particular
-// functions are small and close over a handful of names, so they can be lifted
+// Extracts the shipped function bodies from flow/index.html and runs those.
+// The Lane lives inside an inline module and cannot be imported, but these
+// particular functions close over a handful of names, so they can be lifted
 // verbatim and given those names explicitly. A test of a copy passes when the
 // copy is right; this one fails when the page is wrong.
+//
+// laneRematch (the hidden-id union), laneHold, loadTerms / saveTerms and the
+// mute trio live in tools/test-lane-corpus.mjs — also extracted, not copied.
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -205,26 +207,10 @@ const CT = LOKAD.CASHTAB_MSG, PB = LOKAD.PAYBUTTON, EC = LOKAD.ECASHCHAT_TX, AL 
   r = L.corpusMatches();
   eq('muted row is not counted as scope-hidden', r.hidden.size, 2);
   eq('muted row is not returned either', r.ids, ['c4']);
-
-  /* THE DOUBLE COUNT laneRematch() would otherwise report. Nearly every hydrated
-     result is in the corpus AND in state.laneTxs, so counting each source
-     separately reports the same hidden message twice — the line would promise
-     twice what one tick of a checkbox brings back. Re-stated here because
-     laneRematch reaches into DOM-bound state and cannot be lifted. */
-  console.log('\n-- laneRematch union: one hidden message counted ONCE --');
-  L.state.laneScope = [CT];
-  L.state.terms = [{ q: 'gm', on: true, mode: 'word', mute: false }];
-  const laneTxs = new Map([
-    ['c2', { id: 'c2', _lokad: PB }],       // hydrated, also in the corpus
-    ['c3', { id: 'c3', _lokad: EC }],       // hydrated, also in the corpus
-    ['c9', { id: 'c9', _lokad: PB }],       // held but never in the corpus
-  ]);
-  const cm = L.corpusMatches();
-  const hidden = cm.hidden;
-  for (const tx of laneTxs.values()) if (!L.inScope(tx._lokad)) hidden.add(tx.id);
-  eq('corpus alone says 2', cm.ids.length && 2, 2);
-  eq('union says 3, not 5', hidden.size, 3);
-  eq('and names them', [...hidden].sort(), ['c2', 'c3', 'c9']);
+  // The rematch union (one hidden message counted once) is driven against the
+  // shipped laneRematch body in tools/test-lane-corpus.mjs. It is not re-stated
+  // here. An earlier comment claimed laneRematch could not be lifted; that was
+  // false (DOM 0, i18n 0, localStorage 0).
 }
 
 // --------------------------------------------------------------- laneReach ---
