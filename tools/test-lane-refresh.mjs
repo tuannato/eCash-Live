@@ -1,9 +1,9 @@
 // Harness for the Lane's refresh/clear controls and the date-window UX
 // (2026-08-15).  node tools/test-lane-refresh.mjs
 //
-// Like test-lane-scope.mjs and unlike test-lane-corpus.mjs, this EXTRACTS the
-// shipped function bodies from flow/index.html and runs those. A test of a copy
-// passes when the copy is right; this one fails when the page is wrong.
+// Cursor/coverage math is imported from the shipped vendor/core/lane-cursor.js
+// (the same module Flow loads). dayEnd and isoDay still live on the door and
+// are extracted from flow/index.html.
 //
 // The end-to-end section additionally drives the REAL vendor/core/backfill.js
 // against a fake chronik whose index grows the way chronik's does — newest-first,
@@ -13,6 +13,10 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { createBackfill } from '../vendor/core/backfill.js';
+import {
+  shiftRangesForGrowth, presetFrom, presetActive as presetActiveOf,
+  rangeActive as rangeActiveOf, inRange as inRangeOf, dayStart,
+} from '../vendor/core/lane-cursor.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const html = readFileSync(join(ROOT, 'flow/index.html'), 'utf8');
@@ -43,16 +47,14 @@ const LANE_PAGE = Number(mod.match(/const LANE_PAGE = (\d+)/)[1]);
 const RANGE_PRESETS = JSON.parse(mod.match(/const RANGE_PRESETS = (\[[^\]]*\])/)[1]);
 const isoDaySrc = mod.match(/const isoDay = (\(ms\) => \{[\s\S]*?\n\};)/)[1];
 
-// The shipped bodies, given the module names they close over.
-const lifted = new Function('LANE_PAGE', 'getRange', `
-  const isoDay = ${isoDaySrc}
-  let laneRange = { from: null, to: null };
-  ${[grab('shiftRangesForGrowth'), grab('presetFrom'), grab('presetActive'),
-     grab('rangeActive'), grab('inRange'), grab('dayStart'), grab('dayEnd')].join('\n\n')}
-  return { shiftRangesForGrowth, presetFrom, presetActive, inRange, dayStart, dayEnd, isoDay,
-           setRange: (r) => { laneRange = r; } };
-`)(LANE_PAGE);
-const { shiftRangesForGrowth, presetFrom, presetActive, inRange, dayStart, isoDay, setRange } = lifted;
+// dayEnd still lives on the door (a calendar sentence, not cursor math).
+const dayEnd = new Function(grab('dayEnd') + '\nreturn dayEnd;')();
+const isoDay = new Function('return ' + isoDaySrc)();
+let laneRange = { from: null, to: null };
+const setRange = (r) => { laneRange = r; };
+const rangeActive = () => rangeActiveOf(laneRange);
+const inRange = (ts) => inRangeOf(ts, laneRange);
+const presetActive = (d) => presetActiveOf(d, laneRange);
 
 let pass = 0, fail = 0;
 const ok = (name, got, want) => {

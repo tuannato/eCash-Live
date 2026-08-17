@@ -37,7 +37,7 @@ jobs:
 
       - name: Vendor JS parses
         run: |
-          for f in vendor/door.js vendor/txparse.js vendor/cashtab-connect.js vendor/companion/echan.js vendor/finality.js vendor/core/match.js vendor/core/backfill.js; do
+          for f in vendor/door.js vendor/txparse.js vendor/cashtab-connect.js vendor/companion/echan.js vendor/finality.js vendor/core/match.js vendor/core/backfill.js vendor/core/lane-cursor.js; do
             node --check "$f" && echo "ok: $f"
           done
 

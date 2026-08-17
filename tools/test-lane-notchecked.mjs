@@ -1,10 +1,10 @@
 // Harness for the Lane's "not checked" qualifier (2026-08-16).
 //   node internal/test-lane-notchecked.mjs
 //
-// Like tools/test-lane-scope.mjs and unlike tools/test-lane-corpus.mjs, this
-// EXTRACTS the shipped function bodies from flow/index.html and runs those.
-// A test of a copy passes when the copy is right; this one fails when the
-// page is wrong.
+// Cursor/coverage math is imported from the shipped vendor/core/lane-cursor.js.
+// laneRefreshIndex / maybeAutoRefresh / laneClearData / saveLaneStore are
+// still extracted from flow/index.html: a test of a copy passes when the
+// copy is right; those fail when the page is wrong.
 //
 // Why it exists: laneRefreshIndex used one session variable for two jobs
 // (request budget vs "the prefix is actually verified"). A failed probe then
@@ -14,6 +14,9 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import {
+  shiftRangesForGrowth, scopeCursorView, laneReach as laneReachOf,
+} from '../vendor/core/lane-cursor.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const html = readFileSync(join(ROOT, 'flow/index.html'), 'utf8');
@@ -94,10 +97,7 @@ function makeLane(opts = {}) {
   // Concatenate: the shipped bodies contain backtick comments (`c`, `oldestTs`)
   // that would terminate a template literal around ${grab(...)}.
   const bodies = [
-    grab('shiftRangesForGrowth'),
-    grab('scopeCursorView'),
     grab('saveLaneStore'),
-    grab('laneReach'),
     grab('laneRefreshIndex'),
     grab('maybeAutoRefresh'),
     grab('laneClearData'),
@@ -130,6 +130,7 @@ function makeLane(opts = {}) {
     'const refreshLaneScope = () => {};',
     'const laneRematch = () => {};',
     'const runLaneBackfill = async () => {};',
+    'const laneReach = () => laneReachOf(laneBf ? laneBf.cursor : (laneSavedCursor || null), state.laneScope);',
     bodies,
     'return {',
     '  state, laneCorpus,',
@@ -143,9 +144,13 @@ function makeLane(opts = {}) {
   ].join('\n');
   const factory = new Function(
     'LANE_PAGE', 'LANE_CURSOR_KEY', 'localStorage', 'chronik', 'CT', 'PB',
+    'shiftRangesForGrowth', 'scopeCursorView', 'laneReachOf',
     src
   );
-  const L = factory(LANE_PAGE, LANE_CURSOR_KEY, localStorage, chronik, CT, PB);
+  const L = factory(
+    LANE_PAGE, LANE_CURSOR_KEY, localStorage, chronik, CT, PB,
+    shiftRangesForGrowth, scopeCursorView, laneReachOf
+  );
   L.probes = () => probes;
   return L;
 }

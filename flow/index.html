@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-VZGNqQed4PbASzhD6o9JGJSNgPVxHyKZ8B31SPrjipc=';
+  script-src 'self' 'sha256-T1HgfnVGMVM+rycImNTK8dNU/8iZzqzGlpBU2dQBdV8=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -1565,6 +1565,7 @@ import { parseTransactionCore, encodeOutputScript, validateCashAddress, parseOpR
 // already has them.
 import { matchAny, matchEvery, findAllSpans, segmentWords, normalize as normalizeTerm } from '../vendor/core/match.js?v=7';
 import { createBackfill } from '../vendor/core/backfill.js?v=6';
+import { laneReach, laneWindows, shiftRangesForGrowth, inScope, scopeLabel, sanitizeScope, scopeCursorView, inRange, dayStart, rangeActive, senderTag, senderOf, presetFrom, presetActive } from '../vendor/core/lane-cursor.js?v=1';
 import { isCashtabExtension, requestAddress as ctRequestAddress, sendBip21 as ctSendBip21 } from '../vendor/cashtab-connect.js?v=1';
 "use strict";
 const $ = (id) => document.getElementById(id);
@@ -4549,80 +4550,9 @@ let laneRangeDone = false;
    anyway and laneHydrate learns the tag then, at no extra request. */
 const laneCorpus = new Map();   // txid -> {text, ts, lokad}
 
-/* THE REPORTED REACH IS THE FLOOR, NOT THE DEEPEST POINT.
-   Measured on real data: after two rounds, Cashtab had reached 2026-07-03 while
-   Alias had reached 2023-11-01, because a page holds 50 transactions and the
-   sparse protocols cover years in one page while the dense one covers weeks.
-   Reporting the oldest thing seen — 2023 — claimed almost three years of
-   coverage when the protocol carrying nearly all the writing had read one month.
-   The reader saw exactly that: hits clustered in the last month, one stray from
-   2023, and a banner promising 2023.
-   So the floor is the OLDEST DATE EVERY protocol has passed, i.e. the max of the
-   per-protocol depths. A protocol that is finished imposes no floor: it has been
-   read to genesis, so it constrains nothing. */
-/* Read over the SELECTED protocols, not over all six. The date describes what
-   the reader asked to be searched, so a protocol nobody is searching must not
-   constrain it — and, just as importantly, must not silently be counted as
-   covered either. Narrowing the scope therefore narrows what the sentence
-   claims; the number itself barely moves at the moment of the change, because
-   the floor was already held by the shallowest protocol in the old set. */
-function laneReach(){
-  const cur = laneBf ? laneBf.cursor : (laneSavedCursor || null);
-  if (!cur) return null;
-  let floor = null;
-  for (const id of state.laneScope){
-    const c = cur[id];
-    // ONLY a genuinely exhausted protocol is skipped. One abandoned after
-    // repeated failures keeps done:false on purpose, so it constrains the floor
-    // exactly like an unfinished one — and if it never got a page at all, the
-    // next line refuses to make any claim, which is the whole point.
-    if (!c || c.done) continue;               // read to genesis -> covers everything
-    /* THE PREFIX, NEVER `oldestTs`. Since the engine can seek, oldestTs is the
-       oldest thing seen ANYWHERE — a window read around 2022 would otherwise let
-       this sentence claim 2022 while everything between then and now is unread.
-       ranges[0] is the contiguous run from page 0 and is the only interval that
-       can speak for "in full back to". A cursor saved before ranges existed
-       carries a watermark instead, and for it the two are the same number. */
-    const pre = Array.isArray(c.ranges) ? (c.ranges[0] && c.ranges[0][0] === 0 ? c.ranges[0][2] : null)
-                                        : c.oldestTs;
-    if (!pre) return null;                    // never read -> no honest claim
-    floor = (floor == null) ? pre : Math.max(floor, pre);
-  }
-  return floor;
-}
-
-/* THE RUNS READ OUT OF ORDER — everything except the one starting at page 0.
-   They exist only after a seek, and they are NOT part of the "in full back to"
-   sentence: that describes the run from the newest message and nothing else.
-   Naming them separately is what lets both statements be true at once.
-
-   Merged across the selected protocols and then across each other, because a
-   reader sets one window at a time and each further click extends it — without
-   merging, the same window would be printed once per page read. Capped, with the
-   remainder counted rather than dropped (§10). Engine timestamps are seconds;
-   the coverage line formats milliseconds. */
+/* Cap on named out-of-order windows in the coverage line. The remainder is
+   counted, not dropped (§10). The merge itself lives in laneWindows(). */
 const WINDOWS_SHOWN = 3;
-function laneWindows(){
-  const cur = laneBf ? laneBf.cursor : (laneSavedCursor || {});
-  const raw = [];
-  for (const id of state.laneScope){
-    const c = cur[id];
-    if (!c || !Array.isArray(c.ranges)) continue;
-    for (const r of c.ranges){
-      if (r[0] === 0) continue;                 // the prefix has its own sentence
-      if (r[2] == null || r[3] == null) continue;
-      raw.push([r[2] * 1000, r[3] * 1000]);     // [oldest, newest]
-    }
-  }
-  raw.sort((a, b) => a[0] - b[0]);
-  const merged = [];
-  for (const w of raw){
-    const last = merged[merged.length - 1];
-    if (last && w[0] <= last[1]) last[1] = Math.max(last[1], w[1]);
-    else merged.push([w[0], w[1]]);
-  }
-  return merged;
-}
 
 /* The corpus is a window from the NEWEST held message backwards. A newest-first
    walk only ever offers older rows once full, so those are refused. A seek that
@@ -4659,54 +4589,7 @@ function corpusAdd(txid, text, ts, lokad, from){
   corpusGen++;
 }
 
-/* WHO WROTE IT, as eight hex characters.
-   Measured, and it is the whole reason the suggestion list is usable: ranking
-   words by how OFTEN they appear returns the busiest bot's script — over 1,000
-   real Cashtab messages the top of that list was congratulations·119, win·115,
-   casino·57, darts·51, all from one or two senders. Ranking by how many
-   DIFFERENT people wrote a word separates a campaign from a topic exactly:
-   casino collapses to 1 sender while thanks, on 21 messages, has 20.
 
-   FNV-1a, not a cryptographic hash, and it does not need to be — it exists only
-   to tell one sender apart from another, and a collision costs one suggestion
-   its rank. Taken from inputs[0] of a transaction the walk has already fetched,
-   so it adds no request and no full parse. Stored beside chain-public message
-   text that is far more identifying than this is; it says nothing about the
-   reader. */
-function senderTag(script){
-  if (!script || typeof script !== 'string') return null;
-  let h = 0x811c9dc5;
-  for (let i = 0; i < script.length; i++){
-    h ^= script.charCodeAt(i);
-    h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
-  }
-  return h.toString(16).padStart(8, '0');
-}
-function senderOf(txData){
-  const i = txData && txData.inputs && txData.inputs[0];
-  if (!i) return null;
-  return senderTag(i.outputScript || (i.prevOut && i.prevOut.outputScript) || null);
-}
-
-/* THE ONE PLACE THAT DECIDES WHETHER A RESULT IS IN SCOPE.
-   An unknown protocol is always in: absence of a tag is absence of evidence, and
-   hiding on a guess would delete results that were genuinely found and paid for.
-   Live transactions have no tag by construction — see the note in laneRematch. */
-function inScope(lokad){
-  if (!lokad) return true;
-  return state.laneScope.includes(lokad);
-}
-// Only ids this parser actually has a text-bearing branch for, and never empty:
-// createBackfill throws on an empty list, and a Lane that searches nothing while
-// still lighting its chip would be the "promise with nothing behind it" that
-// turning a topic on was fixed to stop being.
-function sanitizeScope(list){
-  const out = [];
-  for (const id of (Array.isArray(list) ? list : [])){
-    if (typeof id === 'string' && MESSAGE_LOKADS.includes(id) && !out.includes(id)) out.push(id);
-  }
-  return out.length ? out : [LOKAD.CASHTAB_MSG];
-}
 /* THE DATE WINDOW IS A QUESTION, NOT A PREFERENCE, so it lives here rather than
    in state and is never written to storage — structurally, not by discipline.
    The same asymmetry loadTerms() applies to follows and mutes: a follow comes
@@ -4720,30 +4603,8 @@ function sanitizeScope(list){
    place — where the bound is handed to the engine — so there is one line to get
    wrong instead of six. */
 let laneRange = { from: null, to: null };
-function rangeActive(){ return laneRange.from != null || laneRange.to != null; }
-/* A calendar day is a DAY, not an instant: the reader picked a date in their own
-   timezone while the index timestamps in UTC, so a window legitimately includes
-   a few hours either side of what a UTC reading would give. Widening at both
-   ends is the honest direction — it can show something just outside, never hide
-   something just inside. */
-function dayStart(iso){ const d = new Date(iso + 'T00:00:00'); const n = d.getTime(); return isFinite(n) ? n : null; }
 function dayEnd(iso){ const d = new Date(iso + 'T23:59:59.999'); const n = d.getTime(); return isFinite(n) ? n : null; }
-/* A result with no timestamp cannot be placed in a window. It is EXCLUDED and
-   counted, never quietly kept: including it would put an undated row inside a
-   date filter, which is the one thing a date filter must not do. */
 let laneNoDate = 0;
-function inRange(ts){
-  if (!rangeActive()) return true;
-  if (!ts) return false;
-  if (laneRange.from != null && ts < laneRange.from) return false;
-  if (laneRange.to != null && ts > laneRange.to) return false;
-  return true;
-}
-// Display order follows MESSAGE_LOKADS so the picker and the summary agree.
-function scopeLabel(){
-  return MESSAGE_LOKADS.filter(id => state.laneScope.includes(id))
-                       .map(id => LOKAD_NAMES[id] || id).join(' · ');
-}
 
 // Cheap gate AND the corpus filler. Reading only the first output's OP_RETURN
 // costs 2 ms per 200-tx page against 1950 ms for a full parse (measured on real
@@ -4843,7 +4704,7 @@ function computeSuggestions(){
     set.add(s);
   };
   for (const e of laneCorpus.values()){
-    if (!e.text || !inScope(e.lokad)) continue;
+    if (!e.text || !inScope(e.lokad, state.laneScope)) continue;
     const key = normalizeTerm(e.text);
     const fresh = !seenText.has(key);
     if (fresh){ seenText.add(key); docs++; }
@@ -4946,7 +4807,7 @@ function ensureSuggestPrefetch(){
   const id = (state.laneScope && state.laneScope[0]) || LOKAD.CASHTAB_MSG;
   suggestPrefetchP = (async () => {
     try {
-      const cur = scopeCursorView();
+      const cur = scopeCursorView(laneSavedCursor, laneBf ? laneBf.cursor : null);
       const known = (suggestSeenLokad === id && suggestSeenNumTxs != null)
         ? suggestSeenNumTxs
         : (cur[id] && Number.isInteger(cur[id].numTxs) ? cur[id].numTxs : null);
@@ -4997,11 +4858,11 @@ function corpusMatches(){
   for (const [txid, e] of laneCorpus){
     if (mutes.length && matchAny(e.text, mutes)) continue;
     if (!matchTerms(e.text, follow)) continue;
-    if (!inScope(e.lokad)){ hidden.add(txid); continue; }
+    if (!inScope(e.lokad, state.laneScope)){ hidden.add(txid); continue; }
     // The window is applied AFTER the scope, and counted apart from it: they are
     // two different reasons a match is not on screen, and one checkbox brings
     // back only one of them.
-    if (!inRange(e.ts)){ if (!e.ts) noDate.add(txid); continue; }
+    if (!inRange(e.ts, laneRange)){ if (!e.ts) noDate.add(txid); continue; }
     out.push(txid);
   }
   return { ids: out, hidden, noDate };
@@ -5178,7 +5039,7 @@ function laneHold(tx){
     let victim = null, victimTs = Infinity, victimWanted = true;
     for (const [id, held] of state.laneTxs){
       const ts = laneTsOf(id, held);
-      const wanted = inScope(held._lokad) && inRange(ts) && txMatchesTerms(held);
+      const wanted = inScope(held._lokad, state.laneScope) && inRange(ts, laneRange) && txMatchesTerms(held);
       // An unwanted entry always beats a wanted one, whatever their ages.
       if (victimWanted && !wanted){ victim = id; victimTs = ts; victimWanted = false; continue; }
       if (victimWanted !== wanted) continue;
@@ -5254,16 +5115,16 @@ function laneRematch(){
   for (const tx of state.txs.values()){
     if (!txMatchesTerms(tx)) continue;
     const ts = laneTsOf(tx.id, tx);
-    if (!inRange(ts)){ if (!ts) noDate.add(tx.id); continue; }
+    if (!inRange(ts, laneRange)){ if (!ts) noDate.add(tx.id); continue; }
     ids.push(tx.id);
   }
   for (const tx of state.laneTxs.values()){
     if (!txMatchesTerms(tx)) continue;
     // A held result carries the tag of the page it came off, or the one its
     // corpus row supplied at hydration. Same rule: unknown is in.
-    if (!inScope(tx._lokad)){ hidden.add(tx.id); continue; }
+    if (!inScope(tx._lokad, state.laneScope)){ hidden.add(tx.id); continue; }
     const ts = laneTsOf(tx.id, tx);
-    if (!inRange(ts)){ if (!ts) noDate.add(tx.id); continue; }
+    if (!inRange(ts, laneRange)){ if (!ts) noDate.add(tx.id); continue; }
     ids.push(tx.id);
   }
   laneNoDate = noDate.size;
@@ -5317,7 +5178,7 @@ async function runLaneBackfill(){
       chronik: state.chronik, lokads: state.laneScope, pageSize: LANE_PAGE,
       prefilter: lanePrefilter,
       parse: laneParseTx,
-      keep: (tx) => txMatchesTerms(tx) && inRange(laneTsOf(tx.id, tx)),
+      keep: (tx) => txMatchesTerms(tx) && inRange(laneTsOf(tx.id, tx), laneRange),
       onBatch: (txs, cov, lokadId) => {
         if (token !== laneRunToken) return;         // orphaned run, drop its output
         for (const tx of txs){ tx._lokad = lokadId; laneHold(tx); }
@@ -5354,7 +5215,7 @@ async function runLaneBackfill(){
        stopped, but a date bound is what stopped them, so the button must not
        read "read all of Cashtab Msg" — it says the window is covered instead,
        and the same click without a window is still free to go deeper. */
-    laneRangeDone = rangeActive() &&
+    laneRangeDone = rangeActive(laneRange) &&
       state.laneScope.every((id) => { const c = cov.perLokad[id]; return !c || c.done || c.rangeDone; });
     /* WHAT THE READER HAS TO BE TOLD, in the two cases where the coverage line
        would otherwise go quiet.
@@ -5473,15 +5334,6 @@ function reopenIndexIfUnanswered(){
    instead would cost 188 pages (~31 clicks) on Cashtab to recover what is
    usually a single page of drift. At the measured ~2.3 Cashtab messages a day, a
    week away is ~16 ranks — one page. */
-function shiftRangesForGrowth(ranges, delta, size){
-  const lead = Math.ceil(delta / size), tail = Math.floor(delta / size);
-  const out = [];
-  for (const r of (Array.isArray(ranges) ? ranges : [])){
-    const a = r[0] + lead, b = r[1] + tail;
-    if (b > a) out.push([a, b, r[2], r[3]]);   // the timestamps describe CONTENT, which did not move
-  }
-  return out;
-}
 
 /* Two session facts that look like one and are not.
    laneProbeSpentAt is the request budget: one probe per load, set on every
@@ -5498,7 +5350,7 @@ async function laneRefreshIndex(auto){
   laneRefreshBusy = true;
   laneRefreshMsg = null;
   renderLaneTools();
-  const cur = scopeCursorView();
+  const cur = scopeCursorView(laneSavedCursor, laneBf ? laneBf.cursor : null);
   let grew = 0, reopened = 0, reached = 0, failed = 0;
   for (const id of state.laneScope){
     const c = cur[id];
@@ -5672,11 +5524,8 @@ let lsOpen = false;
    about something we have read is the one thing this panel exists to get right:
    it is what the reader decides on. laneBf goes last so a live run stays
    authoritative for whatever it is actually walking. */
-function scopeCursorView(){
-  return Object.assign({}, laneSavedCursor || {}, laneBf ? laneBf.cursor : {});
-}
 function scopeMetaText(id){
-  const cur = scopeCursorView();
+  const cur = scopeCursorView(laneSavedCursor, laneBf ? laneBf.cursor : null);
   const c = cur[id];
   const bits = [];
   if (c && Number.isInteger(c.numTxs)) bits.push(tf('scope.msgs', { n: fmtInt(c.numTxs) }));
@@ -5700,7 +5549,7 @@ function refreshLaneScope(){
      ("Searching back through: Cashtab Msg"), which is a complete accessible
      name; an aria-label could only take information away. `scope.edit` stays in
      the packs as the row's own description elsewhere. */
-  lsSummary.textContent = t('scope.title') + ': ' + scopeLabel();
+  lsSummary.textContent = t('scope.title') + ': ' + scopeLabel(state.laneScope);
   lsSummary.removeAttribute('aria-label');
   lsSummary.setAttribute('aria-expanded', String(lsOpen));
   for (const el of lsPanel.querySelectorAll('.ls-row')){
@@ -5781,21 +5630,10 @@ const isoDay = (ms) => {
 
    setDate/setHours rather than millisecond arithmetic: subtracting 30*864e5
    lands an hour out across a DST boundary, and this is a calendar question. */
-function presetFrom(d){
-  const x = new Date();
-  x.setHours(0, 0, 0, 0);
-  x.setDate(x.getDate() - d);
-  return x.getTime();
-}
-function presetActive(d){
-  if (!rangeActive()) return d === 0;
-  if (laneRange.to != null) return false;            // a typed window, not a preset
-  return d > 0 && laneRange.from === presetFrom(d);  // exact: both are day starts
-}
 // What the collapsed row says, so the window is answerable without opening it.
 function rangeLabel(){
-  if (!rangeActive()) return t('scope.allTime');
-  for (const d of RANGE_PRESETS) if (presetActive(d)) return tf('scope.days', { n: fmtInt(d) });
+  if (!rangeActive(laneRange)) return t('scope.allTime');
+  for (const d of RANGE_PRESETS) if (presetActive(d, laneRange)) return tf('scope.days', { n: fmtInt(d) });
   const a = laneRange.from ? fmtDate(laneRange.from) : '…';
   const b = laneRange.to ? fmtDate(laneRange.to) : t('lane.now');
   return a + ' → ' + b;
@@ -5818,7 +5656,7 @@ function refreshLaneRange(){
   lrSummary.removeAttribute('aria-label');
   lrSummary.setAttribute('aria-expanded', String(lrOpen));
   for (const b of lrPanel.querySelectorAll('.ls-preset')){
-    const on = presetActive(Number(b.dataset.days));
+    const on = presetActive(Number(b.dataset.days), laneRange);
     b.classList.toggle('on', on);
     b.setAttribute('aria-pressed', String(on));
   }
@@ -5965,7 +5803,7 @@ function renderLaneMore(){
   // protocols. At a chosen scope it has to name what it finished, or the button
   // claims coverage of five indexes it never opened.
   laneMore.textContent = laneBusy ? t('lane.searching')
-                       : laneDeepDone ? tf('lane.deepEnd', { p: scopeLabel() })
+                       : laneDeepDone ? tf('lane.deepEnd', { p: scopeLabel(state.laneScope) })
                        : laneRangeDone ? t('lane.rangeEnd')
                        : t('lane.older');
   renderLaneTools();   // one call site keeps the three buttons in one state
@@ -6155,7 +5993,7 @@ function laneAdd(tx){
   // Same clock rematch and hold use. tx.ts is often missing on a live mempool
   // card (admit never stampTs), so reading it here would let a window that
   // excludes "now" still collect arrivals — the bug rematch already named.
-  if (!inRange(laneTsOf(tx.id, tx))) return;
+  if (!inRange(laneTsOf(tx.id, tx), laneRange)) return;
   laneHold(tx);                            // survive state.txs eviction
   if (state.matched.includes(tx.id)) return;
   laneSetMatched([tx.id, ...state.matched]);   // one owner, one cap; order decided there
@@ -6464,8 +6302,8 @@ function renderLane(){
   // The date now has to say WHAT it is a date about. It is the floor across the
   // SELECTED protocols only, so a sentence that named none of them would be a
   // claim about a set the reader has changed underneath it.
-  const reach = laneReach();
-  if (reach) cov.push(tf('lane.reach', { p: scopeLabel(), d: fmtDate(reach * 1000) }));
+  const reach = laneReach(laneBf ? laneBf.cursor : (laneSavedCursor || null), state.laneScope);
+  if (reach) cov.push(tf('lane.reach', { p: scopeLabel(state.laneScope), d: fmtDate(reach * 1000) }));
   /* "IN FULL BACK TO" IS A CLAIM ABOUT BOTH ENDS, and the far end is the only
      one the cursor can defend on its own. Ranks shift down as messages are
      written, so a prefix restored from a previous session covers everything
@@ -6513,7 +6351,7 @@ function renderLane(){
      shown". And a window reaching further back than the walk has read is not an
      empty result — it is a question that has not been answered yet, which is a
      completely different thing to put on screen. */
-  if (rangeActive()){
+  if (rangeActive(laneRange)){
     cov.push(tf('lane.window', {
       a: laneRange.from ? fmtDate(laneRange.from) : '…',
       b: laneRange.to ? fmtDate(laneRange.to) : t('lane.now'),
@@ -6527,7 +6365,7 @@ function renderLane(){
      NOT part of the "in full back to" claim above — that sentence describes the
      run from the newest message only. Naming them separately is what lets both
      be true at once. */
-  const wins = laneWindows();
+  const wins = laneWindows(laneBf ? laneBf.cursor : (laneSavedCursor || {}), state.laneScope);
   for (const w of wins.slice(0, WINDOWS_SHOWN)) cov.push(tf('lane.plusWindow', { a: fmtDate(w[0]), b: fmtDate(w[1]) }));
   if (wins.length > WINDOWS_SHOWN) cov.push(tf('lane.moreWindows', { n: fmtInt(wins.length - WINDOWS_SHOWN) }));
   /* And the two things the picker cannot govern, because a control that lists

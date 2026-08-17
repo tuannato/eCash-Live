@@ -1,11 +1,10 @@
 // Harness for the Lane scope picker (R1, 2026-08-13).
 //   node tools/test-lane-scope.mjs
 //
-// Extracts the shipped function bodies from flow/index.html and runs those.
-// The Lane lives inside an inline module and cannot be imported, but these
-// particular functions close over a handful of names, so they can be lifted
-// verbatim and given those names explicitly. A test of a copy passes when the
-// copy is right; this one fails when the page is wrong.
+// Cursor/coverage math is imported from the shipped vendor/core/lane-cursor.js
+// (the same module Flow loads). Door-owned functions are still extracted from
+// flow/index.html: a test of a copy passes when the copy is right; those fail
+// when the page is wrong.
 //
 // laneRematch (the hidden-id union), laneHold, loadTerms / saveTerms and the
 // mute trio live in tools/test-lane-corpus.mjs — also extracted, not copied.
@@ -14,6 +13,10 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { matchAny, matchEvery, matchTerm, findTermSpans, findAllSpans, segmentWords, normalize as normalizeTerm } from '../vendor/core/match.js';
 import { MESSAGE_LOKADS, LOKAD, LOKAD_NAMES } from '../vendor/txparse.js';
+import {
+  inScope as inScopeOf, sanitizeScope, scopeLabel as scopeLabelOf, laneReach as laneReachOf,
+  rangeActive as rangeActiveOf, inRange as inRangeOf, dayStart, senderTag,
+} from '../vendor/core/lane-cursor.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const html = readFileSync(join(ROOT, 'flow/index.html'), 'utf8');
@@ -40,10 +43,10 @@ function grab(name) {
   throw new Error('unbalanced: ' + name);
 }
 
-const NAMES = ['inScope', 'sanitizeScope', 'scopeLabel', 'corpusAdd', 'corpusMatches',
-               'laneReach', 'saveLaneStore', 'loadLaneStore', 'restoreLaneStore',
-               'cmpChipList', 'rangeActive', 'inRange', 'dayStart', 'dayEnd',
-               'senderTag', 'computeSuggestions', 'laneTsOf', 'txWhenMs', 'laneSetMatched',
+const NAMES = ['corpusAdd', 'corpusMatches',
+               'saveLaneStore', 'loadLaneStore', 'restoreLaneStore',
+               'cmpChipList', 'dayEnd',
+               'computeSuggestions', 'laneTsOf', 'txWhenMs', 'laneSetMatched',
                'reopenIndexIfUnanswered'];
 const bodies = NAMES.map(grab).join('\n\n');
 
@@ -72,6 +75,8 @@ function makeLane(quotaChars = Infinity) {
     'segmentWords', 'normalizeTerm', 'SUGGEST_MAX', 'SUGGEST_MIN_DF', 'SUGGEST_DF_CEIL',
     'SUGGEST_MIN_SENDERS', 'SUGGEST_MAX_LEN', 'HASHTAG_RE', 'SHOUT_RE', 'SHOUT_ONE',
     'SUGGEST_MIN_DF_TAG', 'SUGGEST_MIN_SENDERS_TAG', 'SUGGEST_TAG_SOFT',
+    'inScopeOf', 'sanitizeScope', 'scopeLabelOf', 'laneReachOf',
+    'rangeActiveOf', 'inRangeOf', 'dayStart', 'senderTag',
     `
     "use strict";
     const state = { laneScope: [LOKAD.CASHTAB_MSG], termMode: 'any', terms: [] };
@@ -86,6 +91,11 @@ function makeLane(quotaChars = Infinity) {
     const activeMutes  = () => state.terms.filter(t => t.on && t.q && t.mute);
     const matchTerms = (hay, terms) =>
       state.termMode === 'all' ? matchEvery(hay, terms) : matchAny(hay, terms);
+    const inScope = (lokad) => inScopeOf(lokad, state.laneScope);
+    const scopeLabel = () => scopeLabelOf(state.laneScope);
+    const laneReach = () => laneReachOf(laneBf ? laneBf.cursor : (laneSavedCursor || null), state.laneScope);
+    const rangeActive = () => rangeActiveOf(laneRange);
+    const inRange = (ts) => inRangeOf(ts, laneRange);
     ${bodies}
     return {
       state, laneCorpus, localStorage,
@@ -112,7 +122,9 @@ function makeLane(quotaChars = Infinity) {
                  segmentWords, normalizeTerm, num('SUGGEST_MAX'), num('SUGGEST_MIN_DF'),
                  num('SUGGEST_DF_CEIL'), num('SUGGEST_MIN_SENDERS'), num('SUGGEST_MAX_LEN'),
                  rx('HASHTAG_RE'), rx('SHOUT_RE'), rx('SHOUT_ONE'),
-                 num('SUGGEST_MIN_DF_TAG'), num('SUGGEST_MIN_SENDERS_TAG'), num('SUGGEST_TAG_SOFT'));
+                 num('SUGGEST_MIN_DF_TAG'), num('SUGGEST_MIN_SENDERS_TAG'), num('SUGGEST_TAG_SOFT'),
+                 inScopeOf, sanitizeScope, scopeLabelOf, laneReachOf,
+                 rangeActiveOf, inRangeOf, dayStart, senderTag);
 }
 
 let pass = 0, fail = 0;

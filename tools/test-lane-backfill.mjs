@@ -21,6 +21,7 @@ import { dirname, join } from 'node:path';
 import { createBackfill as realCreateBackfill } from '../vendor/core/backfill.js';
 import { matchAny, matchEvery } from '../vendor/core/match.js';
 import { MESSAGE_LOKADS, LOKAD } from '../vendor/txparse.js';
+import { rangeActive, inRange, inScope, senderTag, senderOf } from '../vendor/core/lane-cursor.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const html = readFileSync(join(ROOT, 'flow/index.html'), 'utf8');
@@ -72,11 +73,10 @@ const TERM = { q: 'hello', on: true, mode: 'word', fold: false, mute: false };
 // `oldestTs`, `before`) that would terminate a template literal around
 // ${grab(...)}.
 const LANE_FNS = [
-  'rangeActive', 'inRange',
   'enabledTerms', 'activeMutes', 'matchTerms', 'txMatchesTerms', 'txIsMuted',
   'laneTsOf', 'txWhenMs', 'stampTs',
-  'inScope', 'laneHold',
-  'corpusAdd', 'senderTag', 'senderOf',
+  'laneHold',
+  'corpusAdd',
   'hayFromTx', 'ingestHistoryTx', 'lanePrefilter',
   'corpusMatches', 'laneSetMatched', 'laneSuggestInvalidate', 'laneRematch',
   'saveLaneStore',
@@ -271,6 +271,7 @@ function makeLane(opts = {}) {
     'localStorage', 'chronik', 'scope', 'terms', 'saved',
     'MATCH_MAX', 'CORPUS_MAX', 'LANE_PAGE', 'LANE_REQUESTS', 'LANE_CURSOR_KEY',
     'holdThrow', 'interruptAfterRun', 'opts',
+    'rangeActive', 'inRange', 'inScope', 'senderTag', 'senderOf',
     src
   );
   return factory(
@@ -278,7 +279,8 @@ function makeLane(opts = {}) {
     matchAny, matchEvery,
     localStorage, chronik, scope, terms, saved,
     MATCH_MAX, CORPUS_MAX, LANE_PAGE, requests, LANE_CURSOR_KEY,
-    holdThrow, interruptAfterRun, opts
+    holdThrow, interruptAfterRun, opts,
+    rangeActive, inRange, inScope, senderTag, senderOf
   );
 }
 

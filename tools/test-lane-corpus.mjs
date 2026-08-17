@@ -1,11 +1,12 @@
 // Harness for the Lane corpus, hold, mute, rematch and term restore.
 //   node tools/test-lane-corpus.mjs
 //
-// Extracts the shipped function bodies from flow/index.html and runs those.
-// The previous file at this path re-stated a copy (CORPUS_MAX 3000, insertion-
-// order corpus eviction, FIFO laneHold, no lokad/from) and stayed green while
-// the page diverged. A test of a copy passes when the copy is right; this one
-// fails when the page is wrong.
+// Cursor/coverage math is imported from the shipped vendor/core/lane-cursor.js.
+// Door-owned functions are still extracted from flow/index.html. The previous
+// file at this path re-stated a copy (CORPUS_MAX 3000, insertion-order corpus
+// eviction, FIFO laneHold, no lokad/from) and stayed green while the page
+// diverged. A test of a copy passes when the copy is right; those fail when
+// the page is wrong.
 //
 // Constants (CORPUS_MAX, MATCH_MAX, TERM_MAX, TERMS_KEY) are read out of the
 // page. Hardcoding them is how the fossil rotted.
@@ -14,6 +15,9 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { matchAny, matchEvery } from '../vendor/core/match.js';
 import { MESSAGE_LOKADS, LOKAD, LOKAD_NAMES } from '../vendor/txparse.js';
+import {
+  inScope as inScopeOf, sanitizeScope, rangeActive as rangeActiveOf, inRange as inRangeOf,
+} from '../vendor/core/lane-cursor.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const html = readFileSync(join(ROOT, 'flow/index.html'), 'utf8');
@@ -48,7 +52,6 @@ const TERM_MAX = Number(mod.match(/const TERM_MAX = (\d+)/)[1]);
 const TERMS_KEY = mod.match(/const TERMS_KEY = '([^']+)'/)[1];
 
 const NAMES = [
-  'inScope', 'sanitizeScope', 'rangeActive', 'inRange',
   'corpusAdd', 'corpusMatches',
   'txWhenMs', 'laneTsOf',
   'enabledTerms', 'activeMutes', 'matchTerms', 'txMatchesTerms', 'txIsMuted',
@@ -90,6 +93,9 @@ function makeLane(opts = {}) {
     'function renderLane(){ renderLaneN++; }',
     'function renderTermChips(){ renderChipsN++; }',
     'function scheduleChipRepaint(){ chipRepaintN++; }',
+    'const inScope = (lokad) => inScopeOf(lokad, state.laneScope);',
+    'const rangeActive = () => rangeActiveOf(laneRange);',
+    'const inRange = (ts) => inRangeOf(ts, laneRange);',
     bodies,
     'return {',
     '  state, laneCorpus, muteCounts, localStorage,',
@@ -114,13 +120,15 @@ function makeLane(opts = {}) {
     'matchAny', 'matchEvery',
     'CORPUS_MAX', 'MATCH_MAX', 'TERM_MAX', 'TERMS_KEY',
     'localStorage', 'scope', 'terms', 'termMode',
+    'inScopeOf', 'sanitizeScope', 'rangeActiveOf', 'inRangeOf',
     src
   );
   return factory(
     MESSAGE_LOKADS, LOKAD, LOKAD_NAMES,
     matchAny, matchEvery,
     CORPUS_MAX, MATCH_MAX, TERM_MAX, TERMS_KEY,
-    localStorage, scope, terms, termMode
+    localStorage, scope, terms, termMode,
+    inScopeOf, sanitizeScope, rangeActiveOf, inRangeOf
   );
 }
 
