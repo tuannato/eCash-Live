@@ -2,6 +2,7 @@
 //   node internal/test-lane-notchecked.mjs
 //
 // Cursor/coverage math is imported from the shipped vendor/core/lane-cursor.js.
+// The persist/quota engine is imported from vendor/core/lane-store.js.
 // laneRefreshIndex / maybeAutoRefresh / laneClearData / saveLaneStore are
 // still extracted from flow/index.html: a test of a copy passes when the
 // copy is right; those fail when the page is wrong.
@@ -17,6 +18,7 @@ import { dirname, join } from 'node:path';
 import {
   shiftRangesForGrowth, scopeCursorView, laneReach as laneReachOf,
 } from '../vendor/core/lane-cursor.js';
+import { createLaneStore } from '../vendor/core/lane-store.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const html = readFileSync(join(ROOT, 'flow/index.html'), 'utf8');
@@ -105,7 +107,11 @@ function makeLane(opts = {}) {
   const src = [
     '"use strict";',
     'const state = { chronik, laneScope: [CT], laneOpen: true, laneTxs: new Map() };',
+    'const laneStore = createLaneStore({ storage: localStorage, key: LANE_CURSOR_KEY });',
     'const laneCorpus = new Map();',
+    'laneCorpus.dump = function(){ const rows = []; for (const [id, e] of this) rows.push([id, e.text, e.ts, e.lokad || null, e.from || null]); return rows; };',
+    'laneCorpus.load = function(){};',
+    'laneCorpus.clear = function(){ Map.prototype.clear.call(this); };',
     'laneCorpus.set("seed", { text: "x", ts: ' + TS + ', lokad: CT, from: null });',
     'let laneBf = null;',
     'let laneSavedCursor = { [CT]: ' + JSON.stringify(prefix(9000)) + ' };',
@@ -145,11 +151,13 @@ function makeLane(opts = {}) {
   const factory = new Function(
     'LANE_PAGE', 'LANE_CURSOR_KEY', 'localStorage', 'chronik', 'CT', 'PB',
     'shiftRangesForGrowth', 'scopeCursorView', 'laneReachOf',
+    'createLaneStore',
     src
   );
   const L = factory(
     LANE_PAGE, LANE_CURSOR_KEY, localStorage, chronik, CT, PB,
-    shiftRangesForGrowth, scopeCursorView, laneReachOf
+    shiftRangesForGrowth, scopeCursorView, laneReachOf,
+    createLaneStore
   );
   L.probes = () => probes;
   return L;

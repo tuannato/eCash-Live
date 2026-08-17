@@ -3,9 +3,11 @@
 //
 // Cursor/coverage math is imported from the shipped vendor/core/lane-cursor.js
 // (the same module Flow loads). The corpus store is imported from
-// vendor/core/lane-corpus.js. Door-owned functions are still extracted from
-// flow/index.html: a test of a copy passes when the copy is right; those fail
-// when the page is wrong.
+// vendor/core/lane-corpus.js. The persist/quota engine is imported from
+// vendor/core/lane-store.js — the store owns the write, the shrink and the
+// merge. Door-owned functions are still extracted from flow/index.html: a
+// test of a copy passes when the copy is right; those fail when the page is
+// wrong.
 //
 // laneRematch (the hidden-id union), laneHold, loadTerms / saveTerms and the
 // mute trio live in tools/test-lane-corpus.mjs — also extracted, not copied.
@@ -19,6 +21,7 @@ import {
   rangeActive as rangeActiveOf, inRange as inRangeOf, dayStart, senderTag,
 } from '../vendor/core/lane-cursor.js';
 import { createCorpus } from '../vendor/core/lane-corpus.js';
+import { createLaneStore } from '../vendor/core/lane-store.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const html = readFileSync(join(ROOT, 'flow/index.html'), 'utf8');
@@ -45,8 +48,7 @@ function grab(name) {
   throw new Error('unbalanced: ' + name);
 }
 
-const NAMES = ['saveLaneStore', 'loadLaneStore', 'restoreLaneStore',
-               'cmpChipList', 'dayEnd',
+const NAMES = ['cmpChipList', 'dayEnd',
                'computeSuggestions', 'laneTsOf', 'txWhenMs', 'laneSetMatched',
                'reopenIndexIfUnanswered'];
 const bodies = NAMES.map(grab).join('\n\n');
@@ -78,11 +80,12 @@ function makeLane(quotaChars = Infinity) {
     'SUGGEST_MIN_DF_TAG', 'SUGGEST_MIN_SENDERS_TAG', 'SUGGEST_TAG_SOFT',
     'inScopeOf', 'sanitizeScope', 'scopeLabelOf', 'laneReachOf',
     'rangeActiveOf', 'inRangeOf', 'dayStart', 'senderTag',
-    'createCorpus',
+    'createCorpus', 'createLaneStore',
     `
     "use strict";
     const state = { laneScope: [LOKAD.CASHTAB_MSG], termMode: 'any', terms: [] };
     const laneCorpus = createCorpus({ max: CORPUS_MAX });
+    const laneStore = createLaneStore({ storage: localStorage, key: LANE_CURSOR_KEY });
     function corpusAdd(txid, text, ts, lokad, from){ laneCorpus.add(txid, text, ts, lokad, from); }
     function corpusMatches(){
       return laneCorpus.matches({
@@ -90,9 +93,21 @@ function makeLane(quotaChars = Infinity) {
         scope: state.laneScope, range: laneRange, mode: state.termMode,
       });
     }
+    function saveLaneStore(){
+      laneStore.save({ cursor: laneBf ? laneBf.cursor : laneSavedCursor, corpus: laneCorpus });
+      if (laneStore.cursor) laneSavedCursor = laneStore.cursor;
+    }
+    function loadLaneStore(){ return laneStore.load(); }
+    function restoreLaneStore(){
+      const s = laneStore.load();
+      if (!s) return null;
+      laneCorpus.load(s.corpus);
+      laneSavedCursor = s.cursor;
+      return s.cursor;
+    }
     const MATCH_MAX = 200;
     state.txs = new Map(); state.laneTxs = new Map(); state.matched = []; state.matchedTotal = 0;
-    let laneBf = null, laneSavedCursor = null, laneStoreTrimmed = 0;
+    let laneBf = null, laneSavedCursor = null;
     let laneDeepDone = false, laneRangeDone = false;
     let laneRange = { from: null, to: null }, laneNoDate = 0;
     const enabledTerms = () => state.terms.filter(t => t.on && t.q && !t.mute);
@@ -114,7 +129,7 @@ function makeLane(quotaChars = Infinity) {
       setTxs: (m) => { for (const [k,v] of m) state.txs.set(k,v); },
       setRange: (r) => { laneRange = r; },
       get corpusFull(){ return laneCorpus.full; },
-      get trimmed(){ return laneStoreTrimmed; },
+      get trimmed(){ return laneStore.trimmed; },
       get savedCursor(){ return laneSavedCursor; },
       get deepDone(){ return laneDeepDone; },
       setDeepDone: (v) => { laneDeepDone = v; },
@@ -133,7 +148,7 @@ function makeLane(quotaChars = Infinity) {
                  num('SUGGEST_MIN_DF_TAG'), num('SUGGEST_MIN_SENDERS_TAG'), num('SUGGEST_TAG_SOFT'),
                  inScopeOf, sanitizeScope, scopeLabelOf, laneReachOf,
                  rangeActiveOf, inRangeOf, dayStart, senderTag,
-                 createCorpus);
+                 createCorpus, createLaneStore);
 }
 
 let pass = 0, fail = 0;
@@ -285,6 +300,9 @@ const CT = LOKAD.CASHTAB_MSG, PB = LOKAD.PAYBUTTON, EC = LOKAD.ECASHCHAT_TX, AL 
 
 // -------------------------------------------------- merge-persist (the bug) --
 {
+  // The store owns this merge: save() accumulates each incoming cursor onto
+  // whatever it last wrote or loaded. A door that wrote the engine cursor
+  // straight through would fail A -> B -> C here.
   console.log('\n-- saveLaneStore: a narrowed scope must not erase read depth --');
   const L = makeLane();
   L.corpusAdd('x', 'hello', 7, CT);

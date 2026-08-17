@@ -23,6 +23,7 @@ import { matchAny, matchEvery } from '../vendor/core/match.js';
 import { MESSAGE_LOKADS, LOKAD } from '../vendor/txparse.js';
 import { rangeActive, inRange, inScope, senderTag, senderOf } from '../vendor/core/lane-cursor.js';
 import { createCorpus } from '../vendor/core/lane-corpus.js';
+import { createLaneStore } from '../vendor/core/lane-store.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const html = readFileSync(join(ROOT, 'flow/index.html'), 'utf8');
@@ -193,6 +194,7 @@ function makeLane(opts = {}) {
     '  matched: [], matchedTotal: 0,',
     '};',
     'const laneCorpus = createCorpus({ max: CORPUS_MAX });',
+    'const laneStore = createLaneStore({ storage: localStorage, key: LANE_CURSOR_KEY });',
     'let laneBf = null;',
     'let laneBusy = ' + (opts.busy ? 'true' : 'false') + ';',
     'let laneRunToken = 0, laneAbort = null;',
@@ -273,7 +275,7 @@ function makeLane(opts = {}) {
     'MATCH_MAX', 'CORPUS_MAX', 'LANE_PAGE', 'LANE_REQUESTS', 'LANE_CURSOR_KEY',
     'holdThrow', 'interruptAfterRun', 'opts',
     'rangeActive', 'inRange', 'inScope', 'senderTag', 'senderOf',
-    'createCorpus',
+    'createCorpus', 'createLaneStore',
     src
   );
   return factory(
@@ -283,7 +285,7 @@ function makeLane(opts = {}) {
     MATCH_MAX, CORPUS_MAX, LANE_PAGE, requests, LANE_CURSOR_KEY,
     holdThrow, interruptAfterRun, opts,
     rangeActive, inRange, inScope, senderTag, senderOf,
-    createCorpus
+    createCorpus, createLaneStore
   );
 }
 

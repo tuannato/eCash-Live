@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-mo2yZsPbuh7+5p3wt9d43bHST0MrjIV1Nvu6EUTtNFM=';
+  script-src 'self' 'sha256-QcsBLgymS6pEH6FNnAPEIQpmYIw5XfM2+bYAlz1amW4=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -1567,6 +1567,7 @@ import { matchAny, matchEvery, findAllSpans, segmentWords, normalize as normaliz
 import { createBackfill } from '../vendor/core/backfill.js?v=6';
 import { laneReach, laneWindows, shiftRangesForGrowth, inScope, scopeLabel, sanitizeScope, scopeCursorView, inRange, dayStart, rangeActive, senderTag, senderOf, presetFrom, presetActive } from '../vendor/core/lane-cursor.js?v=1';
 import { createCorpus } from '../vendor/core/lane-corpus.js?v=1';
+import { createLaneStore } from '../vendor/core/lane-store.js?v=1';
 import { isCashtabExtension, requestAddress as ctRequestAddress, sendBip21 as ctSendBip21 } from '../vendor/cashtab-connect.js?v=1';
 "use strict";
 const $ = (id) => document.getElementById(id);
@@ -4528,6 +4529,7 @@ function corpusMatches(){
 // how far the backward walk got — {lokad: {page, numPages, ...}}. No search terms
 // and no results live here; those are in TERMS_KEY and in memory.
 const LANE_CURSOR_KEY = 'ecashlive:flow:lane-cursor';
+const laneStore = createLaneStore({ storage: localStorage, key: LANE_CURSOR_KEY });
 let laneBf = null, laneBusy = false, laneRunToken = 0;
 // The engine has always accepted an AbortSignal; Flow never passed one. Without
 // it, a term change orphaned the in-flight run's OUTPUT but not its REQUESTS —
@@ -4803,83 +4805,25 @@ let laneScopeHidden = 0;
    is rebuilt locally. The previous version cleared the results but kept the
    cursor, which is the worst of both: it paid again for pages it had thrown
    away, and it skipped the newest pages for every term after the first. */
-/* THE CURSOR AND THE CORPUS ARE STORED TOGETHER, AND THAT IS THE POINT.
-
-   The cursor says which pages have been read; the corpus is what was read. If
-   the cursor outlives the corpus, the next session resumes past pages it can no
-   longer search, and every new term is blind to them — which is the original bug
-   in a slower form, surviving a reload instead of a term change. Writing them as
-   one value makes that state unreachable rather than merely unlikely.
-
-   If storage fails (quota, private mode) NEITHER is kept, for the same reason. */
+/* THE CURSOR AND THE CORPUS ARE STORED TOGETHER — vendor/core/lane-store.js.
+   The cursor says which pages have been read; the corpus is what was read.
+   Writing them as one value makes a cursor-without-corpus unreachable. The
+   store owns the write, the shrink, and the merge (a narrowed engine cursor
+   must not erase deselected protocol depth). dump() is the row snapshot —
+   iterating the corpus here as well is how the two shapes would drift. */
 function loadLaneStore(){
-  try {
-    const raw = JSON.parse(localStorage.getItem(LANE_CURSOR_KEY) || 'null');
-    if (!raw || typeof raw !== 'object' || !raw.cursor || !Array.isArray(raw.corpus)) return null;
-    return raw;
-  } catch { return null; }
+  return laneStore.load();
 }
-/* THE STORED CURSOR IS A SUPERSET, AND IT HAS TO BE.
-   createBackfill fixes its cursor object from the `lokads` it was built with, so
-   at a narrowed scope laneBf.cursor describes only the selected protocols.
-   Writing it straight to storage would erase the read depth of everything the
-   reader had just deselected — pages already paid for, gone, and re-walked from
-   zero the moment they tick the box again. Worse, the corpus would still hold
-   those entries while the cursor claimed nothing had been read, which is exactly
-   the state laneReach() answers by refusing to state a date at all.
-
-   laneSavedCursor therefore ACCUMULATES rather than being a boot-time snapshot:
-   it is what storage holds, updated in place, so scope A -> B -> A keeps both. */
-/* HOW MANY ROWS COULD NOT BE SAVED, so the shrink below never happens in silence.
-   0 whenever everything fit, which is the ordinary case. */
-let laneStoreTrimmed = 0;
 function saveLaneStore(){
-  if (laneBf) laneSavedCursor = Object.assign({}, laneSavedCursor || {}, laneBf.cursor);
-  if (!laneSavedCursor) return;
-  const rows = [];
-  // Fourth element is the protocol tag; rows written before it exists are three
-  // long and stay readable, so this needs no version bump. R3's `ranges` cursor
-  // is a real schema change and gets one.
-  for (const [id, e] of laneCorpus) rows.push([id, e.text, e.ts, e.lokad || null, e.from || null]);
-  /* NEWEST FIRST, so a trim takes from the far end. The corpus is a contiguous
-     window from the newest message backwards and the reach line depends on it;
-     cutting the near end would leave a hole beside the date being claimed. This
-     is the same newest-window rule corpusAdd() uses, applied to the copy
-     that goes to disk. A row with no timestamp sorts oldest and goes first. */
-  rows.sort((a, b) => (b[2] || 0) - (a[2] || 0));
-  /* SHRINK, DO NOT DROP EVERYTHING.
-     The old catch removed the whole entry on any failure, so one quota error cost
-     the reader every page they had ever walked — cursor included, which is the
-     expensive half. Halving retries land on a size that fits in at most ~13 tries.
-
-     Storage is shared with neo on this origin and most engines account quota in
-     UTF-16, i.e. two bytes per character: measured, 5,000 rows is ~1.5 MB of a
-     typical 5 MB budget, which is why CORPUS_MAX sits where it does rather than
-     at the 9,392 that would hold all of Cashtab.
-
-     The floor is 1, not 0: a cursor stored beside an EMPTY corpus is the exact
-     "resumes past pages it can no longer search" state this pair was written as
-     one value to make unreachable. If even one row will not fit, take nothing. */
-  let n = rows.length;
-  for (;;){
-    try {
-      localStorage.setItem(LANE_CURSOR_KEY,
-        JSON.stringify({ v: 1, cursor: laneSavedCursor, corpus: rows.slice(0, n) }));
-      laneStoreTrimmed = rows.length - n;
-      return;
-    } catch {
-      if (n <= 1){
-        try { localStorage.removeItem(LANE_CURSOR_KEY); } catch {}
-        laneStoreTrimmed = rows.length;
-        return;
-      }
-      n = Math.floor(n / 2);
-    }
-  }
+  // Engine cursor when a run is live (incomplete at a narrowed scope); the
+  // door's mutated alias otherwise (punch / shift-for-growth). The store
+  // merges either onto whatever it last saved or loaded.
+  laneStore.save({ cursor: laneBf ? laneBf.cursor : laneSavedCursor, corpus: laneCorpus });
+  if (laneStore.cursor) laneSavedCursor = laneStore.cursor;
 }
 let laneSavedCursor = null;
 function restoreLaneStore(){
-  const s = loadLaneStore();
+  const s = laneStore.load();
   if (!s) return null;
   laneCorpus.load(s.corpus);
   laneSavedCursor = s.cursor;
@@ -5374,7 +5318,6 @@ function laneClearData(){
   state.laneTxs.clear();
   laneSavedCursor = null;
   laneBf = null;
-  laneStoreTrimmed = 0;
   laneDeepHoles = 0;
   laneDeepDone = false;
   laneRangeDone = false;
@@ -5390,7 +5333,7 @@ function laneClearData(){
   suggestSeenLokad = null;
   laneSuggestCache = null;
   laneSuggestAt = -1;
-  try { localStorage.removeItem(LANE_CURSOR_KEY); } catch {}
+  laneStore.clear();
   laneRematch();
   refreshLaneScope();              // every per-protocol total just became "not read yet"
   if (state.laneOpen) renderLane(); else { renderLaneMore(); renderLaneTools(); }
@@ -6249,7 +6192,7 @@ function renderLane(){
      would not take everything memory DID accept, so the rest is gone at the next
      reload. The reader loses nothing this session and cannot tell that from the
      screen — which is exactly why it has to be said rather than inferred. */
-  if (laneStoreTrimmed) cov.push(tf('lane.storeTrimmed', { n: fmtInt(laneStoreTrimmed) }));
+  if (laneStore.trimmed) cov.push(tf('lane.storeTrimmed', { n: fmtInt(laneStore.trimmed) }));
   // The render cap, stated. Without it "{n} found" is a claim about the search
   // when it is really a fact about the list.
   if (state.matchedTotal > state.matched.length){
