@@ -3,9 +3,11 @@
 //
 // Cursor/coverage math is imported from the shipped vendor/core/lane-cursor.js.
 // The persist/quota engine is imported from vendor/core/lane-store.js.
-// laneRefreshIndex / maybeAutoRefresh / laneClearData / saveLaneStore are
-// still extracted from flow/index.html: a test of a copy passes when the
-// copy is right; those fail when the page is wrong.
+// laneRefreshIndex / maybeAutoRefresh / laneClearData / saveLaneStore /
+// interrupt are still extracted from flow/index.html: a test of a copy
+// passes when the copy is right; those fail when the page is wrong.
+// interrupt is bound because laneClearData calls it — a stub here would
+// make the clear arm a test of the harness.
 //
 // Why it exists: laneRefreshIndex used one session variable for two jobs
 // (request budget vs "the prefix is actually verified"). A failed probe then
@@ -99,6 +101,7 @@ function makeLane(opts = {}) {
   // Concatenate: the shipped bodies contain backtick comments (`c`, `oldestTs`)
   // that would terminate a template literal around ${grab(...)}.
   const bodies = [
+    grab('interrupt'),
     grab('saveLaneStore'),
     grab('laneRefreshIndex'),
     grab('maybeAutoRefresh'),

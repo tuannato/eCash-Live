@@ -65,6 +65,8 @@ const LANE_REQUESTS = Number(mod.match(/const LANE_REQUESTS = (\d+)/)[1]);
 const MATCH_MAX = Number(mod.match(/const MATCH_MAX = (\d+)/)[1]);
 const CORPUS_MAX = Number(mod.match(/const CORPUS_MAX = (\d+)/)[1]);
 const LANE_CURSOR_KEY = mod.match(/const LANE_CURSOR_KEY = '([^']+)'/)[1];
+const RANGE_KICK_MS = Number(mod.match(/const RANGE_KICK_MS = (\d+)/)[1]);
+const SCOPE_KICK_MS = Number(mod.match(/const SCOPE_KICK_MS = (\d+)/)[1]);
 
 const CT = LOKAD.CASHTAB_MSG;
 const PB = LOKAD.PAYBUTTON;
@@ -84,7 +86,9 @@ const LANE_FNS = [
   'saveLaneStore',
   'laneParseTx',
   'laneHydrate',
+  'interrupt',
   'runLaneBackfill',
+  'onRangeChanged',
 ];
 const bodies = LANE_FNS.map(grab).join('\n\n');
 
@@ -219,6 +223,10 @@ function makeLane(opts = {}) {
     'function refreshLaneScope(){}',
     'function refreshLaneRange(){}',
     'function scheduleSuggest(){}',
+    'function maybeAutoBackfill(){}',
+    'let scopeKickTimer = null;',
+    'const RANGE_KICK_MS = ' + RANGE_KICK_MS + ';',
+    'const SCOPE_KICK_MS = ' + SCOPE_KICK_MS + ';',
     bodies,
     'const _hold = laneHold;',
     'laneHold = function(tx){',
@@ -232,14 +240,9 @@ function makeLane(opts = {}) {
     'saveLaneStore = function(){ saveN++; return _save(); };',
     'const _hydrate = laneHydrate;',
     'laneHydrate = async function(token){ hydrateN++; return _hydrate(token); };',
-    'function interrupt(){',
-    '  laneRunToken++;',
-    '  if (laneAbort) laneAbort.abort();',
-    '  laneBusy = false;',
-    '}',
     'return {',
     '  state, laneCorpus, lanePrefilter, laneParseTx, txMatchesTerms,',
-    '  runLaneBackfill, interrupt,',
+    '  runLaneBackfill, interrupt, onRangeChanged,',
     '  get creates(){ return createCalls; },',
     '  get loads(){ return loadCalls; },',
     '  get runArgs(){ return runArgLog; },',
@@ -261,6 +264,9 @@ function makeLane(opts = {}) {
     '  setRange: (r) => { laneRange = r; },',
     '  setBusy: (v) => { laneBusy = v; },',
     '  setDeepDone: (v) => { laneDeepDone = v; },',
+    '  setRangeDone: (v) => { laneRangeDone = v; },',
+    '  setUnread: (v) => { laneUnread = v; },',
+    '  setBf: (v) => { laneBf = v; },',
     '  setChronik: (c) => { state.chronik = c; },',
     '  setTerms: (t) => { state.terms = t; },',
     '  setScope: (ids) => { state.laneScope = ids; },',
@@ -440,14 +446,48 @@ console.log('\n-- the token race, all three arms --');
   ok('after run(): laneBusy not stranded', L.busy === false);
 }
 
-// -------------------------------------------------------- interrupt triple
-console.log('\n-- interrupt triple: four sites, all three operations --');
+// -------------------------------------------------------- interrupt: one writer
+console.log('\n-- interrupt: four callers, one writer, extras stay at their sites --');
 for (const name of INTERRUPT_FNS) {
   const src = grab(name);
-  ok(name + ' increments laneRunToken', /laneRunToken\s*\+\+/.test(src));
-  ok(name + ' calls laneAbort.abort()', /laneAbort\.abort\s*\(/.test(src));
-  ok(name + ' sets laneBusy = false', /laneBusy\s*=\s*false/.test(src));
-  ok(name + ' does all three', tripleIn(src));
+  ok(name + ' calls interrupt()', /\binterrupt\s*\(\s*\)/.test(src));
+  ok(name + ' no longer writes the triple inline', !tripleIn(src));
+}
+const interruptSrc = grab('interrupt');
+ok('interrupt() is the only writer of the triple',
+   tripleIn(interruptSrc) && !tripleIn(mod.replace(interruptSrc, '')));
+
+function stripComments(src) {
+  return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+}
+const interruptCode = stripComments(interruptSrc);
+ok('interrupt() does not mention laneDeepDone / laneBf / laneUnread / laneRangeDone / honesty clocks',
+   !/\blaneDeepDone\b/.test(interruptCode)
+   && !/\blaneBf\b/.test(interruptCode)
+   && !/\blaneUnread\b/.test(interruptCode)
+   && !/\blaneRangeDone\b/.test(interruptCode)
+   && !/\blaneProbeSpentAt\b/.test(interruptCode)
+   && !/\blanePrefixVerifiedAt\b/.test(interruptCode));
+{
+  // Drive the shipped onRangeChanged: a range change that reset laneDeepDone
+  // would re-enable "Search further back" after the chain was exhausted.
+  const L = makeLane({ pages: { [CT]: [pageOf('ir', 1)] }, numPages: { [CT]: 1 } });
+  const sentinelBf = { keep: true };
+  L.setDeepDone(true);
+  L.setRangeDone(true);
+  L.setUnread(3);
+  L.setBf(sentinelBf);
+  L.setBusy(true);
+  const t0 = L.token;
+  L.onRangeChanged({ from: 1_700_000_000_000, to: null });
+  ok('onRangeChanged: interrupt ran (token advanced, busy cleared)',
+     L.token === t0 + 1 && L.busy === false);
+  ok('onRangeChanged: laneDeepDone survived (the reason extras stay at their sites)',
+     L.deepDone === true);
+  ok('onRangeChanged: laneRangeDone reset at the site, not inside interrupt()',
+     L.rangeDone === false);
+  ok('onRangeChanged: laneBf and laneUnread untouched',
+     L.bf === sentinelBf && L.unread === 3);
 }
 
 // -------------------------------------------------------------------- toSec

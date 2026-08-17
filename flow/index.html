@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-/ZBG2WaTHv1bF8l7eiCifmUbf5UuuUUrQFr7IXM6LhA=';
+  script-src 'self' 'sha256-ksm81zZc53ZdohrWq+oSYNo2kxKurdkTGrr4PdwLm6k=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -5299,6 +5299,21 @@ function maybeAutoRefresh(){
   laneRefreshIndex(true);
 }
 
+/* Stop the run in flight: bump the token so leftover work stops writing,
+   abort the fetch so a second run cannot start on top of the first (that
+   miss is what silently doubled the budget), and clear the busy flag.
+   Deliberately does not touch laneDeepDone, laneRangeDone, laneBf,
+   laneUnread, or either honesty clock. Those disagree across the four
+   callers — a range change that reset laneDeepDone would re-enable
+   "Search further back" after the chain was exhausted; a terms change
+   that dropped laneBf would throw away a live cursor the next run
+   reloads. The extras stay at their sites. */
+function interrupt(){
+  laneRunToken++;
+  if (laneAbort) laneAbort.abort();
+  laneBusy = false;
+}
+
 /* EVERYTHING THE BACKWARD WALK PAID FOR, AND NOTHING ELSE.
    The topics are not touched: they are the reader's question, not data, and a
    button labelled "clear searched data" that also deleted eight saved topics
@@ -5308,9 +5323,7 @@ function maybeAutoRefresh(){
    the coverage line describes: the corpus, the read cursor, and the transactions
    hydrated from them. */
 function laneClearData(){
-  laneRunToken++;                  // any run in flight stops writing shared state
-  if (laneAbort) laneAbort.abort();
-  laneBusy = false;
+  interrupt();
   laneCorpus.clear();
   state.laneTxs.clear();
   laneSavedCursor = null;
@@ -5626,9 +5639,7 @@ function onRangeChanged(next, src){
   const to = Number.isFinite(next.to) ? next.to : null;
   if (from === laneRange.from && to === laneRange.to) return;
   laneRange = { from, to };
-  laneRunToken++;
-  if (laneAbort) laneAbort.abort();
-  laneBusy = false;
+  interrupt();
   laneRangeDone = false;
   laneRematch();
   refreshLaneRange();         // NEVER renderLaneRange: a date field may have focus
@@ -6602,11 +6613,7 @@ function onTermsChanged(){
   // for it, permanently. Reproduced live: a new term began at page 3 of all six.
   // Nothing here resets a thing that cost a request; only the answer is rebuilt.
   recountMutes();              // a changed mute set has no history to count up from
-  laneRunToken++;              // any run still in flight stops writing shared state
-  // Stop it FETCHING too, not just stop it being heard. Clearing the busy flag
-  // without this is what let a second run start on top of the first.
-  if (laneAbort) laneAbort.abort();
-  laneBusy = false;
+  interrupt();
   laneDeepDone = false;        // "searched everything" belonged to the old question
   const apply = () => {
     reopenIndexIfUnanswered();
@@ -6653,9 +6660,7 @@ function onScopeChanged(next){
   saveTerms();
   suggestSeenNumTxs = null;
   suggestSeenLokad = null;
-  laneRunToken++;
-  if (laneAbort) laneAbort.abort();
-  laneBusy = false;
+  interrupt();
   laneDeepDone = false;
   laneBf = null;               // rebuilt against the new selection on the next run
   laneUnread = 0;              // it counted protocols nobody is searching now
