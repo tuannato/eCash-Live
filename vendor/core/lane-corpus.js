@@ -67,8 +67,8 @@ import { inScope, inRange } from './lane-cursor.js?v=1';
  * dump() is a METHOD, not a getter. createBackfill clones on every `.cursor`
  * read because the walk is live; this snapshot is taken once per save, and a
  * getter that allocated 5,000 arrays on `if (c.dump)` would be the wrong
- * shape. The clone is the point: the door sorts and splices the copy for the
- * quota trim, and that must not reorder or drop rows in the Map.
+ * shape. The clone is the point: createLaneStore.save() sorts and slices the
+ * copy for the quota trim, and that must not reorder or drop rows in the Map.
  *
  * Row shape is the one saveLaneStore already writes and restoreLaneStore
  * already reads: `[id, text, ts, lokad, from]`. Three-element legacy rows

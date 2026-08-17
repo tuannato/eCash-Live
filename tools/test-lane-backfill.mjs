@@ -202,7 +202,6 @@ function makeLane(opts = {}) {
     'let laneUnread = 0, laneRangeDone = false;',
     'let laneRange = opts.range ? opts.range : { from: null, to: null };',
     'let laneSavedCursor = saved;',
-    'let corpusFull = false, laneStoreTrimmed = 0, corpusGen = 0;',
     'let laneSuggestCache = null, laneNoDate = 0, laneScopeHidden = 0;',
     'function clean(s){ return String(s == null ? "" : s); }',
     'function scrubTx(tx){',

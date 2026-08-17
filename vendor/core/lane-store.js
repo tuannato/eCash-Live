@@ -143,6 +143,15 @@ export function createLaneStore({ storage, key } = {}) {
     load,
     clear,
     get trimmed() { return trimmed; },
+    /* LIVE OBJECT, NOT A CLONE — and deliberately unlike createBackfill.cursor,
+       which deep-copies on every read. The door aliases this as its own saved
+       cursor and mutates it in place (punch, shift-for-growth); save() then
+       merges that same object forward, which is what keeps a deselected
+       protocol's depth. Cloning here would silently discard those writes.
+
+       So do NOT copy the `const before = laneBf.cursor` idiom onto this one.
+       That snapshot works only because backfill clones; the same line here
+       captures a live reference and any later diff against it is a no-op. */
     get cursor() { return lastCursor; },
   };
 }

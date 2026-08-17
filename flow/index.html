@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-QcsBLgymS6pEH6FNnAPEIQpmYIw5XfM2+bYAlz1amW4=';
+  script-src 'self' 'sha256-/ZBG2WaTHv1bF8l7eiCifmUbf5UuuUUrQFr7IXM6LhA=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -1565,7 +1565,7 @@ import { parseTransactionCore, encodeOutputScript, validateCashAddress, parseOpR
 // already has them.
 import { matchAny, matchEvery, findAllSpans, segmentWords, normalize as normalizeTerm } from '../vendor/core/match.js?v=7';
 import { createBackfill } from '../vendor/core/backfill.js?v=6';
-import { laneReach, laneWindows, shiftRangesForGrowth, inScope, scopeLabel, sanitizeScope, scopeCursorView, inRange, dayStart, rangeActive, senderTag, senderOf, presetFrom, presetActive } from '../vendor/core/lane-cursor.js?v=1';
+import { laneReach, laneWindows, shiftRangesForGrowth, inScope, scopeLabel, sanitizeScope, scopeCursorView, inRange, dayStart, rangeActive, senderOf, presetFrom, presetActive } from '../vendor/core/lane-cursor.js?v=1';
 import { createCorpus } from '../vendor/core/lane-corpus.js?v=1';
 import { createLaneStore } from '../vendor/core/lane-store.js?v=1';
 import { isCashtabExtension, requestAddress as ctRequestAddress, sendBip21 as ctSendBip21 } from '../vendor/cashtab-connect.js?v=1';
@@ -4811,9 +4811,6 @@ let laneScopeHidden = 0;
    store owns the write, the shrink, and the merge (a narrowed engine cursor
    must not erase deselected protocol depth). dump() is the row snapshot —
    iterating the corpus here as well is how the two shapes would drift. */
-function loadLaneStore(){
-  return laneStore.load();
-}
 function saveLaneStore(){
   // Engine cursor when a run is live (incomplete at a narrowed scope); the
   // door's mutated alias otherwise (punch / shift-for-growth). The store

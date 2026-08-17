@@ -1,5 +1,5 @@
 // Harness for the Lane's "not checked" qualifier (2026-08-16).
-//   node internal/test-lane-notchecked.mjs
+//   node tools/test-lane-notchecked.mjs
 //
 // Cursor/coverage math is imported from the shipped vendor/core/lane-cursor.js.
 // The persist/quota engine is imported from vendor/core/lane-store.js.
@@ -120,11 +120,10 @@ function makeLane(opts = {}) {
     'let ' + HONESTY + ' = 0;',
     'let laneRefreshBusy = false, laneRefreshMsg = null;',
     'let laneRunToken = 0, laneAbort = null;',
-    'let corpusFull = false, laneStoreTrimmed = 0;',
     'let laneDeepHoles = 0, laneDeepDone = false, laneRangeDone = false;',
     'let laneUnread = 0, laneScopeHidden = 0, laneNoDate = 0;',
     'let suggestPrefetchP = null, suggestSeenNumTxs = null, suggestSeenLokad = null;',
-    'let laneSuggestCache = null, laneSuggestAt = -1, corpusGen = 0;',
+    'let laneSuggestCache = null, laneSuggestAt = -1;',
     'const setTimeout = () => 0;',
     'const toast = () => {};',
     'const t = (k) => k;',
