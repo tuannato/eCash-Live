@@ -22,6 +22,7 @@ import { createBackfill as realCreateBackfill } from '../vendor/core/backfill.js
 import { matchAny, matchEvery } from '../vendor/core/match.js';
 import { MESSAGE_LOKADS, LOKAD } from '../vendor/txparse.js';
 import { rangeActive, inRange, inScope, senderTag, senderOf } from '../vendor/core/lane-cursor.js';
+import { createCorpus } from '../vendor/core/lane-corpus.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const html = readFileSync(join(ROOT, 'flow/index.html'), 'utf8');
@@ -191,7 +192,7 @@ function makeLane(opts = {}) {
     '  laneOpen: !!opts.laneOpen, txs: new Map(), laneTxs: new Map(),',
     '  matched: [], matchedTotal: 0,',
     '};',
-    'const laneCorpus = new Map();',
+    'const laneCorpus = createCorpus({ max: CORPUS_MAX });',
     'let laneBf = null;',
     'let laneBusy = ' + (opts.busy ? 'true' : 'false') + ';',
     'let laneRunToken = 0, laneAbort = null;',
@@ -272,6 +273,7 @@ function makeLane(opts = {}) {
     'MATCH_MAX', 'CORPUS_MAX', 'LANE_PAGE', 'LANE_REQUESTS', 'LANE_CURSOR_KEY',
     'holdThrow', 'interruptAfterRun', 'opts',
     'rangeActive', 'inRange', 'inScope', 'senderTag', 'senderOf',
+    'createCorpus',
     src
   );
   return factory(
@@ -280,7 +282,8 @@ function makeLane(opts = {}) {
     localStorage, chronik, scope, terms, saved,
     MATCH_MAX, CORPUS_MAX, LANE_PAGE, requests, LANE_CURSOR_KEY,
     holdThrow, interruptAfterRun, opts,
-    rangeActive, inRange, inScope, senderTag, senderOf
+    rangeActive, inRange, inScope, senderTag, senderOf,
+    createCorpus
   );
 }
 

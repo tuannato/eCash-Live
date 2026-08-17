@@ -1,12 +1,13 @@
 // Harness for the Lane corpus, hold, mute, rematch and term restore.
 //   node tools/test-lane-corpus.mjs
 //
-// Cursor/coverage math is imported from the shipped vendor/core/lane-cursor.js.
-// Door-owned functions are still extracted from flow/index.html. The previous
-// file at this path re-stated a copy (CORPUS_MAX 3000, insertion-order corpus
-// eviction, FIFO laneHold, no lokad/from) and stayed green while the page
-// diverged. A test of a copy passes when the copy is right; those fail when
-// the page is wrong.
+// The corpus store is imported from the shipped vendor/core/lane-corpus.js
+// (the same module Flow loads). Cursor/coverage math is imported from
+// vendor/core/lane-cursor.js. Door-owned functions are still extracted from
+// flow/index.html. The previous file at this path re-stated a copy (CORPUS_MAX
+// 3000, insertion-order corpus eviction, FIFO laneHold, no lokad/from) and
+// stayed green while the page diverged. A test of a copy passes when the copy
+// is right; those fail when the page is wrong.
 //
 // Constants (CORPUS_MAX, MATCH_MAX, TERM_MAX, TERMS_KEY) are read out of the
 // page. Hardcoding them is how the fossil rotted.
@@ -18,6 +19,7 @@ import { MESSAGE_LOKADS, LOKAD, LOKAD_NAMES } from '../vendor/txparse.js';
 import {
   inScope as inScopeOf, sanitizeScope, rangeActive as rangeActiveOf, inRange as inRangeOf,
 } from '../vendor/core/lane-cursor.js';
+import { createCorpus } from '../vendor/core/lane-corpus.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const html = readFileSync(join(ROOT, 'flow/index.html'), 'utf8');
@@ -52,7 +54,6 @@ const TERM_MAX = Number(mod.match(/const TERM_MAX = (\d+)/)[1]);
 const TERMS_KEY = mod.match(/const TERMS_KEY = '([^']+)'/)[1];
 
 const NAMES = [
-  'corpusAdd', 'corpusMatches',
   'txWhenMs', 'laneTsOf',
   'enabledTerms', 'activeMutes', 'matchTerms', 'txMatchesTerms', 'txIsMuted',
   'laneHold', 'laneSetMatched', 'laneSuggestInvalidate', 'laneRematch',
@@ -83,9 +84,15 @@ function makeLane(opts = {}) {
     '  txs: new Map(), laneTxs: new Map(), matched: [], matchedTotal: 0,',
     '  laneOpen: false,',
     '};',
-    'const laneCorpus = new Map();',
+    'const laneCorpus = createCorpus({ max: CORPUS_MAX });',
+    'function corpusAdd(txid, text, ts, lokad, from){ laneCorpus.add(txid, text, ts, lokad, from); }',
+    'function corpusMatches(){',
+    '  return laneCorpus.matches({',
+    '    terms: enabledTerms(), mutes: activeMutes(),',
+    '    scope: state.laneScope, range: laneRange, mode: state.termMode,',
+    '  });',
+    '}',
     'const muteCounts = new Map();',
-    'let corpusFull = false, corpusGen = 0;',
     'let laneRange = { from: null, to: null };',
     'let laneNoDate = 0, laneScopeHidden = 0;',
     'let laneSuggestCache = "seed";',
@@ -105,8 +112,8 @@ function makeLane(opts = {}) {
     '  muteApply, recountMutes, muteCount, laneAdd, sessionCoverage,',
     '  loadTerms, saveTerms, inRange, sanitizeScope,',
     '  setRange: (r) => { laneRange = r; },',
-    '  get corpusFull(){ return corpusFull; },',
-    '  get corpusGen(){ return corpusGen; },',
+    '  get corpusFull(){ return laneCorpus.full; },',
+    '  get corpusGen(){ return laneCorpus.gen; },',
     '  get scopeHidden(){ return laneScopeHidden; },',
     '  get noDate(){ return laneNoDate; },',
     '  get suggestCache(){ return laneSuggestCache; },',
@@ -121,6 +128,7 @@ function makeLane(opts = {}) {
     'CORPUS_MAX', 'MATCH_MAX', 'TERM_MAX', 'TERMS_KEY',
     'localStorage', 'scope', 'terms', 'termMode',
     'inScopeOf', 'sanitizeScope', 'rangeActiveOf', 'inRangeOf',
+    'createCorpus',
     src
   );
   return factory(
@@ -128,7 +136,8 @@ function makeLane(opts = {}) {
     matchAny, matchEvery,
     CORPUS_MAX, MATCH_MAX, TERM_MAX, TERMS_KEY,
     localStorage, scope, terms, termMode,
-    inScopeOf, sanitizeScope, rangeActiveOf, inRangeOf
+    inScopeOf, sanitizeScope, rangeActiveOf, inRangeOf,
+    createCorpus
   );
 }
 

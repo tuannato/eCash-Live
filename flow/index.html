@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-T1HgfnVGMVM+rycImNTK8dNU/8iZzqzGlpBU2dQBdV8=';
+  script-src 'self' 'sha256-mo2yZsPbuh7+5p3wt9d43bHST0MrjIV1Nvu6EUTtNFM=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -1566,6 +1566,7 @@ import { parseTransactionCore, encodeOutputScript, validateCashAddress, parseOpR
 import { matchAny, matchEvery, findAllSpans, segmentWords, normalize as normalizeTerm } from '../vendor/core/match.js?v=7';
 import { createBackfill } from '../vendor/core/backfill.js?v=6';
 import { laneReach, laneWindows, shiftRangesForGrowth, inScope, scopeLabel, sanitizeScope, scopeCursorView, inRange, dayStart, rangeActive, senderTag, senderOf, presetFrom, presetActive } from '../vendor/core/lane-cursor.js?v=1';
+import { createCorpus } from '../vendor/core/lane-corpus.js?v=1';
 import { isCashtabExtension, requestAddress as ctRequestAddress, sendBip21 as ctSendBip21 } from '../vendor/cashtab-connect.js?v=1';
 "use strict";
 const $ = (id) => document.getElementById(id);
@@ -4507,6 +4508,22 @@ const LANE_REQUESTS = 6;   // one page per protocol, round-robin
    ~17 ms on a pessimistic synthetic corpus — neither is a boot or click cost
    worth trading the depth for. */
 const CORPUS_MAX = 5000;
+const laneCorpus = createCorpus({ max: CORPUS_MAX });
+// The door assembles the question; the engine answers it. These two names stay
+// so ingestHistoryTx / laneRematch / the suites that still extract them keep
+// working — they close over door helpers, not over `state` inside the module.
+function corpusAdd(txid, text, ts, lokad, from){
+  laneCorpus.add(txid, text, ts, lokad, from);
+}
+function corpusMatches(){
+  return laneCorpus.matches({
+    terms: enabledTerms(),
+    mutes: activeMutes(),
+    scope: state.laneScope,
+    range: laneRange,
+    mode: state.termMode,
+  });
+}
 // User-approved 2026-08-04b (CLAUDE.md §4 requires it for any new key). Holds ONLY
 // how far the backward walk got — {lokad: {page, numPages, ...}}. No search terms
 // and no results live here; those are in TERMS_KEY and in memory.
@@ -4521,74 +4538,9 @@ let laneDeepHoles = 0, laneDeepDone = false, laneUnread = 0;
 // Covered the WINDOW, which is a fact about the question rather than the chain.
 let laneRangeDone = false;
 
-/* THE CORPUS, and why it exists — this is the fix for a real bug, recorded so it
-   is not "simplified" away.
-
-   The prefilter below already decodes every scanned transaction's on-chain text.
-   The first version threw that away and kept `raw: txData` — the whole chronik
-   object — for the few that matched: it kept the expensive thing and discarded
-   the cheap one. Worse, because nothing was cached, a NEW term had to walk the
-   index again, and since the cursor was persisted it resumed mid-walk, so the
-   newest pages were unreachable for that term forever. Reproduced live: a fresh
-   term started at page 3 of every protocol and could never see pages 0-2.
-
-   Keeping {text, ts} per scanned tx dissolves all of it. A new term is answered
-   LOCALLY from what was already paid for — no requests, no cursor question — and
-   the cursor stops meaning "how far this term looked" (which must never be
-   reused across terms) and starts meaning "how much index is cached" (which is a
-   fact about the cache, so persisting it is correct). Only genuine matches that
-   are not already parsed cost a request, and only one each. */
-/* The entry carries WHICH INDEX FOUND IT, and that tag comes from the walk
-   rather than from the script. An eMPP payload names several protocols and
-   chronik indexes the transaction under each, so the bytes have no single
-   answer; the index it was read from is exactly the fact the scope picker asks
-   about. Costs 11 bytes on a measured 155-byte row — 7%.
-
-   `lokad` is null for a row saved before this existed. Null is never treated as
-   out of scope: we cannot prove it, and guessing would hide results the reader
-   paid for. Those rows self-heal, because anything that matches gets hydrated
-   anyway and laneHydrate learns the tag then, at no extra request. */
-const laneCorpus = new Map();   // txid -> {text, ts, lokad}
-
 /* Cap on named out-of-order windows in the coverage line. The remainder is
    counted, not dropped (§10). The merge itself lives in laneWindows(). */
 const WINDOWS_SHOWN = 3;
-
-/* The corpus is a window from the NEWEST held message backwards. A newest-first
-   walk only ever offers older rows once full, so those are refused. A seek that
-   filled from the middle first then left `done` on the cursor is the other
-   shape: page 0 arrives later, is newer than everything held, and MUST enter —
-   otherwise a new term is answered from 2023 while the messages it wants sat on
-   page 0, and "Read all of Cashtab Msg" is a lie. Evict the oldest in that case
-   only. Insertion-order eviction stays forbidden. */
-let corpusFull = false;
-function corpusAdd(txid, text, ts, lokad, from){
-  const had = laneCorpus.get(txid);
-  // A row restored without a tag is UPGRADED in place when the walk meets the
-  // same transaction again. Returning early here — the obvious shape — would
-  // leave a legacy row untagged forever, since the corpus never evicts.
-  if (had){
-    let bumped = false;
-    if (!had.lokad && lokad){ had.lokad = lokad; bumped = true; }
-    if (!had.from && from){ had.from = from; bumped = true; }
-    if (bumped) corpusGen++;
-    return;
-  }
-  if (laneCorpus.size >= CORPUS_MAX){
-    let oldestId = null, oldestTs = Infinity;
-    for (const [id, e] of laneCorpus){
-      const t = e.ts || 0;
-      if (t < oldestTs){ oldestTs = t; oldestId = id; }
-    }
-    const incoming = ts || 0;
-    if (!oldestId || incoming <= oldestTs){ corpusFull = true; return; }
-    laneCorpus.delete(oldestId);
-    corpusFull = true;
-  }
-  laneCorpus.set(txid, { text, ts: ts || null, lokad: lokad || null, from: from || null });
-  corpusGen++;
-}
-
 
 /* THE DATE WINDOW IS A QUESTION, NOT A PREFERENCE, so it lives here rather than
    in state and is never written to storage — structurally, not by discipline.
@@ -4686,7 +4638,7 @@ const HASHTAG_RE = /(?:^|[^\p{L}\p{N}_])#([\p{L}\p{N}_]{2,30})/gu;
 const SHOUT_RE = /\b[A-Z][A-Z0-9]{2,11}\b/g;
 const SHOUT_ONE = /^[A-Z][A-Z0-9]{2,11}$/;   // /g is stateful — never .test() with it
 
-let laneSuggestCache = null, laneSuggestAt = -1, corpusGen = 0;
+let laneSuggestCache = null, laneSuggestAt = -1;
 function laneSuggestInvalidate(){ laneSuggestCache = null; }
 
 /* Pure over the corpus, so it is testable without a DOM and cannot surprise the
@@ -4769,7 +4721,7 @@ function computeSuggestions(){
    schedules the work; the chips appear a moment later, which is the right
    trade for a suggestion nobody is waiting on. */
 function laneSuggestions(){
-  if (laneSuggestCache && laneSuggestAt === corpusGen) return laneSuggestCache;
+  if (laneSuggestCache && laneSuggestAt === laneCorpus.gen) return laneSuggestCache;
   scheduleSuggest();
   return laneSuggestCache || [];
 }
@@ -4780,7 +4732,7 @@ function scheduleSuggest(){
   const run = () => {
     suggestQueued = false;
     laneSuggestCache = computeSuggestions();
-    laneSuggestAt = corpusGen;
+    laneSuggestAt = laneCorpus.gen;
     // Only repaint if the editor is actually open; otherwise the next open reads
     // the warm cache and shows them immediately.
     if (termEditor && !termEditor.hidden) renderTermSuggest();
@@ -4830,7 +4782,7 @@ function ensureSuggestPrefetch(){
       }
     } catch { /* next open retries */ }
     suggestPrefetchP = null;
-    if (!laneSuggestCache || laneSuggestAt !== corpusGen){
+    if (!laneSuggestCache || laneSuggestAt !== laneCorpus.gen){
       scheduleSuggest();
       if (termEditor && !termEditor.hidden) renderTermSuggest();
     }
@@ -4838,35 +4790,10 @@ function ensureSuggestPrefetch(){
   return suggestPrefetchP;
 }
 
-// Answer a term from the corpus alone. No requests, no cursor, instant.
-//
-// OUT-OF-SCOPE HITS ARE COUNTED, NOT JUST DROPPED. A returning reader's corpus
-// was gathered across all six protocols in proportion to their text yield, so
-// roughly four fifths of it sits outside the new default — dropping that in
-// silence would read as lost data. The count rides back to the coverage line,
-// and re-ticking the box brings every one of them straight back with no request.
-/* A SET OF IDS, NOT A COUNTER. Almost every hydrated result is in both the
-   corpus and state.laneTxs — the corpus records what was scanned, laneTxs what
-   was parsed — so two independent counters would report the same hidden message
-   twice, and the line would claim roughly double what one tick brings back. */
+/* Owner of the hidden-by-scope count. The set itself comes back from
+   corpusMatches(); this is the number the coverage line prints, updated only
+   from laneRematch so a live arrival cannot invent a hidden row. */
 let laneScopeHidden = 0;
-function corpusMatches(){
-  const out = [];
-  const hidden = new Set(), noDate = new Set();
-  const follow = enabledTerms(), mutes = activeMutes();
-  if (!follow.length) return { ids: out, hidden, noDate };
-  for (const [txid, e] of laneCorpus){
-    if (mutes.length && matchAny(e.text, mutes)) continue;
-    if (!matchTerms(e.text, follow)) continue;
-    if (!inScope(e.lokad, state.laneScope)){ hidden.add(txid); continue; }
-    // The window is applied AFTER the scope, and counted apart from it: they are
-    // two different reasons a match is not on screen, and one checkbox brings
-    // back only one of them.
-    if (!inRange(e.ts, laneRange)){ if (!e.ts) noDate.add(txid); continue; }
-    out.push(txid);
-  }
-  return { ids: out, hidden, noDate };
-}
 
 /* NOTE: there is deliberately no "reset the backfill" function any more.
 
@@ -4954,16 +4881,8 @@ let laneSavedCursor = null;
 function restoreLaneStore(){
   const s = loadLaneStore();
   if (!s) return null;
-  for (const row of s.corpus){
-    if (!Array.isArray(row) || typeof row[0] !== 'string' || typeof row[1] !== 'string') continue;
-    // row[3] is absent on everything written before the scope picker; null there
-    // means "protocol unknown", which inScope() reads as in — never as out.
-    corpusAdd(row[0], row[1], Number.isFinite(row[2]) ? row[2] : null,
-              typeof row[3] === 'string' ? row[3] : null,
-              typeof row[4] === 'string' ? row[4] : null);
-  }
+  laneCorpus.load(s.corpus);
   laneSavedCursor = s.cursor;
-  if (laneCorpus.size >= CORPUS_MAX) corpusFull = true;
   return s.cursor;
 }
 
@@ -5455,7 +5374,6 @@ function laneClearData(){
   state.laneTxs.clear();
   laneSavedCursor = null;
   laneBf = null;
-  corpusFull = false;
   laneStoreTrimmed = 0;
   laneDeepHoles = 0;
   laneDeepDone = false;
@@ -5472,7 +5390,6 @@ function laneClearData(){
   suggestSeenLokad = null;
   laneSuggestCache = null;
   laneSuggestAt = -1;
-  corpusGen++;
   try { localStorage.removeItem(LANE_CURSOR_KEY); } catch {}
   laneRematch();
   refreshLaneScope();              // every per-protocol total just became "not read yet"
@@ -6326,7 +6243,7 @@ function renderLane(){
   // figure simply freezes while the date keeps moving back, which reads as a
   // stuck counter — and hides the real consequence: pages read past this point
   // still answer the CURRENT topic, but a future one will not find them.
-  if (corpusFull) cov.push(t('lane.cacheFull'));
+  if (laneCorpus.full) cov.push(t('lane.cacheFull'));
   /* A TRIM IS NOT THE SAME THING AS A FULL CORPUS, so it gets its own sentence.
      corpusFull says memory stopped accepting; this says the browser's storage
      would not take everything memory DID accept, so the rest is gone at the next

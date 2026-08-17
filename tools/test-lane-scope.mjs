@@ -2,7 +2,8 @@
 //   node tools/test-lane-scope.mjs
 //
 // Cursor/coverage math is imported from the shipped vendor/core/lane-cursor.js
-// (the same module Flow loads). Door-owned functions are still extracted from
+// (the same module Flow loads). The corpus store is imported from
+// vendor/core/lane-corpus.js. Door-owned functions are still extracted from
 // flow/index.html: a test of a copy passes when the copy is right; those fail
 // when the page is wrong.
 //
@@ -17,6 +18,7 @@ import {
   inScope as inScopeOf, sanitizeScope, scopeLabel as scopeLabelOf, laneReach as laneReachOf,
   rangeActive as rangeActiveOf, inRange as inRangeOf, dayStart, senderTag,
 } from '../vendor/core/lane-cursor.js';
+import { createCorpus } from '../vendor/core/lane-corpus.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const html = readFileSync(join(ROOT, 'flow/index.html'), 'utf8');
@@ -43,8 +45,7 @@ function grab(name) {
   throw new Error('unbalanced: ' + name);
 }
 
-const NAMES = ['corpusAdd', 'corpusMatches',
-               'saveLaneStore', 'loadLaneStore', 'restoreLaneStore',
+const NAMES = ['saveLaneStore', 'loadLaneStore', 'restoreLaneStore',
                'cmpChipList', 'dayEnd',
                'computeSuggestions', 'laneTsOf', 'txWhenMs', 'laneSetMatched',
                'reopenIndexIfUnanswered'];
@@ -77,14 +78,21 @@ function makeLane(quotaChars = Infinity) {
     'SUGGEST_MIN_DF_TAG', 'SUGGEST_MIN_SENDERS_TAG', 'SUGGEST_TAG_SOFT',
     'inScopeOf', 'sanitizeScope', 'scopeLabelOf', 'laneReachOf',
     'rangeActiveOf', 'inRangeOf', 'dayStart', 'senderTag',
+    'createCorpus',
     `
     "use strict";
     const state = { laneScope: [LOKAD.CASHTAB_MSG], termMode: 'any', terms: [] };
-    const laneCorpus = new Map();
+    const laneCorpus = createCorpus({ max: CORPUS_MAX });
+    function corpusAdd(txid, text, ts, lokad, from){ laneCorpus.add(txid, text, ts, lokad, from); }
+    function corpusMatches(){
+      return laneCorpus.matches({
+        terms: enabledTerms(), mutes: activeMutes(),
+        scope: state.laneScope, range: laneRange, mode: state.termMode,
+      });
+    }
     const MATCH_MAX = 200;
     state.txs = new Map(); state.laneTxs = new Map(); state.matched = []; state.matchedTotal = 0;
-    let corpusFull = false, laneBf = null, laneSavedCursor = null, laneStoreTrimmed = 0;
-    let corpusGen = 0;
+    let laneBf = null, laneSavedCursor = null, laneStoreTrimmed = 0;
     let laneDeepDone = false, laneRangeDone = false;
     let laneRange = { from: null, to: null }, laneNoDate = 0;
     const enabledTerms = () => state.terms.filter(t => t.on && t.q && !t.mute);
@@ -105,7 +113,7 @@ function makeLane(quotaChars = Infinity) {
       laneTsOf, txWhenMs, laneSetMatched, reopenIndexIfUnanswered,
       setTxs: (m) => { for (const [k,v] of m) state.txs.set(k,v); },
       setRange: (r) => { laneRange = r; },
-      get corpusFull(){ return corpusFull; },
+      get corpusFull(){ return laneCorpus.full; },
       get trimmed(){ return laneStoreTrimmed; },
       get savedCursor(){ return laneSavedCursor; },
       get deepDone(){ return laneDeepDone; },
@@ -124,7 +132,8 @@ function makeLane(quotaChars = Infinity) {
                  rx('HASHTAG_RE'), rx('SHOUT_RE'), rx('SHOUT_ONE'),
                  num('SUGGEST_MIN_DF_TAG'), num('SUGGEST_MIN_SENDERS_TAG'), num('SUGGEST_TAG_SOFT'),
                  inScopeOf, sanitizeScope, scopeLabelOf, laneReachOf,
-                 rangeActiveOf, inRangeOf, dayStart, senderTag);
+                 rangeActiveOf, inRangeOf, dayStart, senderTag,
+                 createCorpus);
 }
 
 let pass = 0, fail = 0;
