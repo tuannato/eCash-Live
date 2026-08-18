@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-h7JrjM/Rwus5p6uf9tnc8tLhnJSjVfczMVNMYvnPEbQ=';
+  script-src 'self' 'sha256-ZJycw7j22k+MM4qb/pQHgJLiQ4lo1t8xjuoVUrZ+cAQ=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -13214,6 +13214,23 @@ function _formatAtomsWithDecimals(atomsStr, decimals) {
 }
 
 // ============ MESSAGES (cont.) ============
+// Sole writer of #r-msgs / #r-msgs-label. Reads the pane from
+// #section-messages[data-tab] — the same bit chatSwitchTab sets.
+// Unknown pane: do not write. Inheriting Feed's count was the old
+// else-branch lie; a later pane adds its own branch here.
+function panel4Counter() {
+  const pane = $('section-messages').dataset.tab;
+  const n = $('r-msgs');
+  const lbl = $('r-msgs-label');
+  if (pane === 'feed') {
+    n.textContent = state.messages.length;
+    lbl.textContent = 'recent';
+  } else if (pane === 'chat') {
+    n.textContent = chatState.messages.length;
+    lbl.textContent = 'chat';
+  }
+}
+
 function renderMessages() {
   // In CHAIN-only view, the feed is hidden — skip the heavy DOM operations.
   // state.messages still accumulates so switching back to LIVE/FEED view
@@ -13238,7 +13255,7 @@ function renderMessages() {
   // Limit to page size
   filtered = filtered.slice(0, max);
 
-  $('r-msgs').textContent = state.messages.length;
+  panel4Counter();
 
   // Preserve scroll
   const wasAtTop = list.scrollTop < 30;
@@ -18649,18 +18666,12 @@ function chatSwitchTab(pane) {
   document.querySelectorAll('#msg-tabs .msg-tab').forEach(b => {
     b.classList.toggle('active', b.dataset.pane === pane);
   });
-  // Update the right-side counter label to reflect what's visible
-  const lbl = $('r-msgs-label');
+  panel4Counter();
   if (pane === 'chat') {
-    $('r-msgs').textContent = String(chatState.messages.length);
-    lbl.textContent = 'chat';
     chatMarkOpened();
     if (chatState.peers.length > 0 && chatState.messages.length === 0 && !chatState.loading) {
       chatReload();
     }
-  } else {
-    $('r-msgs').textContent = String(state.messages.length);
-    lbl.textContent = 'recent';
   }
 }
 
