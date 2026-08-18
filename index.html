@@ -53,7 +53,7 @@
      first paint, so a visitor whose door is Flow never sees this dashboard
      flash past on the way there. Render-blocking on purpose, and covered by
      script-src 'self' so it costs no CSP hash — see the file header. -->
-<script src="./vendor/door.js?v=mc24" data-door="neo"></script>
+<script src="./vendor/door.js?v=mc25" data-door="neo"></script>
 
 <title>eCash Live · Pre &amp; Post-Consensus Visualizer</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -6888,8 +6888,8 @@
      update-csp-hash.sh. See /vendor/companion/echan.js header for the
      module's architecture + roadmap (Phase 1a → 1e).
      ===================================================================== -->
-<link rel="stylesheet" href="./vendor/companion/echan.css?v=mc24">
-<link rel="stylesheet" href="./vendor/mediacenter/mediacenter.css?v=mc24">
+<link rel="stylesheet" href="./vendor/companion/echan.css?v=mc25">
+<link rel="stylesheet" href="./vendor/mediacenter/mediacenter.css?v=mc25">
 
 </head>
 <body>
@@ -22059,12 +22059,12 @@ startTtfFeedModule();
      already fired when the module's IIFE runs, so init() can find
      #stage-wrap without a readyState dance. External script under 'self'
      — covered by the script-src whitelist, no CSP hash needed. -->
-<script src="./vendor/companion/echan.js?v=mc24" defer></script>
+<script src="./vendor/companion/echan.js?v=mc25" defer></script>
 
 <!-- Media center external module (sibling to eChan). External script/style under
      'self' — no CSP hash. Self-injects its DOM; opened via the play tab
      (#mc-tab-btn) or the eChan "Media center" quick-action. -->
-<script src="./vendor/mediacenter/mediacenter.js?v=mc24" defer></script>
+<script src="./vendor/mediacenter/mediacenter.js?v=mc25" defer></script>
 
 </body>
 </html>

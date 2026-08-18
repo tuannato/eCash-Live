@@ -1527,6 +1527,30 @@
     }
   }
 
+  /* FIRST VISIT FOLLOWS THE BROWSER, LATER VISITS FOLLOW THE READER.
+   * Ported from Flow's pickInitialLang (flow/index.html) so the two doors give
+   * the SAME answer to the same browser. Before this, neo fell back to a
+   * hardcoded 'en': a Vietnamese first-time reader saw Vietnamese on Flow and
+   * English on neo, which is the two doors disagreeing on the first line they
+   * are asked to render.
+   *
+   * The detected value is deliberately NOT written back. Only an explicit
+   * choice is stored (setLanguage does that), so a reader who later changes
+   * their browser language is followed rather than trapped in a guess we made
+   * for them once. Both doors share the 'ecashlive.lang' key, so a choice made
+   * on either is honoured by both. */
+  function pickInitialLang() {
+    const saved = lsGet(STORAGE.lang, '');
+    if (saved && I18N_LANGS.some(l => l.code === saved)) return saved;
+    let nav = 'en';
+    try { nav = navigator.language || 'en'; } catch (e) {}
+    const exact = I18N_LANGS.find(l => l.code.toLowerCase() === nav.toLowerCase());
+    if (exact) return exact.code;
+    const base = nav.split('-')[0].toLowerCase();
+    const partial = I18N_LANGS.find(l => l.code.split('-')[0].toLowerCase() === base);
+    return partial ? partial.code : 'en';
+  }
+
   async function setLanguage(code) {
     if (!I18N_LANGS.some(l => l.code === code)) return;
     state.lang = code;
@@ -1542,6 +1566,15 @@
     applyDomI18n();
     startDomI18nObserver();
     closeLangPopover();
+    /* The dashboard paints some of its own text from JS, and nothing here told
+     * it the language moved. Fires LAST, after the pack and the seed have
+     * landed, so a listener that re-renders reads the new strings and not the
+     * old ones. Do NOT substitute an observer on documentElement.lang: that is
+     * set at the TOP of this function, before await loadLangPack, so it is a
+     * signal that arrives while the pack is still the previous language. */
+    try {
+      window.dispatchEvent(new CustomEvent('ecashlive:lang', { detail: { lang: code } }));
+    } catch (e) {}
   }
 
   /* Re-applies translated strings to everything built with data-i18n /
@@ -3007,8 +3040,7 @@
     state.soundEnabled = lsGet(STORAGE.sound, '0') === '1';
 
     /* Language before seed: the seed fetch is language-aware. */
-    const savedLang = lsGet(STORAGE.lang, 'en') || 'en';
-    state.lang = I18N_LANGS.some(l => l.code === savedLang) ? savedLang : 'en';
+    state.lang = pickInitialLang();
     try { document.documentElement.lang = state.lang; } catch (e) {}
     publishI18nBridge();
 
