@@ -1,0 +1,23 @@
+{
+ "topics.back": "Retour au flux",
+ "topics.bareTerm": "C’est exactement un sujet que vous suivez, il ne sera donc pas marqué comme le vôtre.",
+ "topics.chipMuted": "Masqué — caché du flux et des Sujets",
+ "topics.chipOff": "Touchez pour suivre",
+ "topics.chipOn": "Suivi — touchez pour arrêter",
+ "topics.errBody": "Les modules de recherche ne se sont pas chargés. Le flux n’est pas affecté — rechargez la page pour réessayer.",
+ "topics.errTitle": "Les sujets n’ont pas pu démarrer",
+ "topics.fabAria": "Envoyer un message on-chain",
+ "topics.linkFail": "Impossible de construire le lien de paiement.",
+ "topics.msgPh": "Un court message",
+ "topics.mute": "Masquer plutôt : cacher ceux-ci du flux",
+ "topics.needMsg": "Écrivez d’abord un message.",
+ "topics.noDate": "date inconnue",
+ "topics.none": "Aucun sujet pour l’instant",
+ "topics.opened": "Cashtab s’est ouvert dans un nouvel onglet. Confirmez là-bas pour diffuser.",
+ "topics.opening": "Ouverture de Cashtab…",
+ "topics.popup": "Impossible d’ouvrir Cashtab — autorisez les fenêtres pop-up pour ce site puis réessayez.",
+ "topics.sendCashtab": "Envoyer via Cashtab",
+ "topics.sentExt": "Envoyé à l’extension Cashtab. Confirmez là-bas pour diffuser.",
+ "topics.shared": "Suivez un mot et ce panneau remonte l’index des messages de la chaîne pour le chercher. Les sujets sont partagés avec la vue Flow.",
+ "topics.toolong": "Trop long : {n} sur {max} octets. Les emojis et les accents coûtent plus d’un octet."
+}

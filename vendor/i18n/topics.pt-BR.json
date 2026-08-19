@@ -1,0 +1,23 @@
+{
+ "topics.back": "Voltar ao feed",
+ "topics.bareTerm": "Isto é exatamente um tópico que você segue, então não será marcado como seu.",
+ "topics.chipMuted": "Silenciado — oculto do feed e dos Tópicos",
+ "topics.chipOff": "Toque para seguir",
+ "topics.chipOn": "Seguindo — toque para parar",
+ "topics.errBody": "Os módulos de busca não carregaram. O feed não é afetado — recarregue a página para tentar de novo.",
+ "topics.errTitle": "Os tópicos não puderam iniciar",
+ "topics.fabAria": "Enviar uma mensagem on-chain",
+ "topics.linkFail": "Não foi possível montar o link de pagamento.",
+ "topics.msgPh": "Uma mensagem curta",
+ "topics.mute": "Silenciar em vez disso: esconder estes do feed",
+ "topics.needMsg": "Escreva uma mensagem primeiro.",
+ "topics.noDate": "data desconhecida",
+ "topics.none": "Ainda não há tópicos",
+ "topics.opened": "Cashtab abriu em uma nova aba. Confirme lá para transmitir.",
+ "topics.opening": "Abrindo o Cashtab…",
+ "topics.popup": "Não foi possível abrir o Cashtab — permita pop-ups para este site e tente de novo.",
+ "topics.sendCashtab": "Enviar pelo Cashtab",
+ "topics.sentExt": "Enviado para a extensão Cashtab. Confirme lá para transmitir.",
+ "topics.shared": "Siga uma palavra e este painel busca para trás no índice de mensagens da cadeia por ela. Os tópicos são compartilhados com a visão Flow.",
+ "topics.toolong": "Longo demais: {n} de {max} bytes. Emojis e acentos custam mais de um byte."
+}

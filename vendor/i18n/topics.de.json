@@ -1,0 +1,23 @@
+{
+ "topics.back": "Zurück zum Feed",
+ "topics.bareTerm": "Das ist genau ein Thema, dem du folgst, deshalb wird es nicht als deins markiert.",
+ "topics.chipMuted": "Stummgeschaltet — im Feed und in Themen ausgeblendet",
+ "topics.chipOff": "Tippen, um zu folgen",
+ "topics.chipOn": "Wird verfolgt — tippen zum Beenden",
+ "topics.errBody": "Die Suchmodule wurden nicht geladen. Der Feed ist nicht betroffen — lade die Seite neu, um es erneut zu versuchen.",
+ "topics.errTitle": "Themen konnten nicht starten",
+ "topics.fabAria": "Eine On-Chain-Nachricht senden",
+ "topics.linkFail": "Der Zahlungslink konnte nicht erstellt werden.",
+ "topics.msgPh": "Eine kurze Nachricht",
+ "topics.mute": "Stattdessen stummschalten: diese aus dem Feed ausblenden",
+ "topics.needMsg": "Bitte zuerst eine Nachricht eingeben.",
+ "topics.noDate": "Datum unbekannt",
+ "topics.none": "Noch keine Themen",
+ "topics.opened": "Cashtab wurde in einem neuen Tab geöffnet. Dort bestätigen, um zu senden.",
+ "topics.opening": "Cashtab wird geöffnet…",
+ "topics.popup": "Cashtab konnte nicht geöffnet werden — erlaube Pop-ups für diese Seite und versuche es erneut.",
+ "topics.sendCashtab": "Über Cashtab senden",
+ "topics.sentExt": "An die Cashtab-Erweiterung gesendet. Dort bestätigen, um zu senden.",
+ "topics.shared": "Folge einem Wort, und dieser Bereich durchsucht den Nachrichtenindex der Chain rückwärts danach. Themen werden mit der Flow-Ansicht geteilt.",
+ "topics.toolong": "Zu lang: {n} von {max} Bytes. Emojis und Umlaute kosten mehr als ein Byte."
+}

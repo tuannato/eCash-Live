@@ -1,0 +1,23 @@
+{
+ "topics.back": "Akışa dön",
+ "topics.bareTerm": "Bu tam olarak takip ettiğiniz bir konu, bu yüzden sizin olarak işaretlenmeyecek.",
+ "topics.chipMuted": "Sessize alındı — akıştan ve Konular'dan gizlendi",
+ "topics.chipOff": "Takip etmek için dokunun",
+ "topics.chipOn": "Takip ediliyor — durdurmak için dokunun",
+ "topics.errBody": "Arama modülleri yüklenmedi. Akış etkilenmedi — tekrar denemek için sayfayı yenileyin.",
+ "topics.errTitle": "Konular başlatılamadı",
+ "topics.fabAria": "Zincir üstü bir mesaj gönder",
+ "topics.linkFail": "Ödeme bağlantısı oluşturulamadı.",
+ "topics.msgPh": "Kısa bir mesaj",
+ "topics.mute": "Bunun yerine sessize al: bunları akıştan gizle",
+ "topics.needMsg": "Önce bir mesaj yazın.",
+ "topics.noDate": "tarih bilinmiyor",
+ "topics.none": "Henüz konu yok",
+ "topics.opened": "Cashtab yeni bir sekmede açıldı. Yayınlamak için orada onaylayın.",
+ "topics.opening": "Cashtab açılıyor…",
+ "topics.popup": "Cashtab açılamadı — bu site için açılır pencerelere izin verip tekrar deneyin.",
+ "topics.sendCashtab": "Cashtab ile gönder",
+ "topics.sentExt": "Cashtab uzantısına gönderildi. Yayınlamak için orada onaylayın.",
+ "topics.shared": "Bir kelimeyi takip edin; bu bölme onu zincirin mesaj dizininde geriye doğru arar. Konular Flow görünümüyle paylaşılır.",
+ "topics.toolong": "Çok uzun: {max} bayttan {n}. Emoji ve Türkçe harfler birden fazla bayt tutar."
+}

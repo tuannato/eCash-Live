@@ -1,0 +1,23 @@
+{
+ "topics.back": "Quay lại feed",
+ "topics.bareTerm": "Đây đúng là một chủ đề bạn đang theo dõi, nên nó sẽ không được đánh dấu là của bạn.",
+ "topics.chipMuted": "Đã chặn — ẩn khỏi feed và khỏi Chủ đề",
+ "topics.chipOff": "Chạm để theo dõi",
+ "topics.chipOn": "Đang theo dõi — chạm để dừng",
+ "topics.errBody": "Các mô-đun tìm kiếm không tải được. Feed không bị ảnh hưởng — hãy tải lại trang để thử lại.",
+ "topics.errTitle": "Không khởi động được Chủ đề",
+ "topics.fabAria": "Gửi một tin nhắn on-chain",
+ "topics.linkFail": "Không tạo được liên kết thanh toán.",
+ "topics.msgPh": "Một tin nhắn ngắn",
+ "topics.mute": "Chặn thay vì theo dõi: ẩn những tin này khỏi feed",
+ "topics.needMsg": "Hãy nhập tin nhắn trước.",
+ "topics.noDate": "không rõ ngày",
+ "topics.none": "Chưa có chủ đề nào",
+ "topics.opened": "Đã mở Cashtab ở tab mới. Xác nhận ở đó để phát lên mạng.",
+ "topics.opening": "Đang mở Cashtab…",
+ "topics.popup": "Không mở được Cashtab — hãy cho phép cửa sổ bật lên cho trang này rồi thử lại.",
+ "topics.sendCashtab": "Gửi qua Cashtab",
+ "topics.sentExt": "Đã gửi tới tiện ích Cashtab. Xác nhận ở đó để phát lên mạng.",
+ "topics.shared": "Theo dõi một từ và khung này sẽ tìm ngược trong chỉ mục tin nhắn của chuỗi để tìm nó. Chủ đề được dùng chung với giao diện Flow.",
+ "topics.toolong": "Quá dài: {n} trên {max} byte. Emoji và dấu tiếng Việt tốn nhiều hơn một byte mỗi ký tự."
+}

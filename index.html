@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-ZtuWnPSs5U+E4cCl0qFJzOJX/aGq1Q/U3fpjppX0hM4=';
+  script-src 'self' 'sha256-NxzAPBotU0dAs0Q189/lzypVJXoXKu2QxOn+NaGCbks=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -13491,6 +13491,12 @@ function panel4Counter() {
     // Nothing to count until the engine lands. A number here would be a claim
     // about a search that has not run.
     n.textContent = String(typeof tpResults !== 'undefined' && tpResults ? tpResults.matched.length : 0);
+    /* ENGLISH ON PURPOSE, and only because its two siblings are. 'recent' and
+       'chat' beside it are pre-existing neo strings that no pack translates --
+       #r-msgs-label appears in no dom/domMap entry in any of the fifteen. A
+       lone translated word here would make the header read half in one
+       language; translating all three is a change to neo's own UI, not to
+       Topics, and belongs to whoever makes that call. */
     lbl.textContent = 'topics';
     return;
   }
@@ -13869,8 +13875,8 @@ function renderTopicChips() {
     b.className = 'msg-filter topic-chip' + (t.mute ? ' mute' : (t.on ? ' active' : ''));
     b.textContent = t.q;
     b.setAttribute('aria-pressed', String(!!t.on));
-    b.title = t.mute ? 'Muted — hidden from the feed and from Topics'
-                     : (t.on ? 'Following — tap to stop' : 'Tap to follow');
+    b.title = t.mute ? topicsT('topics.chipMuted')
+                     : (t.on ? topicsT('topics.chipOn') : topicsT('topics.chipOff'));
     b.addEventListener('click', () => {
       t.on = !t.on;
       saveTopicSettings();
@@ -13888,6 +13894,13 @@ function openTopics() {
   if (!sec) return;
   sec.dataset.topics = 'open';
   panel4Counter();
+  /* THE PACK IS FETCHED ON THE FIRST OPEN, not at boot: a reader who never
+     opens this pane should not pay for two files, and a reader in English pays
+     for none (topicsT falls through to the inline strings, which is why there
+     is no flow.en.json to fetch). It is deliberately NOT awaited -- the pane
+     paints in English immediately and repaints when the pack lands, rather than
+     showing nothing while a network request decides. */
+  if (!topicsPack && !topicsOverlay) applyTopicsLang();
   /* A load failure has to be SAID. Trading a loud blank page for a pane that
      silently does nothing is not an improvement -- the reader would read it as
      "no topics match" and believe a search that never ran. */
@@ -13906,8 +13919,7 @@ function openTopics() {
     if (topicFollows().length && !tpResults.matched.length) runTopicsBackfill();
   }).catch((e) => {
     console.error('[topics] core modules failed to load', e);
-    topicsSetState('err', 'Topics could not start',
-      'The search modules did not load. The feed is unaffected — reload the page to try again.');
+    topicsSetState('err', topicsT('topics.errTitle'), topicsT('topics.errBody'));
   });
 }
 function closeTopics() {
@@ -13916,6 +13928,209 @@ function closeTopics() {
   sec.dataset.topics = 'closed';
   panel4Counter();
 }
+/* ============ TOPICS i18n ============
+   THE COPY IS BORROWED, NOT REWRITTEN. Every sentence this pane needs already
+   exists in Flow's packs, translated into fifteen languages, because it is the
+   same pane answering the same question — so the two doors say the same thing
+   rather than drifting into two vocabularies for one feature. That is soul #6
+   applied to words instead of numbers.
+
+   BORROWED values must stay byte-equal to Flow's. A borrowed key whose English
+   is edited here is not a borrow: the fifteen packs would go on translating
+   Flow's sentence while this door showed a different one. CI asserts the
+   equality; if a sentence needs to change for neo it becomes an OWN key.
+
+   OWN keys are the handful Flow has no equivalent for, and they live in their
+   own overlay pack so that adding one can never turn Flow's CI red -- Flow's
+   parity check requires its packs to match FLOW_STRINGS_EN exactly, so an extra
+   key in flow.<lang>.json is a hard failure there. */
+const TOPICS_I18N_V = '21';   // must equal Flow's I18N_V — asserted in CI
+const TOPICS_EN_BORROWED = {
+  'lane.older': 'Search further back',
+  'lane.searching': 'Searching…',
+  'lane.deepEnd': 'Read all of {p}',
+  'lane.reach': 'searched {p} in full back to {d}',
+  'lane.deepScanned': 'read {n} messages from the chain index',
+  'lane.holes': '{n} pages could not be loaded',
+  'lane.cacheFull': 'memory full — older pages are still searched for this topic, but not kept for other ones',
+  'lane.storeTrimmed': 'browser storage is full — {n} messages read this session could not be kept for next time',
+  'lane.capped': 'showing the newest {n} of {total} matches',
+  'lane.liveNote': 'live matches are shown from every protocol',
+  'lane.notIndexed': 'writing that carries no protocol id, and memo.cash, is found only as it goes past',
+  'lane.window': 'window {a} → {b}',
+  'lane.now': 'now',
+  'lane.title': 'Topics',
+  'lane.empty': 'Nothing has matched yet. This topic keeps collecting while it stays on.',
+  'term.add': '+ Topic',
+  'term.title': 'Add a topic',
+  'term.ph': 'A word to follow, e.g. gm',
+  'term.fold': 'Ignore accents (cafe finds café)',
+  'term.contains': 'Match inside longer words',
+  'term.mute': 'Mute instead: hide these from the stream',
+  'term.save': 'Save topic',
+  'term.needText': 'Type a word to follow.',
+  'term.dupe': 'You are already following that.',
+  'term.full': '{n} topics is the limit — remove one first.',
+  'term.fromRead': 'from the {n} messages read so far',
+  'scope.title': 'Searching back through',
+  'scope.needOne': 'Choose at least one protocol.',
+  'scope.range': 'Time range',
+  'scope.days': '{n} days',
+  'scope.allTime': 'All time',
+  'scope.from': 'From date',
+  'scope.to': 'To date',
+  'scope.machine': 'order ids, not writing',
+  'scope.msgs': '{n} messages',
+  'scope.read': 'read {n} of {total} pages',
+  'scope.unread': 'not read yet',
+  'range.invert': 'The second date must be on or after the first.',
+  'cmp.title': 'Send on-chain',
+  'cmp.toPh': 'Recipient address',
+  'cmp.close': 'Close',
+  'cmp.myWallet': 'My wallet',
+  'try.send': 'Send',
+  'try.needAddr': 'Choose or paste a recipient address.',
+  'try.badAddr': 'That eCash address isn’t valid.',
+  'safety.lane': 'Anyone can put any word in a message. Treat links and offers here as untrusted.',
+};
+const TOPICS_EN_OWN = {
+  'topics.back': 'Back to the feed',
+  'topics.none': 'No topics yet',
+  'topics.shared': 'Follow a word and this pane searches the chain’s message index backwards for it. Topics are shared with the Flow view.',
+  'topics.needMsg': 'Type a message first.',
+  'topics.opened': 'Cashtab opened in a new tab. Confirm there to broadcast.',
+  'topics.sentExt': 'Sent to the Cashtab extension. Confirm there to broadcast.',
+  'topics.popup': 'Could not open Cashtab — allow pop-ups for this site and try again.',
+  'topics.bareTerm': 'This is exactly a topic you follow, so it will not be marked as yours.',
+  'topics.noDate': 'date unknown',
+  'topics.errTitle': 'Topics could not start',
+  'topics.errBody': 'The search modules did not load. The feed is unaffected — reload the page to try again.',
+  'topics.chipMuted': 'Muted — hidden from the feed and from Topics',
+  'topics.chipOn': 'Following — tap to stop',
+  'topics.chipOff': 'Tap to follow',
+  /* NOT BORROWED, AND THE REASON IS THE DIFFERENCE ITSELF. Flow's composer
+     takes an amount, so a message there really is optional and its mute hides
+     from a "stream"; neo's quick send has no amount field, so a message is
+     required and the surface it hides from is the feed. Borrowing Flow's
+     sentence would have shipped two small lies in fifteen languages. */
+  'topics.msgPh': 'A short message',
+  'topics.mute': 'Mute instead: hide these from the feed',
+  'topics.sendCashtab': 'Send via Cashtab',
+  'topics.fabAria': 'Send an on-chain message',
+  'topics.opening': 'Opening Cashtab…',
+  'topics.linkFail': 'Could not build the payment link.',
+  /* The byte count is the teaching part: a reader who pasted an emoji needs to
+     see that it cost four, not just that they are over. */
+  'topics.toolong': 'Too long: {n} of {max} bytes. Emoji and accents cost more than one each.',
+};
+const TOPICS_EN = Object.assign({}, TOPICS_EN_BORROWED, TOPICS_EN_OWN);
+let topicsPack = null, topicsOverlay = null;
+
+/* English never depends on a fetch. There is no flow.en.json -- Flow keeps its
+   English inside its own pinned module -- so a failed or slow pack leaves this
+   door in English rather than showing raw keys. */
+function topicsT(key) {
+  return (topicsOverlay && topicsOverlay[key])
+      || (topicsPack && topicsPack[key])
+      || TOPICS_EN[key] || key;
+}
+function topicsTf(key, vars) {
+  let out = topicsT(key);
+  for (const k in (vars || {})) out = out.split('{' + k + '}').join(String(vars[k]));
+  return out;
+}
+async function loadTopicsPack(code) {
+  if (!code || code === 'en') { topicsPack = null; topicsOverlay = null; return; }
+  const grab = async (url) => {
+    try {
+      const r = await fetch(url, { cache: 'default' });
+      if (!r.ok) return null;
+      const j = await r.json();
+      return j.strings || j;
+    } catch (e) { return null; }
+  };
+  const [pack, overlay] = await Promise.all([
+    grab('./vendor/i18n/flow.' + code + '.json?v=' + TOPICS_I18N_V),
+    grab('./vendor/i18n/topics.' + code + '.json?v=' + TOPICS_I18N_V),
+  ]);
+  topicsPack = pack; topicsOverlay = overlay;
+}
+function topicsLang() {
+  try {
+    const l = localStorage.getItem('ecashlive.lang');
+    if (l) return l;
+  } catch (e) {}
+  try { return (window.__ecI18n && window.__ecI18n.lang && window.__ecI18n.lang()) || 'en'; } catch (e) { return 'en'; }
+}
+/* THE STATIC HALF. Everything above lives in index.html as English so the pane
+   is readable before any pack lands; this walks that markup once per language.
+   It is a TABLE, not a sequence of assignments, because the failure mode being
+   guarded against is a node that quietly stops being translated after an id is
+   renamed -- a table can be asserted against the shipped markup by CI, a
+   scattered list of assignments cannot.
+
+   A missing node is skipped rather than thrown on: the editor and the send
+   panel are built into the page, but a future layout that drops one must not
+   take the language switch down with it. */
+const TOPICS_STATIC_TEXT = [
+  ['topics-add',   'term.add'],
+  ['tp-ed-title',  'term.title'],
+  ['tp-ed-save',   'term.save'],
+  ['tp-ed-cancel', 'cmp.close'],
+  ['qs-title',     'cmp.title'],
+  ['qs-send',      'topics.sendCashtab'],
+];
+const TOPICS_STATIC_ATTR = [
+  ['topics-exit', 'title',       'topics.back'],
+  ['topics-exit', 'aria-label',  'topics.back'],
+  ['topics',      'aria-label',  'lane.title'],
+  ['qs-fab',      'aria-label',  'topics.fabAria'],
+  ['qs-close',    'aria-label',  'cmp.close'],
+  ['qs-to',       'placeholder', 'cmp.toPh'],
+  ['qs-msg',      'placeholder', 'topics.msgPh'],
+  ['tp-ed-q',     'placeholder', 'term.ph'],
+  ['tp-from',     'aria-label',  'scope.from'],
+  ['tp-to',       'aria-label',  'scope.to'],
+];
+/* The three editor checkboxes are <label>s wrapping their own <input>, so
+   textContent would delete the control. Only the trailing text node moves. */
+const TOPICS_STATIC_OPT = [
+  ['tp-ed-fold',     'term.fold'],
+  ['tp-ed-contains', 'term.contains'],
+  ['tp-ed-mute',     'topics.mute'],
+];
+function renderTopicStatics() {
+  for (const [id, key] of TOPICS_STATIC_TEXT) {
+    const n = $(id); if (n) n.textContent = topicsT(key);
+  }
+  for (const [id, attr, key] of TOPICS_STATIC_ATTR) {
+    const n = $(id); if (n) n.setAttribute(attr, topicsT(key));
+  }
+  for (const [id, key] of TOPICS_STATIC_OPT) {
+    const box = $(id);
+    const lbl = box && box.parentNode;
+    if (!lbl) continue;
+    const tail = lbl.lastChild;
+    if (tail && tail.nodeType === 3) tail.nodeValue = ' ' + topicsT(key);
+  }
+}
+/* The pane paints from JS, so nothing in neo's value-keyed system can reach it
+   and the MutationObserver has nothing to match. It re-renders on the event
+   echan.js now dispatches at the end of setLanguage -- after the pack and the
+   seed have landed, which is everything a listener needs. */
+async function applyTopicsLang() {
+  await loadTopicsPack(topicsLang());
+  /* NOT one try/catch around the lot. A thrown render used to take the five
+     after it down with it, and -- because the throw was swallowed -- did so in
+     silence: six invented symbols in this pane reached `node --check` clean
+     that way. Each stands alone, and a failure is reported. */
+  for (const fn of [renderTopicStatics, renderTopicChips, renderTopicTools,
+                    renderTopicScopePanel, renderTopicPresets, renderTopics]) {
+    try { fn(); } catch (e) { console.error('[topics] render failed:', fn.name, e); }
+  }
+}
+window.addEventListener('ecashlive:lang', () => { applyTopicsLang(); });
+
 /* ============ TOPICS (engine) ============
    neo answers the SAME topics Flow does, out of the same stored value and the
    same cache. Managing them (editor, scope picker, date window) is the next
@@ -14126,24 +14341,25 @@ function topicsCoverage() {
   const reach = C.laneReach(cur, topicScope);
   if (reach) {
     const names = topicScope.map(id => (LOKAD_NAMES && LOKAD_NAMES[id]) || id).join(', ');
-    out.push('searched ' + names + ' in full back to ' +
-             new Date(reach * 1000).toISOString().slice(0, 10));
+    out.push(topicsTf('lane.reach', { p: names, d: topicsIsoDay(reach * 1000) }));
   }
-  if (tpCorpus.size) out.push('read ' + tpCorpus.size + ' messages from the chain index');
-  if (tpDeepDone) out.push('read all of the index for these protocols');
-  if (tpHoles) out.push({ warn: tpHoles + ' pages could not be loaded' });
-  if (tpCorpus.full) out.push({ warn: 'memory full — older pages are still searched for this topic, but not kept for other ones' });
-  if (tpTrimmed) out.push({ warn: 'browser storage is full — ' + tpTrimmed + ' messages read this session could not be kept for next time' });
+  if (tpCorpus.size) out.push(topicsTf('lane.deepScanned', { n: tpCorpus.size }));
+  if (tpDeepDone) out.push(topicsTf('lane.deepEnd', { p: topicsScopeLabel() }));
+  if (tpHoles) out.push({ warn: topicsTf('lane.holes', { n: tpHoles }) });
+  if (tpCorpus.full) out.push({ warn: topicsT('lane.cacheFull') });
+  if (tpTrimmed) out.push({ warn: topicsTf('lane.storeTrimmed', { n: tpTrimmed }) });
   if (tpResults.matchedTotal > tpResults.matched.length) {
-    out.push('showing the newest ' + tpResults.matched.length + ' of ' + tpResults.matchedTotal + ' matches');
+    out.push(topicsTf('lane.capped', { n: tpResults.matched.length, total: tpResults.matchedTotal }));
   }
   if (C.rangeActive(topicRange)) {
-    const day = (ms) => new Date(ms).toISOString().slice(0, 10);
-    out.push('window ' + (topicRange.from != null ? day(topicRange.from) : '…') +
-             ' → ' + (topicRange.to != null ? day(topicRange.to) : 'now'));
+    const day = topicsIsoDay;
+    out.push(topicsTf('lane.window', {
+      a: topicRange.from != null ? day(topicRange.from) : '…',
+      b: topicRange.to   != null ? day(topicRange.to)   : topicsT('lane.now'),
+    }));
   }
-  out.push('live matches are shown from every protocol');
-  out.push('writing that carries no protocol id, and memo.cash, is found only as it goes past');
+  out.push(topicsT('lane.liveNote'));
+  out.push(topicsT('lane.notIndexed'));
   return out;
 }
 function renderTopics() {
@@ -14154,9 +14370,9 @@ function renderTopics() {
   const rows = tpResults.matched;
 
   if (!follows.length) {
-    body.innerHTML = '<div class="topics-state"><div class="big">No topics yet</div>' +
-      '<p class="sub">Follow a word and this pane searches the chain’s message index backwards for it. ' +
-      'Topics are shared with the Flow view.</p></div>';
+    body.innerHTML = '<div class="topics-state"><div class="big">' +
+      escapeHtml(topicsT('topics.none')) + '</div><p class="sub">' +
+      escapeHtml(topicsT('topics.shared')) + '</p></div>';
     return;
   }
   const cov = topicsCoverage().map(c =>
@@ -14167,8 +14383,7 @@ function renderTopics() {
   let list = '';
   if (!rows.length) {
     list = '<div class="topics-state"><div class="big">' +
-      (tpBusy ? 'Searching…' : 'Nothing has matched yet') + '</div>' +
-      '<p class="sub">This topic keeps collecting while it stays on.</p></div>';
+      escapeHtml(tpBusy ? topicsT('lane.searching') : topicsT('lane.empty')) + '</div></div>';
   } else {
     for (const id of rows) {
       const tx = tpResults.get(id);
@@ -14176,7 +14391,7 @@ function renderTopics() {
       const hay = (tx && tx._hay) || (c && c.text) || '';
       const ts = topicTsOf(id, tx);
       list += '<div class="topic-row" data-txid="' + escapeHtml(id) + '">' +
-        '<div class="topic-meta">' + (ts ? escapeHtml(new Date(ts).toISOString().slice(0, 10)) : 'unknown date') + '</div>' +
+        '<div class="topic-meta">' + escapeHtml(ts ? topicsIsoDay(ts) : topicsT('topics.noDate')) + '</div>' +
         '<div class="topic-text">' + escapeHtml(hay) + '</div></div>';
     }
   }
@@ -14190,7 +14405,8 @@ function renderTopics() {
     '<div class="topics-cov">' + cov + '</div>' +
     '<div class="topics-foot"><button class="msg-filter" id="topics-more" type="button"' +
     (tpBusy || tpDeepDone ? ' disabled' : '') + '>' +
-    (tpDeepDone ? 'Read all' : tpBusy ? 'Searching…' : 'Search further back') + '</button></div>';
+    escapeHtml(tpDeepDone ? topicsTf('lane.deepEnd', { p: topicsScopeLabel() })
+      : tpBusy ? topicsT('lane.searching') : topicsT('lane.older')) + '</button></div>';
   $('topics-more')?.addEventListener('click', () => runTopicsBackfill());
   panel4Counter();
 }
@@ -14221,18 +14437,42 @@ try { loadTopicSettings(); renderTopicChips(); } catch (e) {}
 const TOPICS_TERM_MAX = 8;
 let topicRange = { from: null, to: null };
 
-function topicsDayInputMax() { return new Date().toISOString().slice(0, 10); }
+/* THE INVERSE OF dayStart(), AND IT MUST STAY THAT WAY. `dayStart('2026-07-16')`
+   is local midnight; `toISOString()` is UTC, so east of Greenwich the round trip
+   comes back a day short -- measured in Asia/Ho_Chi_Minh: type 2026-07-16, the
+   field snaps to 2026-07-15, and the next `change` on the OTHER field re-reads
+   that value, so the window walks a day backwards per interaction. Invisible in
+   CI, which runs UTC. This is v2.7.0's date bug on the other door: there the
+   field named a day it did not include, here it names a day it did not mean.
+   Anywhere a millisecond becomes a day on screen or in a date input, it goes
+   through here. */
+function topicsIsoDay(ms) {
+  if (ms == null) return '';
+  const d = new Date(ms);
+  if (!isFinite(d.getTime())) return '';
+  const p = (n) => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+function topicsDayInputMax() { return topicsIsoDay(Date.now()); }
+
+/* ONE OWNER FOR THE SCOPE'S NAME. The core module holds the naming, but it is
+   loaded lazily, so every caller owes the same "not loaded yet" fallback --
+   which is how a seventh invented symbol (`topicsScopeLabel`) got written at
+   two of the four call sites and passed `node --check`. */
+function topicsScopeLabel() {
+  const C = topicsCore;
+  return C ? C.scopeLabel(topicScope) : topicScope.join(', ');
+}
 
 function renderTopicTools() {
-  const C = topicsCore;
   const sl = $('tp-scope-label'), rl = $('tp-range-label');
-  if (sl) sl.textContent = 'Searching back through: ' +
-    (C ? C.scopeLabel(topicScope) : topicScope.join(', '));
+  if (sl) sl.textContent = topicsT('scope.title') + ': ' + topicsScopeLabel();
   if (!rl) return;
   const { from, to } = topicRange;
-  const day = (ms) => new Date(ms).toISOString().slice(0, 10);
-  rl.textContent = 'Time range: ' + (from == null && to == null ? 'All time'
-    : (from != null ? day(from) : '…') + ' → ' + (to != null ? day(to) : 'now'));
+  const day = topicsIsoDay;
+  rl.textContent = topicsT('scope.range') + ': ' + (from == null && to == null
+    ? topicsT('scope.allTime')
+    : (from != null ? day(from) : '…') + ' → ' + (to != null ? day(to) : topicsT('lane.now')));
 }
 
 function renderTopicScopePanel() {
@@ -14253,9 +14493,10 @@ function renderTopicScopePanel() {
     const name = (LOKAD_NAMES && LOKAD_NAMES[id]) || id;
     const c = cur[id] || {};
     const read = Number.isInteger(c.numPages)
-      ? 'read ' + (c.pagesDone | 0) + ' of ' + c.numPages + ' pages'
-      : 'not read yet';
-    const machine = id === LOKAD.PAYBUTTON ? ' <span class="machine">order ids, not writing</span>' : '';
+      ? topicsTf('scope.read', { n: c.pagesDone | 0, total: c.numPages })
+      : topicsT('scope.unread');
+    const machine = id === LOKAD.PAYBUTTON
+      ? ' <span class="machine">' + escapeHtml(topicsT('scope.machine')) + '</span>' : '';
     const lab = document.createElement('label');
     lab.className = 'tp-check';
     lab.innerHTML = '<input type="checkbox"' + (topicScope.includes(id) ? ' checked' : '') + '> ' +
@@ -14281,7 +14522,7 @@ function renderTopicPresets() {
   for (const d of [0, 7, 30, 90]) {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'tp-preset';
-    b.textContent = d === 0 ? 'All time' : d + ' days';
+    b.textContent = d === 0 ? topicsT('scope.allTime') : topicsTf('scope.days', { n: d });
     const on = d === 0 ? (topicRange.from == null && topicRange.to == null)
                        : C.presetActive(d, topicRange);
     b.classList.toggle('on', !!on);
@@ -14295,8 +14536,7 @@ function renderTopicPresets() {
 function syncTopicDates() {
   const f = $('tp-from'), t = $('tp-to');
   if (!f || !t) return;
-  const day = (ms) => (ms == null ? '' : new Date(ms).toISOString().slice(0, 10));
-  f.value = day(topicRange.from); t.value = day(topicRange.to);
+  f.value = topicsIsoDay(topicRange.from); t.value = topicsIsoDay(topicRange.to);
   f.max = topicsDayInputMax(); t.max = topicsDayInputMax();
 }
 function wireTopicDates() {
@@ -14310,9 +14550,9 @@ function wireTopicDates() {
        loud. Swapping the two would steal the date just typed and yank an open
        picker; refusing in silence reads as a broken control rather than a rule. */
     if (from != null && to != null && to < from) {
-      hint.textContent = 'The second date must be on or after the first.';
-      if (which === 'from') f.value = topicRange.from == null ? '' : new Date(topicRange.from).toISOString().slice(0, 10);
-      else t.value = topicRange.to == null ? '' : new Date(topicRange.to).toISOString().slice(0, 10);
+      hint.textContent = topicsT('range.invert');
+      if (which === 'from') f.value = topicsIsoDay(topicRange.from);
+      else t.value = topicsIsoDay(topicRange.to);
       return;
     }
     hint.textContent = '';
@@ -14387,9 +14627,9 @@ function renderTermSuggestions() {
 function saveTermFromEditor() {
   const q = ($('tp-ed-q').value || '').trim();
   const hint = $('tp-ed-hint');
-  if (!q) { hint.textContent = 'Type a word first.'; return; }
+  if (!q) { hint.textContent = topicsT('term.needText'); return; }
   if (topicTerms.length >= TOPICS_TERM_MAX) { hint.textContent = TOPICS_TERM_MAX + ' topics is the limit.'; return; }
-  if (topicTerms.some(t => t.q.toLowerCase() === q.toLowerCase())) { hint.textContent = 'Already following that.'; return; }
+  if (topicTerms.some(t => t.q.toLowerCase() === q.toLowerCase())) { hint.textContent = topicsT('term.dupe'); return; }
   topicTerms.push({
     q: q.slice(0, 40),
     on: true,
@@ -14435,7 +14675,7 @@ function saveTermFromEditor() {
     };
     try {
       const me = chatState && chatState.myAddr;
-      if (me) add('My wallet', me);
+      if (me) add(topicsT('cmp.myWallet'), me);
       // loadWatchlist() fills the module-level `watchlist` and returns nothing,
       // so read the store rather than a return value. Addresses only: a token id
       // is not somewhere a message can be sent.
@@ -14475,8 +14715,8 @@ function saveTermFromEditor() {
   send.addEventListener('click', async () => {
     const addr = (to.value || '').trim();
     const text = (msg.value || '').trim();
-    if (!addr) { setHint('Choose or paste a recipient address.', true); to.focus(); return; }
-    if (!text) { setHint('Type a message first.', true); msg.focus(); return; }
+    if (!addr) { setHint(topicsT('try.needAddr'), true); to.focus(); return; }
+    if (!text) { setHint(topicsT('topics.needMsg'), true); msg.focus(); return; }
     /* THE LIMIT IS UTF-8 BYTES, AND maxlength COUNTS CHARACTERS. "gm" is two of
        each; a Vietnamese sentence or an emoji is not, so a message that fits the
        attribute can still overflow the OP_RETURN. Chat shows a live byte count
@@ -14484,7 +14724,7 @@ function saveTermFromEditor() {
        after the reader has already left the page. */
     const bytes = chatUtf8Bytes(text);
     if (bytes > CHAT_OP_RETURN_BUDGET) {
-      setHint('Too long: ' + bytes + ' of ' + CHAT_OP_RETURN_BUDGET + ' bytes. Emoji and accents cost more than one each.', true);
+      setHint(topicsTf('topics.toolong', { n: bytes, max: CHAT_OP_RETURN_BUDGET }), true);
       msg.focus(); return;
     }
     /* THE HAZARD FLOW ALREADY PAID FOR. A message that is EXACTLY a word the
@@ -14498,7 +14738,7 @@ function saveTermFromEditor() {
        afterwards. Anything typed beyond the word is fine; it is the bare term
        that collides. Said out loud rather than silently handled. */
     const bare = topicFollows().some(t => t.q.toLowerCase() === text.toLowerCase());
-    setHint('Opening Cashtab…');
+    setHint(topicsT('topics.opening'));
     /* chatBuildBip21 takes PEER OBJECTS and a normalised "ecash:q…", which is
        what the Chat pane hands it. Passing a bare string would have produced
        "undefined?amount=…" -- a URL that opens Cashtab on nothing. */
@@ -14513,10 +14753,10 @@ function saveTermFromEditor() {
       const v = validateEcashAddress(addr);
       if (v && v.ok && validateCashAddress(v.normalized)) norm = v.normalized;
     } catch (e) {}
-    if (!norm) { setHint('That address is not valid — check it character by character.', true); to.focus(); return; }
+    if (!norm) { setHint(topicsT('try.badAddr'), true); to.focus(); return; }
     let bip21 = '';
     try { bip21 = chatBuildBip21([{ addr: norm }], chatState.amountXec || 5.46, text); } catch (e) {}
-    if (!bip21) { setHint('Could not build the payment link.', true); return; }
+    if (!bip21) { setHint(topicsT('topics.linkFail'), true); return; }
     /* PROBE, THEN SEND. chatSendViaCashtabExtension is optimistic by design --
        it posts and resolves true after 200ms whether anything is listening or
        not, because the extension does not acknowledge a Pay. Branching on its
@@ -14532,16 +14772,12 @@ function saveTermFromEditor() {
     try { present = await chatProbeCashtabExtension(); } catch (e) {}
     if (present) {
       try { await chatSendViaCashtabExtension(bip21); } catch (e) {}
-      setHint(bare
-        ? 'Sent to the Cashtab extension. This is exactly a topic you follow, so it will not be marked as yours.'
-        : 'Sent to the Cashtab extension. Confirm there to broadcast.');
+      setHint(topicsT('topics.sentExt') + (bare ? ' ' + topicsT('topics.bareTerm') : ''));
     } else {
       let opened = null;
       try { opened = window.open(chatBuildCashtabUrl(bip21), '_blank', 'noopener'); } catch (e) {}
-      if (!opened) { setHint('Could not open Cashtab — allow pop-ups for this site and try again.', true); return; }
-      setHint(bare
-        ? 'Cashtab opened. This is exactly a topic you follow, so it will not be marked as yours.'
-        : 'Cashtab opened in a new tab. Confirm there to broadcast.');
+      if (!opened) { setHint(topicsT('topics.popup'), true); return; }
+      setHint(topicsT('topics.opened') + (bare ? ' ' + topicsT('topics.bareTerm') : ''));
     }
     msg.value = '';
   });

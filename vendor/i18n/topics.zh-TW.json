@@ -1,0 +1,23 @@
+{
+ "topics.back": "返回訊息流",
+ "topics.bareTerm": "這正好是你追蹤的主題，所以不會標記為你自己的。",
+ "topics.chipMuted": "已靜音 — 在訊息流和主題中都隱藏",
+ "topics.chipOff": "點按以追蹤",
+ "topics.chipOn": "追蹤中 — 點按停止",
+ "topics.errBody": "搜尋模組未能載入。訊息流不受影響 — 重新載入頁面再試一次。",
+ "topics.errTitle": "主題無法啟動",
+ "topics.fabAria": "傳送一則鏈上訊息",
+ "topics.linkFail": "無法建立付款連結。",
+ "topics.msgPh": "一則簡短的訊息",
+ "topics.mute": "改為靜音：把這些從訊息流中隱藏",
+ "topics.needMsg": "請先輸入訊息。",
+ "topics.noDate": "日期不明",
+ "topics.none": "還沒有主題",
+ "topics.opened": "已在新分頁開啟 Cashtab。在那裡確認即可廣播。",
+ "topics.opening": "正在開啟 Cashtab…",
+ "topics.popup": "無法開啟 Cashtab — 請允許本站彈出視窗後再試一次。",
+ "topics.sendCashtab": "透過 Cashtab 傳送",
+ "topics.sentExt": "已傳送到 Cashtab 擴充功能。在那裡確認即可廣播。",
+ "topics.shared": "追蹤一個詞，這個面板就會在鏈上訊息索引裡往回搜尋它。主題與 Flow 檢視共用。",
+ "topics.toolong": "太長了：{max} 位元組中已用 {n}。表情符號和中文每個字都不只一個位元組。"
+}

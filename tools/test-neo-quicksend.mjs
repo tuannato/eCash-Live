@@ -90,21 +90,34 @@ console.log('\n-- the send path --');
   // without the extension: a cleared field, a "Sent" hint, and no wallet.
   ok('the optimistic sender does not decide the branch',
      !/if\s*\(\s*!?\s*(viaExt|await chatSendViaCashtabExtension)/.test(code));
-  ok('a blocked pop-up is reported rather than silently swallowed', /allow pop-ups/i.test(code));
+  /* THESE USED TO MATCH THE ENGLISH SENTENCE, and the i18n pass turned every
+     one of them red -- correctly: the sentence moved into a key. Matching the
+     KEY is the durable form, because the key is what the code names and the
+     i18n suite is what proves the key resolves in all fifteen packs. The guard
+     that produces it is asserted beside it, so a message with no branch (or a
+     branch with no message) still fails. */
+  ok('a blocked pop-up is reported rather than silently swallowed',
+     /if\s*\(\s*!opened\s*\)/.test(code) && /'topics\.popup'/.test(code));
 }
 
 console.log('\n-- what it refuses --');
 {
-  ok('refuses with no recipient', /Choose or paste a recipient/.test(code));
-  ok('refuses with no message', /Type a message first/.test(code));
+  ok('refuses with no recipient',
+     /if\s*\(\s*!addr\s*\)[^\n]*'try\.needAddr'/.test(code));
+  ok('refuses with no message',
+     /if\s*\(\s*!text\s*\)[^\n]*'topics\.needMsg'/.test(code));
   // Charset+length is not a checksum: neo's own validator passes a mistyped
   // address, and this composer can move money.
   ok('checks the real checksum, not just the alphabet', /validateCashAddress\s*\(/.test(code));
   // maxlength counts UTF-16 units; the OP_RETURN budget is utf-8 bytes.
   ok('measures the message in BYTES', /chatUtf8Bytes\s*\(/.test(code));
   ok('against the budget Chat already uses', /CHAT_OP_RETURN_BUDGET/.test(code));
-  ok('a followed term sent bare is disclosed, not silently armed',
-     /will not be marked as yours/.test(code));
+  /* BOTH ROUTES, not either. There are two send paths -- the extension and the
+     cashtab.com URL -- and a single-occurrence check passes with the disclosure
+     deleted from one of them. Mutation proved it: removing one instance could
+     not even be applied uniquely, which is the tell. */
+  ok('a followed term sent bare is disclosed on BOTH send routes',
+     (code.match(/'topics\.bareTerm'/g) || []).length === 2);
 }
 
 console.log('\n-- the surface --');

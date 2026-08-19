@@ -1,0 +1,23 @@
+{
+ "topics.back": "返回信息流",
+ "topics.bareTerm": "这正好是你关注的主题，所以不会标记为你自己的。",
+ "topics.chipMuted": "已屏蔽 — 在信息流和主题中都隐藏",
+ "topics.chipOff": "点按以关注",
+ "topics.chipOn": "关注中 — 点按停止",
+ "topics.errBody": "搜索模块未能加载。信息流不受影响 — 重新加载页面再试一次。",
+ "topics.errTitle": "主题无法启动",
+ "topics.fabAria": "发送一条链上消息",
+ "topics.linkFail": "无法生成支付链接。",
+ "topics.msgPh": "一条简短的消息",
+ "topics.mute": "改为屏蔽：把这些从信息流中隐藏",
+ "topics.needMsg": "请先输入消息。",
+ "topics.noDate": "日期未知",
+ "topics.none": "还没有主题",
+ "topics.opened": "已在新标签页打开 Cashtab。在那里确认即可广播。",
+ "topics.opening": "正在打开 Cashtab…",
+ "topics.popup": "无法打开 Cashtab — 请允许本站弹出窗口后重试。",
+ "topics.sendCashtab": "通过 Cashtab 发送",
+ "topics.sentExt": "已发送到 Cashtab 扩展。在那里确认即可广播。",
+ "topics.shared": "关注一个词，这个面板就会在链上消息索引里向前回溯查找它。主题与 Flow 视图共用。",
+ "topics.toolong": "太长了：{max} 字节中已用 {n}。表情符号和中文每个字都不止一个字节。"
+}

@@ -131,6 +131,7 @@ jobs:
           node tools/test-helper-parity.mjs
           node tools/test-panel4-counter.mjs
           node tools/test-neo-lang.mjs
+          node tools/test-neo-topics-i18n.mjs
 
       - name: Relay compiles, and mirrors the bot's shared constant
         # ecash_bot.py is deliberately gitignored (secrets discipline, CLAUDE.md

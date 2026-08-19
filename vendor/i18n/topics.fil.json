@@ -1,0 +1,23 @@
+{
+ "topics.back": "Balik sa feed",
+ "topics.bareTerm": "Ito mismo ang paksang sinusundan mo, kaya hindi ito mamarkahang sa iyo.",
+ "topics.chipMuted": "Naka-mute — itinatago sa feed at sa Mga Paksa",
+ "topics.chipOff": "Pindutin para sundan",
+ "topics.chipOn": "Sinusundan — pindutin para itigil",
+ "topics.errBody": "Hindi na-load ang mga search module. Hindi apektado ang feed — i-reload ang pahina para subukan ulit.",
+ "topics.errTitle": "Hindi makapagsimula ang Mga Paksa",
+ "topics.fabAria": "Magpadala ng on-chain na mensahe",
+ "topics.linkFail": "Hindi mabuo ang payment link.",
+ "topics.msgPh": "Isang maikling mensahe",
+ "topics.mute": "I-mute na lang: itago ang mga ito sa feed",
+ "topics.needMsg": "Magsulat muna ng mensahe.",
+ "topics.noDate": "hindi alam ang petsa",
+ "topics.none": "Wala pang paksa",
+ "topics.opened": "Bumukas ang Cashtab sa bagong tab. Kumpirmahin doon para i-broadcast.",
+ "topics.opening": "Binubuksan ang Cashtab…",
+ "topics.popup": "Hindi mabuksan ang Cashtab — payagan ang pop-ups para sa site na ito at subukan ulit.",
+ "topics.sendCashtab": "Ipadala sa Cashtab",
+ "topics.sentExt": "Naipadala sa Cashtab extension. Kumpirmahin doon para i-broadcast.",
+ "topics.shared": "Sundan ang isang salita at hahanapin ito ng panel na ito pabalik sa message index ng chain. Ibinabahagi ang mga paksa sa Flow view.",
+ "topics.toolong": "Masyadong mahaba: {n} sa {max} byte. Mas malaki sa isang byte ang emoji at accent."
+}

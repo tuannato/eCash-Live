@@ -69,7 +69,14 @@ def main():
         print(f"::error::{HTML} not found")
         return 1
     html = open(HTML, encoding="utf-8").read()
-    packs = sorted(p for p in glob.glob("vendor/i18n/*.json") if "/flow." not in p)
+    # flow.*.json are Flow's key-value packs and topics.*.json is neo's
+    # Topics overlay in the same shape -- neither carries a dom/domMap, so
+    # both contribute zero checks here while still being counted. Left in,
+    # this line reported "30 packs" for the 15 it actually inspects: a
+    # doubled coverage figure in the CI log, which is the kind of number
+    # nobody re-derives. tools/test-neo-topics-i18n.mjs covers topics.*.
+    packs = sorted(p for p in glob.glob("vendor/i18n/*.json")
+                   if "/flow." not in p and "/topics." not in p)
     if not packs:
         print("::error::no neo language packs found")
         return 1

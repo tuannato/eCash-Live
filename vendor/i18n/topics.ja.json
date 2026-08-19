@@ -1,0 +1,23 @@
+{
+ "topics.back": "フィードに戻る",
+ "topics.bareTerm": "これはあなたがフォローしているトピックそのものなので、あなたのものとしては表示されません。",
+ "topics.chipMuted": "ミュート中 — フィードとトピックから非表示",
+ "topics.chipOff": "タップでフォロー",
+ "topics.chipOn": "フォロー中 — タップで停止",
+ "topics.errBody": "検索モジュールが読み込まれませんでした。フィードには影響ありません — ページを再読み込みしてお試しください。",
+ "topics.errTitle": "トピックを開始できませんでした",
+ "topics.fabAria": "オンチェーンのメッセージを送る",
+ "topics.linkFail": "支払いリンクを作成できませんでした。",
+ "topics.msgPh": "短いメッセージ",
+ "topics.mute": "代わりにミュート：これらをフィードから隠す",
+ "topics.needMsg": "先にメッセージを入力してください。",
+ "topics.noDate": "日付不明",
+ "topics.none": "トピックはまだありません",
+ "topics.opened": "Cashtab を新しいタブで開きました。そこで確認すると送信されます。",
+ "topics.opening": "Cashtab を開いています…",
+ "topics.popup": "Cashtab を開けませんでした — このサイトのポップアップを許可してもう一度お試しください。",
+ "topics.sendCashtab": "Cashtab で送信",
+ "topics.sentExt": "Cashtab 拡張機能に送りました。そこで確認すると送信されます。",
+ "topics.shared": "単語をフォローすると、この画面がチェーンのメッセージ索引をさかのぼって探します。トピックは Flow 表示と共有されます。",
+ "topics.toolong": "長すぎます：{max} バイト中 {n} バイト。絵文字や日本語は 1 文字で複数バイトになります。"
+}
