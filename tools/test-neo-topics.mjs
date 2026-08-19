@@ -1650,5 +1650,39 @@ console.log('\n-- the chat tab hides the feed side, wrappers included --');
   ok('and the list itself', hidden.has('.msg-list'));
 }
 
+// ===========================================================================
+// THE EDITOR IS A FORM, NOT AN EMPTY STATE. It borrows .topics-state for
+// typography only. That class is `flex: 1` + `justify-content: center`, which
+// is right for "No topics yet" -- one line centred in an empty pane -- and
+// wrong for a panel of inputs: it stretched the editor to the full scroll
+// height and centred the form in it. Measured on a 375x812 phone before the
+// fix: editor 2211px around a 285px form, 963px of空 space above and below.
+// ===========================================================================
+console.log('\n-- the term editor takes its own height --');
+{
+  const css = html.match(/<style>([\s\S]*?)<\/style>/)[1].replace(/\/\*[\s\S]*?\*\//g, '');
+  const rule = (sel) => {
+    const i = css.indexOf(sel + ' {');
+    return i === -1 ? '' : css.slice(i, css.indexOf('}', i));
+  };
+  const state = rule('.topics-state');
+  const editor = rule('#tp-editor');
+
+  // The empty state keeps its centring: that is what the class is for.
+  ok('the empty state still fills and centres',
+     /flex:\s*1/.test(state) && /justify-content:\s*center/.test(state));
+  // The editor opts out of both.
+  ok('the editor has a rule of its own', editor.length > 0);
+  ok('and does not stretch', /flex:\s*0 0 auto/.test(editor));
+  ok('and starts at the top', /justify-content:\s*flex-start/.test(editor));
+  /* An id beats a class, so the override cannot be undone by source order --
+     but only while it IS an id. Naming it .tp-editor would tie at (0,1,0) and
+     the winner would depend on which rule came last. */
+  ok('the override is by id, so specificity decides and not source order',
+     css.includes('#tp-editor {'));
+  ok('the editor is declared after the class it overrides',
+     css.indexOf('#tp-editor {') > css.indexOf('.topics-state {'));
+}
+
 console.log(fail ? `\nFAILED ${fail}/${pass + fail}` : `\nok: neo topics ${pass} assertions`);
 if (fail) process.exit(1);

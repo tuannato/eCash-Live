@@ -2765,6 +2765,21 @@
   }
   .topics-state .sub { font-size: 12px; line-height: 1.5; color: var(--text-4); max-width: 260px; }
   .topics-state.err .big { color: var(--amber); }
+  /* THE EDITOR IS A FORM, NOT AN EMPTY STATE, and it only borrows .topics-state
+     for its typography. That class is `flex: 1` + `justify-content: center`,
+     which is right for "No topics yet" -- one short line that should sit in the
+     middle of an empty pane -- and wrong for a panel of inputs: it stretched the
+     editor to the full scroll height and centred the form in it. Measured on a
+     375x812 phone: editor 2211px tall around a 285px form, 963px of empty space
+     above it and 963px below. It takes its own height at the top now. */
+  #tp-editor {
+    flex: 0 0 auto;
+    justify-content: flex-start;
+    align-items: stretch;
+    text-align: left;
+    padding: 14px 16px 18px;
+  }
+  #tp-editor .tp-ed { width: 100%; max-width: 420px; margin: 0 auto; }
 
   /* ============ CHATBOX ============ */
   .chatbox {
