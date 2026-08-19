@@ -2407,8 +2407,20 @@
   }
   .tab-warning-popover .popover-close:hover { color: var(--text); }
 
-  /* Hide one of [feed / chat] depending on which tab is active. */
+  /* Hide one of [feed / chat] depending on which tab is active.
+
+     .msg-wrap IS IN THIS LIST, and leaving it out is what shipped a live bug.
+     The rule was written when .msg-list was a direct child of the section and
+     therefore the flex item that occupied the pane -- .msg-list was doing two
+     jobs, being the list AND being the box. ab7dff1 wrapped it so the FAB and
+     the Topics overlay could sit beside it, which moved the second job to the
+     wrapper and left this rule reaching only the first. Result on the Chat tab:
+     an empty .msg-wrap kept its `flex: 1` and pushed the whole chat panel down
+     by exactly its own height (measured: chatbox top 146 -> 411, wrapper 265).
+     Hiding the wrapper collapses the feed side entirely, which is what
+     "the Chat tab" means. */
   #section-messages[data-tab="chat"] .msg-filters,
+  #section-messages[data-tab="chat"] .msg-wrap,
   #section-messages[data-tab="chat"] .msg-list { display: none; }
   #section-messages[data-tab="feed"] .chatbox { display: none; }
   /* The "+" and its panel live in .msg-wrap, beside the list rather than inside

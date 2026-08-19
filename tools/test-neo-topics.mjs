@@ -1594,5 +1594,61 @@ console.log('\n-- the safety line, and a refusal that speaks --');
   }
 }
 
+// ===========================================================================
+// THE CHAT TAB MUST COLLAPSE THE WHOLE FEED SIDE, not just the list inside it.
+// The hide rule was written when .msg-list was a direct child of the section
+// and therefore the flex item that occupied the pane -- one element doing two
+// jobs. Wrapping it for the FAB and the Topics overlay moved the second job to
+// the wrapper and left the rule reaching only the first, so an empty wrapper
+// kept `flex: 1` and pushed the chat panel down by its own height. Live on
+// production: chatbox top 146 -> 411.
+//
+// This walks the ANCESTOR CHAIN rather than naming .msg-wrap, so the next
+// wrapper somebody adds is caught the same way.
+// ===========================================================================
+console.log('\n-- the chat tab hides the feed side, wrappers included --');
+{
+  const css = html.match(/<style>([\s\S]*?)<\/style>/)[1].replace(/\/\*[\s\S]*?\*\//g, '');
+  // Selectors named in a [data-tab="chat"] ... display:none rule.
+  const hidden = new Set();
+  for (const r of css.match(/[^{}]+\{[^}]*\}/g) || []) {
+    if (!/display:\s*none/.test(r)) continue;
+    const head = r.slice(0, r.indexOf('{'));
+    if (!/\[data-tab="chat"\]/.test(head)) continue;
+    for (const one of head.split(',')) {
+      const last = one.trim().split(/\s+|>/).filter(Boolean).pop();
+      if (last) hidden.add(last);
+    }
+  }
+  ok('the chat tab hides something', hidden.size > 0);
+
+  // Walk from .msg-list up to #section-messages, collecting each wrapper.
+  const secAt = html.indexOf('id="section-messages"');
+  const listAt = html.indexOf('class="msg-list"', secAt);
+  ok('found the feed list inside the section', secAt !== -1 && listAt !== -1 && listAt > secAt);
+  const between = html.slice(secAt, listAt);
+  // Every <div class="x"> opened and not closed between the section and the
+  // list is an ancestor of the list.
+  const chain = [];
+  const re = /<div\b[^>]*>|<\/div>/g;
+  let m2, stack = [];
+  while ((m2 = re.exec(between)) !== null) {
+    if (m2[0] === '</div>') stack.pop();
+    else stack.push(m2[0]);
+  }
+  for (const tag of stack) {
+    const cls = (tag.match(/class="([^"]+)"/) || [])[1];
+    const id = (tag.match(/\sid="([^"]+)"/) || [])[1];
+    if (id === 'section-messages') continue;
+    if (cls) chain.push('.' + cls.split(/\s+/)[0]);
+    else if (id) chain.push('#' + id);
+  }
+  ok('the list sits inside at least one wrapper (' + chain.join(' > ') + ')', chain.length > 0);
+  for (const sel of chain) {
+    ok('the chat tab hides ' + sel + ', not only the list it contains', hidden.has(sel));
+  }
+  ok('and the list itself', hidden.has('.msg-list'));
+}
+
 console.log(fail ? `\nFAILED ${fail}/${pass + fail}` : `\nok: neo topics ${pass} assertions`);
 if (fail) process.exit(1);
