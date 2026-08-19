@@ -1029,5 +1029,63 @@ console.log('\n-- rows: highlight and hashtags --');
   eq('and it is the same pattern, byte for byte', flowRe[1], coreRe[1]);
 }
 
+// ===========================================================================
+// THE hidden ATTRIBUTE IS ONLY AS STRONG AS THE SHEET LETS IT BE. Author origin
+// beats the UA sheet, so any author `display` on an element's id or class makes
+// `hidden` inert and leaves it laid out, catching clicks, over what it is meant
+// to be behind. Measured against this stylesheet before the fix: #tp-editor
+// computed `flex` while carrying `hidden`, putting the term editor permanently
+// over the results. Flow paid for this with its composer eating the FAB's
+// clicks and fixed it globally; neo guards each element, so this counts them.
+// ===========================================================================
+console.log('\n-- the hidden attribute actually hides --');
+{
+  const css = html.match(/<style>([\s\S]*?)<\/style>/)[1];
+  // Every element in the page that carries the bare `hidden` attribute.
+  const tags = html.match(/<[a-z][^>]*\shidden(?=[\s/>])[^>]*>/gi) || [];
+  ok('found the hidden elements', tags.length >= 5);
+  for (const tag of tags) {
+    const id = (tag.match(/\sid="([^"]+)"/) || [])[1];
+    const classes = ((tag.match(/\sclass="([^"]+)"/) || [])[1] || '').split(/\s+/).filter(Boolean);
+    // Does any author rule give this element a display it would have to beat?
+    const selectors = [id && '#' + id, ...classes.map((c) => '.' + c)].filter(Boolean);
+    /* ONLY THE SUBJECT OF A RULE MATTERS. `.meta .cell { display: flex }` does
+       not style a .cell that is not inside .meta -- the first version of this
+       check matched the selector anywhere in the chain and failed a footer cell
+       that is correctly hidden today. So: split on commas, take the LAST
+       compound of each selector, and ask whether our element is that subject.
+       Descendant qualifiers ahead of it are somebody else's context. */
+    const styled = selectors.some((sel) => {
+      const bare = sel.slice(1);
+      const rules = css.match(/[^{}]+\{[^}]*\}/g) || [];
+      return rules.some((rule) => {
+        const head = rule.slice(0, rule.indexOf('{'));
+        if (!/\bdisplay\s*:/.test(rule)) return false;
+        return head.split(',').some((one) => {
+          const parts = one.trim().split(/\s+|>|\+|~/).filter(Boolean);
+          /* THE LIMIT OF A STATIC CHECK, STATED RATHER THAN PAPERED OVER. A rule
+             with a descendant qualifier (`.meta .cell { display:flex }`) applies
+             only inside that ancestor, and whether THIS element sits there is a
+             question about the DOM, not the sheet. So only unconditional single
+             -compound rules count here: those are the ones that certainly beat
+             the UA sheet, and they are the shape that produced the bug. A
+             descendant-qualified rule can still make `hidden` inert -- it is
+             simply not something this file can decide. */
+          if (parts.length !== 1) return false;
+          const subject = parts[0];
+          return sel[0] === '#' ? subject.includes('#' + bare)
+                                : new RegExp('\\.' + bare + '(?![\\w-])').test(subject);
+        });
+      });
+    });
+    if (!styled) continue;   // nothing to beat: the UA rule wins on its own
+    const guarded = selectors.some((sel) => {
+      const re = new RegExp(sel.replace(/[.#]/g, '\\$&') + '\\[hidden\\]\\s*\\{[^}]*display\\s*:\\s*none\\s*!important');
+      return re.test(css);
+    });
+    ok('[hidden] wins on ' + (id || classes.join('.')) + ' (an author display needs an !important guard)', guarded);
+  }
+}
+
 console.log(fail ? `\nFAILED ${fail}/${pass + fail}` : `\nok: neo topics ${pass} assertions`);
 if (fail) process.exit(1);

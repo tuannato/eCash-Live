@@ -2517,7 +2517,19 @@
   .tp-sum[aria-expanded="true"] { color: var(--text); border-color: var(--cyan-dim); background: rgba(1,160,224,0.06); }
   .tp-sum .caret { color: var(--text-4); margin-right: 5px; }
   .tp-panel { padding: 10px 16px 12px; border-bottom: 1px solid var(--line); background: rgba(255,255,255,0.012); flex-shrink: 0; }
-  .tp-panel[hidden] { display: none !important; }
+  /* AUTHOR ORIGIN BEATS THE UA SHEET, so an author `display` on a class makes
+     the `hidden` attribute inert -- and the element stays laid out, catching
+     clicks, over the content it is meant to be hiding behind. Measured against
+     this stylesheet: #tp-editor computed `flex` while carrying `hidden`, which
+     put the term editor permanently over the results. Flow paid for this once
+     with its composer panel eating the FAB's clicks (v1.1.0) and fixed it with
+     one global rule; neo has 22k lines of CSS it did not, so the guard is per
+     element and CI asserts that every element carrying `hidden` whose own
+     selector sets a display has one. Only .topics-state and #qs-panel do:
+     guards were written for .tp-panel and .tp-sugg too, and mutation showed
+     removing them changed nothing, because neither sets a display on itself.
+     They are gone -- a guard that guards nothing argues against looking. */
+  .topics-state[hidden] { display: none !important; }
   .tp-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
   .tp-row:last-child { margin-bottom: 0; }
   .tp-check { font-family: 'Fira Code', monospace; font-size: 10px; color: var(--text-2); display: flex; align-items: center; gap: 7px; cursor: pointer; }
