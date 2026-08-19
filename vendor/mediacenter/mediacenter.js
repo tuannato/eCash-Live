@@ -526,10 +526,20 @@
   function nudgeControls() { setTimeout(updateControls, 80); }
 
   /* eChan presenter narration: load <base>.<lang>.json (fallback .en), then push
-   * one line into eChan's dialog as the lesson advances scenes (req #13). */
+   * one line into eChan's dialog as the lesson advances scenes (req #13).
+   *
+   * Language comes from the i18n bridge (eChan's state.lang), not from the
+   * storage key. pickInitialLang deliberately does not persist a detection, so
+   * a first visit has an empty key while eChan is already speaking the browser
+   * language — reading the key here would narrate English against a Vietnamese
+   * eChan, a split inside one door. The bridge is published in eChan boot
+   * (publishI18nBridge) before any lesson can call this: both scripts are defer
+   * and echan.js is listed first; loadNarration runs only when a lesson plays.
+   * Storage is the fallback if the bridge is missing. */
   function loadNarration(base) {
     if (!base || !state.lesson) return;
-    const lang = lsGet('ecashlive.lang', 'en') || 'en';
+    const bridged = window.__ecI18n && typeof window.__ecI18n.lang === 'function' && window.__ecI18n.lang();
+    const lang = bridged || lsGet('ecashlive.lang', 'en') || 'en';
     const urls = (lang && lang !== 'en') ? [base + '.' + lang + '.json', base + '.en.json'] : [base + '.en.json'];
     (function attempt(i) {
       if (i >= urls.length || !state.lesson) return;

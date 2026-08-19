@@ -13,6 +13,44 @@ import { dirname, join } from 'node:path';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const echan = readFileSync(join(ROOT, 'vendor/companion/echan.js'), 'utf8');
 const flow  = readFileSync(join(ROOT, 'flow/index.html'), 'utf8');
+const mc    = readFileSync(join(ROOT, 'vendor/mediacenter/mediacenter.js'), 'utf8');
+
+/** Copy `src` with // and /* comments removed. Strings are kept so a quoted
+ *  `code:` still extracts, and a quoted event name still locates a dispatch.
+ *  A comment containing I18N_LANGS = [...] or 'ecashlive:lang' cannot satisfy
+ *  a later search. */
+function withoutComments(src) {
+  let out = '';
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i], n = src[i + 1];
+    if (c === '/' && n === '/') {
+      const nl = src.indexOf('\n', i);
+      if (nl === -1) break;
+      out += '\n';
+      i = nl;
+      continue;
+    }
+    if (c === '/' && n === '*') {
+      const end = src.indexOf('*/', i + 2);
+      if (end === -1) break;
+      i = end + 1;
+      continue;
+    }
+    if (c === "'" || c === '"' || c === '`') {
+      const q = c;
+      out += c;
+      i++;
+      for (; i < src.length; i++) {
+        out += src[i];
+        if (src[i] === '\\') { i++; if (i < src.length) out += src[i]; continue; }
+        if (src[i] === q) break;
+      }
+      continue;
+    }
+    out += c;
+  }
+  return out;
+}
 
 /** Lift `function name(...) {...}` by balancing braces, skipping strings and
  *  comments. Keeps a leading `async` (see the trap in test-panel4-counter). */
@@ -37,9 +75,29 @@ function grab(src, name) {
 }
 
 function codes(src, decl) {
-  const m = src.match(new RegExp(decl + '\\s*=\\s*\\[([\\s\\S]*?)\\];'));
-  if (!m) throw new Error('no ' + decl);
-  return [...m[1].matchAll(/code:\s*'([^']+)'/g)].map(x => x[1]);
+  const clean = withoutComments(src);
+  const hits = [...clean.matchAll(new RegExp('\\b' + decl + '\\s*=\\s*\\[', 'g'))];
+  if (hits.length !== 1) {
+    throw new Error(decl + ': expected exactly one array, found ' + hits.length);
+  }
+  const open = hits[0].index + hits[0][0].length - 1;
+  let depth = 0, i = open;
+  for (; i < clean.length; i++) {
+    const c = clean[i];
+    if (c === "'" || c === '"' || c === '`') {
+      const q = c;
+      for (i++; i < clean.length; i++) {
+        if (clean[i] === '\\') { i++; continue; }
+        if (clean[i] === q) break;
+      }
+      continue;
+    }
+    if (c === '[') depth++;
+    else if (c === ']') { depth--; if (!depth) break; }
+  }
+  if (depth !== 0) throw new Error(decl + ': unbalanced array');
+  const body = clean.slice(open + 1, i);
+  return [...body.matchAll(/\bcode\s*:\s*(['"])([^'"]+)\1/g)].map(x => x[2]);
 }
 
 let n = 0;
@@ -84,6 +142,12 @@ eq(run(null, 'ZH-cn'), 'zh-CN', 'exact is case-insensitive');
 // reader silently gets Simplified. Found by mutation-testing this file: every
 // other case here passes with the exact step deleted.
 eq(run(null, 'zh-TW'), 'zh-TW', 'zh-TW must not collapse to zh-CN');
+// Same pair, case-folded. Deleting both .toLowerCase() calls on the exact
+// step (l.code === nav) leaves ZH-cn green: exact fails, the base scan still
+// returns zh-CN. ZH-tw / zh-tw fail exact the same way, then the base scan
+// takes zh-CN — the only inputs in the set that go red for that mutation.
+eq(run(null, 'ZH-tw'), 'zh-TW', 'ZH-tw is exact, not base (base would yield zh-CN)');
+eq(run(null, 'zh-tw'), 'zh-TW', 'zh-tw is exact, not collapsed to zh-CN');
 // A SHARED LIMITATION, pinned here so it is a known shortcut and not a
 // surprise. 'zh-Hant-TW' is a legitimate tag for Traditional Chinese, matches
 // no code exactly, falls to the base scan, and takes the first zh* in the list
@@ -108,21 +172,47 @@ if (/setItem|lsSet/.test(body)) {
 }
 n++;
 
-// --- setLanguage must announce, and announce LAST ---------------------------
-const setLang = grab(echan, 'setLanguage');
+// --- setLanguage must announce after the pack+seed, before DOM work ---------
+// A comment containing the event name must not satisfy this: strip first, then
+// require the dispatch to sit after loadSeed AND before applyDomI18n. applyDomI18n
+// is try/finally with no catch; if the event were after it, a throw would skip
+// the announcement after state.lang / storage / the pack had already moved.
+const setLang = withoutComments(grab(echan, 'setLanguage'));
 if (!/ecashlive:lang/.test(setLang)) {
   throw new Error('setLanguage does not dispatch ecashlive:lang');
 }
 const evAt = setLang.indexOf('ecashlive:lang');
-const packAt = setLang.indexOf('loadLangPack');
-if (packAt === -1 || evAt < packAt) {
-  throw new Error('the event must fire after the pack loads, not before');
+const seedAt = setLang.indexOf('loadSeed');
+const applyAt = setLang.indexOf('applyDomI18n');
+if (seedAt === -1 || applyAt === -1 || evAt === -1) {
+  throw new Error('setLanguage is missing loadSeed, applyDomI18n, or the event');
+}
+if (!(seedAt < evAt && evAt < applyAt)) {
+  throw new Error('the event must fire after loadSeed and before applyDomI18n');
 }
 n++;
 
 // --- boot must use it, not a hardcoded fallback -----------------------------
 if (/lsGet\(\s*STORAGE\.lang\s*,\s*'en'\s*\)/.test(echan)) {
   throw new Error("boot still falls back to hardcoded 'en' instead of pickInitialLang");
+}
+n++;
+
+// --- media-center narration follows the effective language, not raw storage -
+// pickInitialLang does not persist a detection, so a first visit has an empty
+// key while eChan is already speaking the browser language. Reading the key
+// here would split the door: eChan Vietnamese, the lesson English.
+const loadN = withoutComments(grab(mc, 'loadNarration'));
+const bridgeAt = loadN.search(/__ecI18n/);
+const storeAt = loadN.search(/lsGet\s*\(|getItem\s*\(/);
+if (bridgeAt === -1) {
+  throw new Error('loadNarration does not consult the i18n bridge');
+}
+if (storeAt === -1) {
+  throw new Error('loadNarration dropped the storage fallback');
+}
+if (storeAt < bridgeAt) {
+  throw new Error('loadNarration consults storage before the i18n bridge');
 }
 n++;
 

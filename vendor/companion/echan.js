@@ -1558,6 +1558,17 @@
     try { document.documentElement.lang = code; } catch (e) {}
     await loadLangPack(code);
     await loadSeed();            /* dialogue re-fetched in the new language */
+    /* The dashboard paints some of its own text from JS, and nothing here told
+     * it the language moved. Fires as soon as the pack and the seed have
+     * landed — everything a listener needs — and BEFORE applyDomI18n /
+     * startDomI18nObserver, either of which can throw (try/finally, no catch)
+     * and would skip the announcement after state.lang, storage, and the pack
+     * have already moved. Do NOT substitute an observer on documentElement.lang:
+     * that is set at the TOP of this function, before await loadLangPack, so it
+     * is a signal that arrives while the pack is still the previous language. */
+    try {
+      window.dispatchEvent(new CustomEvent('ecashlive:lang', { detail: { lang: code } }));
+    } catch (e) {}
     refreshUiTexts();
     if (state.langBtn) {
       const c = state.langBtn.querySelector('.echan-lang-code');
@@ -1566,15 +1577,6 @@
     applyDomI18n();
     startDomI18nObserver();
     closeLangPopover();
-    /* The dashboard paints some of its own text from JS, and nothing here told
-     * it the language moved. Fires LAST, after the pack and the seed have
-     * landed, so a listener that re-renders reads the new strings and not the
-     * old ones. Do NOT substitute an observer on documentElement.lang: that is
-     * set at the TOP of this function, before await loadLangPack, so it is a
-     * signal that arrives while the pack is still the previous language. */
-    try {
-      window.dispatchEvent(new CustomEvent('ecashlive:lang', { detail: { lang: code } }));
-    } catch (e) {}
   }
 
   /* Re-applies translated strings to everything built with data-i18n /
