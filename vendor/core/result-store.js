@@ -86,7 +86,7 @@
  * hold (still on the live stream, or a corpus hit not yet fetched).
  * get/has/values speak only for what this store was given.
  */
-export function createResultStore({ max = 200, tsOf, wanted } = {}) {
+export function createResultStore({ max = 200, tsOf, wanted, order = 'oldest-first' } = {}) {
   if (typeof tsOf !== 'function' || typeof wanted !== 'function') {
     throw new Error('createResultStore: tsOf and wanted are required');
   }
@@ -130,7 +130,16 @@ export function createResultStore({ max = 200, tsOf, wanted } = {}) {
     }
     rows.sort((a, b) => b[1] - a[1]);
     matchedTotal = rows.length;
-    matched = rows.slice(0, cap).reverse().map((r) => r[0]);
+    /* THE CAP IS THE MODULE'S; THE READING ORDER IS THE DOOR'S. This was
+       hardcoded to oldest-first, which is right for Flow and wrong for neo, and
+       the reason is that each door's list has to run the same way as the stream
+       beside it or the two scroll in opposite directions. Flow's stream appends
+       at the BOTTOM, so its Lane reads oldest-first; neo's feed inserts at the
+       TOP, so Topics reads newest-first. Same cap, same recency slice, opposite
+       paint order — which is presentation, and presentation belongs to the door.
+       Default unchanged, so Flow keeps exactly what it had. */
+    const kept = rows.slice(0, cap);
+    matched = (order === 'newest-first' ? kept : kept.reverse()).map((r) => r[0]);
   }
 
   function clear() {

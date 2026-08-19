@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-/nI43NfIR9tEnVk7aluJ88YBoILOt9Z0Z3MUlcdBbj8=';
+  script-src 'self' 'sha256-ZN/HSgqgY+b20Utd2nQlFrce2U69/267gf04mAGNJJs=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -2468,7 +2468,7 @@
 
   #topics-body { flex: 1; overflow-y: auto; padding: 8px 0; }
   .topics-cov {
-    padding: 8px 16px 9px; border-bottom: 1px solid var(--line);
+    padding: 9px 16px 8px; border-top: 1px solid var(--line);
     font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace;
     font-size: 9px; line-height: 1.75; color: var(--text-3);
   }
@@ -13670,7 +13670,7 @@ const TOPICS_MODULES = [
   './vendor/core/lane-cursor.js?v=1',
   './vendor/core/lane-corpus.js?v=1',
   './vendor/core/lane-store.js?v=2',
-  './vendor/core/result-store.js?v=1',
+  './vendor/core/result-store.js?v=2',
 ];
 let topicsCore = null, topicsLoading = null;
 /* DYNAMIC, NOT TOP-LEVEL, and the reason is in HANDOFF 08-18 constraint 6: a
@@ -13845,6 +13845,11 @@ function buildTopicsEngine() {
   tpStore  = C.createLaneStore({ storage: localStorage, key: TOPICS_CURSOR_KEY, max: TOPICS_CORPUS_MAX });
   tpResults = C.createResultStore({
     max: TOPICS_MATCH_MAX,
+    // neo's feed puts the newest at the TOP, so Topics does too. Flow's stream
+    // appends at the bottom and its Lane reads the other way; a list that ran
+    // against the stream beside it would make the two scroll in opposite
+    // directions on the same door.
+    order: 'newest-first',
     tsOf: (id, tx) => topicTsOf(id, tx),
     wanted: (tx) => C.inScope(tx._lokad, topicScope) && topicTxMatches(tx),
   });
@@ -14012,9 +14017,14 @@ function renderTopics() {
         '<div class="topic-text">' + escapeHtml(hay) + '</div></div>';
     }
   }
+  /* THE COVERAGE LINE SITS UNDER THE RESULTS, not over them. It is four
+     sentences of qualification, and above the list it pushed the answer off the
+     first screen -- the reader came for the messages. Under them it is still
+     the last thing read before the button that asks for more, which is exactly
+     when "how far has this actually searched" is the question. */
   body.innerHTML =
-    '<div class="topics-cov">' + cov + '</div>' +
     list +
+    '<div class="topics-cov">' + cov + '</div>' +
     '<div class="topics-foot"><button class="msg-filter" id="topics-more" type="button"' +
     (tpBusy || tpDeepDone ? ' disabled' : '') + '>' +
     (tpDeepDone ? 'Read all' : tpBusy ? 'Searching…' : 'Search further back') + '</button></div>';

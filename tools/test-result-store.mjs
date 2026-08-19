@@ -217,6 +217,35 @@ console.log('\n-- S7: door-free, and hold never touches .el --');
   ok('hold does not read or write .el', !threw && S.has('p'));
 }
 
+// ------------------------------------------------- reading order per door
+console.log('\n-- the cap is the module\'s, the reading order is the door\'s --');
+{
+  const mk = (order) => createResultStore({
+    max: 3, order,
+    tsOf: (id) => ({ a: 10, b: 20, c: 30, d: 40 }[id] || 0),
+    wanted: () => true,
+  });
+  const ids = ['a', 'b', 'c', 'd'];
+  const flow = mk(undefined);        // Flow passes nothing
+  flow.setMatched(ids);
+  // Cap by RECENCY (a is oldest, so a is dropped), then paint oldest-first.
+  eq('default is unchanged: newest kept, oldest painted first', flow.matched, ['b', 'c', 'd']);
+  eq('and the total still counts what the cap dropped', flow.matchedTotal, 4);
+
+  const neo = mk('newest-first');
+  neo.setMatched(ids);
+  // Same three kept -- only the paint order differs, because neo's feed puts
+  // the newest at the top and a list that ran the other way would scroll
+  // against the stream beside it.
+  eq('newest-first keeps the SAME rows', neo.matched.slice().sort(), ['b', 'c', 'd']);
+  eq('and paints them newest first', neo.matched, ['d', 'c', 'b']);
+  eq('the two orders are exact reverses', neo.matched.slice().reverse(), flow.matched);
+
+  const bogus = mk('sideways');
+  bogus.setMatched(ids);
+  eq('an unknown order falls back to the default rather than throwing', bogus.matched, ['b', 'c', 'd']);
+}
+
 // ------------------------------------------------------------------ clear
 console.log('\n-- clear empties the hold, not the answer --');
 {
