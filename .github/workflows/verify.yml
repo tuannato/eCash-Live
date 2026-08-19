@@ -117,6 +117,7 @@ jobs:
           node tools/test-lane-scope.mjs
           node tools/test-lane-store.mjs
           node tools/test-result-store.mjs
+          node tools/test-neo-topics.mjs
           node tools/test-lane-refresh.mjs
           node tools/test-lane-notchecked.mjs
           node tools/test-lane-backfill.mjs

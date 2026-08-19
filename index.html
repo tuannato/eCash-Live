@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-vOtr3Ys2psQkIbDuZwiSk6PgVPyKgS+9AFvW7arneUY=';
+  script-src 'self' 'sha256-+4UAD/oO01El/+aDRaxAcTfowzjLoCqHLg4FCGbbrqo=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -2460,9 +2460,31 @@
   .msg-filters::-webkit-scrollbar { display: none; }
   .msg-filter { flex: none; display: inline-flex; align-items: center; gap: 6px; }
   .topics-add { border-style: dashed; color: var(--text-2); }
+  .topic-chip.active { color: var(--cyan); border-color: var(--cyan-dim); background: rgba(1,160,224,0.08); }
+  /* A mute is a standing defence, not a match, so it never wears the match
+     colour. Amber is what this door already uses for a warn state. */
+  .topic-chip.mute { color: var(--amber); border-color: rgba(255,184,0,0.4); background: rgba(255,184,0,0.07); }
   .topics-add:hover { color: var(--cyan); border-color: var(--cyan-dim); }
 
   #topics-body { flex: 1; overflow-y: auto; padding: 8px 0; }
+  .topics-cov {
+    padding: 8px 16px 9px; border-bottom: 1px solid var(--line);
+    font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace;
+    font-size: 9px; line-height: 1.75; color: var(--text-3);
+  }
+  /* A warning clause takes amber so a reader scanning the pane sees the caveat
+     without having to read the sentence. */
+  .topics-cov .warn { color: var(--amber); }
+  .topic-row {
+    margin: 4px 16px; padding: 9px 12px; border: 1px solid var(--line);
+    border-radius: 4px; background: rgba(255,255,255,0.012);
+  }
+  .topic-meta {
+    font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace;
+    font-size: 9px; letter-spacing: 0.1em; color: var(--text-4); margin-bottom: 5px;
+  }
+  .topic-text { font-size: 12px; line-height: 1.45; color: var(--text-2); word-break: break-word; }
+  .topics-foot { padding: 9px 16px; border-top: 1px solid var(--line); }
   #topics-body::-webkit-scrollbar { width: 6px; }
   #topics-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 3px; }
   .topics-state {
@@ -13071,6 +13093,9 @@ function msgGroupKey(msg) {
 
 function addMessageCard(tx) {
   if (!tx.message) return;
+  // Topics ingests here, before the Feed's own window decisions below: that cap
+  // is a fact about what the feed shows, and Topics is not a window.
+  try { topicsIngestLive(tx); } catch (e) {}
   // Dedup — mirror the mempool poll's knownTxids guard. The same tx can reach
   // us from BOTH the live WS stream and the 5s poll; without this an unshift
   // would double-insert it. (processNewTx also guards upstream, but keeping the
@@ -13315,7 +13340,7 @@ function panel4Counter() {
   if (sec.dataset.topics === 'open') {
     // Nothing to count until the engine lands. A number here would be a claim
     // about a search that has not run.
-    n.textContent = '0';
+    n.textContent = String(typeof tpResults !== 'undefined' && tpResults ? tpResults.matched.length : 0);
     lbl.textContent = 'topics';
     return;
   }
@@ -13601,6 +13626,12 @@ function cleanChainText(s) { return String(s == null ? '' : s).replace(BIDI_CTRL
 function scrubTx(tx) {
   if (!tx) return tx;
   if (tx.message && tx.message.content != null) tx.message.content = cleanChainText(tx.message.content);
+  /* .text IS THE FIELD A SEARCH READS, so it has to be scrubbed too. This was
+     missing while nothing on this door searched: a U+200B dropped mid-word
+     evades every matcher and still renders normally, so neo would report "no
+     match" on the exact bytes Flow matches. Flow has cleaned both since its
+     Lane shipped; the two doors must not disagree about what a message says. */
+  if (tx.message && tx.message.text != null) tx.message.text = cleanChainText(tx.message.text);
   if (tx.token) {
     if (tx.token.ticker) tx.token.ticker = cleanChainText(tx.token.ticker);
     if (tx.token.name)   tx.token.name   = cleanChainText(tx.token.name);
@@ -13671,6 +13702,37 @@ function topicsSetState(kind, big, sub) {
   box.querySelector('.big').textContent = big;
   box.querySelector('.sub').textContent = sub;
 }
+/* THE CHIPS ARE THE ONLY WAY IN, so they render at boot and not on first open.
+   A follow restores OFF (Flow's rule, E1), which means something on this door
+   has to be able to turn one ON -- without it the pane could never answer
+   anything, whatever Flow had written, and a Topics pane that cannot search is
+   the product lie this series is trying not to ship. The term EDITOR (add,
+   remove, word/contains, accents, mute) is the next commit; this is the toggle. */
+function renderTopicChips() {
+  const row = document.querySelector('.msg-filters');
+  const add = $('topics-add');
+  if (!row || !add) return;
+  row.querySelectorAll('.topic-chip').forEach(el => el.remove());
+  for (const t of topicTerms) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'msg-filter topic-chip' + (t.mute ? ' mute' : (t.on ? ' active' : ''));
+    b.textContent = t.q;
+    b.setAttribute('aria-pressed', String(!!t.on));
+    b.title = t.mute ? 'Muted — hidden from the feed and from Topics'
+                     : (t.on ? 'Following — tap to stop' : 'Tap to follow');
+    b.addEventListener('click', () => {
+      t.on = !t.on;
+      saveTopicSettings();
+      renderTopicChips();
+      if (!t.mute) openTopics();
+      if (topicsEngineReady()) { topicsRematch(); runTopicsBackfill(); }
+      renderMessages();          // a mute change re-hides feed cards
+    });
+    row.insertBefore(b, add.nextSibling);
+  }
+}
+
 function openTopics() {
   const sec = $('section-messages');
   if (!sec) return;
@@ -13679,7 +13741,15 @@ function openTopics() {
   /* A load failure has to be SAID. Trading a loud blank page for a pane that
      silently does nothing is not an improvement -- the reader would read it as
      "no topics match" and believe a search that never ran. */
-  loadTopicsCore().catch((e) => {
+  loadTopicsCore().then(() => {
+    buildTopicsEngine();
+    topicsRematch();
+    // One walk per open while a topic is unanswered locally, and only while the
+    // pane is showing: neo already hits chronik for mempool, token info, POWR
+    // authors, the watchlist and Chat history, and an ungated walk starves the
+    // panels this door exists to show.
+    if (topicFollows().length && !tpResults.matched.length) runTopicsBackfill();
+  }).catch((e) => {
     console.error('[topics] core modules failed to load', e);
     topicsSetState('err', 'Topics could not start',
       'The search modules did not load. The feed is unaffected — reload the page to try again.');
@@ -13691,6 +13761,276 @@ function closeTopics() {
   sec.dataset.topics = 'closed';
   panel4Counter();
 }
+/* ============ TOPICS (engine) ============
+   neo answers the SAME topics Flow does, out of the same stored value and the
+   same cache. Managing them (editor, scope picker, date window) is the next
+   commit; until then a reader curates on Flow and this door answers.
+
+   EVERY SETTING IS SHARED (decision 14), so there is no neo-only key here. Flow
+   writes { mode, scope, terms } as one value and this reads and writes that
+   same value. A new key would have meant two lists that drift, which is the
+   thing sharing was chosen to prevent. */
+const TOPICS_TERMS_KEY  = 'ecashlive:flow:filters';
+const TOPICS_CURSOR_KEY = 'ecashlive:flow:lane-cursor';
+const TOPICS_CORPUS_MAX = 5000;   // must equal Flow's, see HANDOFF decision 7
+const TOPICS_MATCH_MAX  = 200;
+const TOPICS_PAGE       = 50;
+const TOPICS_REQUESTS   = 6;
+
+let topicTerms = [], topicMode = 'any', topicScope = [LOKAD.CASHTAB_MSG];
+
+/* A FOLLOW COMES BACK OFF; A MUTE COMES BACK ON. Flow's asymmetry, copied
+   rather than reinvented: an action must not look taken when it was not, and a
+   standing defence must not lapse because a tab was closed. */
+function loadTopicSettings() {
+  let raw = null;
+  try { raw = JSON.parse(localStorage.getItem(TOPICS_TERMS_KEY) || 'null'); } catch (e) {}
+  const list = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.terms) ? raw.terms : []);
+  topicMode = (raw && raw.mode === 'all') ? 'all' : 'any';
+  const scope = (raw && Array.isArray(raw.scope) && raw.scope.length) ? raw.scope : null;
+  topicScope = scope || [LOKAD.CASHTAB_MSG];
+  topicTerms = list.filter(e => e && typeof e.q === 'string' && e.q).map(e => {
+    const mute = !!e.mute;
+    return { q: e.q.slice(0, 40), on: mute ? (e.on !== false) : false,
+             mode: e.mode === 'contains' ? 'contains' : 'word',
+             fold: !!e.fold, mute };
+  });
+}
+function saveTopicSettings() {
+  try {
+    localStorage.setItem(TOPICS_TERMS_KEY,
+      JSON.stringify({ mode: topicMode, scope: topicScope, terms: topicTerms }));
+  } catch (e) {}
+}
+const topicFollows = () => topicTerms.filter(t => t.on && !t.mute);
+const topicMutes   = () => topicTerms.filter(t => t.mute);
+
+/* COPIED FROM FLOW, NOT EXTRACTED (HANDOFF trap #1). It reads outputs[0] only,
+   while parseTransactionCore scans every output — measured at 0/350 divergence
+   on real lokad pages, so it is a known shortcut on a door rather than "the
+   engine's idea of text" in core, where nobody would re-check it. The LIVE path
+   uses this same function, so a result cannot appear before a reload and vanish
+   after one. */
+function topicsHay(txData) {
+  const sc = txData && txData.outputs && txData.outputs[0] && txData.outputs[0].outputScript;
+  if (!sc || sc.slice(0, 2).toLowerCase() !== '6a') return null;
+  let m = null;
+  try { m = parseOpReturn(sc); } catch (e) { return null; }
+  if (!m || !m.text) return null;
+  const hay = cleanChainText(m.text);
+  if (!hay) return null;
+  const bts = txData.block && Number(txData.block.timestamp);
+  const fts = Number(txData.timeFirstSeen);
+  const ts = (Number.isFinite(bts) && bts > 0) ? bts * 1000
+           : (Number.isFinite(fts) && fts > 0) ? fts * 1000 : null;
+  return { hay, ts };
+}
+function topicSenderOf(txData) {
+  const c = topicsCore;
+  return (c && typeof c.senderOf === 'function') ? c.senderOf(txData) : null;
+}
+
+/* The engine is built only once the core modules have landed, because they are
+   imported dynamically — a top-level import of six specifiers into a
+   CSP-pinned 22,000-line module is a blank page waiting for a typo. */
+let tpCorpus = null, tpStore = null, tpResults = null, tpBf = null;
+let tpBusy = false, tpRunToken = 0, tpAbort = null, tpSavedCursor = null;
+let tpDeepDone = false, tpHoles = 0, tpTrimmed = 0;
+
+function topicsEngineReady() { return !!(topicsCore && tpCorpus && tpStore && tpResults); }
+function buildTopicsEngine() {
+  if (tpCorpus || !topicsCore) return;
+  const C = topicsCore;
+  tpCorpus = C.createCorpus({ max: TOPICS_CORPUS_MAX });
+  tpStore  = C.createLaneStore({ storage: localStorage, key: TOPICS_CURSOR_KEY, max: TOPICS_CORPUS_MAX });
+  tpResults = C.createResultStore({
+    max: TOPICS_MATCH_MAX,
+    tsOf: (id, tx) => topicTsOf(id, tx),
+    wanted: (tx) => C.inScope(tx._lokad, topicScope) && topicTxMatches(tx),
+  });
+  const restored = tpStore.load();
+  if (restored) { tpCorpus.load(restored.corpus); tpSavedCursor = restored.cursor; }
+}
+function topicTsOf(id, tx) {
+  const t = tx || tpResults.get(id);
+  const c = tpCorpus && tpCorpus.get(id);
+  return (t && (t.ts || t.firstSeen || 0)) || (c && c.ts) || 0;
+}
+function topicMatchText(hay) {
+  const C = topicsCore;
+  if (!C || !hay) return false;
+  const terms = topicFollows();
+  if (!terms.length) return false;
+  const hit = topicMode === 'all' ? C.matchEvery(hay, terms) : C.matchAny(hay, terms);
+  if (!hit) return false;
+  const mutes = topicMutes();
+  return !(mutes.length && C.matchAny(hay, mutes));
+}
+function topicTxMatches(tx) {
+  return topicMatchText(tx && tx._hay);
+}
+function topicsSaveStore() {
+  if (!tpStore) return;
+  tpStore.save({ cursor: tpBf ? tpBf.cursor : tpSavedCursor, corpus: tpCorpus });
+  if (tpStore.cursor) tpSavedCursor = tpStore.cursor;
+  tpTrimmed = tpStore.trimmed || 0;
+}
+
+/* THE WALK, WITH ALL SIX DEFENCES. Each of them is a bug Flow already paid for
+   and none is optional: the chronik guard sits BEFORE createBackfill because
+   the constructor throws outside the caller's try and one early click otherwise
+   disabled the search for a whole session; the abort controller stops a
+   superseded run's REQUESTS rather than only its output; the token stops it
+   writing; the save runs even on a throw because those pages were still read;
+   the prefilter ingests every text it sees rather than only matches, because a
+   corpus that keeps only today's hits is blind to tomorrow's term; and `parse`
+   is required by the engine itself. */
+async function runTopicsBackfill() {
+  if (!topicsEngineReady() || tpBusy || tpDeepDone || !topicFollows().length) return;
+  if (!chronik || typeof chronik.lokadId !== 'function') return;
+  const C = topicsCore;
+  tpAbort = new AbortController();
+  const token = tpRunToken;
+  if (!tpBf) {
+    tpBf = C.createBackfill({
+      chronik, lokads: topicScope, pageSize: TOPICS_PAGE,
+      prefilter: (txData, lokadId) => {
+        const got = topicsHay(txData);
+        if (!got || !txData.txid) return false;
+        tpCorpus.add(txData.txid, got.hay, got.ts, lokadId, topicSenderOf(txData));
+        return topicMatchText(got.hay);
+      },
+      parse: (txData, lokadId) => {
+        const got = topicsHay(txData);
+        return { id: txData.txid, _hay: got ? got.hay : null, _lokad: lokadId,
+                 ts: got ? got.ts : null, raw: txData };
+      },
+      keep: (tx) => topicTxMatches(tx),
+      onBatch: (txs, cov, lokadId) => {
+        if (token !== tpRunToken) return;
+        for (const tx of txs) { tx._lokad = lokadId; tpResults.hold(tx); }
+        topicsRematch();
+      },
+    });
+    if (tpSavedCursor) tpBf.load(tpSavedCursor);
+  }
+  tpBusy = true; renderTopics();
+  let cov = null;
+  try { cov = await tpBf.run({ requests: TOPICS_REQUESTS, signal: tpAbort.signal }); }
+  catch (e) { /* a total failure is still coverage; the counters below say so */ }
+  if (token !== tpRunToken) return;
+  topicsSaveStore();
+  if (cov) { tpHoles = cov.holeCount; tpDeepDone = cov.done; }
+  tpBusy = false;
+  topicsRematch();
+}
+
+/* Answer from everything already paid for: the corpus, and the transactions the
+   walk has already parsed. Each source is re-tested rather than trusted, so a
+   changed term drops what no longer matches. */
+function topicsRematch() {
+  if (!topicsEngineReady()) return;
+  const C = topicsCore;
+  const ids = [];
+  const cm = tpCorpus.matches({
+    terms: topicFollows(), mutes: topicMutes(),
+    scope: topicScope, range: { from: null, to: null }, mode: topicMode,
+  });
+  for (const id of cm.ids) ids.push(id);
+  for (const tx of tpResults.values()) {
+    if (!topicTxMatches(tx)) continue;
+    if (!C.inScope(tx._lokad, topicScope)) continue;
+    ids.push(tx.id);
+  }
+  tpResults.setMatched(ids);
+  renderTopics();
+}
+
+/* THE COVERAGE LINE IS THE HONESTY SURFACE, and a date with no caveats is the
+   overstatement v2.7.0 and v2.8.2 both exist to stop. English only until the
+   i18n commit; the strings are the ones Flow's packs already translate, so that
+   commit is a wiring job rather than a writing one. */
+function topicsCoverage() {
+  if (!topicsEngineReady()) return [];
+  const C = topicsCore, out = [];
+  const cur = Object.assign({}, tpSavedCursor || {}, tpBf ? tpBf.cursor : {});
+  const reach = C.laneReach(cur, topicScope);
+  if (reach) {
+    const names = topicScope.map(id => (LOKAD_NAMES && LOKAD_NAMES[id]) || id).join(', ');
+    out.push('searched ' + names + ' in full back to ' +
+             new Date(reach * 1000).toISOString().slice(0, 10));
+  }
+  if (tpCorpus.size) out.push('read ' + tpCorpus.size + ' messages from the chain index');
+  if (tpDeepDone) out.push('read all of the index for these protocols');
+  if (tpHoles) out.push({ warn: tpHoles + ' pages could not be loaded' });
+  if (tpCorpus.full) out.push({ warn: 'memory full — older pages are still searched for this topic, but not kept for other ones' });
+  if (tpTrimmed) out.push({ warn: 'browser storage is full — ' + tpTrimmed + ' messages read this session could not be kept for next time' });
+  if (tpResults.matchedTotal > tpResults.matched.length) {
+    out.push('showing the newest ' + tpResults.matched.length + ' of ' + tpResults.matchedTotal + ' matches');
+  }
+  out.push('live matches are shown from every protocol');
+  out.push('writing that carries no protocol id, and memo.cash, is found only as it goes past');
+  return out;
+}
+function renderTopics() {
+  const body = $('topics-body');
+  if (!body) return;
+  if (!topicsEngineReady()) return;
+  const follows = topicFollows();
+  const rows = tpResults.matched;
+
+  if (!follows.length) {
+    body.innerHTML = '<div class="topics-state"><div class="big">No topics yet</div>' +
+      '<p class="sub">Follow a word and this pane searches the chain’s message index backwards for it. ' +
+      'Topics are shared with the Flow view.</p></div>';
+    return;
+  }
+  const cov = topicsCoverage().map(c =>
+    typeof c === 'string'
+      ? '<span>' + escapeHtml(c) + '</span>'
+      : '<span class="warn">' + escapeHtml(c.warn) + '</span>').join(' &middot; ');
+
+  let list = '';
+  if (!rows.length) {
+    list = '<div class="topics-state"><div class="big">' +
+      (tpBusy ? 'Searching…' : 'Nothing has matched yet') + '</div>' +
+      '<p class="sub">This topic keeps collecting while it stays on.</p></div>';
+  } else {
+    for (const id of rows) {
+      const tx = tpResults.get(id);
+      const c = tpCorpus.get(id);
+      const hay = (tx && tx._hay) || (c && c.text) || '';
+      const ts = topicTsOf(id, tx);
+      list += '<div class="topic-row" data-txid="' + escapeHtml(id) + '">' +
+        '<div class="topic-meta">' + (ts ? escapeHtml(new Date(ts).toISOString().slice(0, 10)) : 'unknown date') + '</div>' +
+        '<div class="topic-text">' + escapeHtml(hay) + '</div></div>';
+    }
+  }
+  body.innerHTML =
+    '<div class="topics-cov">' + cov + '</div>' +
+    list +
+    '<div class="topics-foot"><button class="msg-filter" id="topics-more" type="button"' +
+    (tpBusy || tpDeepDone ? ' disabled' : '') + '>' +
+    (tpDeepDone ? 'Read all' : tpBusy ? 'Searching…' : 'Search further back') + '</button></div>';
+  $('topics-more')?.addEventListener('click', () => runTopicsBackfill());
+  panel4Counter();
+}
+
+/* THE LIVE PATH INGESTS, IT DOES NOT APPEND. A row pushed straight onto the
+   answer is dropped by the next term change; a corpus row is idempotent by
+   txid and takes part in every rematch. It also goes through the SAME hay
+   function the walk uses, so a match cannot exist before a reload and vanish
+   after one. */
+function topicsIngestLive(tx) {
+  if (!topicsEngineReady() || !tx || !tx.id) return;
+  const hay = tx.message && tx.message.text ? cleanChainText(tx.message.text) : null;
+  if (!hay) return;
+  tx._hay = hay;
+  tpCorpus.add(tx.id, hay, tx.firstSeen || Date.now(), null, null);
+  if (topicMatchText(hay)) { tpResults.hold(tx); topicsRematch(); }
+}
+
+try { loadTopicSettings(); renderTopicChips(); } catch (e) {}
 $('topics-add')?.addEventListener('click', openTopics);
 $('topics-exit')?.addEventListener('click', closeTopics);
 
