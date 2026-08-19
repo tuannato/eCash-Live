@@ -16,7 +16,6 @@
  "topics.opened": "새 탭에서 Cashtab을 열었습니다. 거기서 확인하면 전송됩니다.",
  "topics.opening": "Cashtab을 여는 중…",
  "topics.popup": "Cashtab을 열 수 없습니다 — 이 사이트의 팝업을 허용한 뒤 다시 시도하세요.",
- "topics.rowAria": "메시지 필터와 주제",
  "topics.sendCashtab": "Cashtab으로 보내기",
  "topics.sentExt": "Cashtab 확장에 보냈습니다. 거기서 확인하면 전송됩니다.",
  "topics.shared": "단어를 팔로우하면 이 창이 체인의 메시지 색인을 거슬러 올라가며 찾습니다. 주제는 Flow 화면과 공유됩니다.",

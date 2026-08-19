@@ -1499,7 +1499,7 @@ console.log('\n-- the two loaders agree --');
   // The chips row is a focusable role=group; an unnamed one is a tab stop that
   // announces nothing.
   ok('the chips row is given an accessible name',
-     /row\.setAttribute\('aria-label', topicsT\('topics\.rowAria'\)\)/.test(grab('renderTopicStatics')));
+     /row\.setAttribute\('aria-label', topicsT\('a11y\.scrollRow'\)\)/.test(grab('renderTopicStatics')));
 }
 
 // ===========================================================================
@@ -1522,6 +1522,14 @@ console.log('\n-- the safety line, and a refusal that speaks --');
   /* A REFUSAL WITH NOTHING ON THE PAGE reads as a broken control rather than a
      rule -- v2.7.0 fixed exactly that for the date fields, and the scope picker
      had the same silence. */
+  {
+    const panel = grab('renderTopicScopePanel');
+    ok('the scope row leads with the index size', /topicsTf\('scope\.msgs', \{ n: c\.numTxs \}\)/.test(panel));
+    ok('and only mentions read depth once there is some',
+       /Number\.isInteger\(c\.numPages\) && \(c\.pagesDone \| 0\) > 0/.test(panel));
+    ok('falling back to "not read yet" when it knows neither',
+       /if \(!bits\.length\) bits\.push\(topicsT\('scope\.unread'\)\)/.test(panel));
+  }
   ok('the hint element exists', /id="tp-scope-hint"/.test(html));
   ok('and it announces itself', /id="tp-scope-hint"[^>]*role="status"/.test(html));
 
@@ -1568,6 +1576,14 @@ console.log('\n-- the safety line, and a refusal that speaks --');
     const api = new Function('C', 'document', 'box', 'hint', 'scope', 'MESSAGE_LOKADS', 'input', src)(
       { scopeCursorView: () => ({}), sanitizeScope: (x) => x, MESSAGE_LOKADS: [CT] },
       doc, box, hint, scope, [CT], input);
+    /* THE ROW SAYS HOW BIG THE INDEX IS, which is the number the whole scope
+       decision turns on (the v2.5.0 table is about nothing else). Mine printed
+       only the read depth, so an untouched protocol read "read 0 of 189 pages"
+       -- true, and useless before you have ticked anything. */
+    {
+      const meta = box.children.map((n) => n.innerHTML).join(' ');
+      ok('an untouched protocol still states its size', /9,?408|9408 messages|scope\.msgs/.test(meta) || /scope\.unread/.test(meta));
+    }
     // Unticking the only protocol must be refused AND explained.
     api.fire(false);
     eq('unticking the last protocol is refused', api.input.checked, true);

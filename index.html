@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-JgVL42Oh4R6BbiqW/7yqPFtjNEySy2CVtFeJU4FEGQk=';
+  script-src 'self' 'sha256-nqWfsATFqdSs2tD6GauClFiV8S/AIfiwb+CZR1u8GIg=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -14195,7 +14195,7 @@ const TOPICS_EN_BORROWED = {
   'lane.windowBeyond': 'your window starts before what has been searched — search further back to reach it',
   'lane.plusWindow': 'plus {a} → {b}',
   'lane.moreWindows': 'and {n} more windows read',
-  'lane.title': 'Topics',
+  'lane.aria': 'Saved topics',
   'lane.empty': 'Nothing has matched yet. This topic keeps collecting while it stays on.',
   'term.add': '+ Topic',
   'term.addTag': 'Follow {q} as a topic',
@@ -14216,6 +14216,7 @@ const TOPICS_EN_BORROWED = {
   'scope.from': 'From date',
   'scope.to': 'To date',
   'scope.machine': 'order ids, not writing',
+  'scope.msgs': '{n} messages',
   'scope.read': 'read {n} of {total} pages',
   'scope.unread': 'not read yet',
   'range.invert': 'The second date must be on or after the first.',
@@ -14225,14 +14226,11 @@ const TOPICS_EN_BORROWED = {
   'cmp.close': 'Close',
   'cmp.myWallet': 'My wallet',
   'try.needAddr': 'Choose or paste a recipient address.',
+  'a11y.scrollRow': 'Scrollable row — swipe or scroll sideways for more',
   'try.badAddr': 'That eCash address isn’t valid.',
 };
 const TOPICS_EN_OWN = {
   'topics.back': 'Back to the feed',
-  /* Flow's lane.aria says "Saved topics" because its row holds only chips.
-     This one also holds the kind filter and the way back, so borrowing that
-     name would mislabel it -- the panel header's problem, inverted. */
-  'topics.rowAria': 'Message filters and topics',
   'topics.none': 'No topics yet',
   'topics.shared': 'Follow a word and this pane searches the chain’s message index backwards for it. Topics are shared with the Flow view.',
   'topics.needMsg': 'Type a message first.',
@@ -14369,7 +14367,10 @@ const TOPICS_STATIC_TEXT = [
 const TOPICS_STATIC_ATTR = [
   ['topics-exit', 'title',       'topics.back'],
   ['topics-exit', 'aria-label',  'topics.back'],
-  ['topics',      'aria-label',  'lane.title'],
+  /* The REGION, as on Flow -- lane.aria is what #lane carries there. It was
+     lane.title here, which is Flow's word for the heading inside the region,
+     so the two doors named the same landmark differently. */
+  ['topics',      'aria-label',  'lane.aria'],
   ['qs-fab',      'aria-label',  'topics.fabAria'],
   ['qs-close',    'aria-label',  'cmp.close'],
   ['qs-to',       'placeholder', 'cmp.toPh'],
@@ -14388,8 +14389,12 @@ const TOPICS_STATIC_OPT = [
 function renderTopicStatics() {
   // The chips row has no id, so it is named by selector rather than through
   // the id tables above.
+  /* BORROWED, not invented. I wrote a topics.rowAria for this and the
+     archaeology said no: Flow already labels every scrollable row that has
+     nothing better to say with a11y.scrollRow, and that is exactly what this
+     row is. The invented key and its fifteen translations are gone. */
   const row = document.querySelector('.msg-filters');
-  if (row) row.setAttribute('aria-label', topicsT('topics.rowAria'));
+  if (row) row.setAttribute('aria-label', topicsT('a11y.scrollRow'));
   for (const [id, key] of TOPICS_STATIC_TEXT) {
     const n = $(id); if (n) n.textContent = topicsT(key);
   }
@@ -15196,9 +15201,20 @@ function renderTopicScopePanel() {
   for (const id of MESSAGE_LOKADS) {
     const name = (LOKAD_NAMES && LOKAD_NAMES[id]) || id;
     const c = cur[id] || {};
-    const read = Number.isInteger(c.numPages)
-      ? topicsTf('scope.read', { n: c.pagesDone | 0, total: c.numPages })
-      : topicsT('scope.unread');
+    /* FLOW'S scopeMetaText, INCLUDING THE SIZE. Mine printed only the read
+       depth, so a protocol nobody has touched read "read 0 of 189 pages" --
+       true, and useless for the decision this panel exists for. The v2.5.0
+       measurement is entirely about which index is worth spending requests on,
+       and numTxs is its headline number: it belongs in front of the reader
+       BEFORE they tick anything. The read line then appears only once there is
+       something read, rather than announcing a zero. */
+    const bits = [];
+    if (c && Number.isInteger(c.numTxs)) bits.push(topicsTf('scope.msgs', { n: c.numTxs }));
+    if (c && Number.isInteger(c.numPages) && (c.pagesDone | 0) > 0) {
+      bits.push(topicsTf('scope.read', { n: c.pagesDone | 0, total: c.numPages }));
+    }
+    if (!bits.length) bits.push(topicsT('scope.unread'));
+    const read = bits.join(' · ');
     const machine = id === LOKAD.PAYBUTTON
       ? ' <span class="machine">' + escapeHtml(topicsT('scope.machine')) + '</span>' : '';
     const lab = document.createElement('label');

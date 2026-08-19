@@ -108,7 +108,13 @@ const ALL = Object.assign({}, BORROWED, OWN);
    translator -- a key-shaped string that is not a key ('memo.cash' is a website
    in a protocol list) is not a missing translation. "Defined but never used"
    has to look wider, because keys travel as data too. */
-const KEY_SHAPE = /^[a-z]+\.[A-Za-z]+$/;
+/* THE SHAPE THIS FILE DEPENDS ON, ASSERTED BELOW RATHER THAN ASSUMED. It was
+   /^[a-z]+\./ and a11y.scrollRow has digits in it, so the key was invisible to
+   the scanner and reported as never used while being used. I had checked "all
+   keys match the assumed shape" -- before that key existed. An assumption a
+   suite relies on has to be a test in the suite, or it is true only until the
+   next key. */
+const KEY_SHAPE = /^[a-z][a-z0-9]*\.[A-Za-z0-9]+$/;
 const called = new Set();
 for (const m of codeOnly.matchAll(/topicsTf?\(([^)]*)\)/g)) {
   // Key-shaped only: the same call can carry a comparison literal, and
@@ -126,6 +132,7 @@ const withoutTables = codeOnly
   .replace(objectText(mod, 'TOPICS_EN_OWN'), '');
 const used = new Set(called);
 for (const m of withoutTables.matchAll(/'([^']+)'/g)) if (KEY_SHAPE.test(m[1]) && m[1] in ALL) used.add(m[1]);
+for (const k of Object.keys(ALL)) ok(KEY_SHAPE.test(k), 'key does not match the shape the scanner assumes: ' + k);
 ok(called.size >= 40, 'found the call sites (' + called.size + ')');
 for (const k of called) ok(k in ALL, 'key used but not defined: ' + k);
 
