@@ -1224,5 +1224,98 @@ console.log('\n-- the chip states are tellable apart --');
   ok('and its own active state outranks both', rule('.topic-chip.topic-mode.active').length > 0);
 }
 
+// ===========================================================================
+// THE ROW OVERFLOWS. Measured at the eight-topic cap in a 390px column: 856px
+// of content in a 388px box before the gap was removed -- more than half the
+// controls off-screen, with the scrollbar hidden and nothing saying so. On a
+// desktop there is no horizontal gesture at all, so those chips were
+// unreachable with a mouse.
+// ===========================================================================
+console.log('\n-- the row says when it overflows --');
+{
+  /* COMMENTS STRIPPED FIRST. The fade's own comment explains why it outranks
+     the chips by saying "z-index:1", and the naive reader matched THAT and
+     reported 1 -- a suite reading the prose that documents a rule instead of
+     the rule, which is the same mistake test-neo-quicksend made against the
+     English sentences it was pinning. And a declaration can be split across
+     several rules with the same selector (the base .msg-filters and the Topics
+     override), so all of them are concatenated rather than the first taken. */
+  const css = html.match(/<style>([\s\S]*?)<\/style>/)[1].replace(/\/\*[\s\S]*?\*\//g, '');
+  const rule = (sel) => {
+    const out = [];
+    let i = 0;
+    for (;;) {
+      i = css.indexOf(sel + ' {', i);
+      if (i === -1) break;
+      // the selector must not be the tail of a longer one (.foo vs .barfoo)
+      const before = css[i - 1];
+      if (before && /[\w.#\-]/.test(before)) { i += sel.length; continue; }
+      out.push(css.slice(i, css.indexOf('}', i)));
+      i += sel.length;
+    }
+    return out.join('\n');
+  };
+  const strip = rule('.msg-filters');
+  const fade = rule('.hscroll::after');
+
+  // ONE STRIP, NOT LOOSE PILLS. The panel is already divided into columns.
+  /* THE LAST DECLARATION WINS, not the absence of earlier ones. The base rule
+     legitimately carries gap:4px and the Topics rule overrides it at equal
+     specificity, so "no nonzero gap anywhere" is the wrong test -- it failed on
+     a stylesheet that computes to 0. Take the last gap on this selector, which
+     is what the cascade takes. The mobile block used to re-introduce 6px here
+     and that is exactly what this is watching for. */
+  const gaps = [...strip.matchAll(/gap:\s*([\d.]+)(px)?/g)].map((m) => Number(m[1]));
+  ok('the row declares a gap somewhere', gaps.length > 0);
+  ok('and the last one, which the cascade takes, is 0', gaps[gaps.length - 1] === 0);
+  ok('shared edges are collapsed', /\.msg-filters > \*\s*\{[^}]*margin-left:\s*-1px/.test(css));
+  ok('and the first one is not', /\.msg-filters > \*:first-child\s*\{[^}]*margin-left:\s*0/.test(css));
+
+  // A sideways swipe was also dragging the page vertically -- Flow's footer bug.
+  ok('a sideways swipe does not drag the page', /touch-action:\s*pan-x/.test(strip));
+  ok('and does not chain to the page', /overscroll-behavior-x:\s*contain/.test(strip));
+
+  /* THE FADE IS STICKY, NOT ABSOLUTE, and takes no width. An absolute one
+     scrolls away with the content instead of staying at the edge; a positive
+     margin would add width to the row whose width is the whole problem. */
+  ok('the fade sticks to the edge', /position:\s*sticky/.test(fade));
+  ok('and adds no width', /margin-left:\s*-(\d+)px/.test(fade)
+     && fade.match(/width:\s*(\d+)px/)[1] === fade.match(/margin-left:\s*-(\d+)px/)[1]);
+  /* It must outrank the chips: the lit states carry z-index:1 so their coloured
+     edge draws over a neighbour's, and that put them over the fade as well --
+     the chevron rendered as a smudge on an amber chip, opaque gradient and all. */
+  ok('and paints above the lit chips',
+     Number((fade.match(/z-index:\s*(\d+)/) || [])[1]) > 1);
+  ok('the nudge respects reduced motion',
+     /@media \(prefers-reduced-motion: no-preference\)[\s\S]{0,160}hint-on/.test(css));
+  ok('and the fade is hidden until it is needed',
+     /opacity:\s*0/.test(fade) && /\.hscroll\.can-r::after\s*\{[^}]*opacity:\s*1/.test(css));
+
+  // MEASURED, not assumed: a hint that cannot self-correct becomes a permanent
+  // chevron pointing at nothing.
+  const upd = grab('updateTopicScrollHint');
+  ok('the hint measures', /scrollWidth - el\.clientWidth/.test(upd));
+  ok('with slack for fractional device pixels', /max > 2/.test(upd));
+  ok('and goes away at the end of the row', /scrollLeft < max - 2/.test(upd));
+  ok('the nudge stops once the row has been scrolled', /!el\._hsUsed/.test(upd));
+
+  const init = grab('initTopicScrollHint');
+  ok('a vertical wheel scrolls it sideways', /addEventListener\('wheel'/.test(init));
+  /* preventDefault only while it can still move that way: at either end the
+     page must keep scrolling as normal, which is also why it is not passive. */
+  ok('but only while it can still move', /if \(next === el\.scrollLeft\) return;[\s\S]{0,40}preventDefault/.test(init));
+  ok('so the listener cannot be passive', /\{ passive: false \}/.test(init));
+  ok('the row is focusable, so arrows scroll it', /el\.tabIndex = 0/.test(init));
+  ok('and announces itself', /setAttribute\('role', 'group'\)/.test(init));
+  ok('it re-measures on resize', /addEventListener\('resize', updateTopicScrollHint\)/.test(init));
+  // Fonts and translation both change every chip's width.
+  ok('and once the fonts have landed', /fonts\.ready\.then\(updateTopicScrollHint\)/.test(init));
+  ok('and after a language switch',
+     /requestAnimationFrame\(updateTopicScrollHint\)/.test(grab('applyTopicsLang')));
+  ok('and when the chips change', /requestAnimationFrame\(updateTopicScrollHint\)/.test(grab('renderTopicChips')));
+  ok('and when the pane opens', /requestAnimationFrame\(updateTopicScrollHint\)/.test(grab('openTopics')));
+  ok('the listeners are attached once', /if \(!el \|\| el\._hsInit\) return;/.test(init));
+}
+
 console.log(fail ? `\nFAILED ${fail}/${pass + fail}` : `\nok: neo topics ${pass} assertions`);
 if (fail) process.exit(1);

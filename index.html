@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-nheYFgTjTznmcGoMe2HjSuBXz+Y/8nECRAfHxFxOKbY=';
+  script-src 'self' 'sha256-/cNe8qf4OxJ8Igu9XVvMm7zJEGaveCOb/eEA8hLH4+o=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -2462,9 +2462,77 @@
   .kind-face .caret { opacity: 0.6; font-size: 10px; }
   .kind-select:focus-visible + .kind-face { outline: 2px solid var(--cyan); outline-offset: 1px; }
 
-  .msg-filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; align-items: center; }
+  /* ONE STRIP, NOT LOOSE PILLS (user's call, 2026-08-19). The panel is already
+     divided into columns, so the controls read as a segmented bar rather than a
+     scatter of boxes: the gap is gone and every shared edge is collapsed with a
+     -1px margin, which is the same move the footer control tray makes on the
+     other door. A lit chip is lifted so its coloured edge draws OVER its
+     neighbour's grey one -- without that the later element in source order wins
+     the shared pixel and an active chip would be outlined in the colour of
+     whatever happens to sit to its right. */
+  .msg-filters {
+    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+    align-items: center; gap: 0;
+    /* A sideways swipe here was also dragging the page vertically -- the same
+       defect Flow fixed on its footer tray. */
+    touch-action: pan-x; overscroll-behavior-x: contain;
+  }
   .msg-filters::-webkit-scrollbar { display: none; }
-  .msg-filter { flex: none; display: inline-flex; align-items: center; gap: 6px; }
+  .msg-filters > * { margin-left: -1px; }
+  .msg-filters > *:first-child { margin-left: 0; }
+  .msg-filter {
+    flex: none; display: inline-flex; align-items: center; gap: 6px;
+    border-radius: 0;
+  }
+  .msg-filters > *:first-child .msg-filter,
+  .msg-filters > .msg-filter:first-child { border-radius: 3px 0 0 3px; }
+  .msg-filters > *:last-child .msg-filter,
+  .msg-filters > .msg-filter:last-child { border-radius: 0 3px 3px 0; }
+  .topic-chip.active, .topic-chip.mute, .topic-chip.topic-mode,
+  .msg-filter:hover, .msg-filter:focus-visible { position: relative; z-index: 1; }
+
+  /* THE ROW OVERFLOWS AND SAID NOTHING ABOUT IT. Measured at the eight-topic
+     cap in a 390px column: 856px of content in a 388px box, 468px of it
+     off-screen, with the scrollbar hidden. It scrolled -- by touch. On a
+     desktop there is no horizontal gesture at all, so those chips were
+     unreachable with a mouse.
+
+     The fade is a STICKY pseudo-element pulled back by a negative margin, and
+     both halves of that matter: an absolutely positioned one scrolls away with
+     the content instead of staying at the edge, and the negative margin is what
+     stops it adding width to a row whose width is the whole problem. Flow
+     learned both. */
+  .hscroll { position: relative; }
+  .hscroll::after {
+    content: '\203A';                 /* a chevron, not an arrow: one glyph wide */
+    position: sticky; right: 0; flex: none;
+    align-self: stretch; display: flex; align-items: center; justify-content: flex-end;
+    /* Wide enough, and solid enough, to actually COVER the chip it sits over.
+       The first version was 34px ending at 62%, which left ~13px of solid paint
+       and a chevron legible only against whatever happened to be beneath it --
+       measured against an amber chip, it read as a smudge on the letter N. The
+       row carries 16px of side padding, so a sticky right:0 lands inside that
+       edge, not on it; the extra width is what reaches the real edge. */
+    /* ABOVE THE CHIPS. The lit states carry z-index:1 so their coloured edge
+       draws over a neighbour's grey one, and that put them over this fade as
+       well -- the chevron rendered as a smudge on the letter N of an amber
+       chip, opaque gradient and all. A cover has to outrank what it covers. */
+    z-index: 2;
+    width: 52px; margin-left: -52px; padding-right: 2px;
+    font: 700 16px/1 'Space Grotesk', system-ui, sans-serif;
+    color: var(--text); pointer-events: none;
+    background: linear-gradient(90deg,
+      transparent 0%, var(--fade-to, var(--bg)) 42%, var(--fade-to, var(--bg)) 100%);
+    opacity: 0; transition: opacity 0.18s;
+  }
+  .hscroll.can-r::after { opacity: 1; }
+  /* Nudge until the reader has actually scrolled this row once -- a one-shot
+     pulse at boot is missed by anyone who was not looking at that moment. */
+  @media (prefers-reduced-motion: no-preference) {
+    .hscroll.can-r.hint-on::after { animation: hs-nudge 1.6s ease-in-out infinite; }
+  }
+  @keyframes hs-nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(3px); } }
+  .hscroll:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; }
   .topics-add { border-style: dashed; color: var(--text-2); }
   /* FOUR CHIPS, FOUR READINGS, BY COLOUR ALONE (user's call, 2026-08-19).
      The dot this carried before is gone: the states are told apart by hue and
@@ -6879,7 +6947,8 @@
     .msg-card .msg-chat-btn { font-size: 11px; padding: 5px 10px; min-height: 32px; }
     .msg-card .time { font-size: 10px; }
     .msg-card .from { font-size: 10px; }
-    .msg-filters { padding: 12px 14px; gap: 6px; }
+    /* gap stays 0: the row is one segmented strip, not loose pills. */
+    .msg-filters { padding: 12px 14px; }
     .msg-filter { padding: 7px 11px; font-size: 11px; min-height: 32px; }
 
     /* Col headers mobile */
@@ -13974,6 +14043,10 @@ function renderTopicChips() {
     });
     row.insertBefore(b, add.nextSibling);
   }
+  // The row just changed width. Measuring on the next frame rather than now,
+  // because the chips have not been laid out yet at this point.
+  initTopicScrollHint();
+  requestAnimationFrame(updateTopicScrollHint);
 }
 
 function openTopics() {
@@ -13981,6 +14054,9 @@ function openTopics() {
   if (!sec) return;
   sec.dataset.topics = 'open';
   panel4Counter();
+  // Opening reveals the back button, which widens the row.
+  initTopicScrollHint();
+  requestAnimationFrame(updateTopicScrollHint);
   /* THE PACK IS FETCHED ON THE FIRST OPEN, not at boot: a reader who never
      opens this pane should not pay for two files, and a reader in English pays
      for none (topicsT falls through to the inline strings, which is why there
@@ -14018,6 +14094,7 @@ function closeTopics() {
   if (!sec) return;
   sec.dataset.topics = 'closed';
   panel4Counter();
+  requestAnimationFrame(updateTopicScrollHint);
 }
 /* ============ TOPICS i18n ============
    THE COPY IS BORROWED, NOT REWRITTEN. Every sentence this pane needs already
@@ -14178,6 +14255,50 @@ function topicsLang() {
   } catch (e) {}
   try { return (window.__ecI18n && window.__ecI18n.lang && window.__ecI18n.lang()) || 'en'; } catch (e) { return 'en'; }
 }
+/* THE ROW CAN BE SCROLLED, AND NOW IT SAYS SO. Measurement first, because the
+   fade has to be able to go away: `scrollWidth - clientWidth > 2` with 2px of
+   slack for fractional device pixel ratios, re-run on scroll, on resize, once
+   the fonts have landed (they change every chip's width) and after a language
+   switch (so does translation). A hint that cannot self-correct becomes a
+   permanent chevron pointing at nothing. */
+function updateTopicScrollHint() {
+  const el = document.querySelector('.msg-filters');
+  if (!el) return;
+  const max = el.scrollWidth - el.clientWidth;
+  const scrollable = max > 2;
+  el.classList.toggle('can-r', scrollable && el.scrollLeft < max - 2);
+  el.classList.toggle('hint-on', scrollable && !el._hsUsed);
+}
+function initTopicScrollHint() {
+  const el = document.querySelector('.msg-filters');
+  if (!el || el._hsInit) return;
+  el._hsInit = true;
+  el.addEventListener('scroll', () => { el._hsUsed = true; updateTopicScrollHint(); }, { passive: true });
+  /* DESKTOP HAS NO HORIZONTAL GESTURE, so a vertical wheel is turned sideways
+     -- but only while this row can still move that way. At either end the
+     event is left alone and the page scrolls as normal, which is why this
+     listener cannot be passive and why preventDefault is conditional. */
+  el.addEventListener('wheel', (e) => {
+    if (e.deltaY === 0 || e.ctrlKey) return;
+    const max = el.scrollWidth - el.clientWidth;
+    if (max <= 2) return;
+    const next = Math.max(0, Math.min(max, el.scrollLeft + e.deltaY));
+    if (next === el.scrollLeft) return;
+    e.preventDefault();
+    el.scrollLeft = next;
+    el._hsUsed = true;
+    updateTopicScrollHint();
+  }, { passive: false });
+  // A focused row scrolls with the arrow keys, and screen readers are told why
+  // it is focusable. The row already has an accessible name from the markup.
+  el.classList.add('hscroll');
+  el.setAttribute('role', 'group');
+  el.tabIndex = 0;
+  window.addEventListener('resize', updateTopicScrollHint);
+  try { document.fonts && document.fonts.ready.then(updateTopicScrollHint); } catch (e) {}
+  updateTopicScrollHint();
+}
+
 /* THE STATIC HALF. Everything above lives in index.html as English so the pane
    is readable before any pack lands; this walks that markup once per language.
    It is a TABLE, not a sequence of assignments, because the failure mode being
@@ -14244,6 +14365,9 @@ async function applyTopicsLang() {
                     renderTopicScopePanel, renderTopicPresets, renderTopics]) {
     try { fn(); } catch (e) { console.error('[topics] render failed:', fn.name, e); }
   }
+  // Translation changes every label's width, so the fade has to be re-measured
+  // rather than left describing the previous language's row.
+  requestAnimationFrame(updateTopicScrollHint);
 }
 window.addEventListener('ecashlive:lang', () => { applyTopicsLang(); });
 
