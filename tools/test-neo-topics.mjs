@@ -8,7 +8,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { matchAny, matchEvery } from '../vendor/core/match.js';
+import { matchAny, matchEvery, findAllSpans, findHashtags } from '../vendor/core/match.js';
 import { LOKAD, LOKAD_NAMES } from '../vendor/txparse.js';
 // The probe uses the REAL cursor arithmetic. Re-stating shiftRangesForGrowth
 // here would be testing this file's idea of the shift, not the shipped one.
@@ -887,6 +887,147 @@ await (async () => {
     eq('an empty store is not probed', calls(), 0);
   }
 })();
+
+
+// ===========================================================================
+// ROWS: the highlight and the tappable tag. Both are properties of DOM the
+// shipped builders produce, so these drive them against a minimal document
+// rather than matching source.
+// ===========================================================================
+console.log('\n-- rows: highlight and hashtags --');
+{
+  // A hand-rolled document just large enough for the two builders. Building
+  // this by hand rather than pulling in a DOM library keeps the suite offline
+  // and dependency-free, which is what lets it run in CI at all.
+  function makeDoc() {
+    const TEXT = 3;
+    function node(tag) {
+      const n = {
+        tagName: (tag || '').toUpperCase(), nodeType: 1, childNodes: [],
+        className: '', dataset: {}, attrs: {}, tabIndex: undefined,
+        parentNode: null,
+        appendChild(c) { c.parentNode = n; n.childNodes.push(c); return c; },
+        setAttribute(k, v) { n.attrs[k] = String(v); },
+        replaceChild(fresh, old) {
+          const i = n.childNodes.indexOf(old);
+          const kids = fresh.nodeType === 11 ? fresh.childNodes : [fresh];
+          for (const k of kids) k.parentNode = n;
+          n.childNodes.splice(i, 1, ...kids);
+        },
+        set textContent(v) {
+          // parentNode matters: linkifyTags replaces a text node THROUGH its
+          // parent, so a double that forgets the link throws where the real
+          // DOM would not. A test double's bug reads exactly like a code bug.
+          n.childNodes = [text(String(v))].filter((t) => t.nodeValue !== '');
+          for (const c of n.childNodes) c.parentNode = n;
+        },
+        get textContent() {
+          return n.childNodes.map((c) => (c.nodeType === TEXT ? c.nodeValue : c.textContent)).join('');
+        },
+        set title(v) { n.attrs.title = String(v); },
+        get title() { return n.attrs.title; },
+      };
+      return n;
+    }
+    function text(v) { return { nodeType: TEXT, nodeValue: v, parentNode: null }; }
+    function frag() { const f = node(''); f.nodeType = 11; return f; }
+    return {
+      createElement: node, createTextNode: text, createDocumentFragment: frag,
+      createTreeWalker(root) {
+        const out = [];
+        (function walk(n) {
+          for (const c of n.childNodes) { if (c.nodeType === TEXT) out.push(c); else walk(c); }
+        })(root);
+        let i = 0;
+        return { nextNode: () => (i < out.length ? out[i++] : null) };
+      },
+      NodeFilter: { SHOW_TEXT: 4 },
+      node,
+    };
+  }
+  function runRow(text, terms) {
+    const doc = makeDoc();
+    const src = [
+      'const topicsCore = C;',
+      'function topicsT(k){ return k; }',
+      'function topicsTf(k, v){ return k + " " + JSON.stringify(v); }',
+      grab('topicsHighlightInto'),
+      grab('topicsLinkifyTags'),
+      'const el = document.createElement("div");',
+      'topicsHighlightInto(el, hay, terms);',
+      'topicsLinkifyTags(el);',
+      'return el;',
+    ].join('\n');
+    return new Function('C', 'document', 'NodeFilter', 'hay', 'terms', src)(
+      { findAllSpans, findHashtags }, doc, doc.NodeFilter, text, terms);
+  }
+  const kids = (el) => el.childNodes.map((c) =>
+    c.nodeType === 3 ? ['text', c.nodeValue]
+      : [c.tagName === 'MARK' ? 'mark' : c.className, c.textContent]);
+
+  eq('plain text stays one text node',
+     kids(runRow('gm everyone', [])), [['text', 'gm everyone']]);
+  eq('a match is marked, and only the match',
+     kids(runRow('say gm now', [{ q: 'gm', on: true, mode: 'word' }])),
+     [['text', 'say '], ['mark', 'gm'], ['text', ' now']]);
+  // The whole reason findAllSpans is used instead of indexOf.
+  eq('word mode does not mark inside a longer word',
+     kids(runRow('banana', [{ q: 'an', on: true, mode: 'word' }])), [['text', 'banana']]);
+  eq('a hashtag becomes a control',
+     kids(runRow('gm #firma', [])), [['text', 'gm '], ['topic-tag', '#firma']]);
+  eq('a#b is not a hashtag', kids(runRow('a#b', [])), [['text', 'a#b']]);
+  // THE ORDER IS THE FEATURE: a tag you already follow stays a match and is not
+  // offered again, because the walker never descends into a <mark>.
+  eq('a followed hashtag stays a mark, not an offer',
+     kids(runRow('gm #firma', [{ q: '#firma', on: true, mode: 'word' }])),
+     [['text', 'gm '], ['mark', '#firma']]);
+  eq('...while an unfollowed one beside it is still offered',
+     kids(runRow('#firma and #xec420', [{ q: '#firma', on: true, mode: 'word' }])),
+     [['mark', '#firma'], ['text', ' and '], ['topic-tag', '#xec420']]);
+  {
+    const el = runRow('gm #firma', []);
+    const tag = el.childNodes[1];
+    eq('the tag carries its own value', tag.dataset.tag, '#firma');
+    eq('and an accessible name', tag.attrs['aria-label'], 'term.addTag {"q":"#firma"}');
+    eq('and is reachable by keyboard', tag.tabIndex, 0);
+    eq('and announces itself as a control', tag.attrs.role, 'button');
+  }
+  // Text never becomes markup, whatever the chain says.
+  {
+    const el = runRow('<img src=x onerror=alert(1)> #ok', []);
+    eq('markup in chain text stays text',
+       el.childNodes[0].nodeValue, '<img src=x onerror=alert(1)> ');
+    eq('and the tag beside it still works', el.childNodes[1].className, 'topic-tag');
+  }
+  // Source-level: the handlers must be delegated, not per row.
+  ok('tag activation is delegated once, not attached per row',
+     !/topicRow[\s\S]{0,900}addEventListener/.test(grab('topicRow')));
+  ok('the tag asks rather than adds',
+     /openTermEditor\(tag\.dataset\.tag\)/.test(mod));
+  /* BOTH PRESENT, AND IN THAT ORDER. The bare indexOf comparison passed with
+     the highlight call DELETED, because a missing name gives -1 and -1 is less
+     than everything -- found by mutating topicRow to set innerHTML directly.
+     The helpers being safe proves nothing if the row does not use them. */
+  {
+    const rowSrc = grab('topicRow');
+    const hi = rowSrc.indexOf('topicsHighlightInto'), lk = rowSrc.indexOf('topicsLinkifyTags');
+    ok('the row builds its text through the highlighter', hi !== -1);
+    ok('and offers tags through the linkifier', lk !== -1);
+    ok('and linkify runs after the marks', hi < lk);
+    ok('and never assigns innerHTML', !/innerHTML/.test(rowSrc));
+  }
+}
+
+// ONE HASHTAG RULE FOR BOTH DOORS. Flow carries its own inline copy; if the two
+// ever disagree, a tag one door makes tappable is not findable by the term it
+// creates. Byte-compare rather than trust.
+{
+  const flowSrc = readFileSync(join(ROOT, 'flow/index.html'), 'utf8');
+  const flowRe = flowSrc.match(/const HASHTAG_RE = (\/.*\/gu);/);
+  const coreRe = readFileSync(join(ROOT, 'vendor/core/match.js'), 'utf8').match(/export const HASHTAG_RE = (\/.*\/gu);/);
+  ok('both doors declare the hashtag pattern', !!flowRe && !!coreRe);
+  eq('and it is the same pattern, byte for byte', flowRe[1], coreRe[1]);
+}
 
 console.log(fail ? `\nFAILED ${fail}/${pass + fail}` : `\nok: neo topics ${pass} assertions`);
 if (fail) process.exit(1);

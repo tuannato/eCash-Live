@@ -282,6 +282,35 @@ export function findTermSpans(haystack, term, opts) {
   return spans;
 }
 
+/* THE HASHTAG PATTERN, EXPORTED, because two doors decide what is TAPPABLE with
+ * it and hashtagOf() above decides what is FINDABLE with the same rule. They
+ * must agree: a tag you can tap that is not findable by the term it creates is
+ * a control that lies about what it will do. Flow has carried its own copy
+ * inline since 2026-08-14; CI now asserts that copy is byte-identical to this
+ * one, so the drift is caught rather than merely hoped against.
+ *
+ * The leading boundary is part of the MATCH, not a lookbehind — Safari shipped
+ * lookbehind late and this file is loaded by both doors. So a caller computing
+ * where the tag starts must subtract, not use m.index: see findHashtags. */
+export const HASHTAG_RE = /(?:^|[^\p{L}\p{N}_])#([\p{L}\p{N}_]{2,30})/gu;
+
+/* Every hashtag in a string as [start, end, tag] over the ORIGINAL text, so a
+ * renderer can slice around them without re-deriving the offsets and getting
+ * the boundary character wrong. Ranges are non-overlapping and in order. */
+export function findHashtags(text) {
+  if (!text || text.indexOf('#') === -1) return [];
+  const out = [];
+  HASHTAG_RE.lastIndex = 0;
+  let m;
+  while ((m = HASHTAG_RE.exec(text)) !== null) {
+    // The pattern carries a leading boundary character, so "a#b" is not a tag
+    // and the tag itself starts at the '#', not at m.index.
+    const start = m.index + m[0].length - (m[1].length + 1);
+    out.push([start, start + m[1].length + 1, '#' + m[1]]);
+  }
+  return out;
+}
+
 // Every span any enabled term produces, merged and ordered. The caller renders
 // them; it must never build markup by concatenating the term itself.
 export function findAllSpans(haystack, terms) {

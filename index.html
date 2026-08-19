@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-wCGejyb3I8vbFMfMZQ3PblwYlI9bDRza+VJPwUmiNJI=';
+  script-src 'self' 'sha256-Diqst7iXID+dne/KC1VSXEm9PunUy5EhUXq/0wK9a2s=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -2473,6 +2473,17 @@
   .topics-add:hover { color: var(--cyan); border-color: var(--cyan-dim); }
 
   #topics-body { flex: 1; overflow-y: auto; padding: 8px 0; }
+  /* A MARK IS THE ANSWER TO "why is this row here", so it uses the accent the
+     rest of this door uses for a match, not a highlighter yellow that would
+     read as someone else's UI. */
+  .topic-text mark {
+    background: rgba(1,160,224,0.20); color: inherit;
+    border-radius: 2px; padding: 0 1px;
+  }
+  /* A tag is an OFFER, so it is quieter than a mark until you point at it. */
+  .topic-tag { color: var(--cyan); cursor: pointer; border-radius: 2px; }
+  .topic-tag:hover { text-decoration: underline; }
+  .topic-tag:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
   .topics-cov {
     padding: 9px 16px 8px; border-top: 1px solid var(--line);
     font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace;
@@ -7609,7 +7620,7 @@
       <!-- COL 4: ONCHAIN MESSAGES + CHAT (two-tab panel) -->
       <div class="messages col-section" id="section-messages" data-tab="feed">
         <div class="col-head">
-          <h2 class="l"><span class="panel-label">Onchain messages · Feed &amp; chat</span></h2>
+          <h2 class="l"><span class="panel-label">Onchain messages</span></h2>
           <div class="r">
             <span id="r-msgs">0</span> <span id="r-msgs-label">recent</span>
           </div>
@@ -13825,7 +13836,7 @@ function escapeHtml(s) {
    The engine lands in a later commit. What is here is the surface and the one
    thing that surface must never do: fail silently. */
 const TOPICS_MODULES = [
-  './vendor/core/match.js?v=7',
+  './vendor/core/match.js?v=8',   // +HASHTAG_RE/findHashtags
   './vendor/core/backfill.js?v=6',
   './vendor/core/lane-cursor.js?v=1',
   './vendor/core/lane-corpus.js?v=1',
@@ -13989,6 +14000,7 @@ const TOPICS_EN_BORROWED = {
   'lane.title': 'Topics',
   'lane.empty': 'Nothing has matched yet. This topic keeps collecting while it stays on.',
   'term.add': '+ Topic',
+  'term.addTag': 'Follow {q} as a topic',
   'term.title': 'Add a topic',
   'term.ph': 'A word to follow, e.g. gm',
   'term.fold': 'Ignore accents (cafe finds café)',
@@ -14620,6 +14632,101 @@ function topicsCoverage() {
   out.push(topicsT('lane.notIndexed'));
   return out;
 }
+/* One row. Text goes in through textContent at every step; the only elements
+   ever created here are ours. */
+function topicRow(id) {
+  const C = topicsCore;
+  const tx = tpResults.get(id);
+  const c = tpCorpus.get(id);
+  const hay = (tx && tx._hay) || (c && c.text) || '';
+  const ts = topicTsOf(id, tx);
+
+  const row = document.createElement('div');
+  row.className = 'topic-row';
+  row.dataset.txid = id;
+
+  const meta = document.createElement('div');
+  meta.className = 'topic-meta';
+  meta.textContent = ts ? topicsIsoDay(ts) : topicsT('topics.noDate');
+
+  const text = document.createElement('div');
+  text.className = 'topic-text';
+  topicsHighlightInto(text, hay, topicFollows());
+  /* AFTER the marks, deliberately: the walker only descends text nodes, so a
+     hashtag already inside a <mark> is skipped. A tag you follow therefore
+     stays a highlighted MATCH and only the others are offered as something to
+     add -- which falls out of the order rather than being special-cased. */
+  topicsLinkifyTags(text);
+
+  row.appendChild(meta); row.appendChild(text);
+  return row;
+}
+
+/* Marks over spans the MATCHER produced, never over an indexOf. */
+function topicsHighlightInto(el, text, terms) {
+  el.textContent = '';
+  const C = topicsCore;
+  const spans = (C && C.findAllSpans) ? C.findAllSpans(text, terms) : [];
+  if (!spans.length) { el.textContent = text; return; }
+  let pos = 0;
+  for (const [a, b] of spans) {
+    if (a > pos) el.appendChild(document.createTextNode(text.slice(pos, a)));
+    const mk = document.createElement('mark');
+    mk.textContent = text.slice(a, b);
+    el.appendChild(mk);
+    pos = b;
+  }
+  if (pos < text.length) el.appendChild(document.createTextNode(text.slice(pos)));
+}
+
+/* A hashtag ASKS rather than adds: it opens the term editor pre-filled, which
+   already traps focus and already knows term.dupe and term.full. Not focusable
+   inside a .topic-row on Flow because the row is a button there; neo's row is a
+   plain div, so the tag can be a real control and the keyboard path exists. */
+function topicsLinkifyTags(root) {
+  const C = topicsCore;
+  if (!root || !C || !C.findHashtags) return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const targets = [];
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (n.nodeValue && n.nodeValue.indexOf('#') !== -1) targets.push(n);
+  }
+  for (const node of targets) {
+    const s = node.nodeValue;
+    const found = C.findHashtags(s);
+    if (!found.length) continue;
+    const frag = document.createDocumentFragment();
+    let pos = 0;
+    for (const [a, b, tag] of found) {
+      if (a > pos) frag.appendChild(document.createTextNode(s.slice(pos, a)));
+      const el = document.createElement('span');
+      el.className = 'topic-tag';
+      el.dataset.tag = tag;
+      el.textContent = tag;
+      el.setAttribute('role', 'button');
+      el.tabIndex = 0;
+      el.title = topicsTf('term.addTag', { q: tag });
+      el.setAttribute('aria-label', topicsTf('term.addTag', { q: tag }));
+      frag.appendChild(el);
+      pos = b;
+    }
+    if (pos < s.length) frag.appendChild(document.createTextNode(s.slice(pos)));
+    node.parentNode.replaceChild(frag, node);
+  }
+}
+/* DELEGATED, ONCE, on the pane -- not per row. renderTopics() rebuilds every
+   row on every live match, so a listener per tag would be re-attached hundreds
+   of times a session and every detached node would stay reachable from it. */
+document.addEventListener('click', (e) => {
+  const tag = e.target && e.target.closest && e.target.closest('.topic-tag');
+  if (tag && tag.dataset.tag) { e.stopPropagation(); openTermEditor(tag.dataset.tag); }
+}, true);
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const tag = e.target && e.target.closest && e.target.closest('.topic-tag');
+  if (tag && tag.dataset.tag) { e.preventDefault(); e.stopPropagation(); openTermEditor(tag.dataset.tag); }
+}, true);
+
 function renderTopics() {
   const body = $('topics-body');
   if (!body) return;
@@ -14642,16 +14749,6 @@ function renderTopics() {
   if (!rows.length) {
     list = '<div class="topics-state"><div class="big">' +
       escapeHtml(tpBusy ? topicsT('lane.searching') : topicsT('lane.empty')) + '</div></div>';
-  } else {
-    for (const id of rows) {
-      const tx = tpResults.get(id);
-      const c = tpCorpus.get(id);
-      const hay = (tx && tx._hay) || (c && c.text) || '';
-      const ts = topicTsOf(id, tx);
-      list += '<div class="topic-row" data-txid="' + escapeHtml(id) + '">' +
-        '<div class="topic-meta">' + escapeHtml(ts ? topicsIsoDay(ts) : topicsT('topics.noDate')) + '</div>' +
-        '<div class="topic-text">' + escapeHtml(hay) + '</div></div>';
-    }
   }
   /* THE COVERAGE LINE SITS UNDER THE RESULTS, not over them. It is four
      sentences of qualification, and above the list it pushed the answer off the
@@ -14659,7 +14756,7 @@ function renderTopics() {
      the last thing read before the button that asks for more, which is exactly
      when "how far has this actually searched" is the question. */
   body.innerHTML =
-    list +
+    list + '<div class="topic-rows" id="topic-rows"></div>' +
     '<div class="topics-cov">' + cov + '</div>' +
     '<div class="topics-foot">' +
     '<button class="msg-filter" id="topics-more" type="button"' +
@@ -14673,6 +14770,16 @@ function renderTopics() {
     (tpClearArmed ? ' data-armed="1"' : '') + '>' +
     escapeHtml(topicsT('lane.clear')) + '</button>' +
     '</div>';
+  /* THE ROWS ARE BUILT AS NODES, NOT CONCATENATED. Two reasons, and the first
+     one is not style: chain text is attacker-controlled and a highlight has to
+     wrap PART of it, so any string-building version is one escaping mistake
+     away from markup written by whoever paid the fee. The second is that a
+     highlight must mean the same thing as a match -- findAllSpans runs the same
+     normalize/fold pipeline the matcher does, which an indexOf does not, and
+     Flow shipped a version that marked "banana" for the word-mode term "an"
+     while marking nothing for a folded term that had matched. */
+  const rowBox = $('topic-rows');
+  if (rowBox) for (const id of rows) rowBox.appendChild(topicRow(id));
   $('topics-more')?.addEventListener('click', () => runTopicsBackfill());
   $('topics-refresh')?.addEventListener('click', () => topicsRefreshIndex(false));
   $('topics-clear')?.addEventListener('click', () => topicsClearData());
@@ -22879,10 +22986,11 @@ const GUIDE_STEPS = [
   },
   // --- 7. Onchain messages (was step 5) ------------------------------------
   {
-    title: 'Onchain messages — feed & chat',
+    title: 'Onchain messages — feed, chat & topics',
     scene: 'chat',
     body: `
       <p>The <strong>Feed</strong> tab shows every public message broadcast on eCash. The <strong>Chat</strong> tab lets you pick wallet addresses and read a conversation between them — like a normal messaging app, with one big difference:</p>
+      <p><strong>+ Topic</strong> follows a word: the pane then searches the chain's own message index <em>backwards</em> for it, and keeps collecting as new messages arrive. It says how far back it has actually looked, and says so when it could not check. Topics are shared with the Flow view.</p>
       <p><strong>Every message is permanent and 100% public.</strong> Once sent, it's stored forever on every node worldwide. The <strong>!</strong> icons on Feed and Chat have full safety details.</p>
       <p>This site never asks for your seed phrase — sends are signed by your own wallet (Cashtab, Electrum-XEC, browser extension, etc.).</p>
     `,
