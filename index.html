@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-yEeWu7ImYSwloZW0Pq71SFj2HWZLbRpbZV+GkKDvpXY=';
+  script-src 'self' 'sha256-wCGejyb3I8vbFMfMZQ3PblwYlI9bDRza+VJPwUmiNJI=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -2490,7 +2490,11 @@
     font-size: 9px; letter-spacing: 0.1em; color: var(--text-4); margin-bottom: 5px;
   }
   .topic-text { font-size: 12px; line-height: 1.45; color: var(--text-2); word-break: break-word; }
-  .topics-foot { padding: 9px 16px; border-top: 1px solid var(--line); }
+  .topics-foot { padding: 9px 16px; border-top: 1px solid var(--line);
+    display: flex; gap: 6px; flex-wrap: wrap; }
+  /* ARMED IS A WARNING, NOT A SELECTION. Amber is this door's word for
+     "this will not come back" -- the same colour the coverage warnings use. */
+  .topics-clear[data-armed] { color: var(--amber); border-color: var(--amber); }
   .topics-tools { display: flex; gap: 6px; padding: 7px 16px; flex-wrap: wrap; flex-shrink: 0; border-bottom: 1px solid var(--line); }
   .tp-sum {
     font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace; font-size: 9px;
@@ -13917,6 +13921,10 @@ function openTopics() {
     // authors, the watchlist and Chat history, and an ungated walk starves the
     // panels this door exists to show.
     if (topicFollows().length && !tpResults.matched.length) runTopicsBackfill();
+    /* AFTER the rematch, so the reader sees their stored answers before a
+       network round trip decides anything, and once per session -- the budget
+       lives in topicProbeSpentAt, which is spent on every settled outcome. */
+    maybeTopicsAutoRefresh();
   }).catch((e) => {
     console.error('[topics] core modules failed to load', e);
     topicsSetState('err', topicsT('topics.errTitle'), topicsT('topics.errBody'));
@@ -13947,6 +13955,16 @@ function closeTopics() {
 const TOPICS_I18N_V = '21';   // must equal Flow's I18N_V — asserted in CI
 const TOPICS_EN_BORROWED = {
   'lane.older': 'Search further back',
+  'lane.refresh': 'Check for new',
+  'lane.refreshing': 'Checking…',
+  'lane.refreshFound': '{n} new — searching',
+  'lane.refreshNone': 'Already up to date',
+  'lane.refreshFailed': 'Could not check',
+  'lane.notChecked': 'not checked for messages written since the last search',
+  'lane.clear': 'Clear searched data',
+  'lane.clearConfirm': 'Tap again to delete {n} saved messages',
+  'lane.clearNone': 'There is nothing stored to clear',
+  'lane.cleared': 'Searched data cleared. Your topics were kept.',
   'lane.searching': 'Searching…',
   'lane.deepEnd': 'Read all of {p}',
   'lane.reach': 'searched {p} in full back to {d}',
@@ -14266,6 +14284,164 @@ function topicsSaveStore() {
   tpTrimmed = tpStore.trimmed || 0;
 }
 
+/* ============ THE FRESHNESS PROBE ============
+   A PAGE NUMBER IS NOT STABLE OVER TIME. chronik's lokad history is
+   newest-first, so a message written after a session is inserted at rank 0 and
+   pushes every rank already read DOWN. Nothing here ever looks up again, so
+   `ranges[0] = [0, N)` goes on claiming ranks that now hold messages nobody has
+   read -- while the coverage line goes on printing "searched Cashtab Msg in
+   full back to <date>". Permanent, silent, and on the one surface built to be
+   scrupulous about coverage. Flow measured it: 4 pages read, 120 messages
+   written, then EIGHT further pages across two clicks reached 0 of the 120.
+
+   TWO SESSION FACTS THAT LOOK LIKE ONE AND ARE NOT (Flow v2.8.2, and the entry
+   to read before touching either line).
+   topicProbeSpentAt is the REQUEST BUDGET: one probe per load, set on every
+   settled outcome including total failure, so an offline reader does not fire a
+   failing probe on every open.
+   topicPrefixVerifiedAt is the HONESTY BIT the coverage line reads: the
+   prefix's newest end was actually confirmed. Collapsing them is the bug
+   v2.8.2 fixed -- one variable answering two questions meant the qualifier
+   could never appear, and the only failure signal was a button label that
+   cleared itself after four seconds. */
+let topicProbeSpentAt = 0, topicPrefixVerifiedAt = 0;
+let tpRefreshBusy = false, tpRefreshMsg = null;
+
+async function topicsRefreshIndex(auto) {
+  if (!topicsEngineReady() || tpRefreshBusy || tpBusy) return;
+  if (!chronik || typeof chronik.lokadId !== 'function') return;
+  const C = topicsCore;
+  tpRefreshBusy = true; tpRefreshMsg = null;
+  renderTopicTools();
+  const cur = C.scopeCursorView(tpSavedCursor, tpBf ? tpBf.cursor : null);
+  let grew = 0, reached = 0, failed = 0;
+  for (const id of topicScope) {
+    const c = cur[id];
+    /* Nothing read from the TOP means nothing to repair -- the ordinary walk
+       starts at page 0 anyway, so a probe buys nothing. A cursor holding only
+       seeked windows is this case too, and correctly so: laneReach() already
+       refuses to claim a date for it. */
+    const pre = (c && Array.isArray(c.ranges) && c.ranges[0] && c.ranges[0][0] === 0) ? c.ranges[0] : null;
+    if (!pre || !Number.isInteger(c.numTxs)) continue;
+    reached++;
+    let fresh = null;
+    try {
+      const page = await chronik.lokadId(id).history(0, 1);
+      if (Number.isInteger(page && page.numTxs)) fresh = page.numTxs;
+    } catch (e) { failed++; continue; }
+    if (fresh == null) { failed++; continue; }
+    const delta = fresh - c.numTxs;
+    /* A SHRINKING index is not something to reason about from here. A reorg or
+       a re-index can only make page numbers wrong in ways one number cannot
+       describe; leave it to the ordinary walk and the dedupe. */
+    if (delta <= 0) continue;
+    grew += delta;
+    if (!tpSavedCursor) tpSavedCursor = {};
+    /* SHIFT THE MERGED VIEW, never the stored half alone. `c` is the storage
+       with the live engine layered on top, and it is the same value `delta` was
+       measured against -- so the ranges being moved and the numTxs they are
+       moved by describe one state. Reading tpSavedCursor[id] here would be
+       right only for as long as the last save had merged, which is a property
+       of another function this one cannot see. */
+    const next = Object.assign({}, c);
+    next.ranges = C.shiftRangesForGrowth(c.ranges, delta, TOPICS_PAGE);
+    next.numTxs = fresh;
+    next.numPages = Math.ceil(fresh / TOPICS_PAGE);
+    next.done = false;      // a shift can only ever un-finish a protocol
+    next.rangeDone = false;
+    tpSavedCursor[id] = next;
+  }
+  // SPENT on every settled outcome, "nothing to check" included, so a first
+  // visit does not report itself unverified and an offline one does not probe
+  // again on every open.
+  topicProbeSpentAt = Date.now();
+  /* VERIFIED only when nothing could be stale or every probe that ran returned
+     an integer, and RESET to 0 otherwise -- a manual refresh that fails after
+     an earlier success must stop claiming the date. ANY failure withholds it,
+     not only total failure: laneReach()'s floor is the shallowest unfinished
+     protocol, and deciding whether the failed one holds that floor is extra
+     machinery that can itself be wrong. Over-disclosing is the safe direction.
+     `failed === reached` is sitting right there in the button message and looks
+     like the same test. It is not. Do not use it here. */
+  topicPrefixVerifiedAt = (failed === 0) ? Date.now() : 0;
+  tpRefreshBusy = false;
+  if (grew > 0) {
+    // The engine's cursor is stale in exactly the way just repaired, so it is
+    // rebuilt from the saved one -- the same reason a scope change drops it.
+    tpBf = null; tpDeepDone = false;
+    topicsSaveStore();
+    tpRefreshMsg = ['lane.refreshFound', { n: grew }];
+    renderTopicTools();
+    // Read them straight away. Leaving the prefix punctured while saying "12
+    // new" and making the reader find a second button hands them a worse state
+    // than they started in.
+    await runTopicsBackfill();
+  } else {
+    tpRefreshMsg = (failed && failed === reached) ? ['lane.refreshFailed', null]
+                                                 : ['lane.refreshNone', null];
+    renderTopics();
+  }
+  // Transient by design: it reports one action. Left up, the control reads as a
+  // status field the next tap has to clear.
+  const mine = tpRefreshMsg;
+  setTimeout(() => {
+    if (tpRefreshMsg === mine) { tpRefreshMsg = null; renderTopicTools(); renderTopics(); }
+  }, 4000);
+  if (auto && grew === 0) renderTopics();   // the qualifier may have appeared or gone
+}
+
+/* Once per session, on the first open, and only then. One tiny request per
+   protocol actually walked is a real cost, so it is not spent by anyone who
+   never opens the pane. A reader who wants it again has the button. */
+function maybeTopicsAutoRefresh() {
+  if (topicProbeSpentAt || tpRefreshBusy) return;
+  if (!tpCorpus || !tpCorpus.size) return;   // nothing stored -> nothing can be stale
+  topicsRefreshIndex(true);
+}
+
+/* CLEAR TAKES WHAT THE COVERAGE LINE DESCRIBES AND NOTHING ELSE. Topics are the
+   reader's QUESTION, not data, and a button that also deleted them would be the
+   worst kind of surprise; live matches came from the feed and topicsRematch()
+   finds them again. Two taps, because there is no undo -- and the button arms
+   ITSELF rather than calling confirm(), which would be the only modal on either
+   door and an OS alert our own packs cannot translate. */
+let tpClearArmed = 0;
+function topicsClearData() {
+  if (!topicsEngineReady()) return;
+  const held = tpCorpus.size;
+  if (!held) { tpRefreshMsg = ['lane.clearNone', null]; renderTopicTools(); return; }
+  if (!tpClearArmed || Date.now() - tpClearArmed > 4000) {
+    tpClearArmed = Date.now();
+    tpRefreshMsg = ['lane.clearConfirm', { n: held }];
+    renderTopicTools();
+    setTimeout(() => { if (tpClearArmed) { tpClearArmed = 0; tpRefreshMsg = null; renderTopicTools(); } }, 4000);
+    return;
+  }
+  tpClearArmed = 0;
+  /* Stop the run in flight first: a walk that finishes after the wipe would
+     write its pages straight back into the store the reader just emptied. Bump
+     the token so leftover work stops writing, and abort so a request already
+     out cannot land. */
+  tpRunToken++;
+  try { tpAbort && tpAbort.abort(); } catch (e) {}
+  tpBusy = false;
+  tpCorpus.clear();
+  tpStore.clear();          // the store owns its key; do not reach around it
+  tpSavedCursor = null; tpBf = null;
+  tpDeepDone = false; tpHoles = 0; tpTrimmed = 0;
+  tpUnread = 0; tpScopeHidden = 0; tpNoDate = 0;
+  /* BOTH CLOCKS ARE SET, NOT CLEARED, and the reason is worth the line: a fresh
+     store is verified BY CONSTRUCTION -- there is no prefix left that could
+     have gone stale -- and spending the budget stops a pointless probe against
+     an empty corpus. Zeroing them instead would be defensible and is wrong in
+     one direction: laneReach() returns null over an emptied cursor, so the
+     qualifier would have nothing to qualify while the bit said "unverified". */
+  topicProbeSpentAt = Date.now(); topicPrefixVerifiedAt = Date.now();
+  tpRefreshMsg = ['lane.cleared', null];
+  topicsRematch();
+  renderTopicTools();
+}
+
 /* THE WALK, WITH ALL SIX DEFENCES. Each of them is a bug Flow already paid for
    and none is optional: the chronik guard sits BEFORE createBackfill because
    the constructor throws outside the caller's try and one early click otherwise
@@ -14404,6 +14580,11 @@ function topicsCoverage() {
     const names = topicScope.map(id => (LOKAD_NAMES && LOKAD_NAMES[id]) || id).join(', ');
     out.push(topicsTf('lane.reach', { p: names, d: topicsIsoDay(reach * 1000) }));
   }
+  /* THE QUALIFIER v2.7.0 SHIPPED COULD NEVER APPEAR ON FLOW, because one
+     variable was the budget and the honesty bit at once. It reads the bit, not
+     the budget: a probe that ran and failed spends one and withholds the other,
+     so the date says so instead of overstating in silence. */
+  if (reach && !topicPrefixVerifiedAt) out.push({ warn: topicsT('lane.notChecked') });
   if (tpDeepDone) out.push(topicsTf('lane.deepEnd', { p: topicsScopeLabel() }));
   if (tpHoles) out.push({ warn: topicsTf('lane.holes', { n: tpHoles }) });
   if (tpUnread) out.push(topicsTf('lane.unread', { n: tpUnread }));
@@ -14480,11 +14661,21 @@ function renderTopics() {
   body.innerHTML =
     list +
     '<div class="topics-cov">' + cov + '</div>' +
-    '<div class="topics-foot"><button class="msg-filter" id="topics-more" type="button"' +
+    '<div class="topics-foot">' +
+    '<button class="msg-filter" id="topics-more" type="button"' +
     (tpBusy || tpDeepDone ? ' disabled' : '') + '>' +
     escapeHtml(tpDeepDone ? topicsTf('lane.deepEnd', { p: topicsScopeLabel() })
-      : tpBusy ? topicsT('lane.searching') : topicsT('lane.older')) + '</button></div>';
+      : tpBusy ? topicsT('lane.searching') : topicsT('lane.older')) + '</button>' +
+    '<button class="msg-filter" id="topics-refresh" type="button"' +
+    (tpRefreshBusy || tpBusy ? ' disabled' : '') + '>' +
+    escapeHtml(topicsRefreshLabel()) + '</button>' +
+    '<button class="msg-filter topics-clear" id="topics-clear" type="button"' +
+    (tpClearArmed ? ' data-armed="1"' : '') + '>' +
+    escapeHtml(topicsT('lane.clear')) + '</button>' +
+    '</div>';
   $('topics-more')?.addEventListener('click', () => runTopicsBackfill());
+  $('topics-refresh')?.addEventListener('click', () => topicsRefreshIndex(false));
+  $('topics-clear')?.addEventListener('click', () => topicsClearData());
   panel4Counter();
 }
 
@@ -14541,7 +14732,25 @@ function topicsScopeLabel() {
   return C ? C.scopeLabel(topicScope) : topicScope.join(', ');
 }
 
+/* ONE OWNER FOR THE REFRESH CONTROL'S WORDS, because it says four different
+   things and three of them are transient. The message wins over the resting
+   label so the outcome of the tap is what the reader sees; it clears itself
+   after four seconds, since a control left reporting is a status field the next
+   tap has to clear. */
+function topicsRefreshLabel() {
+  if (tpRefreshBusy) return topicsT('lane.refreshing');
+  if (tpRefreshMsg) return tpRefreshMsg[1] ? topicsTf(tpRefreshMsg[0], tpRefreshMsg[1])
+                                           : topicsT(tpRefreshMsg[0]);
+  return topicsT('lane.refresh');
+}
 function renderTopicTools() {
+  /* The footer is painted by renderTopics(), so a tools-only repaint has to
+     reach the two controls that live there -- otherwise the refresh label
+     freezes at "Checking…" until the next full render. */
+  const rb = $('topics-refresh');
+  if (rb) { rb.textContent = topicsRefreshLabel(); rb.disabled = !!(tpRefreshBusy || tpBusy); }
+  const cb = $('topics-clear');
+  if (cb) { if (tpClearArmed) cb.dataset.armed = '1'; else delete cb.dataset.armed; }
   const sl = $('tp-scope-label'), rl = $('tp-range-label');
   if (sl) sl.textContent = topicsT('scope.title') + ': ' + topicsScopeLabel();
   if (!rl) return;

@@ -10,6 +10,9 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { matchAny, matchEvery } from '../vendor/core/match.js';
 import { LOKAD, LOKAD_NAMES } from '../vendor/txparse.js';
+// The probe uses the REAL cursor arithmetic. Re-stating shiftRangesForGrowth
+// here would be testing this file's idea of the shift, not the shipped one.
+import { scopeCursorView, shiftRangesForGrowth } from '../vendor/core/lane-cursor.js';
 import {
   laneReach, laneWindows, rangeActive, inScope, inRange, dayStart,
 } from '../vendor/core/lane-cursor.js';
@@ -327,6 +330,7 @@ function coverageOf(opts = {}) {
     'let tpBf = live ? { cursor: live } : null;',
     'let tpDeepDone = !!deepDone, tpHoles = holes, tpTrimmed = trimmed;',
     'let tpUnread = unread, tpScopeHidden = scopeHidden, tpNoDate = noDate;',
+    'let topicPrefixVerifiedAt = verified;',
     'const WINDOWS_SHOWN = shown;',
     'const LOKAD_NAMES = names;',
     'function topicsScopeLabel(){ return "Cashtab Msg"; }',
@@ -339,7 +343,7 @@ function coverageOf(opts = {}) {
   return new Function(
     'ready', 'laneReach', 'laneWindows', 'rangeActive',
     'scope', 'range', 'saved', 'live',
-    'deepDone', 'holes', 'trimmed', 'unread', 'scopeHidden', 'noDate',
+    'deepDone', 'holes', 'trimmed', 'unread', 'scopeHidden', 'noDate', 'verified',
     'shown', 'names', 'corpusSize', 'corpusFull', 'corpusHas',
     'matched', 'matchedTotal', 'hold', 'txs',
     src,
@@ -349,6 +353,10 @@ function coverageOf(opts = {}) {
     opts.saved || null, opts.live || null,
     !!opts.deepDone, opts.holes || 0, opts.trimmed || 0,
     opts.unread || 0, opts.scopeHidden || 0, opts.noDate || 0,
+    // Default VERIFIED, so every existing coverage case keeps meaning what it
+    // meant. A test that has to opt out of a qualifier is a test that would
+    // silently start asserting the qualifier's absence.
+    opts.verified === undefined ? 1 : opts.verified,
     WINDOWS_SHOWN, LOKAD_NAMES, opts.corpusSize || 0, !!opts.corpusFull, corpusHas,
     matched, opts.matchedTotal != null ? opts.matchedTotal : matched.length, hold, txs,
   );
@@ -660,6 +668,225 @@ console.log('\n-- E9: the Feed keeps its own window --');
   const core = readFileSync(join(ROOT, 'vendor/core/backfill.js'), 'utf8');
   ok('vendor/core was not patched to make this fit', !/topics/i.test(core));
 }
+
+// ===========================================================================
+// THE FRESHNESS PROBE. Two facts that look like one, and the whole point of
+// this block is that the shipped code keeps them apart. Flow shipped them as a
+// single variable for two releases; the qualifier it added in v2.7.0 could
+// therefore never appear, and the ledger entry for v2.8.2 is explicit that the
+// obvious fix reintroduces a different bug. These drive the shipped bodies.
+// ===========================================================================
+console.log('\n-- the freshness probe --');
+{
+  // The qualifier reads the honesty bit, not the budget.
+  const withReach = { saved: { [CT]: { ranges: [[0, 6, 1770000000, 1780000000]], numTxs: 300, numPages: 6 } } };
+  const verified = coverageOf(Object.assign({ verified: 1 }, withReach));
+  const unver = coverageOf(Object.assign({ verified: 0 }, withReach));
+  ok('a verified prefix states its date with no caveat',
+     verified.some((c) => typeof c === 'string' && c.startsWith('searched'))
+     && !verified.some((c) => c && c.warn === TOPICS_EN['lane.notChecked']));
+  ok('an unverified prefix says so, beside the same date',
+     unver.some((c) => typeof c === 'string' && c.startsWith('searched'))
+     && unver.some((c) => c && c.warn === TOPICS_EN['lane.notChecked']));
+  // A caveat with nothing to qualify is noise. No reach -> no qualifier, even
+  // though the bit is false: this is the "first visit" case 07f3ca0 was about.
+  ok('no reach means no qualifier, whatever the bit says',
+     !coverageOf({ verified: 0 }).some((c) => c && c.warn === TOPICS_EN['lane.notChecked']));
+  // It is a WARNING, not a plain sentence: the reach line beside it is a claim,
+  // and an unmarked caveat next to a claim reads as more claim.
+  ok('the qualifier renders as a warning',
+     unver.filter((c) => c && c.warn === TOPICS_EN['lane.notChecked']).length === 1);
+}
+{
+  // Source-level, because these are properties of the shipped text that no
+  // input can exercise from outside the module.
+  const probe = grab('topicsRefreshIndex');
+  const clear = grab('topicsClearData');
+  const auto = grab('maybeTopicsAutoRefresh');
+
+  ok('the budget is spent on EVERY settled outcome',
+     /topicProbeSpentAt = Date\.now\(\);/.test(probe)
+     && !/if\s*\([^)]*\)\s*topicProbeSpentAt = Date\.now\(\)/.test(probe));
+  ok('the honesty bit is set only when nothing failed',
+     /topicPrefixVerifiedAt = \(failed === 0\) \? Date\.now\(\) : 0;/.test(probe));
+  // failed === reached is sitting in the button message and looks like the same
+  // test. Using it here would let a partial failure keep claiming the date.
+  ok('the honesty bit does not use failed === reached',
+     !/topicPrefixVerifiedAt[^;]*failed === reached/.test(probe));
+  ok('the two are separate variables, not one',
+     /let topicProbeSpentAt = 0, topicPrefixVerifiedAt = 0;/.test(mod));
+
+  ok('a shrinking index is left alone', /if \(delta <= 0\) continue;/.test(probe));
+  ok('only a prefix from rank 0 is repairable', /ranges\[0\]\[0\] === 0/.test(probe));
+  ok('the shift moves the MERGED view, not the stored half',
+     /C\.shiftRangesForGrowth\(c\.ranges, delta, TOPICS_PAGE\)/.test(probe)
+     && /const cur = C\.scopeCursorView\(tpSavedCursor/.test(probe));
+  ok('a growth un-finishes the protocol', /next\.done = false/.test(probe));
+  ok('a growth reads the new pages straight away', /await runTopicsBackfill\(\)/.test(probe));
+
+  ok('the auto probe is gated on the budget', /if \(topicProbeSpentAt \|\| tpRefreshBusy\) return;/.test(auto));
+  ok('an empty store cannot be stale, so it is not probed', /tpCorpus\.size\) return;/.test(auto));
+  ok('the pane asks for it once, on open', /maybeTopicsAutoRefresh\(\);/.test(grab('openTopics')));
+
+  /* BOTH HALVES, and in that order. The abort stops a request already out; the
+     token stops leftover work WRITING. Checking only the ordering of the abort
+     passed with the token bump deleted -- found by mutation, which is the only
+     reason this assertion names two things. */
+  ok('clear stops the walk in flight before wiping',
+     /tpRunToken\+\+;/.test(clear)
+     && /tpAbort && tpAbort\.abort\(\)/.test(clear)
+     && clear.indexOf('tpRunToken++') < clear.indexOf('tpCorpus.clear()')
+     && clear.indexOf('tpAbort') < clear.indexOf('tpCorpus.clear()'));
+  ok('clear goes through the store, not around it into localStorage',
+     /tpStore\.clear\(\);/.test(clear) && !/localStorage\.removeItem/.test(clear));
+  ok('clear arms itself rather than calling confirm()',
+     /tpClearArmed/.test(clear) && !/\bconfirm\(/.test(clear));
+  // The topics are the reader's QUESTION, not data. A button that also deleted
+  // eight saved topics would be the worst kind of surprise.
+  ok('clear does not touch the topics', !/topicTerms/.test(clear) && !/TOPICS_TERMS_KEY/.test(clear));
+  ok('a fresh store is verified by construction, not unverified',
+     /topicProbeSpentAt = Date\.now\(\); topicPrefixVerifiedAt = Date\.now\(\);/.test(clear));
+  ok('clear resets every counter the coverage line reads',
+     ['tpHoles', 'tpTrimmed', 'tpUnread', 'tpScopeHidden', 'tpNoDate', 'tpDeepDone']
+       .every((v) => new RegExp('\\b' + v + ' = (?:0|false)').test(clear)));
+}
+
+// ===========================================================================
+// DRIVE THE PROBE. Everything above about the two clocks is a property of the
+// shipped TEXT; this runs the shipped BODY. The budget assertion is the one
+// that proves the split is real -- after a probe that FAILED, the auto path
+// must still decline the second request, measured at one probe in, one out.
+// Anything less and an offline reader fires a failing probe on every open,
+// which is the bug the unconditional assignment was added to stop.
+// ===========================================================================
+console.log('\n-- the probe, driven --');
+function probeRun({ answers, saved, corpusSize = 300 }) {
+  let calls = 0;
+  const chronik = {
+    lokadId: (id) => ({
+      history: async () => {
+        calls++;
+        const a = answers[id];
+        if (a === 'throw') throw new Error('offline');
+        if (a === 'garbage') return { numTxs: 'not a number' };
+        return { numTxs: a };
+      },
+    }),
+  };
+  const src = [
+    'let topicProbeSpentAt = 0, topicPrefixVerifiedAt = 0;',
+    'let tpRefreshBusy = false, tpRefreshMsg = null;',
+    'let tpBusy = false, tpRunToken = 0, tpAbort = null;',
+    'let tpSavedCursor = saved, tpBf = null, tpDeepDone = false;',
+    'let tpCorpus = { size: corpusSize };',
+    'const topicScope = scope;',
+    'const TOPICS_PAGE = 50;',
+    'const topicsCore = C;',
+    'function topicsEngineReady(){ return true; }',
+    'function renderTopicTools(){}',
+    'function renderTopics(){}',
+    'function topicsSaveStore(){}',
+    'async function runTopicsBackfill(){ walked++; }',
+    grab('topicsRefreshIndex'),
+    grab('maybeTopicsAutoRefresh'),
+    'return { topicsRefreshIndex, maybeTopicsAutoRefresh,',
+    '  read: () => ({ spent: topicProbeSpentAt, verified: topicPrefixVerifiedAt,',
+    '                 msg: tpRefreshMsg, cursor: tpSavedCursor }) };',
+  ].join('\n');
+  const box = { walked: 0 };
+  const api = new Function('chronik', 'saved', 'scope', 'corpusSize', 'C', 'setTimeout', 'walked',
+    'var walked = 0;\n' + src + '\n')(
+    chronik, saved, Object.keys(answers), corpusSize,
+    { scopeCursorView, shiftRangesForGrowth }, () => {}, 0);
+  return { api, calls: () => calls, box };
+}
+const prefix = (numTxs, pages) => ({ ranges: [[0, pages, 1770000000, 1780000000]], numTxs, numPages: Math.ceil(numTxs / 50) });
+
+await (async () => {
+  // 1. Every probe succeeds and nothing grew -> verified, budget spent.
+  {
+    const { api, calls } = probeRun({ answers: { [CT]: 300 }, saved: { [CT]: prefix(300, 6) } });
+    await api.topicsRefreshIndex(true);
+    const r = api.read();
+    ok('a clean probe verifies the prefix', r.verified > 0 && r.spent > 0);
+    eq('and says it is up to date', r.msg[0], 'lane.refreshNone');
+    eq('one request per walked protocol', calls(), 1);
+  }
+  // 2. The probe throws -> budget SPENT, prefix NOT verified.
+  {
+    const { api, calls } = probeRun({ answers: { [CT]: 'throw' }, saved: { [CT]: prefix(300, 6) } });
+    await api.topicsRefreshIndex(true);
+    const r = api.read();
+    ok('a failed probe still spends the budget', r.spent > 0);
+    eq('and leaves the prefix unverified', r.verified, 0);
+    eq('and says it could not check', r.msg[0], 'lane.refreshFailed');
+    // THE ASSERTION THE SPLIT EXISTS FOR.
+    await api.maybeTopicsAutoRefresh();
+    eq('the auto path declines a second request after a FAILED probe', calls(), 1);
+  }
+  // 3. A non-integer numTxs is a failure, not a zero.
+  {
+    const { api } = probeRun({ answers: { [CT]: 'garbage' }, saved: { [CT]: prefix(300, 6) } });
+    await api.topicsRefreshIndex(true);
+    eq('a non-integer numTxs counts as failure', api.read().verified, 0);
+  }
+  // 4. ANY failure withholds it, not only total failure.
+  {
+    const AL = '2e786563';
+    const { api } = probeRun({
+      answers: { [CT]: 300, [AL]: 'throw' },
+      saved: { [CT]: prefix(300, 6), [AL]: prefix(100, 2) },
+    });
+    await api.topicsRefreshIndex(true);
+    const r = api.read();
+    eq('one of two failing still withholds the date', r.verified, 0);
+    // ...and it is NOT reported as "could not check", because one did.
+    eq('but the button does not claim total failure', r.msg[0], 'lane.refreshNone');
+  }
+  // 5. Growth: ranges shift, the walk is re-run, the date is still verified.
+  {
+    const { api, calls } = probeRun({ answers: { [CT]: 437 }, saved: { [CT]: prefix(300, 6) } });
+    await api.topicsRefreshIndex(false);
+    const r = api.read();
+    eq('growth is announced with its size', r.msg[0], 'lane.refreshFound');
+    eq('and counted exactly', r.msg[1].n, 137);
+    // 137 ranks at page 50: start rounds OUTWARD, end rounds INWARD, so a
+    // partially covered page is given up rather than claimed.
+    const shifted = r.cursor[CT].ranges[0];
+    eq('the prefix start rounds outward', shifted[0], Math.ceil(137 / 50));
+    eq('the prefix end rounds inward', shifted[1], 6 + Math.floor(137 / 50));
+    eq('numTxs moves to the new coordinate system', r.cursor[CT].numTxs, 437);
+    ok('the protocol is un-finished', r.cursor[CT].done === false);
+    ok('a successful growth is still verified', r.verified > 0);
+    eq('still one request', calls(), 1);
+  }
+  // 6. A SHRINKING index is left alone -- a reorg cannot be described by one
+  //    number, so nothing is shifted and nothing is claimed to have changed.
+  {
+    const { api } = probeRun({ answers: { [CT]: 250 }, saved: { [CT]: prefix(300, 6) } });
+    await api.topicsRefreshIndex(true);
+    const r = api.read();
+    eq('a shrink is not a growth', r.msg[0], 'lane.refreshNone');
+    eq('and the ranges are untouched', r.cursor[CT].ranges[0][1], 6);
+    eq('as is numTxs', r.cursor[CT].numTxs, 300);
+  }
+  // 7. Nothing read from rank 0 -> nothing to repair, and no request spent.
+  {
+    const { api, calls } = probeRun({
+      answers: { [CT]: 400 },
+      saved: { [CT]: { ranges: [[3, 8, 1770000000, 1780000000]], numTxs: 300, numPages: 6 } },
+    });
+    await api.topicsRefreshIndex(true);
+    eq('a seek-only cursor costs no request', calls(), 0);
+    ok('and is treated as verified, having claimed no date', api.read().verified > 0);
+  }
+  // 8. An empty corpus is never probed at all.
+  {
+    const { api, calls } = probeRun({ answers: { [CT]: 400 }, saved: { [CT]: prefix(300, 6) }, corpusSize: 0 });
+    await api.maybeTopicsAutoRefresh();
+    eq('an empty store is not probed', calls(), 0);
+  }
+})();
 
 console.log(fail ? `\nFAILED ${fail}/${pass + fail}` : `\nok: neo topics ${pass} assertions`);
 if (fail) process.exit(1);
