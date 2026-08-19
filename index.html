@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-WOIe8sxUtfEO7gvBmkxJ7E1JYE2IrxZsXpm2NqJbY+0=';
+  script-src 'self' 'sha256-FBXZpjeHIhhsCnDtHzyf0GsVCvKh7RBm5WYHy0+M+Zs=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -2741,6 +2741,25 @@
   }
   #qs-fab:hover { transform: scale(1.06); }
   #qs-fab:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+  .qs-amt-toggle {
+    align-self: flex-start; border: 0; background: none; color: var(--cyan);
+    font-family: 'Fira Code', monospace; font-size: 10px; letter-spacing: 0.1em;
+    text-transform: uppercase; cursor: pointer; padding: 2px 0;
+  }
+  .qs-amt-toggle:hover { text-decoration: underline; }
+  .qs-amt-toggle:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+  /* THE ROW MUST NOT OVERFLOW, which Flow's v1.5.0 fixed after shipping it: the
+     number input inherited width:100% from the shared input rule and pushed the
+     panel sideways. So the range flexes and the number is a fixed width that
+     opts out of flexing, and the row itself can shrink below its content. */
+  .qs-amt { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .qs-amt #qs-amt-range { flex: 1; min-width: 0; accent-color: var(--cyan); }
+  .qs-amt #qs-amt-num {
+    flex: none; width: 84px; font-family: 'Fira Code', monospace; font-size: 11px;
+  }
+  /* .qs-amt sets a display, so the hidden attribute needs the guard -- the same
+     author-beats-UA rule that left #tp-editor on screen. CI checks this. */
+  .qs-amt[hidden] { display: none !important; }
   #qs-panel {
     position: absolute; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom));
     z-index: 7; width: min(340px, calc(100% - 32px)); max-height: calc(100% - 32px);
@@ -7888,7 +7907,12 @@
             <div class="qs-head"><span id="qs-title">Send on-chain</span><button id="qs-close" type="button" aria-label="Close">&times;</button></div>
             <input type="text" id="qs-to" placeholder="Recipient address" autocomplete="off" spellcheck="false">
             <div class="qs-picks" id="qs-picks"></div>
-            <input type="text" id="qs-msg" placeholder="A short message" maxlength="215" autocomplete="off">
+            <input type="text" id="qs-msg" placeholder="Message (optional)" maxlength="215" autocomplete="off">
+            <button class="qs-amt-toggle" id="qs-amt-toggle" type="button" aria-expanded="false" aria-controls="qs-amt">+ XEC amount</button>
+            <div class="qs-amt" id="qs-amt" hidden>
+              <input id="qs-amt-range" type="range" min="5.46" max="1000" step="0.01" value="5.46" aria-label="Amount in XEC">
+              <input id="qs-amt-num" type="number" min="5.46" step="0.01" value="5.46" inputmode="decimal" aria-label="Amount in XEC">
+            </div>
             <p class="qs-hint" id="qs-hint"></p>
             <button class="qs-send" id="qs-send" type="button">Send via Cashtab</button>
           </div>
@@ -14281,6 +14305,12 @@ const TOPICS_EN_BORROWED = {
   'cmp.toPh': 'Recipient address',
   'cmp.close': 'Close',
   'cmp.myWallet': 'My wallet',
+  'cmp.msgPh': 'Message (optional)',
+  'cmp.amtToggle': '+ XEC amount',
+  'cmp.amount': 'Amount in XEC',
+  'cmp.previewXec': 'Send {xec} XEC',
+  'cmp.previewMsg': 'message',
+  'cmp.needAmtOrMsg': 'Add a message or an amount to send.',
   'try.needAddr': 'Choose or paste a recipient address.',
   'try.badAddr': 'That eCash address isn’t valid.',
 };
@@ -14299,7 +14329,6 @@ const TOPICS_EN_OWN = {
   'topics.rowAria': 'Message filters and topics',
   'topics.none': 'No topics yet',
   'topics.shared': 'Follow a word and this pane searches the chain’s message index backwards for it. Topics are shared with the Flow view.',
-  'topics.needMsg': 'Type a message first.',
   'topics.opened': 'Cashtab opened in a new tab. Confirm there to broadcast.',
   'topics.sentExt': 'Sent to the Cashtab extension. Confirm there to broadcast.',
   'topics.popup': 'Could not open Cashtab — allow pop-ups for this site and try again.',
@@ -14310,12 +14339,14 @@ const TOPICS_EN_OWN = {
   'topics.chipMuted': 'Muted — hidden from the feed and from Topics',
   'topics.chipOn': 'Following — tap to stop',
   'topics.chipOff': 'Tap to follow',
-  /* NOT BORROWED, AND THE REASON IS THE DIFFERENCE ITSELF. Flow's composer
-     takes an amount, so a message there really is optional and its mute hides
-     from a "stream"; neo's quick send has no amount field, so a message is
-     required and the surface it hides from is the feed. Borrowing Flow's
-     sentence would have shipped two small lies in fifteen languages. */
-  'topics.msgPh': 'A short message',
+  /* topics.msgPh IS GONE, and its own comment predicted why: it said neo's
+     quick send has no amount field, "so a message is required". It has one now,
+     so the message is optional exactly as on Flow and cmp.msgPh is a real
+     borrow again. topics.needMsg went with it -- the guard is now Flow's
+     cmp.needAmtOrMsg, because either one will do.
+
+     topics.mute stays own: that sentence is about which surface a mute hides
+     from, and neo's is still the feed. */
   'topics.mute': 'Mute instead: hide these from the feed',
   'topics.sendCashtab': 'Send via Cashtab',
   'topics.fabAria': 'Send an on-chain message',
@@ -14429,6 +14460,7 @@ const TOPICS_STATIC_TEXT = [
   ['tp-ed-cancel', 'cmp.close'],
   ['qs-title',     'cmp.title'],
   ['qs-send',      'topics.sendCashtab'],
+  ['qs-amt-toggle', 'cmp.amtToggle'],
 ];
 const TOPICS_STATIC_ATTR = [
   ['topics-exit', 'title',       'topics.back'],
@@ -14440,10 +14472,12 @@ const TOPICS_STATIC_ATTR = [
   ['qs-fab',      'aria-label',  'topics.fabAria'],
   ['qs-close',    'aria-label',  'cmp.close'],
   ['qs-to',       'placeholder', 'cmp.toPh'],
-  ['qs-msg',      'placeholder', 'topics.msgPh'],
+  ['qs-msg',      'placeholder', 'cmp.msgPh'],
   ['tp-ed-q',     'placeholder', 'term.ph'],
   ['tp-from',     'aria-label',  'scope.from'],
   ['tp-to',       'aria-label',  'scope.to'],
+  ['qs-amt-range','aria-label',  'cmp.amount'],
+  ['qs-amt-num',  'aria-label',  'cmp.amount'],
 ];
 /* The three editor checkboxes are <label>s wrapping their own <input>, so
    textContent would delete the control. Only the trailing text node moves. */
@@ -14511,6 +14545,10 @@ const TOPICS_CORPUS_MAX = 5000;   // must equal Flow's, see HANDOFF decision 7
    loader threw ReferenceError into the try/catch around it and NO chips
    rendered. node --check sees none of that. */
 const TOPICS_TERM_MAX   = 8;      // must equal Flow's TERM_MAX
+/* 546 sats. Flow calls it DUST_XEC and folds payments below it into the bot
+   group; here it is the floor an amount cannot go under, because a send of
+   less is one Cashtab refuses. Same number, stated once. */
+const DUST_XEC_FLOOR    = 5.46;
 const TOPICS_MATCH_MAX  = 200;
 const TOPICS_PAGE       = 50;
 const TOPICS_REQUESTS   = 6;
@@ -15454,6 +15492,75 @@ function saveTermFromEditor() {
 
   const setHint = (t, warn) => { hint.textContent = t || ''; hint.classList.toggle('warn', !!warn); };
 
+  /* THE AMOUNT HAS ONE OWNER ALREADY, and it is chatState.amountXec -- the Chat
+     composer's slider writes it, chatBuildBip21 reads it, and this panel was
+     already spending it silently at whatever Chat happened to be set to. So
+     this control adjusts THAT value rather than introducing a second one: two
+     amounts on one door would be a number the reader changes in one place and
+     does not see change in the other. chatRenderAmount() repaints Chat's own
+     slider so the two controls can never disagree on screen either.
+
+     Whether the row is OPEN is a different fact -- a UI affordance, not a
+     setting -- so it lives in memory and adds no storage key. */
+  const amtToggle = $('qs-amt-toggle'), amtRow = $('qs-amt'),
+        amtRange = $('qs-amt-range'), amtNum = $('qs-amt-num');
+  let amtOpen = false;
+  const QS_AMT_MIN = DUST_XEC_FLOOR;   // one dust output, the floor Cashtab accepts
+  const QS_AMT_MAX = 1000;      // the slider's reach; typing past it is allowed
+
+  function qsAmount() { return amtOpen ? (chatState.amountXec || QS_AMT_MIN) : 0; }
+  function qsSyncAmount(from) {
+    const raw = parseFloat(from === 'num' ? amtNum.value : amtRange.value);
+    const n = Math.max(QS_AMT_MIN, isFinite(raw) ? raw : QS_AMT_MIN);
+    chatState.amountXec = Math.round(n * 100) / 100;
+    if (from !== 'range') amtRange.value = String(Math.min(chatState.amountXec, QS_AMT_MAX));
+    if (from !== 'num') amtNum.value = chatState.amountXec.toFixed(2);
+    try { chatRenderAmount(); } catch (e) {}   // keep Chat's own control honest
+    try { chatSavePersist(); } catch (e) {}
+    qsRenderSend();
+  }
+  /* THE BUTTON SAYS WHAT IT WILL DO. Flow's wording, and the USD is shown only
+     when a rate is known -- an unpriced "~$0.00" would be a number we made up. */
+  function qsRenderSend() {
+    const xec = qsAmount();
+    const hasMsg = !!(msg.value || '').trim();
+    if (!xec) { send.textContent = topicsT('topics.sendCashtab'); return; }
+    let label = topicsTf('cmp.previewXec', { xec: xec.toFixed(2) });
+    /* THE USD IS OMITTED WHEN IT WOULD ROUND TO ZERO. XEC trades around
+       $0.0000063, so the dust floor is ~$0.000034 and four decimals render it
+       as "$0" -- a real payment labelled free. An absent number is honest; a
+       zero is not. Same reason the coverage line prints "—" during warmup. */
+    if (xecUsd > 0) {
+      const usd = xec * xecUsd;
+      const shown = usd.toLocaleString('en-US', { maximumFractionDigits: 4 });
+      if (parseFloat(shown) > 0) label += ' (~$' + shown + ')';
+    }
+    if (hasMsg) label += ' + ' + topicsT('cmp.previewMsg');
+    send.textContent = label;
+  }
+  function qsSetAmtOpen(open) {
+    amtOpen = !!open;
+    amtRow.hidden = !amtOpen;
+    amtToggle.setAttribute('aria-expanded', String(amtOpen));
+    if (amtOpen) {
+      const v = Math.max(QS_AMT_MIN, chatState.amountXec || QS_AMT_MIN);
+      amtRange.value = String(Math.min(v, QS_AMT_MAX));
+      amtNum.value = v.toFixed(2);
+    }
+    qsRenderSend();
+  }
+  if (amtToggle) {
+    amtToggle.addEventListener('click', () => qsSetAmtOpen(!amtOpen));
+    amtRange.addEventListener('input', () => qsSyncAmount('range'));
+    amtNum.addEventListener('input', () => qsSyncAmount('num'));
+    /* THE FIELD SETTLES ON BLUR, NOT ON EVERY KEYSTROKE. Writing the clamped
+       value back while typing makes "10" impossible: the "1" snaps to the floor
+       before the "0" arrives. So the button shows the real amount immediately
+       and the field catches up when the reader leaves it. */
+    amtNum.addEventListener('change', () => { amtNum.value = (chatState.amountXec || QS_AMT_MIN).toFixed(2); });
+    msg.addEventListener('input', qsRenderSend);
+  }
+
   /* ONE TAP INSTEAD OF A PASTED ADDRESS. My wallet first when it is known, then
      watchlist entries BY NAME — the reader named them, so they are the handles
      they already think in. */
@@ -15511,14 +15618,19 @@ function saveTermFromEditor() {
   send.addEventListener('click', async () => {
     const addr = (to.value || '').trim();
     const text = (msg.value || '').trim();
+    const xec = qsAmount();
     if (!addr) { setHint(topicsT('try.needAddr'), true); to.focus(); return; }
-    if (!text) { setHint(topicsT('topics.needMsg'), true); msg.focus(); return; }
+    /* EITHER WILL DO NOW. Before the amount existed a message was the only
+       thing a send could carry, so an empty one was simply "nothing to send";
+       with an amount open, a payment with no words is a perfectly ordinary
+       transaction. Flow's sentence covers both cases in one. */
+    if (!text && !xec) { setHint(topicsT('cmp.needAmtOrMsg'), true); msg.focus(); return; }
     /* THE LIMIT IS UTF-8 BYTES, AND maxlength COUNTS CHARACTERS. "gm" is two of
        each; a Vietnamese sentence or an emoji is not, so a message that fits the
        attribute can still overflow the OP_RETURN. Chat shows a live byte count
        for the same reason; this refuses rather than letting Cashtab reject it
        after the reader has already left the page. */
-    const bytes = chatUtf8Bytes(text);
+    const bytes = text ? chatUtf8Bytes(text) : 0;
     if (bytes > CHAT_OP_RETURN_BUDGET) {
       setHint(topicsTf('topics.toolong', { n: bytes, max: CHAT_OP_RETURN_BUDGET }), true);
       msg.focus(); return;
@@ -15551,7 +15663,13 @@ function saveTermFromEditor() {
     } catch (e) {}
     if (!norm) { setHint(topicsT('try.badAddr'), true); to.focus(); return; }
     let bip21 = '';
-    try { bip21 = chatBuildBip21([{ addr: norm }], chatState.amountXec || 5.46, text); } catch (e) {}
+    /* THE AMOUNT IS WHAT THE READER SET, or the dust floor when they did not
+       open the row -- a message still has to ride on an output, and 5.46 XEC is
+       the smallest Cashtab will accept. It used to pass chatState.amountXec
+       unconditionally, so a quick send silently spent whatever the Chat slider
+       was last left at; now that is only true when the row is open and the
+       number is on screen. */
+    try { bip21 = chatBuildBip21([{ addr: norm }], xec || DUST_XEC_FLOOR, text); } catch (e) {}
     if (!bip21) { setHint(topicsT('topics.linkFail'), true); return; }
     /* PROBE, THEN SEND. chatSendViaCashtabExtension is optimistic by design --
        it posts and resolves true after 200ms whether anything is listening or
@@ -19571,13 +19689,14 @@ function chatBuildBip21(peers, amountXec, message) {
   if (!peers || peers.length === 0) return '';
   // Per spec: op_return_raw must appear before any extra addr=; we put it as
   // the first query parameter after amount on the primary address.
-  const opReturn = chatBuildOpReturnRaw(message);
   const amt = (Math.round(amountXec * 100) / 100).toFixed(2);
   const primary = peers[0].addr; // already normalized "ecash:q…"
-  const params = [
-    `amount=${amt}`,
-    `op_return_raw=${opReturn}`,
-  ];
+  const params = [`amount=${amt}`];
+  /* NO MESSAGE, NO OP_RETURN. A pure-XEC send carries nothing to write, and an
+     empty op_return_raw is a push of zero bytes -- a fee paid for a record that
+     says nothing. Chat always has a message and is unaffected; the quick send
+     can now be amount-only, which is what makes this reachable. */
+  if (message) params.push(`op_return_raw=${chatBuildOpReturnRaw(message)}`);
   for (let i = 1; i < peers.length; i++) {
     params.push(`addr=${peers[i].addr}`);
     params.push(`amount=${amt}`);

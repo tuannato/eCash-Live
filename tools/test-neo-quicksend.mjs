@@ -104,8 +104,14 @@ console.log('\n-- what it refuses --');
 {
   ok('refuses with no recipient',
      /if\s*\(\s*!addr\s*\)[^\n]*'try\.needAddr'/.test(code));
-  ok('refuses with no message',
-     /if\s*\(\s*!text\s*\)[^\n]*'topics\.needMsg'/.test(code));
+  /* WAS: "refuses with no message". That was true while a message was the only
+     thing a quick send could carry -- an empty one meant there was nothing to
+     send. With an XEC amount the panel can send a payment with no words, so the
+     guard became "neither", and this assertion is the one that reported the
+     change rather than letting it through. The replacement lives in
+     "what it refuses, now that either will do". */
+  ok('refuses when there is neither a message nor an amount',
+     /if\s*\(\s*!text && !xec\s*\)[^\n]*'cmp\.needAmtOrMsg'/.test(code));
   // Charset+length is not a checksum: neo's own validator passes a mistyped
   // address, and this composer can move money.
   ok('checks the real checksum, not just the alphabet', /validateCashAddress\s*\(/.test(code));
@@ -143,6 +149,92 @@ console.log('\n-- byte counting, driven --');
   // 215 CHARACTERS of emoji is 860 bytes -- the exact shape maxlength misses.
   ok('215 emoji blow the budget that 215 chars would allow', fn('🌅'.repeat(215)) > 215);
   eq('empty is zero', fn(''), 0);
+}
+
+console.log('\n-- the XEC amount --');
+{
+  // The row exists and starts closed.
+  ok('there is an amount row', /id="qs-amt"/.test(html));
+  ok('behind a toggle, like Flow', /id="qs-amt-toggle"[^>]*aria-expanded="false"/.test(html));
+  ok('and it starts hidden', /id="qs-amt" hidden|id="qs-amt"[^>]*\shidden/.test(html));
+  /* .qs-amt sets display:flex, so the hidden attribute is inert without the
+     guard -- the author-beats-UA rule that left #tp-editor on screen. */
+  ok('with the [hidden] guard its own display needs',
+     /\.qs-amt\[hidden\]\s*\{[^}]*display:\s*none\s*!important/.test(html));
+  /* Flow shipped and then fixed exactly this: the number input inherited
+     width:100% from the shared input rule and pushed the panel sideways. */
+  ok('the number input opts out of stretching',
+     /#qs-amt-num\s*\{[^}]*flex:\s*none/.test(html) && /#qs-amt-num\s*\{[^}]*width:\s*\d+px/.test(html));
+  ok('and the row can shrink below its content', /\.qs-amt\s*\{[^}]*min-width:\s*0/.test(html));
+
+  // ONE OWNER. The amount this panel spends is chatState.amountXec, which the
+  // Chat composer already writes and chatBuildBip21 already reads.
+  const sync = grab('qsSyncAmount');
+  ok('the control writes the amount neo already had', /chatState\.amountXec = /.test(sync));
+  ok('and repaints Chat so the two cannot disagree', /chatRenderAmount\(\)/.test(sync));
+  ok('and persists it where Chat persists it', /chatSavePersist\(\)/.test(sync));
+  ok('the floor is the dust floor', /Math\.max\(QS_AMT_MIN/.test(sync));
+  ok('and the floor is named once', /const DUST_XEC_FLOOR\s*=\s*5\.46/.test(mod));
+
+  const render = grab('qsRenderSend');
+  /* XEC trades near $0.0000063, so the dust floor is ~$0.000034 and four
+     decimals render it as "$0" -- a real payment labelled free. An absent
+     number is honest; a zero is not, which is why warmup prints "—". */
+  ok('the USD is dropped when it would round to zero',
+     /parseFloat\(shown\) > 0/.test(render));
+  ok('and never shown without a rate', /if \(xecUsd > 0\)/.test(render));
+  ok('the button says what it will send', /'cmp\.previewXec'/.test(render));
+  ok('and mentions the message when there is one', /'cmp\.previewMsg'/.test(render));
+
+  /* Writing the clamped value back on every keystroke makes "10" impossible:
+     the "1" snaps to the floor before the "0" arrives. */
+  ok('the field settles on blur, not on every keystroke',
+     /amtNum\.addEventListener\('change'/.test(mod)
+     && !/amtNum\.addEventListener\('input',[^\n]*amtNum\.value =/.test(mod));
+}
+
+// ---------------------------------------------------------------------------
+// DRIVEN: a pure-XEC send must not carry an OP_RETURN. An empty one is a push
+// of zero bytes -- a fee paid for a record that says nothing.
+// ---------------------------------------------------------------------------
+console.log('\n-- the builder, driven --');
+{
+  const build = new Function('chatBuildOpReturnRaw',
+    grab('chatBuildBip21') + '\nreturn chatBuildBip21;')((m) => 'DEADBEEF');
+  const peers = [{ addr: 'ecash:qqtest' }];
+
+  const withMsg = build(peers, 5.46, 'gm');
+  ok('a message send carries the OP_RETURN', withMsg.includes('op_return_raw=DEADBEEF'));
+  ok('and the amount', withMsg.includes('amount=5.46'));
+
+  const pure = build(peers, 25, '');
+  ok('a pure-XEC send carries the amount', pure.includes('amount=25.00'));
+  ok('and NO op_return at all', !pure.includes('op_return_raw'));
+  eq('so the link is just the payment', pure, 'ecash:qqtest?amount=25.00');
+
+  eq('null and undefined are treated as no message',
+     [build(peers, 10, null), build(peers, 10, undefined)].map((u) => u.includes('op_return_raw')).join(),
+     'false,false');
+  // Multi-recipient (the Chat path) still repeats amount per address.
+  const two = build([{ addr: 'ecash:qqa' }, { addr: 'ecash:qqb' }], 7, 'hi');
+  ok('extra recipients still each get an amount', (two.match(/amount=7\.00/g) || []).length === 2);
+  ok('and the op_return stays before the extra addr',
+     two.indexOf('op_return_raw') < two.indexOf('addr=ecash:qqb'));
+}
+
+console.log('\n-- what it refuses, now that either will do --');
+{
+  const send = mod.slice(mod.indexOf("send.addEventListener('click'"));
+  ok('a recipient is still always required', /if \(!addr\)[^\n]*try\.needAddr/.test(send));
+  /* Before the amount existed, an empty message was simply nothing to send.
+     With an amount open, a payment with no words is an ordinary transaction. */
+  ok('but a message alone is no longer the only thing that counts',
+     /if \(!text && !xec\)[^\n]*cmp\.needAmtOrMsg/.test(send));
+  ok('and the byte check skips an absent message', /const bytes = text \? chatUtf8Bytes\(text\) : 0/.test(send));
+  /* It used to pass chatState.amountXec unconditionally, so a quick send spent
+     whatever the Chat slider was last left at, unseen. */
+  ok('the send spends what is on screen, or the floor',
+     /chatBuildBip21\(\[\{ addr: norm \}\], xec \|\| DUST_XEC_FLOOR, text\)/.test(send));
 }
 
 console.log(fail ? `\nFAILED ${fail}/${pass + fail}` : `\nok: neo quick-send ${pass} assertions`);
