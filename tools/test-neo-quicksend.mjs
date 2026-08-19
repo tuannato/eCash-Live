@@ -134,8 +134,19 @@ console.log('\n-- the surface --');
      /#section-messages\[data-tab="chat"\] #qs-fab/.test(html));
   ok('both scrollers reserve room so the last row clears the button',
      /\.msg-list,\s*#topics-body\s*\{\s*padding-bottom:\s*calc\(84px/.test(html));
-  ok('the message input is pinned to 16px on mobile (iOS zoom)',
-     /#qs-panel input\[type=text\]\s*\{\s*font-size:\s*16px/.test(html));
+  /* WAS: the selector and its brace on one line. The anti-zoom rule is a
+     selector LIST now -- the amount field had to join it -- so matching the
+     pair together broke on formatting rather than on behaviour. Rewriting it as
+     a generic rule-splitter did not work either: the block sits inside an
+     @media, and `r.indexOf('{')` then lands on the media query's own brace, so
+     the "selector" half was the comment above it. Ask the block directly. */
+  {
+    const at = html.indexOf('iOS auto-zooms on focus');
+    const block = (at === -1 ? '' : html.slice(at, html.indexOf('}\n  }', at)))
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+    ok('the message input is pinned to 16px on mobile (iOS zoom)',
+       /#qs-panel input\[type=text\]/.test(block) && /font-size:\s*16px/.test(block));
+  }
   ok('a disabled watchlist row is not offered as a destination',
      /enabled\s*!==\s*false/.test(code));
 }
@@ -280,6 +291,50 @@ console.log('\n-- the tip jar --');
   const guard = mod.slice(mod.indexOf('tampering detected'), mod.indexOf('tampering detected') + 700);
   ok('the tamper check drops the live tip surface too', /qs-pick\[data-tip="1"\]/.test(guard));
   ok('the pick carries the marker the check looks for', /b\.dataset\.tip = '1'/.test(picks));
+}
+
+console.log('\n-- the keyboard, and the zoom it causes --');
+{
+  /* iOS zooms on focus when a text input is under 16px, and .qs-amt #qs-amt-num
+     sets 11px -- exactly that. The existing anti-zoom block covered
+     input[type=text] only, so the number field was the one that would have
+     jumped the whole page on focus. */
+  /* COMMENTS STRIPPED, THIRD TIME ON THIS BRANCH. The comment inside this very
+     block names `.qs-amt #qs-amt-num` while explaining why it was added, so the
+     assertion matched the prose and stayed green with the selector deleted --
+     the same mistake as reading `z-index:1` out of the comment that explained
+     the z-index, and as counting the i18n key tables as uses of their own keys.
+     A suite that reads documentation is testing the documentation. */
+  const zoomRaw = html.slice(html.indexOf('iOS auto-zooms on focus'), html.indexOf('iOS auto-zooms on focus') + 1200);
+  const zoom = zoomRaw.replace(/\/\*[\s\S]*?\*\//g, '');
+  ok('the anti-zoom block covers the text inputs', /#qs-panel input\[type=text\]/.test(zoom));
+  ok('and the amount field, which sets 11px of its own', /\.qs-amt #qs-amt-num/.test(zoom));
+  ok('at the size iOS stops zooming at', /font-size:\s*16px/.test(zoom));
+
+  /* THE KEYBOARD DOES NOT MOVE position:fixed. On iOS the layout viewport is
+     unchanged when it opens; only the visual viewport shrinks, so a panel
+     pinned to the bottom sits underneath it. */
+  const kb = grab('qsTrackKeyboard');
+  ok('the overlap is measured from visualViewport',
+     /window\.innerHeight - vv\.height - vv\.offsetTop/.test(kb));
+  ok('and published as a length the sheet can use', /setProperty\('--kb'/.test(kb));
+  ok('with a threshold, so the URL bar is not mistaken for a keyboard',
+     /overlap > 60/.test(kb));
+  /* There is no keyboard event: resize and scroll on the viewport are what fire
+     on iOS, and both are needed -- scrolling with the keyboard up moves it. */
+  ok('it listens to the viewport itself, not the window',
+     /vv\.addEventListener\('resize'/.test(kb) && /vv\.addEventListener\('scroll'/.test(kb));
+  ok('and does nothing where visualViewport is missing', /if \(!vv\) return;/.test(kb));
+  ok('the flag is only set while the panel is open', /!panel\.hidden/.test(kb));
+
+  const css = html.match(/<style>([\s\S]*?)<\/style>/)[1].replace(/\/\*[\s\S]*?\*\//g, '');
+  ok('the panel rises by the measured amount', /body\[data-kb="1"\] #qs-panel\s*\{[^}]*bottom:\s*calc\(var\(--kb/.test(css));
+  /* It must outrank the eChan lift: eChan is behind the keyboard too, so its
+     offset is no longer the thing to clear. Later in source at equal weight. */
+  ok('and it wins over the eChan lift',
+     css.indexOf('body[data-kb="1"] #qs-panel') > css.indexOf('body:has(.echan-root.echan-shown) #qs-panel'));
+  ok('the panel can scroll if the gap is small', /body\[data-kb="1"\] #qs-panel\s*\{[^}]*overflow-y:\s*auto/.test(css));
+  ok('and the button gets out of the way', /body\[data-kb="1"\] #qs-fab\s*\{[^}]*pointer-events:\s*none/.test(css));
 }
 
 console.log(fail ? `\nFAILED ${fail}/${pass + fail}` : `\nok: neo quick-send ${pass} assertions`);

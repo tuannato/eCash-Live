@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-6BOk8djJi5PNcG37MFLongvLsmT2ZLMhaY3NLEovLMU=';
+  script-src 'self' 'sha256-zHPOc+cW1mRIqBI64ahdz6q4FkVOmvtgwHitx+QQICo=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -2738,6 +2738,19 @@
     body:has(.echan-root.echan-shown) #qs-panel {
       bottom: calc(150px + var(--ec-footer-actual, var(--footer-h, 44px)) + 12px + env(safe-area-inset-bottom));
     }
+    /* THE KEYBOARD DOES NOT MOVE `position: fixed`. On iOS the layout viewport
+       is unchanged when the keyboard opens -- only the VISUAL viewport shrinks
+       -- so a panel pinned to the bottom sits underneath it and the reader
+       types into something they cannot see. --kb is the measured height of that
+       overlap, set from visualViewport.
+       It wins over the eChan lift, and deliberately: eChan is behind the
+       keyboard as well, so its offset is no longer the thing to clear. */
+    body[data-kb="1"] #qs-panel {
+      bottom: calc(var(--kb, 0px) + 12px);
+      max-height: calc(100dvh - var(--kb, 0px) - 90px);
+      overflow-y: auto;
+    }
+    body[data-kb="1"] #qs-fab { opacity: 0; pointer-events: none; }
   }
   #qs-fab:hover { transform: scale(1.06); }
   #qs-fab:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
@@ -6480,7 +6493,11 @@
     .wl-dialog .wl-input,
     .btl-col-left .btl-chain-search,
     .block-txlist-dialog .btl-search,
-    #qs-panel input[type=text] { font-size: 16px; }
+    #qs-panel input[type=text],
+    /* type=number was NOT covered, and .qs-amt #qs-amt-num sets 11px -- exactly
+       the size that makes iOS zoom on focus. Same specificity as that rule and
+       later in source, so this wins the tie rather than needing !important. */
+    .qs-amt #qs-amt-num { font-size: 16px; }
   }
 
   /* ============ RESPONSIVE - mobile (<768px) ============ */
@@ -15551,6 +15568,30 @@ function saveTermFromEditor() {
     }
     qsRenderSend();
   }
+  /* THE KEYBOARD'S HEIGHT, MEASURED RATHER THAN GUESSED. visualViewport shrinks
+     when the keyboard opens while innerHeight does not, so the difference is the
+     overlap -- the one number that says how far the panel has to rise. Read on
+     the viewport's own resize/scroll, which is what fires on iOS; there is no
+     keyboard event to listen for.
+
+     The 60px floor is a threshold, not a fudge: the visual viewport also moves
+     by a few pixels for the URL bar, and treating that as a keyboard would make
+     the panel jitter while scrolling. */
+  function qsTrackKeyboard() {
+    const vv = window.visualViewport;
+    if (!vv) return;                       // no support -> the panel simply stays put
+    const apply = () => {
+      const overlap = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+      const up = overlap > 60 && !panel.hidden;
+      document.body.style.setProperty('--kb', overlap + 'px');
+      if (up) document.body.dataset.kb = '1'; else delete document.body.dataset.kb;
+    };
+    vv.addEventListener('resize', apply);
+    vv.addEventListener('scroll', apply);
+    apply();
+  }
+  qsTrackKeyboard();
+
   if (amtToggle) {
     amtToggle.addEventListener('click', () => qsSetAmtOpen(!amtOpen));
     amtRange.addEventListener('input', () => qsSyncAmount('range'));
