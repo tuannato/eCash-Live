@@ -1684,5 +1684,40 @@ console.log('\n-- the term editor takes its own height --');
      css.indexOf('#tp-editor {') > css.indexOf('.topics-state {'));
 }
 
+// ===========================================================================
+// THE SEND BUTTON ON A PHONE. `position: absolute` anchors it to .msg-wrap,
+// which is the visible pane on desktop and NOT the scrollport at <=767px where
+// neo shows one full-screen panel -- so it rode up out of view. And eChan parks
+// at the foot of the screen over it, so while the narrator is up the button
+// moves above it rather than being buried.
+// ===========================================================================
+console.log('\n-- the send button on a phone --');
+{
+  const css = html.match(/<style>([\s\S]*?)<\/style>/)[1].replace(/\/\*[\s\S]*?\*\//g, '');
+  const mob = (() => {
+    const i = css.indexOf('@media (max-width: 767px) {', css.indexOf('#qs-fab {'));
+    return i === -1 ? '' : css.slice(i, i + 900);
+  })();
+  ok('there is a phone rule for the button', mob.includes('#qs-fab'));
+  ok('and it stops scrolling away', /#qs-fab, #qs-panel \{[^}]*position:\s*fixed/.test(mob));
+  ok('the panel moves with it', /#qs-fab, #qs-panel/.test(mob));
+  /* Told by the class eChan already toggles, so there is no observer and no JS
+     -- which is also why neither module hash moves for this. */
+  ok('it is told when eChan is up', /body:has\(\.echan-root\.echan-shown\) #qs-fab/.test(mob));
+  ok('and lifts rather than merely stacking', /body:has\([^)]*\)[^{]*\{[^}]*bottom:\s*calc/.test(mob));
+  ok('while also outranking eChan so it is never buried mid-move',
+     Number((mob.match(/z-index:\s*(\d+)/) || [])[1]) > 60);
+
+  /* THE NUMBER IS eChan'S, AND IT LIVES IN ANOTHER FILE. --ec-body-h-mobile is
+     declared on .echan-root, not :root, so index.html cannot read it with
+     var() and the height is repeated here. Repeating it is fine; repeating it
+     SILENTLY is not, so this fails if eChan ever changes its mobile height. */
+  const echanCss = readFileSync(join(ROOT, 'vendor/companion/echan.css'), 'utf8');
+  const declared = (echanCss.match(/--ec-body-h-mobile:\s*(\d+)px/) || [])[1];
+  ok('eChan still declares a mobile height', !!declared);
+  const used = (mob.match(/bottom:\s*calc\((\d+)px/) || [])[1];
+  ok('and the lift is measured from it (' + used + ' vs ' + declared + ')', used === declared);
+}
+
 console.log(fail ? `\nFAILED ${fail}/${pass + fail}` : `\nok: neo topics ${pass} assertions`);
 if (fail) process.exit(1);

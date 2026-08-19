@@ -2710,6 +2710,35 @@
     box-shadow: 0 6px 18px rgba(0,116,194,0.42); transition: transform 0.18s;
   }
   #qs-fab svg { width: 22px; height: 22px; }
+  /* ON A PHONE THE BUTTON STOPS SCROLLING AWAY, and gets out of eChan's way.
+
+     `position: absolute` anchors it to .msg-wrap, which is right on desktop
+     where the wrapper IS the visible pane, and wrong at ≤767px where neo
+     switches to one full-screen panel and the page itself scrolls: the button
+     rode up out of view. Flow's is fixed, and this matches it.
+
+     eChan parks at the foot of the screen from 939px down, 150px tall
+     (--ec-body-h-mobile, declared on .echan-root and therefore NOT readable
+     from here -- the number is repeated with this note rather than silently),
+     at z-index 60. So while it is up the button moves ABOVE it rather than
+     being buried, and it is told by :has() on the class eChan already toggles
+     (.echan-shown) -- no observer, no JS, so no module hash to regenerate.
+
+     The z-index goes above eChan's as well. That is belt-and-braces for the
+     0.2s while both are animating, not the mechanism: the mechanism is the
+     move, because a button floating ON TOP of the narrator is not out of
+     its way, it is in front of it. */
+  @media (max-width: 767px) {
+    #qs-fab, #qs-panel {
+      position: fixed;
+      z-index: 61;
+      transition: bottom 0.22s ease, transform 0.18s;
+    }
+    body:has(.echan-root.echan-shown) #qs-fab,
+    body:has(.echan-root.echan-shown) #qs-panel {
+      bottom: calc(150px + var(--ec-footer-actual, var(--footer-h, 44px)) + 12px + env(safe-area-inset-bottom));
+    }
+  }
   #qs-fab:hover { transform: scale(1.06); }
   #qs-fab:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
   #qs-panel {
