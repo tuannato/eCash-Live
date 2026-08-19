@@ -8,6 +8,13 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { matchAny, matchEvery } from '../vendor/core/match.js';
+import { LOKAD, LOKAD_NAMES } from '../vendor/txparse.js';
+import {
+  laneReach, laneWindows, rangeActive, inScope, inRange, dayStart,
+} from '../vendor/core/lane-cursor.js';
+import { createCorpus } from '../vendor/core/lane-corpus.js';
+import { createResultStore } from '../vendor/core/result-store.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const html = readFileSync(join(ROOT, 'index.html'), 'utf8');
@@ -254,6 +261,392 @@ console.log('\n-- E5: the cache is shared, and the two doors must not drift --')
   const build = grab('buildTopicsEngine');
   ok('createCorpus is given the cap', /createCorpus\(\s*\{\s*max:\s*TOPICS_CORPUS_MAX/.test(build));
   ok('createLaneStore is given it as well', /createLaneStore\([\s\S]*?max:\s*TOPICS_CORPUS_MAX/.test(build));
+}
+
+// ---------------------------------------------------------------- coverage
+// Drive the SHIPPED topicsCoverage / topicsRematch / runTopicsBackfill bodies.
+// A test of a restated copy would stay green while the page went quiet.
+
+function objectText(src, name, open = '{') {
+  const close = open === '{' ? '}' : ']';
+  const at = src.indexOf('const ' + name + ' = ' + open);
+  if (at === -1) throw new Error('not found: ' + name);
+  let i = src.indexOf(open, at), d = 0;
+  for (; i < src.length; i++) {
+    const c = src[i];
+    if (c === '/' && src[i + 1] === '/') { i = src.indexOf('\n', i); continue; }
+    if (c === '/' && src[i + 1] === '*') { i = src.indexOf('*/', i) + 1; continue; }
+    if (c === "'" || c === '"' || c === '`') {
+      const q = c;
+      for (i++; i < src.length; i++) { if (src[i] === '\\') i++; else if (src[i] === q) break; }
+      continue;
+    }
+    if (c === open) d++;
+    else if (c === close) { d--; if (!d) return src.slice(at, i + 1); }
+  }
+  throw new Error('unbalanced: ' + name);
+}
+function objectOf(src, name) {
+  const txt = objectText(src, name).replace(/^const\s+\w+\s*=\s*/, '');
+  return new Function('return (' + txt + ');')();
+}
+
+const TOPICS_EN = Object.assign(
+  {},
+  objectOf(mod, 'TOPICS_EN_BORROWED'),
+  objectOf(mod, 'TOPICS_EN_OWN'),
+);
+const CT = LOKAD.CASHTAB_MSG, PB = LOKAD.PAYBUTTON, EC = LOKAD.ECASHCHAT_TX;
+const WINDOWS_SHOWN = Number(mod.match(/const WINDOWS_SHOWN\s*=\s*(\d+)/)[1]);
+const secOf = (iso) => dayStart(iso) / 1000;
+const rowText = (r) => (typeof r === 'string' ? r : r.warn);
+const partsOf = (key) => TOPICS_EN[key].split(/\{[^}]+\}/).filter(Boolean);
+const has = (rows, key) => rows.some((r) => partsOf(key).every((p) => rowText(r).includes(p)));
+const textOf = (rows, key) => {
+  const parts = partsOf(key);
+  const row = rows.find((r) => parts.every((p) => rowText(r).includes(p)));
+  return row == null ? null : rowText(row);
+};
+
+function coverageOf(opts = {}) {
+  const txs = opts.txs instanceof Map ? opts.txs : new Map(opts.txs || []);
+  const matched = opts.matched || [];
+  const hold = opts.hold || {};
+  const corpusHas = opts.corpusHas instanceof Set ? opts.corpusHas : new Set(opts.corpusHas || []);
+  const src = [
+    'const TOPICS_EN = ' + JSON.stringify(TOPICS_EN) + ';',
+    'let topicsPack = null, topicsOverlay = null;',
+    grab('topicsT'),
+    grab('topicsTf'),
+    grab('topicsIsoDay'),
+    'function topicsEngineReady(){ return ready; }',
+    'const topicsCore = { laneReach, laneWindows, rangeActive };',
+    'let topicScope = scope;',
+    'let topicRange = range;',
+    'let tpSavedCursor = saved;',
+    'let tpBf = live ? { cursor: live } : null;',
+    'let tpDeepDone = !!deepDone, tpHoles = holes, tpTrimmed = trimmed;',
+    'let tpUnread = unread, tpScopeHidden = scopeHidden, tpNoDate = noDate;',
+    'const WINDOWS_SHOWN = shown;',
+    'const LOKAD_NAMES = names;',
+    'function topicsScopeLabel(){ return "Cashtab Msg"; }',
+    'const tpCorpus = { size: corpusSize, full: !!corpusFull, has: (id) => corpusHas.has(id) };',
+    'const tpResults = { matched, matchedTotal, get: (id) => hold[id] || null };',
+    'const state = { txs };',
+    grab('topicsCoverage'),
+    'return topicsCoverage();',
+  ].join('\n');
+  return new Function(
+    'ready', 'laneReach', 'laneWindows', 'rangeActive',
+    'scope', 'range', 'saved', 'live',
+    'deepDone', 'holes', 'trimmed', 'unread', 'scopeHidden', 'noDate',
+    'shown', 'names', 'corpusSize', 'corpusFull', 'corpusHas',
+    'matched', 'matchedTotal', 'hold', 'txs',
+    src,
+  )(
+    opts.ready !== false, laneReach, laneWindows, rangeActive,
+    opts.scope || [CT], opts.range || { from: null, to: null },
+    opts.saved || null, opts.live || null,
+    !!opts.deepDone, opts.holes || 0, opts.trimmed || 0,
+    opts.unread || 0, opts.scopeHidden || 0, opts.noDate || 0,
+    WINDOWS_SHOWN, LOKAD_NAMES, opts.corpusSize || 0, !!opts.corpusFull, corpusHas,
+    matched, opts.matchedTotal != null ? opts.matchedTotal : matched.length, hold, txs,
+  );
+}
+
+function rematchOf(opts = {}) {
+  const corpus = createCorpus({ max: 50 });
+  for (const row of (opts.corpus || [])) corpus.add(row[0], row[1], row[2], row[3], null);
+  const results = createResultStore({
+    max: 50,
+    tsOf: (id, tx) => (tx && (tx.ts || 0)) || (corpus.get(id) && corpus.get(id).ts) || 0,
+    wanted: () => true,
+    order: 'newest-first',
+  });
+  for (const tx of (opts.held || [])) results.hold(tx);
+  const src = [
+    'let topicTerms = terms, topicMode = mode, topicScope = scope, topicRange = range;',
+    'const topicFollows = () => topicTerms.filter(t => t.on && !t.mute);',
+    'const topicMutes   = () => topicTerms.filter(t => t.mute);',
+    'function topicsEngineReady(){ return true; }',
+    'const topicsCore = { matchAny, matchEvery, inScope, inRange };',
+    'const tpCorpus = corpus, tpResults = results;',
+    'let tpScopeHidden = 0, tpNoDate = 0;',
+    'function renderTopics(){}',
+    grab('topicMatchText'),
+    grab('topicTxMatches'),
+    grab('topicTsOf'),
+    grab('topicsRematch'),
+    'topicsRematch();',
+    'return { hidden: tpScopeHidden, noDate: tpNoDate, matched: tpResults.matched.slice() };',
+  ].join('\n');
+  return new Function(
+    'terms', 'mode', 'scope', 'range',
+    'matchAny', 'matchEvery', 'inScope', 'inRange',
+    'corpus', 'results',
+    src,
+  )(
+    opts.terms || [{ q: 'gm', on: true, mute: false, mode: 'contains', fold: false }],
+    opts.mode || 'any',
+    opts.scope || [CT],
+    opts.range || { from: null, to: null },
+    matchAny, matchEvery, inScope, inRange,
+    corpus, results,
+  );
+}
+
+async function unreadOf(opts = {}) {
+  const internal = JSON.parse(JSON.stringify(opts.cursor));
+  const src = [
+    'function topicsEngineReady(){ return true; }',
+    'let tpBusy = false, tpDeepDone = false, tpRunToken = 1, tpAbort = null;',
+    'let tpHoles = 0, tpUnread = 0, tpSavedCursor = null;',
+    'const topicFollows = () => [{ q: "gm", on: true }];',
+    'const topicScope = scope;',
+    'function $(id){ return { dataset: { topics: "open" } }; }',
+    'const chronik = { lokadId(){} };',
+    'const topicsCore = {};',
+    'const TOPICS_REQUESTS = 6;',
+    'function renderTopics(){}',
+    'function topicsSaveStore(){}',
+    'function topicsRematch(){}',
+    'const tpBf = bf;',
+    grab('runTopicsBackfill'),
+    'return (async () => { await runTopicsBackfill(); return { unread: tpUnread, holes: tpHoles }; })();',
+  ].join('\n');
+  return new Function('scope', 'bf', src)(opts.scope || [CT], {
+    get cursor() { return JSON.parse(JSON.stringify(internal)); },
+    async run() {
+      if (opts.mutate) opts.mutate(internal);
+      return opts.cov(internal);
+    },
+  });
+}
+
+console.log('\n-- coverage: shipped topicsCoverage, same conditions as Flow --');
+{
+  eq('WINDOWS_SHOWN is Flow\'s bound', WINDOWS_SHOWN, 3);
+  const empty = coverageOf();
+  /* lane.scanned is UNCONDITIONAL, as on Flow (`const cov = [tf('lane.scanned',
+     ...)]`), so a fresh pane opens by saying it has searched nothing rather
+     than by saying nothing. It is also the denominator noText needs: without
+     it, neo -- whose feed holds every payment -- opened with "1,240 carried no
+     text to search" as the first and largest number on the line. */
+  eq('a fresh pane states the session figure and the two always-on caveats',
+     empty, ['searched 0 transactions from this session',
+             TOPICS_EN['lane.liveNote'], TOPICS_EN['lane.notIndexed']]);
+  eq('engine not ready -> nothing claimed', coverageOf({ ready: false }), []);
+}
+{
+  const txs = new Map([
+    ['a', { id: 'a', _hay: 'gm' }],
+    ['b', { id: 'b', _hay: null }],
+    ['c', { id: 'c' }],
+  ]);
+  const rows = coverageOf({ txs });
+  eq('noText counts missing _hay, not non-matches',
+     textOf(rows, 'lane.noText'), '2 carried no text to search');
+  const later = new Map(txs); later.set('d', { id: 'd' });
+  eq('noText is recomputed, not latched',
+     textOf(coverageOf({ txs: later }), 'lane.noText'), '3 carried no text to search');
+  ok('all-text session emits no noText sentence',
+     !has(coverageOf({ txs: new Map([['a', { _hay: 'x' }]]) }), 'lane.noText'));
+}
+{
+  const rows = coverageOf({
+    matched: ['live', 'held', 'pending', 'gone'],
+    hold: { held: { id: 'held', _hay: 'gm' } },
+    corpusHas: ['pending'],
+    txs: new Map([['live', { id: 'live', _hay: 'gm' }]]),
+  });
+  eq('aged counts only matches that left memory AND the corpus',
+     textOf(rows, 'lane.aged'), '1 older matches have left memory');
+  ok('a pending corpus hit is not aged', !has(coverageOf({
+    matched: ['pending'], corpusHas: ['pending'],
+  }), 'lane.aged'));
+  ok('a live or held match is not aged', !has(coverageOf({
+    matched: ['live', 'held'],
+    hold: { held: { id: 'held' } },
+    txs: new Map([['live', { id: 'live' }]]),
+  }), 'lane.aged'));
+}
+{
+  eq('unread sentence uses the latched count',
+     textOf(coverageOf({ unread: 2 }), 'lane.unread'),
+     '2 protocols could not be read — coverage is not stated for them');
+  ok('unread 0 is silent', !has(coverageOf({ unread: 0 }), 'lane.unread'));
+}
+{
+  eq('scopeHidden sentence uses the latched Set size',
+     textOf(coverageOf({ scopeHidden: 3 }), 'lane.scopeHidden'),
+     '3 saved matches come from protocols you are not searching — tick them above to see them again');
+  ok('scopeHidden 0 is silent', !has(coverageOf({ scopeHidden: 0 }), 'lane.scopeHidden'));
+}
+{
+  const reachDay = '2026-05-12';
+  const saved = { [CT]: { ranges: [[0, 6, secOf(reachDay), secOf('2026-08-12')]], oldestTs: secOf(reachDay), done: false } };
+  const win = { from: dayStart('2022-06-01'), to: dayStart('2022-06-30') };
+  const rows = coverageOf({ saved, range: win, noDate: 4 });
+  ok('window sentence is present', has(rows, 'lane.window'));
+  eq('noDate rides next to the window',
+     textOf(rows, 'lane.noDate'), '4 matches carry no date and fall outside it');
+  eq('windowBeyond fires when the window starts before the prefix',
+     textOf(rows, 'lane.windowBeyond'),
+     'your window starts before what has been searched — search further back to reach it');
+  ok('noDate is silent without a window',
+     !has(coverageOf({ saved, noDate: 4 }), 'lane.noDate'));
+  ok('windowBeyond is silent when the window is inside the prefix',
+     !has(coverageOf({ saved, range: { from: dayStart('2026-06-01'), to: null } }), 'lane.windowBeyond'));
+  ok('windowBeyond is silent without a prefix to compare',
+     !has(coverageOf({ range: win }), 'lane.windowBeyond'));
+}
+{
+  // A 2022 seek must NOT move the reach date. laneReach reads only ranges[0].
+  const prefixTs = secOf('2026-05-12');
+  const seekA = [20, 22, secOf('2022-06-01'), secOf('2022-07-11')];
+  const seekB = [40, 42, secOf('2023-01-01'), secOf('2023-02-01')];
+  const seekC = [60, 62, secOf('2024-03-01'), secOf('2024-04-01')];
+  const seekD = [80, 82, secOf('2021-01-01'), secOf('2021-02-01')];
+  const saved = { [CT]: {
+    ranges: [[0, 6, prefixTs, secOf('2026-08-12')], seekA, seekB, seekC, seekD],
+    oldestTs: secOf('2021-01-01'), done: false,
+  } };
+  const rows = coverageOf({ saved });
+  const reach = textOf(rows, 'lane.reach');
+  ok('reach names the PREFIX date, not the 2021 seek',
+     !!reach && reach.includes('2026-05-12') && !reach.includes('2021'));
+  const plus = rows.filter((r) => typeof r === 'string' && r.startsWith('plus '));
+  eq('plusWindow shows the first WINDOWS_SHOWN seek runs', plus.length, WINDOWS_SHOWN);
+  eq('plusWindow is oldest-first after laneWindows merge/sort, not insertion order',
+     plus[0], 'plus 2021-01-01 → 2021-02-01');
+  eq('the 2022 seek is still named (it is not the prefix)',
+     plus[1], 'plus 2022-06-01 → 2022-07-11');
+  eq('moreWindows counts the remainder, does not drop it',
+     textOf(rows, 'lane.moreWindows'), 'and 1 more windows read');
+  ok('the prefix itself is not also printed as plusWindow',
+     !plus.some((p) => p.includes('2026-05-12')));
+}
+{
+  const saved = { [CT]: {
+    ranges: [[0, 2, secOf('2026-05-12'), secOf('2026-08-12')],
+             [10, 12, secOf('2022-06-01'), secOf('2022-07-01')]],
+    oldestTs: secOf('2022-06-01'), done: false,
+  } };
+  ok('one extra window: plusWindow, no moreWindows',
+     has(coverageOf({ saved }), 'lane.plusWindow')
+     && !has(coverageOf({ saved }), 'lane.moreWindows'));
+}
+
+console.log('\n-- rematch: hidden and noDate are a Set of ids, not a counter --');
+{
+  const R = rematchOf({
+    scope: [CT],
+    corpus: [
+      ['c1', 'gm world', 10, CT],
+      ['c2', 'gm friends', 11, PB],
+      ['c3', 'gm again', 12, EC],
+      ['c4', 'gm legacy', 13, null],
+      ['c5', 'nothing here', 14, CT],
+    ],
+    held: [
+      { id: 'c2', _hay: 'gm friends', _lokad: PB, ts: 11 },
+      { id: 'c3', _hay: 'gm again', _lokad: EC, ts: 12 },
+      { id: 'c9', _hay: 'gm extra', _lokad: PB, ts: 19 },
+    ],
+  });
+  eq('union says 3, not 5 (c2/c3 in both sources + c9 hold-only)', R.hidden, 3);
+  ok('in-scope corpus hits stay in the answer (c1, untagged c4)',
+     R.matched.includes('c1') && R.matched.includes('c4'));
+  ok('out-of-scope hold is not in the answer', !R.matched.includes('c9'));
+}
+{
+  const R = rematchOf({
+    scope: [CT],
+    range: { from: dayStart('2026-01-01'), to: dayStart('2026-12-31') },
+    corpus: [
+      ['dated', 'gm dated', dayStart('2026-06-01'), CT],
+      ['undated', 'gm none', null, CT],
+    ],
+    held: [
+      { id: 'held-none', _hay: 'gm held', _lokad: CT, ts: null },
+    ],
+  });
+  // corpus undated + hold undated. Same id would collapse; these are distinct.
+  eq('noDate counts undated corpus + undated hold', R.noDate, 2);
+  ok('dated in-window match stays in the answer', R.matched.includes('dated'));
+  ok('undated match is excluded from the answer',
+     !R.matched.includes('undated') && !R.matched.includes('held-none'));
+}
+{
+  const R = rematchOf({
+    scope: [CT],
+    range: { from: dayStart('2026-01-01'), to: null },
+    corpus: [['undated', 'gm none', null, CT]],
+    held: [{ id: 'undated', _hay: 'gm none', _lokad: CT, ts: null }],
+  });
+  eq('the same undated id in corpus AND hold counts once', R.noDate, 1);
+}
+
+console.log('\n-- unread: the (a)/(b) rule, driven through runTopicsBackfill --');
+{
+  const b = await unreadOf({
+    cursor: { [CT]: { pos: 0, pagesDone: 0, oldestTs: null, done: false } },
+    mutate: (c) => { c[CT].pos = 3; },
+    cov: (c) => ({ holeCount: 3, done: false, perLokad: { [CT]: { ...c[CT] } } }),
+  });
+  eq('(b) tried this run, still nothing: counts', b.unread, 1);
+}
+{
+  const a = await unreadOf({
+    cursor: { [CT]: { pos: 1, pagesDone: 1, oldestTs: 1_700_000_000, done: false } },
+    mutate: (c) => { c[CT].pos = 2; },
+    cov: (c) => ({ holeCount: 1, done: false, perLokad: { [CT]: { ...c[CT], pagesDone: 1 } } }),
+  });
+  eq('(a) pos moved, pagesDone did not: counts', a.unread, 1);
+}
+{
+  const d = await unreadOf({
+    cursor: { [CT]: { pos: 5, pagesDone: 5, oldestTs: 1, done: true } },
+    cov: (c) => ({ holeCount: 0, done: true, perLokad: { [CT]: { ...c[CT] } } }),
+  });
+  eq('a done protocol is never unread', d.unread, 0);
+}
+{
+  const r = await unreadOf({
+    cursor: { [CT]: { pos: 6, pagesDone: 6, oldestTs: 1, done: false } },
+    cov: (c) => ({ holeCount: 0, done: false, perLokad: { [CT]: { ...c[CT] } } }),
+  });
+  eq('returning reader, nothing moved this run: 0 not 1', r.unread, 0);
+}
+
+console.log('\n-- coverage source: the shipped body names every sentence --');
+{
+  const cov = grab('topicsCoverage');
+  const rem = grab('topicsRematch');
+  const run = grab('runTopicsBackfill');
+  for (const k of [
+    'lane.noText', 'lane.aged', 'lane.unread', 'lane.scopeHidden',
+    'lane.noDate', 'lane.windowBeyond', 'lane.plusWindow', 'lane.moreWindows',
+  ]) {
+    ok('topicsCoverage asks for ' + k, cov.includes("'" + k + "'"));
+  }
+  ok('rematch unions cm.hidden (a Set)', /const hidden = cm\.hidden/.test(rem));
+  ok('rematch unions cm.noDate (a Set)', /const noDate = cm\.noDate/.test(rem));
+  ok('rematch stores Set size, not a counter',
+     /tpScopeHidden = hidden\.size/.test(rem) && /tpNoDate = noDate\.size/.test(rem));
+  ok('rematch does not increment a hidden counter', !/\+\+\s*$|hidden\+\+/.test(rem));
+  const beforeAt = run.indexOf('const before = tpBf.cursor');
+  const runAt = run.indexOf('tpBf.run(');
+  ok('unread snapshots the cloned cursor BEFORE run()',
+     beforeAt !== -1 && runAt !== -1 && beforeAt < runAt);
+  ok('topicsCoverage calls C.laneWindows, not an invented name',
+     /C\.laneWindows\s*\(/.test(cov));
+  ok('topicsCoverage does not invent fmtDate / fmtInt',
+     !/\bfmtDate\b/.test(cov) && !/\bfmtInt\b/.test(cov));
+  ok('laneWindows is fed the merged cursor, same object as laneReach',
+     /const cur = Object\.assign/.test(cov)
+     && /C\.laneReach\(\s*cur/.test(cov)
+     && /C\.laneWindows\(\s*cur/.test(cov));
 }
 
 console.log('\n-- E9: the Feed keeps its own window --');

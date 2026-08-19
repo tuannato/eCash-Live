@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-NxzAPBotU0dAs0Q189/lzypVJXoXKu2QxOn+NaGCbks=';
+  script-src 'self' 'sha256-yEeWu7ImYSwloZW0Pq71SFj2HWZLbRpbZV+GkKDvpXY=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -13950,6 +13950,7 @@ const TOPICS_EN_BORROWED = {
   'lane.searching': 'Searching…',
   'lane.deepEnd': 'Read all of {p}',
   'lane.reach': 'searched {p} in full back to {d}',
+  'lane.scanned': 'searched {n} transactions from this session',
   'lane.deepScanned': 'read {n} messages from the chain index',
   'lane.holes': '{n} pages could not be loaded',
   'lane.cacheFull': 'memory full — older pages are still searched for this topic, but not kept for other ones',
@@ -13959,6 +13960,14 @@ const TOPICS_EN_BORROWED = {
   'lane.notIndexed': 'writing that carries no protocol id, and memo.cash, is found only as it goes past',
   'lane.window': 'window {a} → {b}',
   'lane.now': 'now',
+  'lane.noText': '{n} carried no text to search',
+  'lane.aged': '{n} older matches have left memory',
+  'lane.unread': '{n} protocols could not be read — coverage is not stated for them',
+  'lane.scopeHidden': '{n} saved matches come from protocols you are not searching — tick them above to see them again',
+  'lane.noDate': '{n} matches carry no date and fall outside it',
+  'lane.windowBeyond': 'your window starts before what has been searched — search further back to reach it',
+  'lane.plusWindow': 'plus {a} → {b}',
+  'lane.moreWindows': 'and {n} more windows read',
   'lane.title': 'Topics',
   'lane.empty': 'Nothing has matched yet. This topic keeps collecting while it stays on.',
   'term.add': '+ Topic',
@@ -14146,6 +14155,9 @@ const TOPICS_CORPUS_MAX = 5000;   // must equal Flow's, see HANDOFF decision 7
 const TOPICS_MATCH_MAX  = 200;
 const TOPICS_PAGE       = 50;
 const TOPICS_REQUESTS   = 6;
+/* Out-of-order windows named on the coverage line. The rest are counted,
+   not dropped. Same bound Flow ships (flow/index.html WINDOWS_SHOWN). */
+const WINDOWS_SHOWN = 3;
 
 let topicTerms = [], topicMode = 'any', topicScope = [LOKAD.CASHTAB_MSG];
 
@@ -14206,6 +14218,7 @@ function topicSenderOf(txData) {
 let tpCorpus = null, tpStore = null, tpResults = null, tpBf = null;
 let tpBusy = false, tpRunToken = 0, tpAbort = null, tpSavedCursor = null;
 let tpDeepDone = false, tpHoles = 0, tpTrimmed = 0;
+let tpUnread = 0, tpScopeHidden = 0, tpNoDate = 0;
 
 function topicsEngineReady() { return !!(topicsCore && tpCorpus && tpStore && tpResults); }
 function buildTopicsEngine() {
@@ -14298,12 +14311,28 @@ async function runTopicsBackfill() {
     if (tpSavedCursor) tpBf.load(tpSavedCursor);
   }
   tpBusy = true; renderTopics();
+  /* Snapshot BEFORE the run. Every cursor field is a lifetime total that
+     load() restores, so no test against the values alone can tell "read
+     nothing" from "read nothing THIS TIME". The getter clones (backfill.js). */
+  const before = tpBf.cursor;
   let cov = null;
   try { cov = await tpBf.run({ requests: TOPICS_REQUESTS, signal: tpAbort.signal }); }
   catch (e) { /* a total failure is still coverage; the counters below say so */ }
   if (token !== tpRunToken) return;
   topicsSaveStore();
-  if (cov) { tpHoles = cov.holeCount; tpDeepDone = cov.done; }
+  if (cov) {
+    tpHoles = cov.holeCount; tpDeepDone = cov.done;
+    /* (a) this run advanced pos without pagesDone — a hole on a known protocol.
+       (b) tried and still nothing: the exact input laneReach() reads as "never
+       read", so the line would otherwise show no date and no reason.
+       A protocol read to genesis is done and constrains nothing. */
+    tpUnread = topicScope.filter((id) => {
+      const a = cov.perLokad[id], b = before[id];
+      if (!a || a.done) return false;
+      if (!a.oldestTs) return a.pos > 0;                             // (b)
+      return b && a.pos > (b.pos || 0) && a.pagesDone === b.pagesDone; // (a)
+    }).length;
+  }
   tpBusy = false;
   topicsRematch();
 }
@@ -14320,43 +14349,91 @@ function topicsRematch() {
     scope: topicScope, range: topicRange, mode: topicMode,
   });
   for (const id of cm.ids) ids.push(id);
+  /* A SET OF IDS, NOT A COUNTER. Nearly every hydrated result sits in both
+     the corpus and the hold, so two counters would promise double what one
+     tick returns (v2.5.0). */
+  const hidden = cm.hidden;
+  const noDate = cm.noDate;
   for (const tx of tpResults.values()) {
     if (!topicTxMatches(tx)) continue;
-    if (!C.inScope(tx._lokad, topicScope)) continue;
-    if (!C.inRange(topicTsOf(tx.id, tx), topicRange)) continue;
+    if (!C.inScope(tx._lokad, topicScope)) { hidden.add(tx.id); continue; }
+    const ts = topicTsOf(tx.id, tx);
+    if (!C.inRange(ts, topicRange)) { if (!ts) noDate.add(tx.id); continue; }
     ids.push(tx.id);
   }
+  tpNoDate = noDate.size;
+  tpScopeHidden = hidden.size;
   tpResults.setMatched(ids);
   renderTopics();
 }
 
 /* THE COVERAGE LINE IS THE HONESTY SURFACE, and a date with no caveats is the
-   overstatement v2.7.0 and v2.8.2 both exist to stop. English only until the
-   i18n commit; the strings are the ones Flow's packs already translate, so that
-   commit is a wiring job rather than a writing one. */
+   overstatement v2.7.0 and v2.8.2 both exist to stop. Same sentences, same
+   conditions as Flow's laneCoverage(): out-of-order runs are named apart from
+   the prefix (laneReach reads ONLY ranges[0] — a 2022 seek must not claim
+   2022 while everything since is unread), hidden matches are a Set of ids,
+   and unread / aged / noText / noDate are said rather than dropped. */
 function topicsCoverage() {
   if (!topicsEngineReady()) return [];
   const C = topicsCore, out = [];
   const cur = Object.assign({}, tpSavedCursor || {}, tpBf ? tpBf.cursor : {});
   const reach = C.laneReach(cur, topicScope);
+  /* THE DENOMINATOR IS NOT OPTIONAL. Flow opens with lane.scanned and only then
+     says how many of those carried nothing to search; neo's feed holds every
+     payment, so noText is the LARGEST number on the line here -- and standing
+     alone at the front it reads as a failure count rather than a proportion.
+     Measured on a realistic feed: "1,240 carried no text to search" was the
+     first thing the pane said. Unconditional, like Flow's, because "0 scanned"
+     is itself the answer to how thorough the session has been. */
+  let scanned = 0, noText = 0;
+  for (const tx of state.txs.values()) { scanned++; if (!tx._hay) noText++; }
+  out.push(topicsTf('lane.scanned', { n: scanned }));
+  if (noText) out.push(topicsTf('lane.noText', { n: noText }));
+  let gone = 0;
+  for (const id of tpResults.matched) {
+    const tx = state.txs.get(id) || tpResults.get(id);
+    if (!tx && !tpCorpus.has(id)) gone++;
+  }
+  if (gone) out.push(topicsTf('lane.aged', { n: gone }));
+  /* deepScanned BEFORE reach, as on Flow: the walk's size and the walk's depth
+     belong together, and both belong after the session figures. Flow's comment
+     is the reason -- merging the two groups would let a big index number imply
+     the live stream had been that thorough. */
+  if (tpCorpus.size) out.push(topicsTf('lane.deepScanned', { n: tpCorpus.size }));
   if (reach) {
     const names = topicScope.map(id => (LOKAD_NAMES && LOKAD_NAMES[id]) || id).join(', ');
     out.push(topicsTf('lane.reach', { p: names, d: topicsIsoDay(reach * 1000) }));
   }
-  if (tpCorpus.size) out.push(topicsTf('lane.deepScanned', { n: tpCorpus.size }));
   if (tpDeepDone) out.push(topicsTf('lane.deepEnd', { p: topicsScopeLabel() }));
   if (tpHoles) out.push({ warn: topicsTf('lane.holes', { n: tpHoles }) });
+  if (tpUnread) out.push(topicsTf('lane.unread', { n: tpUnread }));
   if (tpCorpus.full) out.push({ warn: topicsT('lane.cacheFull') });
   if (tpTrimmed) out.push({ warn: topicsTf('lane.storeTrimmed', { n: tpTrimmed }) });
   if (tpResults.matchedTotal > tpResults.matched.length) {
     out.push(topicsTf('lane.capped', { n: tpResults.matched.length, total: tpResults.matchedTotal }));
   }
+  if (tpScopeHidden) out.push(topicsTf('lane.scopeHidden', { n: tpScopeHidden }));
   if (C.rangeActive(topicRange)) {
     const day = topicsIsoDay;
     out.push(topicsTf('lane.window', {
       a: topicRange.from != null ? day(topicRange.from) : '…',
       b: topicRange.to   != null ? day(topicRange.to)   : topicsT('lane.now'),
     }));
+    if (tpNoDate) out.push(topicsTf('lane.noDate', { n: tpNoDate }));
+    if (reach && topicRange.from != null && topicRange.from < reach * 1000) {
+      out.push(topicsT('lane.windowBeyond'));
+    }
+  }
+  /* Windows read out of order are on the record as their own runs, and they
+     are NOT part of the "in full back to" claim — that sentence describes
+     the run from the newest message only. Naming them separately is what
+     lets both be true at once. laneWindows reads ranges beyond ranges[0]. */
+  const wins = C.laneWindows(cur, topicScope);
+  for (const w of wins.slice(0, WINDOWS_SHOWN)) {
+    out.push(topicsTf('lane.plusWindow', { a: topicsIsoDay(w[0]), b: topicsIsoDay(w[1]) }));
+  }
+  if (wins.length > WINDOWS_SHOWN) {
+    out.push(topicsTf('lane.moreWindows', { n: wins.length - WINDOWS_SHOWN }));
   }
   out.push(topicsT('lane.liveNote'));
   out.push(topicsT('lane.notIndexed'));
@@ -14508,7 +14585,7 @@ function renderTopicScopePanel() {
       if (!next.length) { e.target.checked = true; return; }
       topicScope = C.sanitizeScope(next);
       saveTopicSettings();
-      tpBf = null; tpDeepDone = false;      // the engine is fixed to its lokads
+      tpBf = null; tpDeepDone = false; tpUnread = 0;  // unread counted protocols nobody is searching now
       renderTopicTools(); renderTopicScopePanel(); topicsRematch();
     });
     box.appendChild(lab);
