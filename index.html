@@ -2466,51 +2466,48 @@
   .msg-filters::-webkit-scrollbar { display: none; }
   .msg-filter { flex: none; display: inline-flex; align-items: center; gap: 6px; }
   .topics-add { border-style: dashed; color: var(--text-2); }
-  /* THREE STATES, AND THEY HAVE TO BE TELLABLE APART AT 9px UPPERCASE. A topic
-     is following, saved-but-off, or muting -- and the difference decides
-     whether the pane is collecting for it at all, so a reader who cannot see
-     which is which cannot tell why a word found nothing.
+  /* FOUR CHIPS, FOUR READINGS, BY COLOUR ALONE (user's call, 2026-08-19).
+     The dot this carried before is gone: the states are told apart by hue and
+     by how bright they are, which is the reading the user wants and is not
+     purely a hue judgement -- white against cyan/amber/purple differs in
+     saturation as much as in colour, so it still separates for anyone who
+     cannot discriminate the hues themselves.
 
-     The dot is a CSS box, not a glyph: font substitution on a symbol character
-     is a footgun this repo has already paid for once (the TTF eye and spinner
-     became inline SVG for exactly that reason), and the vendored Fira Code
-     subset is latin only. It also means the states differ by SHAPE as well as
-     by hue, which is what a reader who cannot separate cyan from grey needs.
-
-     The mode chip is a .topic-chip for its shape only -- it is not a topic and
-     takes no dot. */
-  .topic-chip:not(.topic-mode)::before {
-    content: ''; width: 5px; height: 5px; border-radius: 50%;
-    flex: none; margin-right: 1px;
-    border: 1px solid currentColor; background: transparent;
-    transition: all 0.15s;
-  }
-  /* FOLLOWING: lit, filled, and the only state that glows. */
-  .topic-chip.active {
-    color: var(--cyan); border-color: var(--cyan);
-    background: rgba(1,160,224,0.14);
-    text-shadow: 0 0 10px rgba(1,160,224,0.45);
-  }
-  .topic-chip.active::before {
-    background: var(--cyan);
-    box-shadow: 0 0 6px rgba(1,160,224,0.8);
-  }
-  /* SAVED BUT OFF: dormant, not broken. Hollow dot, quieter than the row it
-     sits in, and it must still read as a control you can turn on -- hence a
-     real hover rather than a disabled look. */
-  .topic-chip:not(.active):not(.mute) {
-    color: var(--text-4); border-color: var(--line);
+     OFF IS WHITE, NOT DIM. It was var(--text-4) -- 16% white -- which read as
+     disabled rather than dormant, and a saved topic you cannot see is a topic
+     you cannot turn back on. Full --text, with a border to match. */
+  .topic-chip:not(.active):not(.mute):not(.topic-mode) {
+    color: var(--text); border-color: var(--line-2);
     background: transparent;
   }
-  .topic-chip:not(.active):not(.mute):hover {
-    color: var(--text-2); border-color: var(--line-2);
+  .topic-chip:not(.active):not(.mute):not(.topic-mode):hover {
+    border-color: var(--text-2);
+  }
+  /* FOLLOWING: the door's match colour, lit. */
+  .topic-chip.active {
+    color: var(--cyan-bright); border-color: var(--cyan);
+    background: rgba(1,160,224,0.16);
+    text-shadow: 0 0 10px rgba(1,160,224,0.5);
   }
   /* A mute is a standing defence, not a match, so it never wears the match
-     colour. Amber is what this door already uses for a warn state. The dot is
-     filled, because a mute is ACTIVE -- it is doing something right now, and a
-     hollow one would group it with the off state it is the opposite of. */
-  .topic-chip.mute { color: var(--amber); border-color: rgba(255,184,0,0.55); background: rgba(255,184,0,0.10); }
-  .topic-chip.mute::before { background: var(--amber); box-shadow: 0 0 6px rgba(255,184,0,0.6); }
+     colour. Amber is what this door already uses for a warn state. */
+  .topic-chip.mute {
+    color: var(--amber); border-color: rgba(255,184,0,0.55);
+    background: rgba(255,184,0,0.10);
+  }
+  /* THE MODE CHIP IS NOT A TOPIC, so it gets neither of the topic colours.
+     Purple is this door's word for a different KIND of thing (it already marks
+     NFT/ALP), and it sits beside "+ Topic" where a reader is choosing how the
+     words combine rather than which word to follow. */
+  .topic-chip.topic-mode {
+    color: var(--purple-light); border-color: rgba(185,133,255,0.45);
+    background: rgba(185,133,255,0.10);
+  }
+  .topic-chip.topic-mode.active {
+    border-color: var(--purple-light);
+    background: rgba(185,133,255,0.18);
+    text-shadow: 0 0 10px rgba(185,133,255,0.45);
+  }
   .topics-add:hover { color: var(--cyan); border-color: var(--cyan-dim); }
 
   #topics-body { flex: 1; overflow-y: auto; padding: 8px 0; }

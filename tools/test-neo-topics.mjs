@@ -1181,30 +1181,47 @@ console.log('\n-- the chip states are tellable apart --');
 {
   const css = html.match(/<style>([\s\S]*?)<\/style>/)[1];
   const rule = (sel) => {
-    const i = css.indexOf(sel + ' {') !== -1 ? css.indexOf(sel + ' {') : css.indexOf(sel + '{');
+    const i = css.indexOf(sel + ' {');
     return i === -1 ? '' : css.slice(i, css.indexOf('}', i));
   };
-  ok('following is lit', /color:\s*var\(--cyan\)/.test(rule('.topic-chip.active')));
-  ok('muting is amber, never the match colour', /color:\s*var\(--amber\)/.test(rule('.topic-chip.mute')));
-  ok('and never the match colour', !/var\(--cyan\)/.test(rule('.topic-chip.mute')));
-  ok('off has a rule of its own rather than inheriting the row',
-     /color:\s*var\(--text-4\)/.test(rule('.topic-chip:not(.active):not(.mute)')));
-  ok('...and still reads as something you can turn on',
-     rule('.topic-chip:not(.active):not(.mute):hover').length > 0);
+  const off = '.topic-chip:not(.active):not(.mute):not(.topic-mode)';
 
-  // THE SHAPE. A CSS box, not a glyph: font substitution on a symbol is a
-  // footgun this repo already paid for (the TTF eye and spinner are inline SVG
-  // for exactly that reason) and the vendored Fira Code subset is latin only.
-  const dot = rule('.topic-chip:not(.topic-mode)::before');
-  ok('the state carries a dot', dot.length > 0);
-  ok('the dot is a box, not a character', /content:\s*''/.test(dot) && /border-radius:\s*50%/.test(dot));
-  ok('and starts hollow', /background:\s*transparent/.test(dot));
-  ok('following fills it', /background:\s*var\(--cyan\)/.test(rule('.topic-chip.active::before')));
-  // A mute is ACTIVE -- it is doing something right now -- so its dot is filled
-  // too. A hollow one would group it with the off state it is the opposite of.
-  ok('muting fills it as well', /background:\s*var\(--amber\)/.test(rule('.topic-chip.mute::before')));
-  // The mode chip borrows the shape and is not a topic.
-  ok('the mode chip takes no dot', /:not\(\.topic-mode\)::before/.test(css));
+  /* FOUR CHIPS, FOUR READINGS, BY COLOUR ALONE (the user's call). The dot that
+     used to carry the state is gone, so every one of these four has to resolve
+     to a DIFFERENT colour -- the assertion is that no two share one, not that
+     any particular hue was chosen. */
+  const colourOf = (sel) => (rule(sel).match(/color:\s*([^;]+);/) || [])[1];
+  const states = {
+    off: colourOf(off),
+    following: colourOf('.topic-chip.active'),
+    muting: colourOf('.topic-chip.mute'),
+    mode: colourOf('.topic-chip.topic-mode'),
+  };
+  for (const [name, c] of Object.entries(states)) ok(name + ' has a colour of its own', !!c);
+  ok('and no two states share one', new Set(Object.values(states)).size === 4);
+
+  /* OFF IS WHITE, NOT DIM. It was var(--text-4) -- 16% white -- which read as
+     disabled rather than dormant, and a saved topic you cannot see is a topic
+     you cannot turn back on. */
+  ok('off is full white', /var\(--text\)/.test(states.off));
+  ok('and not one of the faded tokens', !/--text-[234]/.test(states.off));
+  ok('...and still shows it is a control', rule(off + ':hover').length > 0);
+
+  ok('following wears the match colour', /--cyan/.test(states.following));
+  ok('muting never does', !/--cyan/.test(states.muting) && /--amber/.test(states.muting));
+  /* The mode chip is not a topic, so it takes neither topic colour. */
+  ok('the mode chip takes neither', !/--cyan/.test(states.mode) && !/--amber/.test(states.mode));
+
+  // The dot is gone, and its absence is asserted so it does not creep back in
+  // beside a colour scheme that no longer needs it.
+  ok('no state dot remains', !/\.topic-chip[^{]*::before/.test(css));
+
+  /* SPECIFICITY: the mode chip in "all words" carries .active too, so the two
+     rules tie at (0,2,0) and source order decides. If .active were moved below
+     .topic-mode the mode chip would turn cyan and read as a topic. */
+  ok('the mode rule is declared after the match rule',
+     css.indexOf('.topic-chip.topic-mode {') > css.indexOf('.topic-chip.active {'));
+  ok('and its own active state outranks both', rule('.topic-chip.topic-mode.active').length > 0);
 }
 
 console.log(fail ? `\nFAILED ${fail}/${pass + fail}` : `\nok: neo topics ${pass} assertions`);
