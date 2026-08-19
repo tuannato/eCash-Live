@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-ZJycw7j22k+MM4qb/pQHgJLiQ4lo1t8xjuoVUrZ+cAQ=';
+  script-src 'self' 'sha256-vOtr3Ys2psQkIbDuZwiSk6PgVPyKgS+9AFvW7arneUY=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -2411,6 +2411,70 @@
   #section-messages[data-tab="chat"] .msg-filters,
   #section-messages[data-tab="chat"] .msg-list { display: none; }
   #section-messages[data-tab="feed"] .chatbox { display: none; }
+
+  /* ============ TOPICS — an overlay over the feed, not a third tab ============
+     Modelled on Flow's #lane over #stream deliberately: a covering state with a
+     head, a way back and a list is the same shape on both doors, and sharing the
+     rule is what stops them drifting apart visually. The tab strip stays TWO
+     tabs, so none of the three rules above changes — everything here is added.
+
+     .msg-wrap is the positioning context. Without it the overlay's containing
+     block would be the section and inset:0 would cover the tab strip as well,
+     which is chrome the reader needs in order to leave. */
+  .msg-wrap { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  #topics {
+    position: absolute; inset: 0; background: var(--bg);
+    display: flex; flex-direction: column;
+    opacity: 0; pointer-events: none; transition: opacity 0.18s;
+  }
+  #section-messages[data-topics="open"] #topics { opacity: 1; pointer-events: auto; }
+
+  /* THE SAME SLOT, A DIFFERENT JOB — Flow's rule, carried over rather than
+     re-derived. While Topics covers the feed the kind filter narrows something
+     nobody can see, so it steps aside and the way back takes its place. The
+     filter row itself never scrolls, unlike the overlay, so a control living
+     here cannot leave the screen the way the overlay's own head would. */
+  #section-messages[data-topics="open"] .kind-wrap { display: none; }
+  #section-messages:not([data-topics="open"]) .topics-exit { display: none; }
+  .topics-exit {
+    flex: none; min-width: 38px; justify-content: center;
+    border-color: var(--cyan); background: var(--cyan); color: var(--bg);
+  }
+  .topics-exit:hover { background: var(--cyan-bright); border-color: var(--cyan-bright); }
+
+  /* Six mutually exclusive chips spent most of the row saying which five things
+     are NOT selected, and that is width the reader's own topics need. A native
+     <select> under a styled face: keyboard, screen reader and the OS picker come
+     free, and no popup of ours has to be built or trapped. */
+  .kind-wrap { position: relative; display: inline-flex; align-items: center; flex: none; }
+  .kind-select {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    opacity: 0; cursor: pointer; border: 0; padding: 0;
+    -webkit-appearance: none; appearance: none;
+  }
+  .kind-face { pointer-events: none; display: inline-flex; align-items: center; gap: 6px; }
+  .kind-face .caret { opacity: 0.6; font-size: 10px; }
+  .kind-select:focus-visible + .kind-face { outline: 2px solid var(--cyan); outline-offset: 1px; }
+
+  .msg-filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; align-items: center; }
+  .msg-filters::-webkit-scrollbar { display: none; }
+  .msg-filter { flex: none; display: inline-flex; align-items: center; gap: 6px; }
+  .topics-add { border-style: dashed; color: var(--text-2); }
+  .topics-add:hover { color: var(--cyan); border-color: var(--cyan-dim); }
+
+  #topics-body { flex: 1; overflow-y: auto; padding: 8px 0; }
+  #topics-body::-webkit-scrollbar { width: 6px; }
+  #topics-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 3px; }
+  .topics-state {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 10px; padding: 24px; text-align: center;
+  }
+  .topics-state .big {
+    font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.18em; color: var(--text-3);
+  }
+  .topics-state .sub { font-size: 12px; line-height: 1.5; color: var(--text-4); max-width: 260px; }
+  .topics-state.err .big { color: var(--amber); }
 
   /* ============ CHATBOX ============ */
   .chatbox {
@@ -6297,6 +6361,9 @@
     /* Chat on mobile: keep the composer pinned to the bottom of the
        viewport so the user can always reach the input without scrolling.
        The thread fills the remaining height and is the only scroller. */
+    /* The bottom mobile bar already routes Msgs vs Chat, so the in-panel strip
+       is a second control for the same job, spending height Topics needs. */
+    .messages.mobile-active .msg-tabs { display: none; }
     .messages.mobile-active[data-tab="chat"] {
       min-height: calc(100vh - 240px);
       display: flex !important;
@@ -7462,14 +7529,31 @@
         </div>
         <!-- FEED PANE (existing UI) -->
         <div class="msg-filters">
-          <button class="msg-filter active" data-filter="all">All</button>
-          <button class="msg-filter" data-filter="cashtab">Msg</button>
-          <button class="msg-filter" data-filter="token">Token</button>
-          <button class="msg-filter" data-filter="agora">Agora</button>
-          <button class="msg-filter" data-filter="powr">POWR</button>
-          <button class="msg-filter" data-filter="alias">Alias</button>
+          <span class="kind-wrap">
+            <select class="kind-select" id="msg-kind" aria-label="Filter messages by kind">
+              <option value="all">All</option>
+              <option value="cashtab">Msg</option>
+              <option value="token">Token</option>
+              <option value="agora">Agora</option>
+              <option value="powr">POWR</option>
+              <option value="alias">Alias</option>
+            </select>
+            <span class="msg-filter kind-face" aria-hidden="true"><span id="msg-kind-label">All</span><span class="caret">&#9662;</span></span>
+          </span>
+          <button class="msg-filter topics-exit" id="topics-exit" type="button" title="Back to the feed" aria-label="Back to the feed">&#8592;</button>
+          <button class="msg-filter topics-add" id="topics-add" type="button">+ Topic</button>
         </div>
-        <div class="msg-list" id="msg-list"></div>
+        <div class="msg-wrap">
+          <div class="msg-list" id="msg-list"></div>
+          <div id="topics" aria-label="Topics" role="region">
+            <div id="topics-body">
+              <div class="topics-state" id="topics-empty">
+                <div class="big">No topics yet</div>
+                <p class="sub">Follow a word and this pane searches the chain's message index backwards for it, then keeps collecting as new messages arrive.</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- CHAT PANE (new) -->
         <div class="chatbox" id="chatbox">
@@ -13219,9 +13303,23 @@ function _formatAtomsWithDecimals(atomsStr, decimals) {
 // Unknown pane: do not write. Inheriting Feed's count was the old
 // else-branch lie; a later pane adds its own branch here.
 function panel4Counter() {
-  const pane = $('section-messages').dataset.tab;
+  const sec = $('section-messages');
   const n = $('r-msgs');
   const lbl = $('r-msgs-label');
+  /* TWO AXES, AND THEY MUST NOT BE COLLAPSED INTO ONE STRING. The overlay is a
+     state over the feed, carried on its own attribute; data-tab keeps saying
+     which pane is underneath. Deriving one `pane` value from both made
+     data-tab="topics" indistinguishable from an open overlay -- caught by the
+     suite, which now pins exactly that case. The overlay returns first, and the
+     tab is only consulted when it is closed. */
+  if (sec.dataset.topics === 'open') {
+    // Nothing to count until the engine lands. A number here would be a claim
+    // about a search that has not run.
+    n.textContent = '0';
+    lbl.textContent = 'topics';
+    return;
+  }
+  const pane = sec.dataset.tab;
   if (pane === 'feed') {
     n.textContent = state.messages.length;
     lbl.textContent = 'recent';
@@ -13516,14 +13614,85 @@ function escapeHtml(s) {
 
 // Filter buttons
 // Messages filter buttons (v5)
-document.querySelectorAll('.msg-filter').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.msg-filter').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    state.msgFilter = btn.dataset.filter;
+/* The kind filter is ONE control now, not six chips. The <select> carries the
+   state and the face only displays it, so there is no second source of truth to
+   keep in step -- the old loop had to clear .active on five siblings to set it
+   on one. */
+(() => {
+  const sel = $('msg-kind'), face = $('msg-kind-label');
+  if (!sel || !face) return;
+  const paint = () => { face.textContent = sel.options[sel.selectedIndex].textContent; };
+  sel.addEventListener('change', () => {
+    state.msgFilter = sel.value;
+    paint();
     renderMessages();
   });
-});
+  paint();
+})();
+
+/* ============ TOPICS (shell) ============
+   The engine lands in a later commit. What is here is the surface and the one
+   thing that surface must never do: fail silently. */
+const TOPICS_MODULES = [
+  './vendor/core/match.js?v=7',
+  './vendor/core/backfill.js?v=6',
+  './vendor/core/lane-cursor.js?v=1',
+  './vendor/core/lane-corpus.js?v=1',
+  './vendor/core/lane-store.js?v=2',
+  './vendor/core/result-store.js?v=1',
+];
+let topicsCore = null, topicsLoading = null;
+/* DYNAMIC, NOT TOP-LEVEL, and the reason is in HANDOFF 08-18 constraint 6: a
+   top-level import that throws -- a wrong ?v=, a missing export -- takes this
+   whole 22,000-line module down, which is a blank page for every returning pro
+   user and looks exactly like a CSP failure. Loaded on the first open, so a
+   mistake here costs the Topics pane and nothing else.
+
+   The specifiers must byte-match Flow's, or the browser fetches a SECOND copy
+   of each module and the two doors run different instances of the same file. */
+function loadTopicsCore() {
+  if (topicsCore) return Promise.resolve(topicsCore);
+  if (topicsLoading) return topicsLoading;
+  topicsLoading = Promise.all(TOPICS_MODULES.map((u) => import(u)))
+    .then((mods) => {
+      topicsCore = Object.assign({}, ...mods);
+      return topicsCore;
+    })
+    .catch((e) => {
+      topicsLoading = null;
+      throw e;
+    });
+  return topicsLoading;
+}
+function topicsSetState(kind, big, sub) {
+  const box = $('topics-empty');
+  if (!box) return;
+  box.className = 'topics-state' + (kind === 'err' ? ' err' : '');
+  box.querySelector('.big').textContent = big;
+  box.querySelector('.sub').textContent = sub;
+}
+function openTopics() {
+  const sec = $('section-messages');
+  if (!sec) return;
+  sec.dataset.topics = 'open';
+  panel4Counter();
+  /* A load failure has to be SAID. Trading a loud blank page for a pane that
+     silently does nothing is not an improvement -- the reader would read it as
+     "no topics match" and believe a search that never ran. */
+  loadTopicsCore().catch((e) => {
+    console.error('[topics] core modules failed to load', e);
+    topicsSetState('err', 'Topics could not start',
+      'The search modules did not load. The feed is unaffected — reload the page to try again.');
+  });
+}
+function closeTopics() {
+  const sec = $('section-messages');
+  if (!sec) return;
+  sec.dataset.topics = 'closed';
+  panel4Counter();
+}
+$('topics-add')?.addEventListener('click', openTopics);
+$('topics-exit')?.addEventListener('click', closeTopics);
 
 // ============ BLOCKCHAIN ============
 const blockCards = new Map(); // height -> { el, lastState, lastConf }

@@ -86,9 +86,9 @@ function el(seed) {
   };
 }
 
-function make(tab, feedLen, chatLen, seedN = 'X', seedLbl = 'kept') {
+function make(tab, feedLen, chatLen, seedN = 'X', seedLbl = 'kept', topics) {
   const nodes = {
-    'section-messages': { dataset: { tab } },
+    'section-messages': { dataset: topics === undefined ? { tab } : { tab, topics } },
     'r-msgs': el(seedN),
     'r-msgs-label': el(seedLbl),
   };
@@ -104,8 +104,8 @@ function assertEqual(got, want, label) {
 }
 
 let n = 0;
-function check(tab, feedLen, chatLen, wantN, wantLbl, seedN, seedLbl) {
-  const { panel4Counter, nodes } = make(tab, feedLen, chatLen, seedN, seedLbl);
+function check(tab, feedLen, chatLen, wantN, wantLbl, seedN, seedLbl, topics) {
+  const { panel4Counter, nodes } = make(tab, feedLen, chatLen, seedN, seedLbl, topics);
   panel4Counter();
   assertEqual(nodes['r-msgs'].textContent, wantN, `tab=${tab} n`);
   assertEqual(nodes['r-msgs-label'].textContent, wantLbl, `tab=${tab} label`);
@@ -123,10 +123,21 @@ check('chat', 37, 5, '5', 'chat');
 check('chat', 0, 1, '1', 'chat');
 
 // Unknown pane: leave both nodes untouched. Painting Feed's count is the
-// lie this function exists to stop; a later pane adds its own branch.
-check('topics', 37, 5, 'X', 'kept', 'X', 'kept');
+// lie this function exists to stop.
+check('blocks', 37, 5, 'X', 'kept', 'X', 'kept');
 check('', 37, 5, '99', 'stale', '99', 'stale');
 check(undefined, 37, 5, '7', 'chat', '7', 'chat');
+
+// THE TOPICS OVERLAY IS A SECOND AXIS, not a value of data-tab. It covers the
+// feed, so data-tab stays whatever it was and the overlay decides. Reading the
+// wrong attribute is how the count would keep describing the feed underneath.
+check('feed', 37, 5, '0', 'topics', 'X', 'kept', 'open');
+check('chat', 37, 5, '0', 'topics', 'X', 'kept', 'open');
+// ...and a closed overlay must fall straight through to the tab.
+check('feed', 37, 5, '37', 'recent', 'X', 'kept', 'closed');
+check('chat', 37, 5, '5', 'chat', 'X', 'kept', 'closed');
+// The two axes must not be confused: data-tab="topics" is not the overlay.
+check('topics', 37, 5, 'X', 'kept', 'X', 'kept', 'closed');
 
 // Live re-paint on the same pane (the renderMessages path): counts move,
 // label stays the pane's word.
