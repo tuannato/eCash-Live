@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-ZLvvkPFXXQ0S+3Kr32rP8wmFTbWY9ilr7R65/i2ovwg=';
+  script-src 'self' 'sha256-ZtuWnPSs5U+E4cCl0qFJzOJX/aGq1Q/U3fpjppX0hM4=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -2491,6 +2491,43 @@
   }
   .topic-text { font-size: 12px; line-height: 1.45; color: var(--text-2); word-break: break-word; }
   .topics-foot { padding: 9px 16px; border-top: 1px solid var(--line); }
+  .topics-tools { display: flex; gap: 6px; padding: 7px 16px; flex-wrap: wrap; flex-shrink: 0; border-bottom: 1px solid var(--line); }
+  .tp-sum {
+    font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace; font-size: 9px;
+    text-transform: uppercase; letter-spacing: 0.14em; padding: 3px 8px;
+    border: 1px solid var(--line-2); border-radius: 3px; cursor: pointer;
+    color: var(--text-2); background: transparent;
+  }
+  .tp-sum:hover { color: var(--text); }
+  .tp-sum[aria-expanded="true"] { color: var(--text); border-color: var(--cyan-dim); background: rgba(1,160,224,0.06); }
+  .tp-sum .caret { color: var(--text-4); margin-right: 5px; }
+  .tp-panel { padding: 10px 16px 12px; border-bottom: 1px solid var(--line); background: rgba(255,255,255,0.012); flex-shrink: 0; }
+  .tp-panel[hidden] { display: none !important; }
+  .tp-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+  .tp-row:last-child { margin-bottom: 0; }
+  .tp-check { font-family: 'Fira Code', monospace; font-size: 10px; color: var(--text-2); display: flex; align-items: center; gap: 7px; cursor: pointer; }
+  .tp-check input { accent-color: var(--cyan); width: 12px; height: 12px; }
+  .tp-check .meta { color: var(--text-4); font-size: 9px; letter-spacing: 0.08em; }
+  .tp-check .machine { color: var(--amber); }
+  .tp-date { font-family: 'Fira Code', monospace; font-size: 10px; color: var(--text); background: rgba(0,0,0,0.3); border: 1px solid var(--line-2); border-radius: 4px; padding: 4px 7px; outline: none; }
+  .tp-date:focus { border-color: var(--cyan-dim); }
+  .tp-arrow { color: var(--text-4); font-family: 'Fira Code', monospace; font-size: 10px; }
+  .tp-preset { font-family: 'Fira Code', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.14em; padding: 3px 7px; border-radius: 3px; border: 1px solid var(--line-2); background: transparent; color: var(--text-3); cursor: pointer; }
+  .tp-preset.on { color: var(--cyan); border-color: var(--cyan-dim); background: rgba(1,160,224,0.08); }
+  .tp-hint { font-family: 'Fira Code', monospace; font-size: 9px; line-height: 1.6; color: var(--amber); margin-top: 7px; min-height: 11px; }
+  .tp-ed { width: 100%; max-width: 340px; text-align: left; }
+  .tp-ed h3 { font-family: 'Fira Code', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--text-2); font-weight: 400; margin-bottom: 12px; }
+  .tp-input { width: 100%; font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 13px; color: var(--text); background: rgba(0,0,0,0.3); border: 1px solid var(--line-2); border-radius: 4px; padding: 7px 9px; outline: none; margin-bottom: 12px; }
+  .tp-input:focus { border-color: var(--cyan-dim); }
+  .tp-opt { font-family: 'Fira Code', monospace; font-size: 10px; color: var(--text-2); display: flex; align-items: center; gap: 7px; margin-bottom: 8px; cursor: pointer; }
+  .tp-opt input { accent-color: var(--cyan); }
+  .tp-sugg { margin: 12px 0 4px; }
+  .tp-sugg .lbl { font-family: 'Fira Code', monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-4); margin-bottom: 7px; }
+  .tp-sugg .wrap { display: flex; gap: 4px; flex-wrap: wrap; }
+  .tp-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .tp-cancel { background: none; border: 1px solid var(--line-2); border-radius: 3px; padding: 6px 12px; color: var(--text-3); font-family: 'Fira Code', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; cursor: pointer; }
+  .tp-cancel:hover { color: var(--text-2); }
+  @media (max-width: 939px) { .tp-input { font-size: 16px; } }
 
   /* ============ QUICK SEND — the "+" from Flow, always visible ============
      ALWAYS, unlike Flow, and the reason is the sort order rather than taste.
@@ -7650,6 +7687,35 @@
             <button class="qs-send" id="qs-send" type="button">Send via Cashtab</button>
           </div>
           <div id="topics" aria-label="Topics" role="region">
+            <div class="topics-tools">
+              <button class="tp-sum" id="tp-scope-sum" type="button" aria-expanded="false"><span class="caret">&#9656;</span><span id="tp-scope-label">Searching back through: Cashtab Msg</span></button>
+              <button class="tp-sum" id="tp-range-sum" type="button" aria-expanded="false"><span class="caret">&#9656;</span><span id="tp-range-label">Time range: All time</span></button>
+            </div>
+            <div class="tp-panel" id="tp-scope" hidden></div>
+            <div class="tp-panel" id="tp-range" hidden>
+              <div class="tp-row" id="tp-presets"></div>
+              <div class="tp-row">
+                <input class="tp-date" type="date" id="tp-from" aria-label="From date">
+                <span class="tp-arrow">&#8594;</span>
+                <input class="tp-date" type="date" id="tp-to" aria-label="To date">
+              </div>
+              <p class="tp-hint" id="tp-range-hint" role="status"></p>
+            </div>
+            <div class="topics-state" id="tp-editor" hidden>
+              <div class="tp-ed">
+                <h3 id="tp-ed-title">Add a topic</h3>
+                <input class="tp-input" id="tp-ed-q" type="text" maxlength="40" autocomplete="off" spellcheck="false" placeholder="A word to follow, e.g. gm">
+                <label class="tp-opt"><input type="checkbox" id="tp-ed-fold" checked> Ignore accents (cafe finds caf&eacute;)</label>
+                <label class="tp-opt"><input type="checkbox" id="tp-ed-contains"> Match inside longer words</label>
+                <label class="tp-opt"><input type="checkbox" id="tp-ed-mute"> Mute instead: hide these from the feed</label>
+                <div class="tp-sugg" id="tp-ed-sugg" hidden><div class="lbl" id="tp-ed-sugg-lbl"></div><div class="wrap" id="tp-ed-sugg-wrap"></div></div>
+                <p class="tp-hint" id="tp-ed-hint" role="status"></p>
+                <div class="tp-actions">
+                  <button class="qs-send" id="tp-ed-save" type="button">Save topic</button>
+                  <button class="tp-cancel" id="tp-ed-cancel" type="button">Close</button>
+                </div>
+              </div>
+            </div>
             <div id="topics-body">
               <div class="topics-state" id="topics-empty">
                 <div class="big">No topics yet</div>
@@ -8193,6 +8259,7 @@ import {
   hexToUtf8,
   LOKAD,
   LOKAD_NAMES,
+  MESSAGE_LOKADS,
   POWR_ACTIONS,
 } from './vendor/txparse.js?v=p7';
 
@@ -13826,6 +13893,11 @@ function openTopics() {
      "no topics match" and believe a search that never ran. */
   loadTopicsCore().then(() => {
     buildTopicsEngine();
+    renderTopicTools();
+    renderTopicScopePanel();
+    renderTopicPresets();
+    syncTopicDates();
+    wireTopicDates();
     topicsRematch();
     // One walk per open while a topic is unanswered locally, and only while the
     // pane is showing: neo already hits chronik for mempool, token info, POWR
@@ -13934,7 +14006,9 @@ function buildTopicsEngine() {
     // directions on the same door.
     order: 'newest-first',
     tsOf: (id, tx) => topicTsOf(id, tx),
-    wanted: (tx) => C.inScope(tx._lokad, topicScope) && topicTxMatches(tx),
+    wanted: (tx, ts) => C.inScope(tx._lokad, topicScope)
+                     && C.inRange(ts, topicRange)
+                     && topicTxMatches(tx),
   });
   const restored = tpStore.load();
   if (restored) { tpCorpus.load(restored.corpus); tpSavedCursor = restored.cursor; }
@@ -14028,12 +14102,13 @@ function topicsRematch() {
   const ids = [];
   const cm = tpCorpus.matches({
     terms: topicFollows(), mutes: topicMutes(),
-    scope: topicScope, range: { from: null, to: null }, mode: topicMode,
+    scope: topicScope, range: topicRange, mode: topicMode,
   });
   for (const id of cm.ids) ids.push(id);
   for (const tx of tpResults.values()) {
     if (!topicTxMatches(tx)) continue;
     if (!C.inScope(tx._lokad, topicScope)) continue;
+    if (!C.inRange(topicTsOf(tx.id, tx), topicRange)) continue;
     ids.push(tx.id);
   }
   tpResults.setMatched(ids);
@@ -14061,6 +14136,11 @@ function topicsCoverage() {
   if (tpTrimmed) out.push({ warn: 'browser storage is full — ' + tpTrimmed + ' messages read this session could not be kept for next time' });
   if (tpResults.matchedTotal > tpResults.matched.length) {
     out.push('showing the newest ' + tpResults.matched.length + ' of ' + tpResults.matchedTotal + ' matches');
+  }
+  if (C.rangeActive(topicRange)) {
+    const day = (ms) => new Date(ms).toISOString().slice(0, 10);
+    out.push('window ' + (topicRange.from != null ? day(topicRange.from) : '…') +
+             ' → ' + (topicRange.to != null ? day(topicRange.to) : 'now'));
   }
   out.push('live matches are shown from every protocol');
   out.push('writing that carries no protocol id, and memo.cash, is found only as it goes past');
@@ -14130,6 +14210,200 @@ function topicsIngestLive(tx) {
 }
 
 try { loadTopicSettings(); renderTopicChips(); } catch (e) {}
+/* ============ TOPICS — the editor, the scope picker, the window ============
+   All three are the reader's QUESTION. The scope rides in the shared settings
+   value beside the terms, because narrowing what is searched changes what the
+   coverage line may claim. The date window does NOT: it is a question rather
+   than a preference, so it lives in a module-level let and is never written to
+   storage -- structurally, not by discipline. A window that survived a reload
+   would silently hide today's messages from someone who had forgotten they set
+   it, and the pane would read as broken rather than filtered. */
+const TOPICS_TERM_MAX = 8;
+let topicRange = { from: null, to: null };
+
+function topicsDayInputMax() { return new Date().toISOString().slice(0, 10); }
+
+function renderTopicTools() {
+  const C = topicsCore;
+  const sl = $('tp-scope-label'), rl = $('tp-range-label');
+  if (sl) sl.textContent = 'Searching back through: ' +
+    (C ? C.scopeLabel(topicScope) : topicScope.join(', '));
+  if (!rl) return;
+  const { from, to } = topicRange;
+  const day = (ms) => new Date(ms).toISOString().slice(0, 10);
+  rl.textContent = 'Time range: ' + (from == null && to == null ? 'All time'
+    : (from != null ? day(from) : '…') + ' → ' + (to != null ? day(to) : 'now'));
+}
+
+function renderTopicScopePanel() {
+  const box = $('tp-scope'), C = topicsCore;
+  if (!box || !C) return;
+  /* THE PANEL MERGES SAVED WITH LIVE, live last. The engine's cursor only ever
+     describes the protocols IT was built with, so a narrowed run would report
+     "not read yet" beside protocols this reader has demonstrably read. Saying
+     "not read" about something we have read is the one thing a panel people
+     choose from must not do. */
+  const cur = C.scopeCursorView(tpSavedCursor, tpBf ? tpBf.cursor : null);
+  box.innerHTML = '';
+  /* MESSAGE_LOKADS comes from txparse, NOT from lane-cursor: that module imports
+     it for its own use and does not re-export it, so reading it off the core
+     bundle gave undefined and the picker rendered nothing at all -- silently,
+     because the `|| []` fallback turned a missing list into an empty one. */
+  for (const id of MESSAGE_LOKADS) {
+    const name = (LOKAD_NAMES && LOKAD_NAMES[id]) || id;
+    const c = cur[id] || {};
+    const read = Number.isInteger(c.numPages)
+      ? 'read ' + (c.pagesDone | 0) + ' of ' + c.numPages + ' pages'
+      : 'not read yet';
+    const machine = id === LOKAD.PAYBUTTON ? ' <span class="machine">order ids, not writing</span>' : '';
+    const lab = document.createElement('label');
+    lab.className = 'tp-check';
+    lab.innerHTML = '<input type="checkbox"' + (topicScope.includes(id) ? ' checked' : '') + '> ' +
+      escapeHtml(name) + ' <span class="meta">' + escapeHtml(read) + machine + '</span>';
+    lab.querySelector('input').addEventListener('change', (e) => {
+      const next = e.target.checked ? topicScope.concat([id]) : topicScope.filter(x => x !== id);
+      // An empty selection is REFUSED rather than silently re-picked: a pane
+      // that searches nothing while claiming to search is worse than a rule.
+      if (!next.length) { e.target.checked = true; return; }
+      topicScope = C.sanitizeScope(next);
+      saveTopicSettings();
+      tpBf = null; tpDeepDone = false;      // the engine is fixed to its lokads
+      renderTopicTools(); renderTopicScopePanel(); topicsRematch();
+    });
+    box.appendChild(lab);
+  }
+}
+
+function renderTopicPresets() {
+  const row = $('tp-presets'), C = topicsCore;
+  if (!row || !C) return;
+  row.innerHTML = '';
+  for (const d of [0, 7, 30, 90]) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'tp-preset';
+    b.textContent = d === 0 ? 'All time' : d + ' days';
+    const on = d === 0 ? (topicRange.from == null && topicRange.to == null)
+                       : C.presetActive(d, topicRange);
+    b.classList.toggle('on', !!on);
+    b.addEventListener('click', () => {
+      topicRange = d === 0 ? { from: null, to: null } : { from: C.presetFrom(d), to: null };
+      syncTopicDates(); renderTopicTools(); renderTopicPresets(); topicsRematch();
+    });
+    row.appendChild(b);
+  }
+}
+function syncTopicDates() {
+  const f = $('tp-from'), t = $('tp-to');
+  if (!f || !t) return;
+  const day = (ms) => (ms == null ? '' : new Date(ms).toISOString().slice(0, 10));
+  f.value = day(topicRange.from); t.value = day(topicRange.to);
+  f.max = topicsDayInputMax(); t.max = topicsDayInputMax();
+}
+function wireTopicDates() {
+  const C = topicsCore, f = $('tp-from'), t = $('tp-to'), hint = $('tp-range-hint');
+  if (!C || !f || !t) return;
+  const dayEnd = (iso) => { const d = new Date(iso + 'T23:59:59.999'); const n = d.getTime(); return isFinite(n) ? n : null; };
+  const apply = (which) => {
+    const from = f.value ? C.dayStart(f.value) : null;
+    const to = t.value ? dayEnd(t.value) : null;
+    /* AN INVERTED PAIR IS REFUSED AT THE FIELD THAT CAUSED IT, and said out
+       loud. Swapping the two would steal the date just typed and yank an open
+       picker; refusing in silence reads as a broken control rather than a rule. */
+    if (from != null && to != null && to < from) {
+      hint.textContent = 'The second date must be on or after the first.';
+      if (which === 'from') f.value = topicRange.from == null ? '' : new Date(topicRange.from).toISOString().slice(0, 10);
+      else t.value = topicRange.to == null ? '' : new Date(topicRange.to).toISOString().slice(0, 10);
+      return;
+    }
+    hint.textContent = '';
+    topicRange = { from, to };
+    renderTopicTools(); renderTopicPresets(); topicsRematch();
+  };
+  f.addEventListener('change', () => apply('from'));
+  t.addEventListener('change', () => apply('to'));
+}
+
+/* ---- the term editor. Inline, replacing the list, never floating over it:
+   the block panel and the receipt on the other door are states rather than
+   dialogs for the same reason -- a panel cannot cover the content it is about. */
+let tpEditorOpen = false;
+function openTermEditor(prefill) {
+  const ed = $('tp-editor'), q = $('tp-ed-q');
+  if (!ed) return;
+  tpEditorOpen = true;
+  $('tp-ed-q').value = prefill || '';
+  $('tp-ed-fold').checked = true;
+  $('tp-ed-contains').checked = false;
+  $('tp-ed-mute').checked = false;
+  $('tp-ed-hint').textContent = '';
+  ed.hidden = false;
+  $('topics-body').hidden = true;
+  renderTermSuggestions();
+  q.focus();
+}
+function closeTermEditor() {
+  tpEditorOpen = false;
+  const ed = $('tp-editor');
+  if (ed) ed.hidden = true;
+  const b = $('topics-body');
+  if (b) b.hidden = false;
+}
+/* Suggestions are ranked by HOW MANY DIFFERENT SENDERS wrote a word, not by how
+   often it appears. Measured on 1,000 live Cashtab messages: 41% are exact
+   repeats, so counting occurrences lets one broadcast outvote fifty people --
+   by frequency the top of the list was one casino bot's script. */
+function renderTermSuggestions() {
+  const box = $('tp-ed-sugg'), wrap = $('tp-ed-sugg-wrap'), lbl = $('tp-ed-sugg-lbl');
+  if (!box || !topicsEngineReady()) return;
+  const bySender = new Map();
+  let scanned = 0;
+  for (const row of tpCorpus.dump()) {
+    scanned++;
+    const from = row[4] || String(scanned);
+    for (const w of String(row[1]).toLowerCase().split(/[^\p{L}\p{N}#]+/u)) {
+      if (w.length < 3 || w.length > 20) continue;
+      let set = bySender.get(w);
+      if (!set) { set = new Set(); bySender.set(w, set); }
+      set.add(from);
+    }
+  }
+  const have = new Set(topicTerms.map(t => t.q.toLowerCase()));
+  const picks = [...bySender.entries()]
+    .filter(([w, set]) => set.size >= 4 && !have.has(w))
+    .sort((a, b) => b[1].size - a[1].size)
+    .slice(0, 8);
+  if (!picks.length) { box.hidden = true; return; }
+  box.hidden = false;
+  lbl.textContent = 'from the ' + scanned + ' messages read so far';
+  wrap.innerHTML = '';
+  for (const [w] of picks) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'msg-filter';
+    b.textContent = w;
+    b.addEventListener('click', () => { $('tp-ed-q').value = w; $('tp-ed-q').focus(); });
+    wrap.appendChild(b);
+  }
+}
+function saveTermFromEditor() {
+  const q = ($('tp-ed-q').value || '').trim();
+  const hint = $('tp-ed-hint');
+  if (!q) { hint.textContent = 'Type a word first.'; return; }
+  if (topicTerms.length >= TOPICS_TERM_MAX) { hint.textContent = TOPICS_TERM_MAX + ' topics is the limit.'; return; }
+  if (topicTerms.some(t => t.q.toLowerCase() === q.toLowerCase())) { hint.textContent = 'Already following that.'; return; }
+  topicTerms.push({
+    q: q.slice(0, 40),
+    on: true,
+    mode: $('tp-ed-contains').checked ? 'contains' : 'word',
+    fold: !!$('tp-ed-fold').checked,
+    mute: !!$('tp-ed-mute').checked,
+  });
+  saveTopicSettings();
+  closeTermEditor();
+  renderTopicChips();
+  renderMessages();
+  if (topicsEngineReady()) { topicsRematch(); runTopicsBackfill(); }
+}
+
 /* ============ QUICK SEND ============
    REUSES neo's OWN send path rather than building a second one. chatBuildBip21
    already encodes the Cashtab-Msg OP_RETURN and the amount, and
@@ -14274,7 +14548,24 @@ try { loadTopicSettings(); renderTopicChips(); } catch (e) {}
 
   window.addEventListener('ecashlive:lang', renderPicks);
 })();
-$('topics-add')?.addEventListener('click', openTopics);
+$('topics-add')?.addEventListener('click', () => { openTopics(); openTermEditor(''); });
+$('tp-ed-save')?.addEventListener('click', saveTermFromEditor);
+$('tp-ed-cancel')?.addEventListener('click', closeTermEditor);
+$('tp-ed-q')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveTermFromEditor(); } });
+(() => {
+  const toggle = (sumId, panelId, other, otherSum) => {
+    const sum = $(sumId), panel = $(panelId);
+    if (!sum || !panel) return;
+    sum.addEventListener('click', () => {
+      const show = panel.hidden;
+      panel.hidden = !show;
+      sum.setAttribute('aria-expanded', String(show));
+      if (show && other) { other.hidden = true; otherSum?.setAttribute('aria-expanded', 'false'); }
+    });
+  };
+  toggle('tp-scope-sum', 'tp-scope', $('tp-range'), $('tp-range-sum'));
+  toggle('tp-range-sum', 'tp-range', $('tp-scope'), $('tp-scope-sum'));
+})();
 $('topics-exit')?.addEventListener('click', closeTopics);
 
 // ============ BLOCKCHAIN ============
