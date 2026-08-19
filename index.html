@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-nqWfsATFqdSs2tD6GauClFiV8S/AIfiwb+CZR1u8GIg=';
+  script-src 'self' 'sha256-WOIe8sxUtfEO7gvBmkxJ7E1JYE2IrxZsXpm2NqJbY+0=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -14226,11 +14226,21 @@ const TOPICS_EN_BORROWED = {
   'cmp.close': 'Close',
   'cmp.myWallet': 'My wallet',
   'try.needAddr': 'Choose or paste a recipient address.',
-  'a11y.scrollRow': 'Scrollable row — swipe or scroll sideways for more',
   'try.badAddr': 'That eCash address isn’t valid.',
 };
 const TOPICS_EN_OWN = {
   'topics.back': 'Back to the feed',
+  /* AN OWN KEY, AND THE THIRD ANSWER TO THIS QUESTION. Flow has three names,
+     not two: lane.aria ("Saved topics") on the #lane REGION, chips.topicsAria
+     ("Topic filters") on the inner .chips group, and a11y.scrollRow on any
+     scrollable row with nothing better to say. 84dc6fd split the first two
+     precisely because one identity for two landmarks confuses a screen
+     reader, and Flow's own rule refuses the third when a better name exists.
+     neo's row is neither of Flow's: Flow's kind select and exit are SIBLINGS
+     of .chips, while neo has all four in one group. "Saved topics" mislabels
+     it, "Topic filters" undersells the kind filter, and "Scrollable row"
+     names the gesture instead of the group. */
+  'topics.rowAria': 'Message filters and topics',
   'topics.none': 'No topics yet',
   'topics.shared': 'Follow a word and this pane searches the chain’s message index backwards for it. Topics are shared with the Flow view.',
   'topics.needMsg': 'Type a message first.',
@@ -14389,12 +14399,10 @@ const TOPICS_STATIC_OPT = [
 function renderTopicStatics() {
   // The chips row has no id, so it is named by selector rather than through
   // the id tables above.
-  /* BORROWED, not invented. I wrote a topics.rowAria for this and the
-     archaeology said no: Flow already labels every scrollable row that has
-     nothing better to say with a11y.scrollRow, and that is exactly what this
-     row is. The invented key and its fifteen translations are gone. */
+  // The chips row has no id, so it is named by selector rather than through
+  // the id tables above.
   const row = document.querySelector('.msg-filters');
-  if (row) row.setAttribute('aria-label', topicsT('a11y.scrollRow'));
+  if (row) row.setAttribute('aria-label', topicsT('topics.rowAria'));
   for (const [id, key] of TOPICS_STATIC_TEXT) {
     const n = $(id); if (n) n.textContent = topicsT(key);
   }
@@ -14470,10 +14478,14 @@ function loadTopicSettings() {
      value and neo saves back whatever it loaded. Two ways it did not, both
      measured against Flow's loadTerms() on one shared store:
 
-     A BARE STRING IS A TERM. Flow reads `typeof e === 'string' ? e : e.q` for
-     saves that predate the option object. neo required e.q, so it dropped those
-     entries -- and then wrote the shortened list back, DELETING them from
-     Flow's list too. Cross-door data loss, from opening the other door once.
+     A BARE STRING IS A TERM, because Flow accepts one. Its loader has had
+     `typeof e === 'string' ? e : e.q` since the commit that introduced
+     saveTerms, which has only ever written objects -- so this is a FOSSIL, not
+     a migration path, and no save has ever exercised it. Mirroring it is still
+     required: neo writes back whatever it loaded, so it must accept every shape
+     Flow accepts or a hand-edited store loses entries on this door and then on
+     the other. (An earlier version of this comment claimed the string form was
+     a real earlier save format. That history is not in the repo.)
 
      AND THE CAP IS A CAP ON LOAD, not only in the editor. Flow breaks at
      TERM_MAX while reading; neo mapped the whole array, so a store holding 14

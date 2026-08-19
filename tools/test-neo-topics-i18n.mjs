@@ -127,9 +127,16 @@ for (const m of codeOnly.matchAll(/topicsTf?\(([^)]*)\)/g)) {
    exactly like a passing gate. Mutation caught it: putting a hardcoded English
    sentence back over its own translation stayed green. The tables are cut out
    before the scan. */
+/* SLICED FROM THE SAME TEXT IT IS REMOVED FROM. The first version took the
+   slice from `mod` (comments intact) and removed it from `codeOnly` (comments
+   stripped), so any block comment inside a table made the needle miss and the
+   cut-out silently did nothing. Measured: TOPICS_EN_BORROWED has none and was
+   excluded; TOPICS_EN_OWN has two and was NOT -- which is the table invented
+   keys live in, so an unused OWN key could never have been caught. The gate
+   looked identical either way. */
 const withoutTables = codeOnly
-  .replace(objectText(mod, 'TOPICS_EN_BORROWED'), '')
-  .replace(objectText(mod, 'TOPICS_EN_OWN'), '');
+  .replace(objectText(codeOnly, 'TOPICS_EN_BORROWED'), '')
+  .replace(objectText(codeOnly, 'TOPICS_EN_OWN'), '');
 const used = new Set(called);
 for (const m of withoutTables.matchAll(/'([^']+)'/g)) if (KEY_SHAPE.test(m[1]) && m[1] in ALL) used.add(m[1]);
 for (const k of Object.keys(ALL)) ok(KEY_SHAPE.test(k), 'key does not match the shape the scanner assumes: ' + k);

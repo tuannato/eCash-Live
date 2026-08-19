@@ -1499,7 +1499,7 @@ console.log('\n-- the two loaders agree --');
   // The chips row is a focusable role=group; an unnamed one is a tab stop that
   // announces nothing.
   ok('the chips row is given an accessible name',
-     /row\.setAttribute\('aria-label', topicsT\('a11y\.scrollRow'\)\)/.test(grab('renderTopicStatics')));
+     /row\.setAttribute\('aria-label', topicsT\('topics\.rowAria'\)\)/.test(grab('renderTopicStatics')));
 }
 
 // ===========================================================================

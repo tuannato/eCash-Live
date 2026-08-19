@@ -16,6 +16,7 @@
  "topics.opened": "Cashtab s’est ouvert dans un nouvel onglet. Confirmez là-bas pour diffuser.",
  "topics.opening": "Ouverture de Cashtab…",
  "topics.popup": "Impossible d’ouvrir Cashtab — autorisez les fenêtres pop-up pour ce site puis réessayez.",
+ "topics.rowAria": "Filtres de messages et sujets",
  "topics.sendCashtab": "Envoyer via Cashtab",
  "topics.sentExt": "Envoyé à l’extension Cashtab. Confirmez là-bas pour diffuser.",
  "topics.shared": "Suivez un mot et ce panneau remonte l’index des messages de la chaîne pour le chercher. Les sujets sont partagés avec la vue Flow.",
