@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-WKk/9MTzASeFJf0P71kAEun1KuTFsY8U5gIUgO7GSBM=';
+  script-src 'self' 'sha256-YY/dK7IuBgj+L5F2yMOJDGKdU4g6Qjxkn0Qtt6c+7Ps=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -14541,6 +14541,16 @@ function topicsSaveStore() {
    full back to <date>". Permanent, silent, and on the one surface built to be
    scrupulous about coverage. Flow measured it: 4 pages read, 120 messages
    written, then EIGHT further pages across two clicks reached 0 of the 120.
+
+   LIVE-VERIFIED 2026-08-19 against real chronik, both directions. Stored
+   numTxs rewritten down by 400 to stage a returning reader: the button read
+   "400 new - searching", ranges went [0,23] -> [8,31] (exactly
+   [0+ceil(400/50), 23+floor(400/50)]), then the re-read filled [[0,6],[8,31]]
+   and the coverage line said BOTH "in full back to 2026-05-13" (laneReach
+   reading only ranges[0]) and "plus 2025-11-27 -> 2026-08-18" (laneWindows
+   disclosing the shifted run) -- which is the whole reason ranges replaced a
+   watermark. With the probe's XHR broken instead, the button read "Could not
+   check", the qualifier appeared beside the date, and the ranges did not move.
 
    TWO SESSION FACTS THAT LOOK LIKE ONE AND ARE NOT (Flow v2.8.2, and the entry
    to read before touching either line).
