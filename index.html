@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-zHPOc+cW1mRIqBI64ahdz6q4FkVOmvtgwHitx+QQICo=';
+  script-src 'self' 'sha256-8wy7/2ogJH+3PI8pIKAACx2QSw3kZDft/WjbFz97zvA=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -2567,6 +2567,11 @@
      OFF IS WHITE, NOT DIM. It was var(--text-4) -- 16% white -- which read as
      disabled rather than dormant, and a saved topic you cannot see is a topic
      you cannot turn back on. Full --text, with a border to match. */
+  /* The ✕ sits inside the chip, so it needs its own hit area without becoming a
+     nested control. A little padding on the left keeps a mis-tap on the word
+     from deleting the topic. */
+  .topic-chip .tx { margin-left: 6px; padding-left: 4px; opacity: 0.55; font-weight: 700; }
+  .topic-chip .tx:hover { opacity: 1; }
   .topic-chip:not(.active):not(.mute):not(.topic-mode) {
     color: var(--text); border-color: var(--line-2);
     background: transparent;
@@ -2754,6 +2759,14 @@
   }
   #qs-fab:hover { transform: scale(1.06); }
   #qs-fab:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+  .qs-chips { display: flex; gap: 4px; flex-wrap: wrap; }
+  .qs-chips .qs-chip {
+    font-family: 'Fira Code', monospace; font-size: 10px; padding: 3px 7px;
+    border: 1px solid var(--line-2); border-radius: 3px; background: transparent;
+    color: var(--text-2); cursor: pointer;
+  }
+  .qs-chips .qs-chip:hover { color: var(--cyan); border-color: var(--cyan-dim); }
+  .qs-chips .qs-chip:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
   .qs-amt-toggle {
     align-self: flex-start; border: 0; background: none; color: var(--cyan);
     font-family: 'Fira Code', monospace; font-size: 10px; letter-spacing: 0.1em;
@@ -7925,6 +7938,7 @@
             <input type="text" id="qs-to" placeholder="Recipient address" autocomplete="off" spellcheck="false">
             <div class="qs-picks" id="qs-picks"></div>
             <input type="text" id="qs-msg" placeholder="Message (optional)" maxlength="215" autocomplete="off">
+            <div class="qs-chips" id="qs-chips"></div>
             <button class="qs-amt-toggle" id="qs-amt-toggle" type="button" aria-expanded="false" aria-controls="qs-amt">+ XEC amount</button>
             <div class="qs-amt" id="qs-amt" hidden>
               <input id="qs-amt-range" type="range" min="5.46" max="1000" step="0.01" value="5.46" aria-label="Amount in XEC">
@@ -13879,6 +13893,19 @@ function renderMessages() {
         <a class="explorer-btn" href="${explorerUrl}" target="_blank" rel="noopener" title="Open in explorer">explorer<span class="arrow">↗</span></a>
       </div>
     `;
+    /* HASHTAGS ARE TAPPABLE IN THE FEED, not only inside Topics. Flow offers
+       them from its stream and its Lane; neo had only the Lane half, so the
+       same tag was a control in one pane and dead text in the other.
+
+       Run over the finished node, never over the template: the content above is
+       escaped into an innerHTML string, and linkify walks TEXT NODES, so it
+       cannot reach anything that is already markup. Non-focusable here — the
+       card is itself an interactive row and a nested tab stop inside it would
+       be invalid; the Topics row is the keyboard path, as on Flow. */
+    const contentEl = card.querySelector('.content');
+    if (contentEl && !isEncrypted && typeof topicsLinkifyTags === 'function') {
+      try { topicsLinkifyTags(contentEl, false); } catch (e) {}
+    }
     // Wire copy button
     const slot = card.querySelector('.copy-slot');
     if (slot) {
@@ -14172,11 +14199,37 @@ function renderTopicChips() {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'msg-filter topic-chip' + (t.mute ? ' mute' : (t.on ? ' active' : ''));
-    b.textContent = t.q;
+    b.appendChild(document.createTextNode(t.q));   // reader text — never innerHTML
     b.setAttribute('aria-pressed', String(!!t.on));
     b.title = t.mute ? topicsT('topics.chipMuted')
                      : (t.on ? topicsT('topics.chipOn') : topicsT('topics.chipOff'));
-    b.addEventListener('click', () => {
+    /* A WAY TO REMOVE ONE. There was none: a topic could be turned off but not
+       deleted, so the row only ever grew and the eight-topic cap was reached by
+       words the reader had finished with.
+
+       The ✕ is a decorative span, aria-hidden, INSIDE the button — a nested
+       button would be invalid HTML — which means a keyboard or screen-reader
+       user cannot reach it. Delete and Backspace on the focused chip do the
+       same job, and the accessible name says so, reusing Flow's existing
+       "Remove" rather than minting a sixteenth translation. Flow learned both
+       halves; this is the same shape. */
+    const x = document.createElement('span');
+    x.className = 'tx'; x.textContent = '✕'; x.setAttribute('aria-hidden', 'true');
+    b.appendChild(x);
+    b.setAttribute('aria-label', t.q + ' — ' + topicsT('watch.remove') + ' (Delete)');
+    const drop = () => {
+      topicTerms = topicTerms.filter((o) => o !== t);
+      saveTopicSettings();
+      renderTopicChips();
+      if (topicsEngineReady()) topicsRematch();
+      renderMessages();        // a removed mute un-hides feed cards
+    };
+    b.addEventListener('keydown', (e) => {
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+      e.preventDefault(); drop();
+    });
+    b.addEventListener('click', (e) => {
+      if (e.target === x) { drop(); return; }
       t.on = !t.on;
       saveTopicSettings();
       renderTopicChips();
@@ -14324,6 +14377,7 @@ const TOPICS_EN_BORROWED = {
   'cmp.close': 'Close',
   'cmp.myWallet': 'My wallet',
   'cmp.tipJar': 'Tip jar',
+  'watch.remove': 'Remove',
   'cmp.msgPh': 'Message (optional)',
   'cmp.amtToggle': '+ XEC amount',
   'cmp.amount': 'Amount in XEC',
@@ -15109,9 +15163,10 @@ function topicsHighlightInto(el, text, terms) {
    already traps focus and already knows term.dupe and term.full. Not focusable
    inside a .topic-row on Flow because the row is a button there; neo's row is a
    plain div, so the tag can be a real control and the keyboard path exists. */
-function topicsLinkifyTags(root) {
+function topicsLinkifyTags(root, focusable) {
   const C = topicsCore;
   if (!root || !C || !C.findHashtags) return;
+  const focus = focusable !== false;   // Topics rows keep the keyboard path
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   const targets = [];
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
@@ -15129,10 +15184,15 @@ function topicsLinkifyTags(root) {
       el.className = 'topic-tag';
       el.dataset.tag = tag;
       el.textContent = tag;
-      el.setAttribute('role', 'button');
-      el.tabIndex = 0;
       el.title = topicsTf('term.addTag', { q: tag });
-      el.setAttribute('aria-label', topicsTf('term.addTag', { q: tag }));
+      /* Inside a .msg-card the row is itself interactive, so a nested tab stop
+         would be invalid -- there it is a pointer affordance and the Topics row
+         is the keyboard path. Flow draws the same line. */
+      if (focus) {
+        el.setAttribute('role', 'button');
+        el.tabIndex = 0;
+        el.setAttribute('aria-label', topicsTf('term.addTag', { q: tag }));
+      }
       frag.appendChild(el);
       pos = b;
     }
@@ -15145,7 +15205,12 @@ function topicsLinkifyTags(root) {
    of times a session and every detached node would stay reachable from it. */
 document.addEventListener('click', (e) => {
   const tag = e.target && e.target.closest && e.target.closest('.topic-tag');
-  if (tag && tag.dataset.tag) { e.stopPropagation(); openTermEditor(tag.dataset.tag); }
+  if (!tag || !tag.dataset.tag) return;
+  /* Both halves are needed inside a feed card: the card opens the detail panel
+     on click, so without preventDefault AND stopPropagation, tapping a tag
+     would add a topic AND navigate. */
+  e.preventDefault(); e.stopPropagation();
+  openTermEditor(tag.dataset.tag);
 }, true);
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -15521,6 +15586,45 @@ function saveTermFromEditor() {
 
      Whether the row is OPEN is a different fact -- a UI affordance, not a
      setting -- so it lives in memory and adds no storage key. */
+  /* ONE-TAP MESSAGE STARTERS, AND THEY ARE THE READER'S OWN TOPICS FIRST.
+     Enabled topics, then saved-but-off ones, then emoji as filler — a word
+     somebody chose to follow is a better starter than anything we could guess,
+     and a MUTED term is never offered: suggesting the very word they set up to
+     hide is absurd.
+
+     APPEND, NEVER REPLACE. A chip is a starter you keep typing after, so
+     tapping a second one adds to the first instead of erasing it, and the caret
+     lands at the end. Overwriting what the reader has already written is the
+     one thing it must not do. */
+  const CMP_CHIPS = ['gm 🌅', 'thanks 🙏', '🎉', '❤️', '🚀'];   // language-neutral filler
+  const CMP_CHIP_MAX = 5;
+  const chipsRow = $('qs-chips');
+  function qsChipList() {
+    const follows = topicTerms.filter((t) => t.q && !t.mute);
+    const words = [...follows.filter((t) => t.on), ...follows.filter((t) => !t.on)].map((t) => t.q);
+    const out = [];
+    for (const w of words) { if (out.length >= CMP_CHIP_MAX) break; if (!out.includes(w)) out.push(w); }
+    for (const m of CMP_CHIPS) { if (out.length >= CMP_CHIP_MAX) break; if (!out.includes(m)) out.push(m); }
+    return out;
+  }
+  function renderQsChips() {
+    if (!chipsRow) return;
+    chipsRow.innerHTML = '';
+    for (const text of qsChipList()) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'qs-chip';
+      b.appendChild(document.createTextNode(text));   // reader text, never innerHTML
+      b.addEventListener('click', () => {
+        const cur = msg.value || '';
+        msg.value = cur ? (cur.replace(/\s+$/, '') + ' ' + text) : text;
+        msg.focus();
+        msg.setSelectionRange(msg.value.length, msg.value.length);
+        qsRenderSend();
+      });
+      chipsRow.appendChild(b);
+    }
+  }
+
   const amtToggle = $('qs-amt-toggle'), amtRow = $('qs-amt'),
         amtRange = $('qs-amt-range'), amtNum = $('qs-amt-num');
   let amtOpen = false;
@@ -15658,6 +15762,7 @@ function saveTermFromEditor() {
   function open() {
     lastFocus = document.activeElement;
     renderPicks();
+    renderQsChips();
     setHint('');
     panel.hidden = false;
     requestAnimationFrame(() => panel.classList.add('show'));

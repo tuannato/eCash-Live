@@ -1367,12 +1367,21 @@ console.log('\n-- mutes sit at the end --');
     // every inserted node needs the same nextSibling view
     const mkNext = (n) => Object.defineProperty(n, 'nextSibling', {
       get() { return row.children[row.children.indexOf(n) + 1] || null; }, configurable: true });
+    /* The chip is a text node plus a decorative ✕ span now, so the double owes
+       createTextNode and a textContent that reflects what was appended --
+       otherwise it reports "the renderer produces no label" when the double is
+       what cannot hold one. */
     const document = {
       createElement: () => {
-        const n = { className: '', textContent: '', type: '',
+        const kids = [];
+        const n = { className: '', type: '', dataset: {},
+          appendChild(c) { kids.push(c); return c; },
+          get textContent() { return kids.map((k) => (k.nodeValue != null ? k.nodeValue : (k.textContent || ''))).join(''); },
+          set textContent(v) { kids.length = 0; kids.push({ nodeValue: String(v) }); },
           setAttribute() {}, addEventListener() {} };
         mkNext(n); made.push(n); return n;
       },
+      createTextNode: (v) => ({ nodeValue: String(v) }),
       querySelector: () => row,
     };
     const src = [
@@ -1395,8 +1404,12 @@ console.log('\n-- mutes sit at the end --');
     ].join('\n');
     new Function('terms', 'mode', 'document', 'add', 'row', src)(terms, mode, document, add, row);
     // read the DOM back, not the input
+    /* THE LABEL WITHOUT THE DELETE GLYPH. A chip is a text node plus a
+       decorative ✕ now, so textContent carries both; these cases are about
+       ORDER and the ✕ has its own block. Stripping it here keeps the nine
+       expectations about what they were always about. */
     return row.children.filter((n) => n !== add)
-      .map((n) => (n.className.includes('topic-mode') ? '[mode]' : n.textContent));
+      .map((n) => (n.className.includes('topic-mode') ? '[mode]' : n.textContent.replace(/✕$/, '')));
   }
   const T = (q, o) => Object.assign({ q, on: true, mute: false }, o);
 
@@ -1723,6 +1736,93 @@ console.log('\n-- the send button on a phone --');
   ok('eChan still declares a mobile height', !!declared);
   const used = (mob.match(/bottom:\s*calc\((\d+)px/) || [])[1];
   ok('and the lift is measured from it (' + used + ' vs ' + declared + ')', used === declared);
+}
+
+// ===========================================================================
+// A TOPIC CAN BE REMOVED. There was no way: a chip could be switched off but
+// not deleted, so the row only grew and the eight-topic cap filled with words
+// the reader had finished with.
+// ===========================================================================
+console.log('\n-- removing a topic --');
+{
+  const chips = grab('renderTopicChips');
+  ok('the chip carries a delete affordance', /className = 'tx'; x\.textContent = '✕'/.test(chips));
+  /* A nested <button> inside a <button> is invalid, so the ✕ is a decorative
+     span -- which means it is unreachable by keyboard. Delete and Backspace on
+     the focused chip do the same job, and the accessible name says so. */
+  ok('and it is decorative, not a control', /x\.setAttribute\('aria-hidden', 'true'\)/.test(chips));
+  ok('so the keyboard gets its own path',
+     /e\.key !== 'Delete' && e\.key !== 'Backspace'/.test(chips));
+  ok('and the name tells a screen reader about it',
+     /aria-label', t\.q \+ ' — ' \+ topicsT\('watch\.remove'\) \+ ' \(Delete\)'/.test(chips));
+  ok('the string is borrowed, not a sixteenth translation', /'watch\.remove'/.test(mod));
+  /* Clicking the WORD must not delete. Only the ✕ does — the click handler
+     compares the target, so a mis-tap on the label toggles instead. */
+  ok('clicking the word toggles rather than deletes', /if \(e\.target === x\) \{ drop\(\); return; \}/.test(chips));
+  ok('removal persists', /drop = \(\) => \{[\s\S]{0,200}saveTopicSettings\(\)/.test(chips));
+  /* A removed MUTE has to un-hide the cards it was hiding. */
+  ok('and re-renders the feed, so a removed mute stops hiding',
+     /drop = \(\) => \{[\s\S]{0,260}renderMessages\(\)/.test(chips));
+  ok('the chip text is a text node, never innerHTML',
+     /b\.appendChild\(document\.createTextNode\(t\.q\)\)/.test(chips));
+}
+
+// ===========================================================================
+// HASHTAGS ARE TAPPABLE IN THE FEED TOO. Flow offers them from its stream and
+// its Lane; neo had only the Lane half, so one tag was a control in one pane
+// and dead text in the other.
+// ===========================================================================
+console.log('\n-- hashtags in the feed --');
+{
+  const render = mod.slice(mod.indexOf('function renderMessages'), mod.indexOf('function renderMessages') + 9000);
+  ok('the feed card runs the linkifier', /topicsLinkifyTags\(contentEl, false\)/.test(render));
+  /* Over the FINISHED node, not the template: the content is escaped into an
+     innerHTML string above, and linkify walks text nodes, so it cannot reach
+     anything that is already markup. */
+  ok('over the finished node', /card\.querySelector\('\.content'\)/.test(render));
+  ok('and never on encrypted text', /!isEncrypted/.test(render));
+
+  const lk = grab('topicsLinkifyTags');
+  ok('the linkifier takes a focusable flag', /function topicsLinkifyTags\(root, focusable\)/.test(lk));
+  /* A card is itself an interactive row, so a nested tab stop inside it is
+     invalid -- there the tag is a pointer affordance and the Topics row is the
+     keyboard path. Flow draws the same line. */
+  ok('a feed card gets no tab stop', /if \(focus\) \{/.test(lk));
+  ok('while a Topics row still does', /const focus = focusable !== false;/.test(lk));
+  /* The card opens the detail panel on click, so a tap on a tag must not do
+     both. */
+  /* SCOPED TO THE CLICK HANDLER. There is an identical pair in the keydown
+     listener beside it, so matching the module anywhere stayed green with
+     preventDefault deleted from the click path -- the same weak-gate shape as
+     matching a key name outside its call site. */
+  {
+    const at = mod.indexOf("document.addEventListener('click', (e) => {\n  const tag");
+    const click = at === -1 ? '' : mod.slice(at, mod.indexOf('}, true);', at));
+    ok('the click handler exists', at !== -1);
+    ok('a tap adds a topic without also opening the card',
+       /e\.preventDefault\(\); e\.stopPropagation\(\);/.test(click) && /openTermEditor/.test(click));
+  }
+}
+
+// ===========================================================================
+// THE COMPOSER'S STARTERS ARE THE READER'S OWN TOPICS. A word somebody chose
+// to follow is a better starter than anything we could guess.
+// ===========================================================================
+console.log('\n-- message starters --');
+{
+  const list = grab('qsChipList');
+  ok('enabled topics come first', /follows\.filter\(\(t\) => t\.on\), \.\.\.follows\.filter\(\(t\) => !t\.on\)/.test(list));
+  /* Suggesting the very word somebody set up to hide is absurd. */
+  ok('a muted term is never offered', /filter\(\(t\) => t\.q && !t\.mute\)/.test(list));
+  ok('emoji are filler, not the lead', list.indexOf('words') < list.indexOf('CMP_CHIPS'));
+  ok('and the row is capped', /out\.length >= CMP_CHIP_MAX/.test(list));
+
+  const render = grab('renderQsChips');
+  /* APPEND, never replace: a chip is a starter you keep typing after, so a
+     second tap adds to the first instead of erasing it. */
+  ok('a chip appends to what is typed', /cur \? \(cur\.replace\(\/\\s\+\$\/, ''\) \+ ' ' \+ text\) : text/.test(render));
+  ok('and the caret lands at the end', /setSelectionRange\(msg\.value\.length, msg\.value\.length\)/.test(render));
+  ok('the label is a text node, never innerHTML', /createTextNode\(text\)/.test(render));
 }
 
 console.log(fail ? `\nFAILED ${fail}/${pass + fail}` : `\nok: neo topics ${pass} assertions`);
