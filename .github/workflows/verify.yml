@@ -115,6 +115,7 @@ jobs:
         # them. tools/ is already tracked (check-neo-i18n.py).
         run: |
           node tools/test-lane-scope.mjs
+          node tools/test-lane-store.mjs
           node tools/test-lane-refresh.mjs
           node tools/test-lane-notchecked.mjs
           node tools/test-lane-backfill.mjs

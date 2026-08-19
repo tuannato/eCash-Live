@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-66IxYwx/jGdwAC1R30juR16cXmm5n40YRwEjVphEGyA=';
+  script-src 'self' 'sha256-IGiKjJ6ccXZOYfwBW1rOSc7Bo//PMzyBvD9I7pegCow=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -1567,7 +1567,7 @@ import { matchAny, matchEvery, findAllSpans, segmentWords, normalize as normaliz
 import { createBackfill } from '../vendor/core/backfill.js?v=6';
 import { laneReach, laneWindows, shiftRangesForGrowth, inScope, scopeLabel, sanitizeScope, scopeCursorView, inRange, dayStart, rangeActive, senderOf, presetFrom, presetActive } from '../vendor/core/lane-cursor.js?v=1';
 import { createCorpus } from '../vendor/core/lane-corpus.js?v=1';
-import { createLaneStore } from '../vendor/core/lane-store.js?v=1';
+import { createLaneStore } from '../vendor/core/lane-store.js?v=2';
 import { isCashtabExtension, requestAddress as ctRequestAddress, sendBip21 as ctSendBip21 } from '../vendor/cashtab-connect.js?v=1';
 "use strict";
 const $ = (id) => document.getElementById(id);
@@ -4529,7 +4529,7 @@ function corpusMatches(){
 // how far the backward walk got — {lokad: {page, numPages, ...}}. No search terms
 // and no results live here; those are in TERMS_KEY and in memory.
 const LANE_CURSOR_KEY = 'ecashlive:flow:lane-cursor';
-const laneStore = createLaneStore({ storage: localStorage, key: LANE_CURSOR_KEY });
+const laneStore = createLaneStore({ storage: localStorage, key: LANE_CURSOR_KEY, max: CORPUS_MAX });
 let laneBf = null, laneBusy = false, laneRunToken = 0;
 // The engine has always accepted an AbortSignal; Flow never passed one. Without
 // it, a term change orphaned the in-flight run's OUTPUT but not its REQUESTS —
@@ -4813,8 +4813,8 @@ let laneScopeHidden = 0;
    iterating the corpus here as well is how the two shapes would drift. */
 function saveLaneStore(){
   // Engine cursor when a run is live (incomplete at a narrowed scope); the
-  // door's mutated alias otherwise (punch / shift-for-growth). The store
-  // merges either onto whatever it last saved or loaded.
+  // door's mutated alias otherwise (shift-for-growth). The store re-reads
+  // storage and merges, so a second tab's pages survive this write.
   laneStore.save({ cursor: laneBf ? laneBf.cursor : laneSavedCursor, corpus: laneCorpus });
   if (laneStore.cursor) laneSavedCursor = laneStore.cursor;
 }
@@ -5133,7 +5133,10 @@ async function runLaneBackfill(){
    will never look at page 0 again". A term the cache cannot answer then
    lights the chip, reports Read all, and shows nothing. Punch the selected
    protocols back to unread so the next run starts at page 0; newest rows
-   evict oldest via corpusAdd. */
+   evict oldest via corpusAdd. The punch is a session instruction to the
+   engine, not a fact about the cache — persisting it would reset every
+   scoped protocol in the shared store. What is read is written after the
+   walk, where saveLaneStore() already runs. */
 function reopenIndexIfUnanswered(){
   if (!enabledTerms().length) return false;
   if (corpusMatches().ids.length) return false;
@@ -5160,7 +5163,6 @@ function reopenIndexIfUnanswered(){
       rangeDone: false,
     };
   }
-  saveLaneStore();
   return true;
 }
 

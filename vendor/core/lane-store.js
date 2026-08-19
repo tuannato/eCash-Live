@@ -41,23 +41,39 @@
    the state laneReach() answers by refusing to state a date at all.
 
    That is a persistence invariant, not a door-session one. This file is the only
-   writer; if the merge lived on the door, every future door would have to
-   remember it, and a missed Object.assign is silent data loss. save() therefore
-   ACCUMULATES: each incoming cursor is assigned onto whatever was last saved or
-   loaded, so scope A -> B -> A keeps both. The door still owns the session
-   alias it mutates (punch, shift-for-growth); it hands that object in and the
-   merge keeps every key it did not touch. */
+   module that writes the key; if the merge lived on the door, every future door
+   would have to remember it, and a missed Object.assign is silent data loss.
+
+   Two instances of this module can write the same key (two tabs, two doors).
+   Nobody considered that — there is no `storage` listener in the repo, and
+   merging into an in-memory lastCursor lets the later setItem erase the earlier
+   tab's pages. save() therefore RE-READS, then accumulates, so a second writer
+   cannot un-claim what the first already recorded. The re-read lives OUTSIDE
+   the shrink loop: that loop treats any throw as "payload too big", and a
+   getItem/JSON.parse failure inside it would delete the reader's cache.
+
+   Coverage is monotonic at equal numTxs (union the page intervals; a punch
+   whose ranges are empty and done:false does not shrink a stored record).
+   numTxs is the generation of those intervals: a growth-shift rewrites page
+   numbers, and unioning the pre-shift intervals with the post-shift ones
+   claims ranks nobody has read. The higher numTxs for a protocol wins that
+   protocol wholesale. The door still owns the session alias it mutates
+   (punch, shift-for-growth); it hands that object in and the merge keeps
+   every key it did not touch. */
 
 /**
  * @param {object} o
- * @param {object} o.storage  adapter with getItem/setItem/removeItem (window.localStorage, or a fake)
+ * @param {object} o.storage  adapter with getItem/setItem/removeItem (the page store, or a fake)
  * @param {string} o.key      storage key — configuration, never a constant in this file
+ * @param {number} [o.max]    corpus cap after the txid-union, newest-first. Floor 1.
+ *                            Same number the door passes createCorpus. Default 5000.
  *
  * save({ cursor, corpus })
  *   cursor  — the engine's cursor this run, or the door's mutated saved cursor
  *   corpus  — a createCorpus() (dump() is called) or a row array. dump() is a
  *             METHOD, not a getter: this snapshot is taken once per save.
- *   Merges `cursor` into the last saved/loaded cursor, then writes
+ *   Re-reads storage, merges `cursor` coverage-monotonically onto what is
+ *   already there (and onto lastCursor), unions the corpus by txid, then writes
  *   `{ v: 1, cursor, corpus }` newest-first, shrinking on quota.
  *   Returns the written payload, or null if nothing could be kept.
  *
@@ -70,9 +86,10 @@
  * trimmed  rows that would not fit, for the door's lane.storeTrimmed line.
  *          0 whenever everything fit, which is the ordinary case.
  */
-export function createLaneStore({ storage, key } = {}) {
+export function createLaneStore({ storage, key, max = 5000 } = {}) {
   let lastCursor = null;
   let trimmed = 0;
+  const cap = Math.max(1, max | 0);
 
   function rowsFrom(corpus) {
     if (corpus && typeof corpus.dump === 'function') return corpus.dump();
@@ -80,16 +97,32 @@ export function createLaneStore({ storage, key } = {}) {
     return [];
   }
 
+  /* Re-read MUST stay out of the shrink loop. The loop learns "too big" by
+     catching any throw from setItem; a getItem or JSON.parse that throws in
+     there is mistaken for quota and, at n <= 1, removes the key. */
+  function readStored() {
+    try {
+      const raw = JSON.parse(storage.getItem(key) || 'null');
+      if (!raw || typeof raw !== 'object' || !raw.cursor || !Array.isArray(raw.corpus)) return null;
+      return raw;
+    } catch { return null; }
+  }
+
   function save({ cursor, corpus } = {}) {
-    if (cursor) lastCursor = Object.assign({}, lastCursor || {}, cursor);
+    const stored = readStored();
+    const incoming = cursor || lastCursor;
+    const storedCur = stored && stored.cursor;
+    if (!incoming && !storedCur) return null;
+    lastCursor = mergeCursors(storedCur, incoming);
     if (!lastCursor) return null;
-    const rows = rowsFrom(corpus);
+    const rows = mergeRows(stored ? stored.corpus : [], rowsFrom(corpus));
     /* NEWEST FIRST, so a trim takes from the far end. The corpus is a contiguous
        window from the newest message backwards and the reach line depends on it;
        cutting the near end would leave a hole beside the date being claimed.
        This is the same newest-window rule createCorpus uses, applied to the copy
        that goes to disk. A row with no timestamp sorts oldest and goes first. */
     rows.sort((a, b) => (b[2] || 0) - (a[2] || 0));
+    if (rows.length > cap) rows.length = cap;
     /* SHRINK, DO NOT DROP EVERYTHING.
        The old catch removed the whole entry on any failure, so one quota error
        cost the reader every page they had ever walked — cursor included, which
@@ -97,9 +130,10 @@ export function createLaneStore({ storage, key } = {}) {
        most ~13 tries.
 
        Storage is shared with neo on this origin and most engines account quota
-       in UTF-16, i.e. two bytes per character: measured, 5,000 rows is ~1.5 MB
+       in UTF-16, i.e. two bytes per character: measured, 5,000 rows is ~1.73 MB
        of a typical 5 MB budget, which is why CORPUS_MAX sits where it does
-       rather than at the 9,392 that would hold all of Cashtab.
+       rather than at the 9,392 that would hold all of Cashtab. (The row grew to
+       five elements after that measurement; ~173 JSON characters, not ~155.)
 
        The floor is 1, not 0: a cursor stored beside an EMPTY corpus is the
        exact "resumes past pages it can no longer search" state this pair was
@@ -154,4 +188,136 @@ export function createLaneStore({ storage, key } = {}) {
        captures a live reference and any later diff against it is a no-op. */
     get cursor() { return lastCursor; },
   };
+}
+
+function copyProto(c) {
+  if (!c || typeof c !== 'object') return c;
+  const o = Object.assign({}, c);
+  if (Array.isArray(o.ranges)) o.ranges = o.ranges.map((r) => (Array.isArray(r) ? r.slice() : r));
+  return o;
+}
+
+function txCount(c) {
+  return (c && Number.isInteger(c.numTxs) && c.numTxs >= 0) ? c.numTxs : 0;
+}
+
+/* A punch is an instruction to this session's engine, not a fact about the
+   cache: empty ranges and done:false. Same-generation only — a growth-shift
+   that collapsed every interval is also empty+done:false, but it carries a
+   higher numTxs, and those empty ranges are the honest post-shift record. */
+function isPunch(c) {
+  return !!(c && c.done === false && Array.isArray(c.ranges) && c.ranges.length === 0);
+}
+
+function rangesOf(c) {
+  if (!c) return null;
+  if (Array.isArray(c.ranges)) return c.ranges;
+  // Pre-ranges watermark: [0, page) is exactly what `page` meant (backfill.load).
+  if (Number.isInteger(c.page) && c.page > 0) {
+    return [[0, c.page, Number.isFinite(c.oldestTs) ? c.oldestTs : null, null]];
+  }
+  return null;
+}
+
+function unionRanges(a, b) {
+  const list = [];
+  for (const src of [a, b]) {
+    if (!Array.isArray(src)) continue;
+    for (const r of src) {
+      if (!Array.isArray(r)) continue;
+      const x = r[0], y = r[1];
+      if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y <= x) continue;
+      list.push([x, y, r[2] == null ? null : r[2], r[3] == null ? null : r[3]]);
+    }
+  }
+  list.sort((p, q) => p[0] - q[0]);
+  const out = [];
+  for (const r of list) {
+    const last = out[out.length - 1];
+    if (last && r[0] <= last[1]) {
+      last[1] = Math.max(last[1], r[1]);
+      if (r[2] != null) last[2] = last[2] == null ? r[2] : Math.min(last[2], r[2]);
+      if (r[3] != null) last[3] = last[3] == null ? r[3] : Math.max(last[3], r[3]);
+    } else out.push(r.slice());
+  }
+  return out;
+}
+
+function mergeProtocol(stored, incoming) {
+  const sN = txCount(stored), iN = txCount(incoming);
+  // Higher numTxs is a new coordinate system. Do not union its intervals with
+  // the ones it supersedes — they point at content that has moved.
+  if (iN > sN) return copyProto(incoming);
+  if (sN > iN) return copyProto(stored);
+  if (isPunch(incoming)) return copyProto(stored);
+  if (isPunch(stored)) return copyProto(incoming);
+
+  const out = copyProto(Object.assign({}, stored, incoming));
+  const sR = rangesOf(stored), iR = rangesOf(incoming);
+  if (sR || iR) {
+    out.ranges = unionRanges(sR || [], iR || []);
+    out.pagesDone = out.ranges.reduce((n, r) => n + (r[1] - r[0]), 0);
+  } else {
+    const sp = Number.isInteger(stored.pagesDone) ? stored.pagesDone : 0;
+    const ip = Number.isInteger(incoming.pagesDone) ? incoming.pagesDone : 0;
+    out.pagesDone = Math.max(sp, ip);
+  }
+  if (Number.isInteger(stored.page) || Number.isInteger(incoming.page)) {
+    out.page = Math.max(stored.page || 0, incoming.page || 0);
+  }
+  const sT = Number.isFinite(stored.oldestTs) ? stored.oldestTs : null;
+  const iT = Number.isFinite(incoming.oldestTs) ? incoming.oldestTs : null;
+  if (sT != null && iT != null) out.oldestTs = Math.min(sT, iT);
+  else if (sT != null) out.oldestTs = sT;
+  else if (iT != null) out.oldestTs = iT;
+  out.done = !!(stored.done || incoming.done);
+  const sP = Number.isInteger(stored.numPages) ? stored.numPages : null;
+  const iP = Number.isInteger(incoming.numPages) ? incoming.numPages : null;
+  if (sP != null || iP != null) out.numPages = Math.max(sP || 0, iP || 0);
+  if (Number.isInteger(stored.numTxs) || Number.isInteger(incoming.numTxs)) {
+    out.numTxs = Math.max(sN, iN);
+  }
+  return out;
+}
+
+function mergeCursors(stored, incoming) {
+  if (!incoming && !stored) return null;
+  if (!incoming) return copyCursor(stored);
+  if (!stored) return copyCursor(incoming);
+  const out = {};
+  for (const id of new Set([...Object.keys(stored), ...Object.keys(incoming)])) {
+    const s = stored[id], i = incoming[id];
+    if (!i) out[id] = copyProto(s);
+    else if (!s) out[id] = copyProto(i);
+    else out[id] = mergeProtocol(s, i);
+  }
+  return out;
+}
+
+function copyCursor(cur) {
+  if (!cur || typeof cur !== 'object') return cur;
+  const out = {};
+  for (const id of Object.keys(cur)) out[id] = copyProto(cur[id]);
+  return out;
+}
+
+/* Union by txid. A row missing lokad or from is upgraded in place when the
+   other side has them — the same rule as createCorpus.add, applied here so a
+   second writer cannot drop a tag the first one paid to learn. */
+function mergeRows(stored, incoming) {
+  const map = new Map();
+  const ingest = (rows) => {
+    if (!Array.isArray(rows)) return;
+    for (const row of rows) {
+      if (!Array.isArray(row) || typeof row[0] !== 'string') continue;
+      const id = row[0];
+      const had = map.get(id);
+      if (!had) { map.set(id, row.slice()); continue; }
+      if (!had[3] && row[3]) had[3] = row[3];
+      if (!had[4] && row[4]) had[4] = row[4];
+    }
+  };
+  ingest(stored);
+  ingest(incoming);
+  return Array.from(map.values());
 }
