@@ -209,5 +209,64 @@ console.log('\n-- E7: a live arrival is INGESTED, never appended --');
   eq('nothing is ingested before the engine exists', S.corpusAdds.length, 3);
 }
 
+// ------------------------------------------------- E4/E5: structure, and the
+// cross-door equalities decision 14 depends on. These are source assertions:
+// they cannot prove the walk works, but they are what notices a defence being
+// dropped in a later edit, which no behavioural test of a green build would.
+console.log('\n-- E4: the walk keeps its six defences --');
+{
+  const run = grab('runTopicsBackfill');
+  ok('the walk is async', /^async function runTopicsBackfill\(/.test(run));
+  const guard = run.indexOf("typeof chronik.lokadId !== 'function'");
+  const ctor  = run.indexOf('createBackfill');
+  ok('the chronik guard sits BEFORE createBackfill', guard !== -1 && ctor !== -1 && guard < ctor);
+  ok('requests are gated on the pane being open, inside the walk',
+     /dataset\.topics\s*!==\s*'open'/.test(run));
+  ok('an AbortController is created', /new AbortController\s*\(/.test(run));
+  ok('and its signal reaches run()', /signal:\s*tpAbort\.signal/.test(run));
+  ok('a superseded run refuses to write', /token !== tpRunToken/.test(run));
+  const save = run.indexOf('topicsSaveStore()'), cat = run.search(/catch\s*\(/);
+  ok('the store is written even when run() throws', save !== -1 && cat !== -1 && save > cat);
+  ok('the prefilter ingests every text, not only matches',
+     /prefilter:/.test(run) && /tpCorpus\.add\(/.test(run));
+  ok('a real parse is supplied', /parse:\s*\(/.test(run));
+}
+
+console.log('\n-- E5: the cache is shared, and the two doors must not drift --');
+{
+  const flow = readFileSync(join(ROOT, 'flow/index.html'), 'utf8');
+  const neoMax  = Number(mod.match(/const TOPICS_CORPUS_MAX\s*=\s*(\d+)/)[1]);
+  const flowMax = Number(flow.match(/const CORPUS_MAX\s*=\s*(\d+)/)[1]);
+  eq('neo CORPUS_MAX is 5000', neoMax, 5000);
+  // A smaller cap on either door silently recreates the founding bug: the
+  // corpus loads without clearing, keeps the newest N, then persists that
+  // truncated view beside the OTHER door's full cursor.
+  eq('and equals Flow, or the shared cache is corrupted by whoever saves next', neoMax, flowMax);
+  const neoKey  = mod.match(/const TOPICS_CURSOR_KEY\s*=\s*'([^']+)'/)[1];
+  const flowKey = flow.match(/const LANE_CURSOR_KEY\s*=\s*'([^']+)'/)[1];
+  eq('neo writes the shared cursor key', neoKey, 'ecashlive:flow:lane-cursor');
+  eq('and it is the key Flow writes', neoKey, flowKey);
+  const neoTerms  = mod.match(/const TOPICS_TERMS_KEY\s*=\s*'([^']+)'/)[1];
+  const flowTerms = flow.match(/const TERMS_KEY\s*=\s*'([^']+)'/)[1];
+  eq('settings are the shared value too', neoTerms, flowTerms);
+  // Decision 14 superseded the key approved a day earlier. It must not exist.
+  ok('no neo-only Topics key was created', !/ecash-live:topics/.test(mod));
+  const build = grab('buildTopicsEngine');
+  ok('createCorpus is given the cap', /createCorpus\(\s*\{\s*max:\s*TOPICS_CORPUS_MAX/.test(build));
+  ok('createLaneStore is given it as well', /createLaneStore\([\s\S]*?max:\s*TOPICS_CORPUS_MAX/.test(build));
+}
+
+console.log('\n-- E9: the Feed keeps its own window --');
+{
+  ok('MAX_MSG_VISIBLE is untouched at 100', /const MAX_MSG_VISIBLE = 100;/.test(mod));
+  const addCard = grab('addMessageCard');
+  const ingest = addCard.indexOf('topicsIngestLive');
+  const reject = addCard.indexOf('MAX_MSG_VISIBLE');
+  ok('Topics ingests before the Feed window decides anything',
+     ingest !== -1 && reject !== -1 && ingest < reject);
+  const core = readFileSync(join(ROOT, 'vendor/core/backfill.js'), 'utf8');
+  ok('vendor/core was not patched to make this fit', !/topics/i.test(core));
+}
+
 console.log(fail ? `\nFAILED ${fail}/${pass + fail}` : `\nok: neo topics ${pass} assertions`);
 if (fail) process.exit(1);

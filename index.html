@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-+4UAD/oO01El/+aDRaxAcTfowzjLoCqHLg4FCGbbrqo=';
+  script-src 'self' 'sha256-/nI43NfIR9tEnVk7aluJ88YBoILOt9Z0Z3MUlcdBbj8=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -13887,6 +13887,12 @@ function topicsSaveStore() {
    is required by the engine itself. */
 async function runTopicsBackfill() {
   if (!topicsEngineReady() || tpBusy || tpDeepDone || !topicFollows().length) return;
+  /* GATED INSIDE, not merely by who calls it. Every caller today opens the pane
+     first, but a gate that lives in the call sites is a convention a future one
+     can walk past -- and this door already spends chronik on mempool, token
+     info, POWR authors, the watchlist and Chat history, so a walk running
+     behind a closed pane starves the panels neo exists to show. */
+  if ($('section-messages')?.dataset.topics !== 'open') return;
   if (!chronik || typeof chronik.lokadId !== 'function') return;
   const C = topicsCore;
   tpAbort = new AbortController();
