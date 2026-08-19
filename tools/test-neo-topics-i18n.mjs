@@ -28,6 +28,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const neo = readFileSync(join(ROOT, 'index.html'), 'utf8');
 const flow = readFileSync(join(ROOT, 'flow/index.html'), 'utf8');
 const mod = neo.match(/<script[^>]*type="module"[^>]*>([\s\S]*?)<\/script>/)[1];
+const codeOnly = mod.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 let n = 0;
 const ok = (cond, label) => { if (!cond) throw new Error('FAIL: ' + label); n++; };
@@ -93,10 +94,48 @@ ok(neoV[1] === flowV[1], `TOPICS_I18N_V (${neoV && neoV[1]}) must equal Flow's I
 //    a typo ships as a raw 'lane.reachh' on screen with no error anywhere.
 // ---------------------------------------------------------------------------
 const ALL = Object.assign({}, BORROWED, OWN);
-const used = new Set();
-for (const m of mod.matchAll(/topicsTf?\(\s*'([^']+)'/g)) used.add(m[1]);
-ok(used.size >= 40, 'found the call sites (' + used.size + ')');
-for (const k of used) ok(k in ALL, 'key used but not defined: ' + k);
+/* KEY-SHAPED LITERALS ANYWHERE IN THE CODE, with comments stripped first.
+   Two narrower versions each produced a false positive on their first run, and
+   both are worth recording because they are the same mistake in two shapes:
+   reading only `topicsT('` missed `topicsT(mode === 'all' ? 'term.all' : ...)`,
+   and reading only call arguments missed the keys that travel as data --
+   tpRefreshMsg carries ['lane.refreshFound', {...}] and is resolved later.
+   Stripping comments matters as much: this file's own prose names half these
+   keys, so without it the "never used" half of the check would pass on
+   anything ever mentioned. */
+/* TWO DIRECTIONS, TWO KINDS OF EVIDENCE, and conflating them fails both ways.
+   "Used but not defined" must only consider literals actually handed to the
+   translator -- a key-shaped string that is not a key ('memo.cash' is a website
+   in a protocol list) is not a missing translation. "Defined but never used"
+   has to look wider, because keys travel as data too. */
+const KEY_SHAPE = /^[a-z]+\.[A-Za-z]+$/;
+const called = new Set();
+for (const m of codeOnly.matchAll(/topicsTf?\(([^)]*)\)/g)) {
+  // Key-shaped only: the same call can carry a comparison literal, and
+  // topicsT(mode === 'all' ? 'term.all' : 'term.any') reported 'all' missing.
+  for (const q of m[1].matchAll(/'([^']+)'/g)) if (KEY_SHAPE.test(q[1])) called.add(q[1]);
+}
+/* THE DECLARATIONS ARE NOT USES. Scanning key-shaped literals across the whole
+   module swept in `'term.full': '...'` from the tables themselves, so every key
+   counted as used and the check could never fire -- vacuous, and it looked
+   exactly like a passing gate. Mutation caught it: putting a hardcoded English
+   sentence back over its own translation stayed green. The tables are cut out
+   before the scan. */
+const withoutTables = codeOnly
+  .replace(objectText(mod, 'TOPICS_EN_BORROWED'), '')
+  .replace(objectText(mod, 'TOPICS_EN_OWN'), '');
+const used = new Set(called);
+for (const m of withoutTables.matchAll(/'([^']+)'/g)) if (KEY_SHAPE.test(m[1]) && m[1] in ALL) used.add(m[1]);
+ok(called.size >= 40, 'found the call sites (' + called.size + ')');
+for (const k of called) ok(k in ALL, 'key used but not defined: ' + k);
+
+/* AND EVERY KEY DEFINED MUST BE USED. The check above only runs one way, so a
+   hardcoded English sentence sitting beside its own unused translation passes
+   it -- which is exactly what happened to term.full and term.fromRead: both
+   borrowed, both translated fifteen times, both shadowed by a literal. An
+   unused key is either dead weight or a translation that is not reaching the
+   screen, and neither should ship quietly. */
+for (const k of Object.keys(ALL)) ok(used.has(k), 'key defined but never used: ' + k);
 
 // Placeholders must match on both sides of the borrow, or a translated
 // sentence keeps a {var} nobody fills.

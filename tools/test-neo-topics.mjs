@@ -62,6 +62,10 @@ function sandbox(stored) {
   };
   const src = [
     "const TOPICS_TERMS_KEY = " + JSON.stringify(KEY) + ";",
+    // The loader caps on load, as Flow's does. This sandbox predates that and
+    // broke the moment the dependency appeared -- which is the extraction
+    // working: a function that grew a dependency cannot quietly keep passing.
+    "const TOPICS_TERM_MAX = 8;",
     "const LOKAD = { CASHTAB_MSG: '00746162' };",
     "let topicTerms = [], topicMode = 'any', topicScope = [LOKAD.CASHTAB_MSG];",
     // The scrub the page uses. Zero-width and bidi marks are the reason .text
@@ -1426,6 +1430,151 @@ console.log('\n-- mutes sit at the end --');
     const before = terms.map((t) => t.q).join(',');
     chipsFor(terms);
     eq('rendering does not reorder what is stored', terms.map((t) => t.q).join(','), before);
+  }
+}
+
+// ===========================================================================
+// THE LOADER READS A VALUE FLOW ALSO WRITES, AND WRITES BACK WHAT IT READ.
+// So it has to be at least as permissive as Flow's, and no more permissive
+// about the cap. Both bodies are extracted and driven on the SAME store: a
+// difference between them is a difference two doors will disagree about.
+// ===========================================================================
+console.log('\n-- the two loaders agree --');
+{
+  const flowSrc = readFileSync(join(ROOT, 'flow/index.html'), 'utf8');
+  function grabFrom(src, name) {
+    const at = src.indexOf('function ' + name + '('); let i = src.indexOf('{', at), d = 0;
+    for (; i < src.length; i++) { const c = src[i];
+      if (c === '/' && src[i + 1] === '/') { i = src.indexOf('\n', i); continue; }
+      if (c === '/' && src[i + 1] === '*') { i = src.indexOf('*/', i) + 1; continue; }
+      if (c === "'" || c === '"' || c === '`') { const q = c; for (i++; i < src.length; i++) { if (src[i] === '\\') i++; else if (src[i] === q) break; } continue; }
+      if (c === '{') d++; else if (c === '}') { d--; if (!d) return src.slice(at, i + 1); } }
+    throw new Error('unbalanced ' + name);
+  }
+  const runBoth = (terms) => {
+    const ls = { getItem: () => JSON.stringify({ mode: 'any', scope: [CT], terms }), setItem() {} };
+    const neoOut = new Function('localStorage', 'LOKAD', 'TOPICS_TERMS_KEY', 'TOPICS_TERM_MAX',
+      'let topicTerms=[],topicMode="any",topicScope=[];' + grab('loadTopicSettings') +
+      'loadTopicSettings(); return topicTerms;')(ls, { CASHTAB_MSG: CT }, 'k', 8);
+    const st = { terms: [], laneScope: [], termMode: 'any' };
+    new Function('localStorage', 'TERMS_KEY', 'TERM_MAX', 'sanitizeScope', 'state',
+      grabFrom(flowSrc, 'loadTerms') + 'loadTerms();')(ls, 'k', 8, (x) => x || [], st);
+    return { neo: neoOut.map((t) => t.q), flow: st.terms.map((t) => t.q) };
+  };
+
+  /* A BARE STRING IS A TERM. Flow reads saves that predate the option object;
+     neo required e.q, dropped them, and then wrote the shortened list back --
+     deleting them from Flow's list by opening the other door once. */
+  {
+    const r = runBoth(['gm', { q: 'thanks' }]);
+    eq('a bare-string entry survives both loaders', r.neo, r.flow);
+    ok('and it is actually kept', r.neo.includes('gm'));
+  }
+  /* THE CAP IS A CAP ON LOAD, not only in the editor. Measured before the fix:
+     a store of 14 gave Flow 8 and neo 13 -- over §10's bound, matched against
+     every arriving message, and saved back at that size. */
+  {
+    const many = Array.from({ length: 14 }, (_, i) => ({ q: 'w' + i }));
+    const r = runBoth(many);
+    eq('an over-long list is capped the same way', r.neo, r.flow);
+    eq('and capped at all', r.neo.length, 8);
+  }
+  // Mixed shapes, mutes, junk: the two must still not diverge.
+  {
+    const r = runBoth(['a', { q: 'b', mute: true }, null, { q: '' }, 5, { q: 'c', mode: 'contains' }]);
+    eq('junk is skipped identically', r.neo, r.flow);
+  }
+  /* PRESENT, then ordered. `indexOf(a) < indexOf(b)` is true when a is MISSING
+     (-1 is less than everything) -- the same sentinel that let a deleted
+     highlight call pass the row-order check earlier on this branch. Deleting
+     the declaration outright is the mutation that found it here. */
+  ok('the cap is declared at all', mod.includes('const TOPICS_TERM_MAX'));
+  ok('and before the loader that uses it',
+     mod.indexOf('const TOPICS_TERM_MAX') < mod.indexOf('function loadTopicSettings'));
+  // ...because the loader runs at module top level, where a later const is in
+  // the temporal dead zone and the throw lands in a try/catch that hides it.
+  ok('and the loader is called at module top level',
+     /^try \{ loadTopicSettings\(\);/m.test(mod));
+
+  // The chips row is a focusable role=group; an unnamed one is a tab stop that
+  // announces nothing.
+  ok('the chips row is given an accessible name',
+     /row\.setAttribute\('aria-label', topicsT\('topics\.rowAria'\)\)/.test(grab('renderTopicStatics')));
+}
+
+// ===========================================================================
+// TWO THINGS THE "defined but never used" GATE SURFACED. Both keys were
+// borrowed, translated fifteen times, and reaching nothing -- which is not
+// dead weight but a feature that was never wired.
+// ===========================================================================
+console.log('\n-- the safety line, and a refusal that speaks --');
+{
+  /* PERMANENT, like Flow's. This pane renders text written by whoever paid the
+     fee, and the reader arrived by following a WORD rather than a person, so
+     there is no sender they have chosen to trust. */
+  ok('the pane carries a safety line', /id="topics-safety"/.test(html));
+  ok('and it is inside the Topics pane, not the feed',
+     html.indexOf('id="topics-safety"') > html.indexOf('<div id="topics" ')
+     && html.indexOf('id="topics-safety"') < html.indexOf('id="topics-body"'));
+  ok('it says what Flow says', /\['topics-safety',\s*'safety\.lane'\]/.test(mod));
+  ok('and it is not inside anything that hides', !/topics-safety[^>]*hidden/.test(html));
+
+  /* A REFUSAL WITH NOTHING ON THE PAGE reads as a broken control rather than a
+     rule -- v2.7.0 fixed exactly that for the date fields, and the scope picker
+     had the same silence. */
+  ok('the hint element exists', /id="tp-scope-hint"/.test(html));
+  ok('and it announces itself', /id="tp-scope-hint"[^>]*role="status"/.test(html));
+
+  /* DRIVEN, not matched. Source-matching `'scope.needOne'` passed with the
+     branch wrapped in `if (0)` -- the key was still in the file, doing nothing.
+     Untick the last protocol on the real renderer and read what the hint says. */
+  {
+    const nodes = [];
+    const mk = () => { const n = { className: '', innerHTML: '', textContent: '',
+      children: [], dataset: {}, _l: {},
+      appendChild(c) { n.children.push(c); return c; },
+      setAttribute() {}, addEventListener(t, f) { n._l[t] = f; },
+      querySelector: () => n._input || null };
+      nodes.push(n); return n; };
+    const box = mk(); const hint = mk();
+    // The shipped code attaches to lab.querySelector('input'), not to the
+    // label -- a fake that swallows addEventListener here reports "the refusal
+    // does not fire" when the refusal is fine and the double is wrong.
+    const input = { checked: true, _l: {}, addEventListener(t, f) { input._l[t] = f; } };
+    const doc = { createElement: () => { const n = mk(); n._input = input; return n; } };
+    const scope = [CT];
+    const src = [
+      'const topicsCore = C;',
+      'const LOKAD = { PAYBUTTON: "50415900" };',
+      'const LOKAD_NAMES = { "' + CT + '": "Cashtab Msg" };',
+      'const C_MESSAGE_LOKADS = ["' + CT + '"];',
+      'let topicScope = scope;',
+      'let tpBf = null, tpDeepDone = false, tpRangeDone = false, tpUnread = 0;',
+      'let tpSavedCursor = null;',
+      'function $(id){ return id === "tp-scope" ? box : (id === "tp-scope-hint" ? hint : null); }',
+      'function topicsT(k){ return k; }',
+      'function topicsTf(k, v){ return k; }',
+      'function escapeHtml(x){ return String(x); }',
+      'function saveTopicSettings(){}',
+      'function renderTopicTools(){}',
+      'function topicsRematch(){}',
+      'function runTopicsBackfill(){}',
+      'function setTimeout(){}',
+      grab('renderTopicScopePanel'),
+      'renderTopicScopePanel();',
+      'return { fire: (checked) => { input.checked = checked; ' +
+        'input._l.change && input._l.change({ target: input }); }, input };',
+    ].join('\n');
+    const api = new Function('C', 'document', 'box', 'hint', 'scope', 'MESSAGE_LOKADS', 'input', src)(
+      { scopeCursorView: () => ({}), sanitizeScope: (x) => x, MESSAGE_LOKADS: [CT] },
+      doc, box, hint, scope, [CT], input);
+    // Unticking the only protocol must be refused AND explained.
+    api.fire(false);
+    eq('unticking the last protocol is refused', api.input.checked, true);
+    eq('and the reader is told why', hint.textContent, 'scope.needOne');
+    // Ticking something again clears the message.
+    api.fire(true);
+    eq('and the message clears when the rule is satisfied', hint.textContent, '');
   }
 }
 

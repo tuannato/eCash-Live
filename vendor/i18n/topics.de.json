@@ -16,6 +16,7 @@
  "topics.opened": "Cashtab wurde in einem neuen Tab geöffnet. Dort bestätigen, um zu senden.",
  "topics.opening": "Cashtab wird geöffnet…",
  "topics.popup": "Cashtab konnte nicht geöffnet werden — erlaube Pop-ups für diese Seite und versuche es erneut.",
+ "topics.rowAria": "Nachrichtenfilter und Themen",
  "topics.sendCashtab": "Über Cashtab senden",
  "topics.sentExt": "An die Cashtab-Erweiterung gesendet. Dort bestätigen, um zu senden.",
  "topics.shared": "Folge einem Wort, und dieser Bereich durchsucht den Nachrichtenindex der Chain rückwärts danach. Themen werden mit der Flow-Ansicht geteilt.",

@@ -16,6 +16,7 @@
  "topics.opened": "Cashtab を新しいタブで開きました。そこで確認すると送信されます。",
  "topics.opening": "Cashtab を開いています…",
  "topics.popup": "Cashtab を開けませんでした — このサイトのポップアップを許可してもう一度お試しください。",
+ "topics.rowAria": "メッセージのフィルターとトピック",
  "topics.sendCashtab": "Cashtab で送信",
  "topics.sentExt": "Cashtab 拡張機能に送りました。そこで確認すると送信されます。",
  "topics.shared": "単語をフォローすると、この画面がチェーンのメッセージ索引をさかのぼって探します。トピックは Flow 表示と共有されます。",

@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-YY/dK7IuBgj+L5F2yMOJDGKdU4g6Qjxkn0Qtt6c+7Ps=';
+  script-src 'self' 'sha256-JgVL42Oh4R6BbiqW/7yqPFtjNEySy2CVtFeJU4FEGQk=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -2589,6 +2589,11 @@
   }
   .topics-add:hover { color: var(--cyan); border-color: var(--cyan-dim); }
 
+  .safety-line {
+    font-size: 10px; line-height: 1.55; color: var(--text-3);
+    background: rgba(255,184,0,0.06); border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line); padding: 7px 16px; flex-shrink: 0;
+  }
   #topics-body { flex: 1; overflow-y: auto; padding: 8px 0; }
   /* A MARK IS THE ANSWER TO "why is this row here", so it uses the accent the
      rest of this door uses for a match, not a highlighter yellow that would
@@ -7837,6 +7842,7 @@
               <button class="tp-sum" id="tp-range-sum" type="button" aria-expanded="false"><span class="caret">&#9656;</span><span id="tp-range-label">Time range: All time</span></button>
             </div>
             <div class="tp-panel" id="tp-scope" hidden></div>
+            <p class="tp-hint" id="tp-scope-hint" role="status"></p>
             <div class="tp-panel" id="tp-range" hidden>
               <div class="tp-row" id="tp-presets"></div>
               <div class="tp-row">
@@ -7861,6 +7867,10 @@
                 </div>
               </div>
             </div>
+            <!-- PERMANENT, like Flow's. This pane renders text written by
+                 whoever paid the fee, and the reader arrived by following a
+                 word rather than a person. -->
+            <div class="safety-line" id="topics-safety"></div>
             <div id="topics-body">
               <div class="topics-state" id="topics-empty">
                 <div class="big">No topics yet</div>
@@ -14151,7 +14161,6 @@ const TOPICS_I18N_V = '21';   // must equal Flow's I18N_V — asserted in CI
 const TOPICS_EN_BORROWED = {
   'lane.older': 'Search further back',
   'lane.rangeEnd': 'Window covered',
-  'lane.aria': 'Saved topics',
   'term.any': 'any word',
   'term.all': 'all words',
   'term.modeAria': 'Match any word or all words',
@@ -14194,35 +14203,36 @@ const TOPICS_EN_BORROWED = {
   'term.ph': 'A word to follow, e.g. gm',
   'term.fold': 'Ignore accents (cafe finds café)',
   'term.contains': 'Match inside longer words',
-  'term.mute': 'Mute instead: hide these from the stream',
   'term.save': 'Save topic',
   'term.needText': 'Type a word to follow.',
   'term.dupe': 'You are already following that.',
   'term.full': '{n} topics is the limit — remove one first.',
   'term.fromRead': 'from the {n} messages read so far',
-  'scope.title': 'Searching back through',
   'scope.needOne': 'Choose at least one protocol.',
+  'scope.title': 'Searching back through',
   'scope.range': 'Time range',
   'scope.days': '{n} days',
   'scope.allTime': 'All time',
   'scope.from': 'From date',
   'scope.to': 'To date',
   'scope.machine': 'order ids, not writing',
-  'scope.msgs': '{n} messages',
   'scope.read': 'read {n} of {total} pages',
   'scope.unread': 'not read yet',
   'range.invert': 'The second date must be on or after the first.',
+  'safety.lane': 'Anyone can put any word in a message. Treat links and offers here as untrusted.',
   'cmp.title': 'Send on-chain',
   'cmp.toPh': 'Recipient address',
   'cmp.close': 'Close',
   'cmp.myWallet': 'My wallet',
-  'try.send': 'Send',
   'try.needAddr': 'Choose or paste a recipient address.',
   'try.badAddr': 'That eCash address isn’t valid.',
-  'safety.lane': 'Anyone can put any word in a message. Treat links and offers here as untrusted.',
 };
 const TOPICS_EN_OWN = {
   'topics.back': 'Back to the feed',
+  /* Flow's lane.aria says "Saved topics" because its row holds only chips.
+     This one also holds the kind filter and the way back, so borrowing that
+     name would mislabel it -- the panel header's problem, inverted. */
+  'topics.rowAria': 'Message filters and topics',
   'topics.none': 'No topics yet',
   'topics.shared': 'Follow a word and this pane searches the chain’s message index backwards for it. Topics are shared with the Flow view.',
   'topics.needMsg': 'Type a message first.',
@@ -14324,8 +14334,11 @@ function initTopicScrollHint() {
     el._hsUsed = true;
     updateTopicScrollHint();
   }, { passive: false });
-  // A focused row scrolls with the arrow keys, and screen readers are told why
-  // it is focusable. The row already has an accessible name from the markup.
+  /* A focused row scrolls with the arrow keys, and screen readers are told why
+     it is focusable. This comment used to end "the row already has an
+     accessible name from the markup" -- it does not, and there is no id on it
+     either, so it was a role=group with a tab stop and nothing to announce.
+     renderTopicStatics names it, so the name follows the language. */
   el.classList.add('hscroll');
   el.setAttribute('role', 'group');
   el.tabIndex = 0;
@@ -14345,6 +14358,7 @@ function initTopicScrollHint() {
    panel are built into the page, but a future layout that drops one must not
    take the language switch down with it. */
 const TOPICS_STATIC_TEXT = [
+  ['topics-safety', 'safety.lane'],
   ['topics-add',   'term.add'],
   ['tp-ed-title',  'term.title'],
   ['tp-ed-save',   'term.save'],
@@ -14372,6 +14386,10 @@ const TOPICS_STATIC_OPT = [
   ['tp-ed-mute',     'topics.mute'],
 ];
 function renderTopicStatics() {
+  // The chips row has no id, so it is named by selector rather than through
+  // the id tables above.
+  const row = document.querySelector('.msg-filters');
+  if (row) row.setAttribute('aria-label', topicsT('topics.rowAria'));
   for (const [id, key] of TOPICS_STATIC_TEXT) {
     const n = $(id); if (n) n.textContent = topicsT(key);
   }
@@ -14418,6 +14436,12 @@ window.addEventListener('ecashlive:lang', () => { applyTopicsLang(); });
 const TOPICS_TERMS_KEY  = 'ecashlive:flow:filters';
 const TOPICS_CURSOR_KEY = 'ecashlive:flow:lane-cursor';
 const TOPICS_CORPUS_MAX = 5000;   // must equal Flow's, see HANDOFF decision 7
+/* Declared HERE, not beside the editor that also enforces it. loadTopicSettings
+   caps on load as Flow does, and it is called at module top level -- a const
+   declared further down is in the temporal dead zone at that moment, so the
+   loader threw ReferenceError into the try/catch around it and NO chips
+   rendered. node --check sees none of that. */
+const TOPICS_TERM_MAX   = 8;      // must equal Flow's TERM_MAX
 const TOPICS_MATCH_MAX  = 200;
 const TOPICS_PAGE       = 50;
 const TOPICS_REQUESTS   = 6;
@@ -14437,12 +14461,29 @@ function loadTopicSettings() {
   topicMode = (raw && raw.mode === 'all') ? 'all' : 'any';
   const scope = (raw && Array.isArray(raw.scope) && raw.scope.length) ? raw.scope : null;
   topicScope = scope || [LOKAD.CASHTAB_MSG];
-  topicTerms = list.filter(e => e && typeof e.q === 'string' && e.q).map(e => {
-    const mute = !!e.mute;
-    return { q: e.q.slice(0, 40), on: mute ? (e.on !== false) : false,
-             mode: e.mode === 'contains' ? 'contains' : 'word',
-             fold: !!e.fold, mute };
-  });
+  /* THE LOADER MUST MATCH FLOW'S, because both doors read AND WRITE this one
+     value and neo saves back whatever it loaded. Two ways it did not, both
+     measured against Flow's loadTerms() on one shared store:
+
+     A BARE STRING IS A TERM. Flow reads `typeof e === 'string' ? e : e.q` for
+     saves that predate the option object. neo required e.q, so it dropped those
+     entries -- and then wrote the shortened list back, DELETING them from
+     Flow's list too. Cross-door data loss, from opening the other door once.
+
+     AND THE CAP IS A CAP ON LOAD, not only in the editor. Flow breaks at
+     TERM_MAX while reading; neo mapped the whole array, so a store holding 14
+     gave Flow 8 and neo 13 -- over §10's bound, matched against every arriving
+     message, and written back at that size. */
+  topicTerms = [];
+  for (const e of list) {
+    if (topicTerms.length >= TOPICS_TERM_MAX) break;
+    const q = typeof e === 'string' ? e : (e && e.q);
+    if (!q || typeof q !== 'string') continue;
+    const mute = !!(e && e.mute);
+    topicTerms.push({ q: q.slice(0, 40), on: mute ? (e.on !== false) : false,
+                      mode: (e && e.mode === 'contains') ? 'contains' : 'word',
+                      fold: !!(e && e.fold), mute });
+  }
 }
 function saveTopicSettings() {
   try {
@@ -15070,7 +15111,6 @@ try { loadTopicSettings(); renderTopicChips(); } catch (e) {}
    storage -- structurally, not by discipline. A window that survived a reload
    would silently hide today's messages from someone who had forgotten they set
    it, and the pane would read as broken rather than filtered. */
-const TOPICS_TERM_MAX = 8;
 let topicRange = { from: null, to: null };
 /* ONE OWNER FOR THE WINDOW, because changing it invalidates an answer computed
    about the old one. "Window covered" is a fact about a SPECIFIC window: widen
@@ -15167,9 +15207,19 @@ function renderTopicScopePanel() {
       escapeHtml(name) + ' <span class="meta">' + escapeHtml(read) + machine + '</span>';
     lab.querySelector('input').addEventListener('change', (e) => {
       const next = e.target.checked ? topicScope.concat([id]) : topicScope.filter(x => x !== id);
-      // An empty selection is REFUSED rather than silently re-picked: a pane
-      // that searches nothing while claiming to search is worse than a rule.
-      if (!next.length) { e.target.checked = true; return; }
+      /* AN EMPTY SELECTION IS REFUSED, AND SAID OUT LOUD. A pane that searches
+         nothing while claiming to search is worse than a rule -- but a refusal
+         with nothing on the page to explain it reads as a broken control
+         rather than a rule, which is exactly what v2.7.0 fixed for the date
+         fields. The key was already borrowed and sitting unused; the "defined
+         but never used" gate is what found the missing half. */
+      if (!next.length) {
+        e.target.checked = true;
+        const h = $('tp-scope-hint');
+        if (h) { h.textContent = topicsT('scope.needOne'); setTimeout(() => { if (h.textContent === topicsT('scope.needOne')) h.textContent = ''; }, 4000); }
+        return;
+      }
+      { const h = $('tp-scope-hint'); if (h) h.textContent = ''; }
       topicScope = C.sanitizeScope(next);
       saveTopicSettings();
       tpBf = null; tpDeepDone = false; tpRangeDone = false; tpUnread = 0;  // unread counted protocols nobody is searching now
@@ -15276,7 +15326,7 @@ function renderTermSuggestions() {
     .slice(0, 8);
   if (!picks.length) { box.hidden = true; return; }
   box.hidden = false;
-  lbl.textContent = 'from the ' + scanned + ' messages read so far';
+  lbl.textContent = topicsTf('term.fromRead', { n: scanned });
   wrap.innerHTML = '';
   for (const [w] of picks) {
     const b = document.createElement('button');
@@ -15290,7 +15340,7 @@ function saveTermFromEditor() {
   const q = ($('tp-ed-q').value || '').trim();
   const hint = $('tp-ed-hint');
   if (!q) { hint.textContent = topicsT('term.needText'); return; }
-  if (topicTerms.length >= TOPICS_TERM_MAX) { hint.textContent = TOPICS_TERM_MAX + ' topics is the limit.'; return; }
+  if (topicTerms.length >= TOPICS_TERM_MAX) { hint.textContent = topicsTf('term.full', { n: TOPICS_TERM_MAX }); return; }
   if (topicTerms.some(t => t.q.toLowerCase() === q.toLowerCase())) { hint.textContent = topicsT('term.dupe'); return; }
   topicTerms.push({
     q: q.slice(0, 40),
