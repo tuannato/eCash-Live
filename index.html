@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-ZN/HSgqgY+b20Utd2nQlFrce2U69/267gf04mAGNJJs=';
+  script-src 'self' 'sha256-ZLvvkPFXXQ0S+3Kr32rP8wmFTbWY9ilr7R65/i2ovwg=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -2411,6 +2411,12 @@
   #section-messages[data-tab="chat"] .msg-filters,
   #section-messages[data-tab="chat"] .msg-list { display: none; }
   #section-messages[data-tab="feed"] .chatbox { display: none; }
+  /* The "+" and its panel live in .msg-wrap, beside the list rather than inside
+     it, so the two rules above do not reach them: on Chat they stayed on screen,
+     floating a second send control over a pane that already has its own
+     composer. Hidden by the same switch that hides the rest of the feed. */
+  #section-messages[data-tab="chat"] #qs-fab,
+  #section-messages[data-tab="chat"] #qs-panel { display: none; }
 
   /* ============ TOPICS — an overlay over the feed, not a third tab ============
      Modelled on Flow's #lane over #stream deliberately: a covering state with a
@@ -2485,6 +2491,70 @@
   }
   .topic-text { font-size: 12px; line-height: 1.45; color: var(--text-2); word-break: break-word; }
   .topics-foot { padding: 9px 16px; border-top: 1px solid var(--line); }
+
+  /* ============ QUICK SEND — the "+" from Flow, always visible ============
+     ALWAYS, unlike Flow, and the reason is the sort order rather than taste.
+     Flow hides its FAB whenever the reader leaves the bottom, because on Flow
+     the bottom IS the live end. neo runs the other way -- newest at the top --
+     so "scrolled away from the bottom" here means "reading the newest
+     messages", which is exactly when someone wants to write. The rule would
+     hide the button at the only moment it is wanted.
+
+     The cost of always-on is that the last row would sit under it, so both
+     scrollers reserve room at the foot. That is Flow's own fix, and it is what
+     makes this safe rather than merely possible. */
+  .msg-list, #topics-body { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+  #qs-fab {
+    position: absolute; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom));
+    z-index: 6; width: 46px; height: 46px; border: 0; border-radius: 50%;
+    background: linear-gradient(120deg, #273498, #0074c2, #00abe7); color: #fff;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 18px rgba(0,116,194,0.42); transition: transform 0.18s;
+  }
+  #qs-fab svg { width: 22px; height: 22px; }
+  #qs-fab:hover { transform: scale(1.06); }
+  #qs-fab:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+  #qs-panel {
+    position: absolute; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom));
+    z-index: 7; width: min(340px, calc(100% - 32px)); max-height: calc(100% - 32px);
+    overflow-y: auto; overflow-x: hidden;
+    background: var(--bg-2); border: 1px solid var(--line-2); border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.6); padding: 12px;
+    display: flex; flex-direction: column; gap: 8px;
+    opacity: 0; transform: translateY(10px) scale(0.98); transform-origin: bottom right;
+    transition: opacity 0.18s, transform 0.18s;
+  }
+  #qs-panel.show { opacity: 1; transform: none; }
+  #qs-panel[hidden] { display: none !important; }
+  .qs-head {
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: 'Fira Code', 'SF Mono', Monaco, Consolas, monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.16em; color: var(--text-2);
+  }
+  #qs-close { border: 0; background: none; color: var(--text-3); font-size: 15px; cursor: pointer; line-height: 1; padding: 2px 5px; }
+  #qs-close:hover { color: var(--text); }
+  #qs-panel input[type=text] {
+    width: 100%; min-width: 0; font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 13px;
+    color: var(--text); background: rgba(0,0,0,0.3); border: 1px solid var(--line-2);
+    border-radius: 4px; padding: 7px 9px; outline: none;
+  }
+  #qs-panel input[type=text]:focus { border-color: var(--cyan-dim); }
+  .qs-picks { display: flex; gap: 4px; flex-wrap: wrap; }
+  .qs-pick {
+    font-family: 'Fira Code', monospace; font-size: 9px; text-transform: uppercase;
+    letter-spacing: 0.12em; padding: 3px 7px; border: 1px solid var(--line-2);
+    border-radius: 3px; background: transparent; color: var(--text-3); cursor: pointer;
+  }
+  .qs-pick:hover, .qs-pick.on { color: var(--cyan); border-color: var(--cyan-dim); background: rgba(1,160,224,0.08); }
+  .qs-hint { font-family: 'Fira Code', monospace; font-size: 9px; line-height: 1.6; color: var(--text-3); min-height: 12px; }
+  .qs-hint.warn { color: var(--amber); }
+  .qs-send {
+    padding: 6px 14px; border: 1px solid var(--cyan-dim); border-radius: 3px;
+    background: rgba(1,160,224,0.12); color: var(--cyan);
+    font-family: 'Fira Code', monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.14em; cursor: pointer; align-self: flex-start;
+  }
+  .qs-send:hover { background: rgba(1,160,224,0.2); }
   #topics-body::-webkit-scrollbar { width: 6px; }
   #topics-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 3px; }
   .topics-state {
@@ -6148,7 +6218,8 @@
     .chat-amount-input,
     .wl-dialog .wl-input,
     .btl-col-left .btl-chain-search,
-    .block-txlist-dialog .btl-search { font-size: 16px; }
+    .block-txlist-dialog .btl-search,
+    #qs-panel input[type=text] { font-size: 16px; }
   }
 
   /* ============ RESPONSIVE - mobile (<768px) ============ */
@@ -7567,6 +7638,17 @@
         </div>
         <div class="msg-wrap">
           <div class="msg-list" id="msg-list"></div>
+          <button id="qs-fab" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Send an on-chain message">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+          <div id="qs-panel" role="dialog" aria-modal="true" aria-labelledby="qs-title" hidden>
+            <div class="qs-head"><span id="qs-title">Send on-chain</span><button id="qs-close" type="button" aria-label="Close">&times;</button></div>
+            <input type="text" id="qs-to" placeholder="Recipient address" autocomplete="off" spellcheck="false">
+            <div class="qs-picks" id="qs-picks"></div>
+            <input type="text" id="qs-msg" placeholder="A short message" maxlength="215" autocomplete="off">
+            <p class="qs-hint" id="qs-hint"></p>
+            <button class="qs-send" id="qs-send" type="button">Send via Cashtab</button>
+          </div>
           <div id="topics" aria-label="Topics" role="region">
             <div id="topics-body">
               <div class="topics-state" id="topics-empty">
@@ -8106,6 +8188,7 @@ import {
   parseOpReturn,
   applyTokenOverride,
   encodeOutputScript,
+  validateCashAddress,
   readScriptItems,
   hexToUtf8,
   LOKAD,
@@ -14047,6 +14130,150 @@ function topicsIngestLive(tx) {
 }
 
 try { loadTopicSettings(); renderTopicChips(); } catch (e) {}
+/* ============ QUICK SEND ============
+   REUSES neo's OWN send path rather than building a second one. chatBuildBip21
+   already encodes the Cashtab-Msg OP_RETURN and the amount, and
+   chatSendViaCashtabExtension already talks to the extension; a composer that
+   assembled its own URL would mean two ways of building the same message on one
+   door, which is the "two writers" shape this whole series has been undoing. */
+(() => {
+  const fab = $('qs-fab'), panel = $('qs-panel'), to = $('qs-to'), msg = $('qs-msg'),
+        hint = $('qs-hint'), picks = $('qs-picks'), send = $('qs-send'), close = $('qs-close');
+  if (!fab || !panel) return;
+  let lastFocus = null;
+
+  const setHint = (t, warn) => { hint.textContent = t || ''; hint.classList.toggle('warn', !!warn); };
+
+  /* ONE TAP INSTEAD OF A PASTED ADDRESS. My wallet first when it is known, then
+     watchlist entries BY NAME — the reader named them, so they are the handles
+     they already think in. */
+  function renderPicks() {
+    picks.innerHTML = '';
+    const add = (label, addr) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'qs-pick'; b.textContent = label;
+      b.addEventListener('click', () => {
+        to.value = addr; setHint('');
+        picks.querySelectorAll('.qs-pick').forEach(x => x.classList.toggle('on', x === b));
+        msg.focus();
+      });
+      picks.appendChild(b);
+    };
+    try {
+      const me = chatState && chatState.myAddr;
+      if (me) add('My wallet', me);
+      // loadWatchlist() fills the module-level `watchlist` and returns nothing,
+      // so read the store rather than a return value. Addresses only: a token id
+      // is not somewhere a message can be sent.
+      const rows = (watchlist && Array.isArray(watchlist.addresses)) ? watchlist.addresses : [];
+      // enabled !== false, the same gate applyWatchlistDecoration uses. A row the
+      // reader switched off is not a destination they want offered back to them.
+      for (const e of rows.filter(r => r && r.kind !== 'token' && r.enabled !== false).slice(0, 4)) {
+        add(e.name || chatAddrShort(e.addr), e.addr);
+      }
+    } catch (e) {}
+  }
+
+  function open() {
+    lastFocus = document.activeElement;
+    renderPicks();
+    setHint('');
+    panel.hidden = false;
+    requestAnimationFrame(() => panel.classList.add('show'));
+    fab.setAttribute('aria-expanded', 'true');
+    (to.value ? msg : to).focus();
+  }
+  function shut() {
+    panel.classList.remove('show');
+    panel.hidden = true;
+    fab.setAttribute('aria-expanded', 'false');
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  fab.addEventListener('click', () => (panel.hidden ? open() : shut()));
+  close.addEventListener('click', shut);
+  /* CAPTURE, ON THE DOCUMENT. A keydown listener on the panel only fires while
+     focus is inside it, so one Tab out of the last control and Escape stopped
+     working -- the panel would then be closable only with the mouse. */
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !panel.hidden) { e.stopPropagation(); shut(); }
+  }, true);
+
+  send.addEventListener('click', async () => {
+    const addr = (to.value || '').trim();
+    const text = (msg.value || '').trim();
+    if (!addr) { setHint('Choose or paste a recipient address.', true); to.focus(); return; }
+    if (!text) { setHint('Type a message first.', true); msg.focus(); return; }
+    /* THE LIMIT IS UTF-8 BYTES, AND maxlength COUNTS CHARACTERS. "gm" is two of
+       each; a Vietnamese sentence or an emoji is not, so a message that fits the
+       attribute can still overflow the OP_RETURN. Chat shows a live byte count
+       for the same reason; this refuses rather than letting Cashtab reject it
+       after the reader has already left the page. */
+    const bytes = chatUtf8Bytes(text);
+    if (bytes > CHAT_OP_RETURN_BUDGET) {
+      setHint('Too long: ' + bytes + ' of ' + CHAT_OP_RETURN_BUDGET + ' bytes. Emoji and accents cost more than one each.', true);
+      msg.focus(); return;
+    }
+    /* THE HAZARD FLOW ALREADY PAID FOR. A message that is EXACTLY a word the
+       reader follows would make the next stranger who writes that word look
+       like them, because the only thing a URL send can match on afterwards is
+       the content. Anything typed beyond the word is fine — it is the bare
+       term that collides. */
+    /* THE HAZARD FLOW ALREADY PAID FOR. A message that is EXACTLY a word the
+       reader follows would make the next stranger who writes that word look
+       like them, because content is the only thing a URL send can match on
+       afterwards. Anything typed beyond the word is fine; it is the bare term
+       that collides. Said out loud rather than silently handled. */
+    const bare = topicFollows().some(t => t.q.toLowerCase() === text.toLowerCase());
+    setHint('Opening Cashtab…');
+    /* chatBuildBip21 takes PEER OBJECTS and a normalised "ecash:q…", which is
+       what the Chat pane hands it. Passing a bare string would have produced
+       "undefined?amount=…" -- a URL that opens Cashtab on nothing. */
+    /* CHECKSUM, not charset. neo's own validateEcashAddress checks the prefix,
+       the length and the alphabet and stops there, so a single mistyped
+       character passes it — and this composer would then hand Cashtab a
+       perfectly-shaped address that belongs to nobody. Flow replaced exactly
+       this check for exactly this reason; validateCashAddress does the real
+       polymod, and txparse is a module neo already imports. */
+    let norm = null;
+    try {
+      const v = validateEcashAddress(addr);
+      if (v && v.ok && validateCashAddress(v.normalized)) norm = v.normalized;
+    } catch (e) {}
+    if (!norm) { setHint('That address is not valid — check it character by character.', true); to.focus(); return; }
+    let bip21 = '';
+    try { bip21 = chatBuildBip21([{ addr: norm }], chatState.amountXec || 5.46, text); } catch (e) {}
+    if (!bip21) { setHint('Could not build the payment link.', true); return; }
+    /* PROBE, THEN SEND. chatSendViaCashtabExtension is optimistic by design --
+       it posts and resolves true after 200ms whether anything is listening or
+       not, because the extension does not acknowledge a Pay. Branching on its
+       result meant the URL fallback NEVER ran: everyone without the extension
+       got a cleared field, a hint saying "Sent", and no Cashtab. That is the
+       worst shape a failure takes, and it is the same one this repo already
+       shipped once on Flow's Send button.
+
+       chatProbeCashtabExtension is the function that actually answers the
+       question -- it listens for the handshake and resolves false on a 300ms
+       timeout -- and it was sitting unused. */
+    let present = false;
+    try { present = await chatProbeCashtabExtension(); } catch (e) {}
+    if (present) {
+      try { await chatSendViaCashtabExtension(bip21); } catch (e) {}
+      setHint(bare
+        ? 'Sent to the Cashtab extension. This is exactly a topic you follow, so it will not be marked as yours.'
+        : 'Sent to the Cashtab extension. Confirm there to broadcast.');
+    } else {
+      let opened = null;
+      try { opened = window.open(chatBuildCashtabUrl(bip21), '_blank', 'noopener'); } catch (e) {}
+      if (!opened) { setHint('Could not open Cashtab — allow pop-ups for this site and try again.', true); return; }
+      setHint(bare
+        ? 'Cashtab opened. This is exactly a topic you follow, so it will not be marked as yours.'
+        : 'Cashtab opened in a new tab. Confirm there to broadcast.');
+    }
+    msg.value = '';
+  });
+
+  window.addEventListener('ecashlive:lang', renderPicks);
+})();
 $('topics-add')?.addEventListener('click', openTopics);
 $('topics-exit')?.addEventListener('click', closeTopics);
 
