@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-/cNe8qf4OxJ8Igu9XVvMm7zJEGaveCOb/eEA8hLH4+o=';
+  script-src 'self' 'sha256-WKk/9MTzASeFJf0P71kAEun1KuTFsY8U5gIUgO7GSBM=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -2505,7 +2505,7 @@
   .hscroll { position: relative; }
   .hscroll::after {
     content: '\203A';                 /* a chevron, not an arrow: one glyph wide */
-    position: sticky; right: 0; flex: none;
+    position: sticky; flex: none;
     align-self: stretch; display: flex; align-items: center; justify-content: flex-end;
     /* Wide enough, and solid enough, to actually COVER the chip it sits over.
        The first version was 34px ending at 62%, which left ~13px of solid paint
@@ -2518,7 +2518,18 @@
        well -- the chevron rendered as a smudge on the letter N of an amber
        chip, opaque gradient and all. A cover has to outrank what it covers. */
     z-index: 2;
-    width: 52px; margin-left: -52px; padding-right: 2px;
+    /* PULLED OVER THE ROW'S OWN PADDING. A sticky right:0 lands on the padding
+       box, so with 16px of side padding the fade stopped 16px short and a chip
+       went on showing to the right of the chevron -- the affordance covering
+       everything except the thing it was covering. The negative right margin
+       reaches the real edge; the width grows with it so the gradient is no
+       shorter than before. */
+    /* `right: -16px`, NOT a negative right margin. Sticky keeps the element's
+       MARGIN box inside the scrollport, so margin-right:-16px pulled the
+       border box 16px LEFT -- the opposite of reaching past the padding, and
+       two renders went by before that was measured rather than eyeballed. */
+    right: -16px;
+    width: 68px; margin-left: -68px; padding-right: 4px;
     font: 700 16px/1 'Space Grotesk', system-ui, sans-serif;
     color: var(--text); pointer-events: none;
     background: linear-gradient(90deg,
@@ -14003,6 +14014,12 @@ function renderTopicChips() {
   const add = $('topics-add');
   if (!row || !add) return;
   row.querySelectorAll('.topic-chip').forEach(el => el.remove());
+  /* ONE ADVANCING INSERTION POINT. The old loop inserted every chip at
+     add.nextSibling, so the DOM came out REVERSED relative to the array it was
+     built from -- correct by accident, and impossible to reason about once the
+     order carries meaning. `at` walks forward, so DOM order is the order of the
+     list below and nothing else. */
+  let at = add;
   /* SHOWN ONLY WITH TWO OR MORE TOPICS RUNNING. With one, "any" and "all" are
      the same answer and the control could not change what is on screen -- a
      button that cannot do anything is noise, and worse, it implies the result
@@ -14023,9 +14040,27 @@ function renderTopicChips() {
       if (topicsEngineReady()) { topicsRematch(); runTopicsBackfill(); }
       renderMessages();
     });
-    row.insertBefore(m, add.nextSibling);
+    at = row.insertBefore(m, at.nextSibling);
   }
-  for (const t of topicTerms) {
+  /* MUTES ALWAYS LAST (user's call, 2026-08-19), and this is a RENDER order
+     only -- topicTerms itself is untouched, because that array is the value
+     Flow reads out of the shared key and reordering it here would silently
+     reorder the other door's list too (decision 14: one stored value, two
+     doors).
+
+     The reasoning is what the two kinds ARE. A followed topic is a question
+     you are reading answers to; a mute is a standing defence you set once and
+     stop thinking about. Interleaved by creation date, the thing you are
+     reading gets pushed off the right edge by the thing you are ignoring --
+     and on a 390px column that edge arrives fast.
+
+     Newest-first WITHIN each group, which is the order this row already had:
+     a topic added a moment ago is the one being looked for. */
+  const ordered = [
+    ...topicTerms.filter((t) => !t.mute).reverse(),
+    ...topicTerms.filter((t) => t.mute).reverse(),
+  ];
+  for (const t of ordered) {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'msg-filter topic-chip' + (t.mute ? ' mute' : (t.on ? ' active' : ''));
@@ -14041,7 +14076,7 @@ function renderTopicChips() {
       if (topicsEngineReady()) { topicsRematch(); runTopicsBackfill(); }
       renderMessages();          // a mute change re-hides feed cards
     });
-    row.insertBefore(b, add.nextSibling);
+    at = row.insertBefore(b, at.nextSibling);
   }
   // The row just changed width. Measuring on the next frame rather than now,
   // because the chips have not been laid out yet at this point.

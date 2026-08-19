@@ -1286,6 +1286,20 @@ console.log('\n-- the row says when it overflows --');
      the chevron rendered as a smudge on an amber chip, opaque gradient and all. */
   ok('and paints above the lit chips',
      Number((fade.match(/z-index:\s*(\d+)/) || [])[1]) > 1);
+  /* IT REACHES PAST THE ROW'S OWN PADDING, via a sticky OFFSET and not a
+     negative margin: sticky keeps the element's MARGIN box inside the
+     scrollport, so margin-right:-16px pulled the border box 16px LEFT -- the
+     opposite of the intent, and two renders went by before it was measured
+     rather than eyeballed. Measured after: ::after right -16px against a 14px
+     padding, chevron at the true edge with nothing showing past it. */
+  ok('the fade reaches past the row padding', /right:\s*-(\d+)px/.test(fade));
+  ok('and does it with an offset, not a margin', !/margin-right:\s*-/.test(fade));
+  {
+    const reach = Number(fade.match(/right:\s*-(\d+)px/)[1]);
+    const pads = [...strip.matchAll(/padding:\s*[\d.]+px\s+([\d.]+)px/g)].map((m) => Number(m[1]));
+    ok('by at least the widest padding it has to cover (' + reach + ' >= ' + Math.max(...pads) + ')',
+       reach >= Math.max(...pads));
+  }
   ok('the nudge respects reduced motion',
      /@media \(prefers-reduced-motion: no-preference\)[\s\S]{0,160}hint-on/.test(css));
   ok('and the fade is hidden until it is needed',
@@ -1315,6 +1329,104 @@ console.log('\n-- the row says when it overflows --');
   ok('and when the chips change', /requestAnimationFrame\(updateTopicScrollHint\)/.test(grab('renderTopicChips')));
   ok('and when the pane opens', /requestAnimationFrame\(updateTopicScrollHint\)/.test(grab('openTopics')));
   ok('the listeners are attached once', /if \(!el \|\| el\._hsInit\) return;/.test(init));
+}
+
+// ===========================================================================
+// CHIP ORDER. A followed topic is a question you are reading answers to; a mute
+// is a standing defence you set once and stop thinking about. Interleaved by
+// creation date, the thing you are reading gets pushed off the right edge by the
+// thing you are ignoring -- and the row overflows at 390px well before the cap.
+// Driven against a fake DOM: the order is what the renderer PRODUCES, not what
+// its source says it intends.
+// ===========================================================================
+console.log('\n-- mutes sit at the end --');
+{
+  function chipsFor(terms, mode = 'any') {
+    const made = [];
+    const row = {
+      children: [],
+      querySelectorAll: () => [],
+      insertBefore(node, ref) {
+        const i = row.children.indexOf(ref);
+        row.children.splice(i === -1 ? row.children.length : i, 0, node);
+        return node;
+      },
+    };
+    const add = { id: 'add', get nextSibling() { return row.children[row.children.indexOf(add) + 1] || null; } };
+    row.children.push(add);
+    // every inserted node needs the same nextSibling view
+    const mkNext = (n) => Object.defineProperty(n, 'nextSibling', {
+      get() { return row.children[row.children.indexOf(n) + 1] || null; }, configurable: true });
+    const document = {
+      createElement: () => {
+        const n = { className: '', textContent: '', type: '',
+          setAttribute() {}, addEventListener() {} };
+        mkNext(n); made.push(n); return n;
+      },
+      querySelector: () => row,
+    };
+    const src = [
+      'const topicTerms = terms;',
+      'let topicMode = mode;',
+      'function $(){ return add; }',
+      'function topicFollows(){ return topicTerms.filter(t => t.on && !t.mute); }',
+      'function topicsT(k){ return k; }',
+      'function saveTopicSettings(){}',
+      'function topicsEngineReady(){ return false; }',
+      'function openTopics(){}',
+      'function topicsRematch(){}',
+      'function runTopicsBackfill(){}',
+      'function renderMessages(){}',
+      'function initTopicScrollHint(){}',
+      'function updateTopicScrollHint(){}',
+      'function requestAnimationFrame(){}',
+      grab('renderTopicChips'),
+      'renderTopicChips();',
+    ].join('\n');
+    new Function('terms', 'mode', 'document', 'add', 'row', src)(terms, mode, document, add, row);
+    // read the DOM back, not the input
+    return row.children.filter((n) => n !== add)
+      .map((n) => (n.className.includes('topic-mode') ? '[mode]' : n.textContent));
+  }
+  const T = (q, o) => Object.assign({ q, on: true, mute: false }, o);
+
+  eq('a lone topic renders alone', chipsFor([T('gm')]), ['gm']);
+  // Newest first WITHIN a group -- the topic added a moment ago is the one
+  // being looked for. Storage is oldest-first.
+  eq('topics come back newest first',
+     chipsFor([T('gm'), T('firma'), T('xec')]), ['[mode]', 'xec', 'firma', 'gm']);
+  // THE ASK: a mute created in the middle does not sit in the middle.
+  // THE ASK: a mute created in the middle does not sit in the middle. (Both of
+  // these have two RUNNING topics, so the mode chip is there too -- my first
+  // pass wrote the expectation without it and the suite was right, not the code.)
+  eq('a mute goes to the end however old it is',
+     chipsFor([T('gm'), T('casino', { mute: true }), T('firma')]),
+     ['[mode]', 'firma', 'gm', 'casino']);
+  eq('several mutes keep their own order, still at the end',
+     chipsFor([T('casino', { mute: true }), T('gm'), T('dice', { mute: true }), T('firma')]),
+     ['[mode]', 'firma', 'gm', 'dice', 'casino']);
+  eq('all mutes is just all mutes',
+     chipsFor([T('casino', { mute: true }), T('dice', { mute: true })]), ['dice', 'casino']);
+  eq('an OFF topic is still a topic, not a mute',
+     chipsFor([T('gm', { on: false }), T('casino', { mute: true }), T('firma')]),
+     ['firma', 'gm', 'casino']);
+  // The mode chip needs two RUNNING topics; mutes and off topics do not count.
+  eq('two mutes do not summon the mode chip',
+     chipsFor([T('a', { mute: true }), T('b', { mute: true })]), ['b', 'a']);
+  eq('a topic plus a mute does not either',
+     chipsFor([T('gm'), T('casino', { mute: true })]), ['gm', 'casino']);
+  eq('two running topics do',
+     chipsFor([T('gm'), T('firma')]), ['[mode]', 'firma', 'gm']);
+
+  /* THE STORED ARRAY IS NOT REORDERED. It is the value Flow reads out of the
+     shared key, so sorting it here would silently reorder the other door's
+     list -- decision 14 is one stored value, two doors. */
+  {
+    const terms = [T('gm'), T('casino', { mute: true }), T('firma')];
+    const before = terms.map((t) => t.q).join(',');
+    chipsFor(terms);
+    eq('rendering does not reorder what is stored', terms.map((t) => t.q).join(','), before);
+  }
 }
 
 console.log(fail ? `\nFAILED ${fail}/${pass + fail}` : `\nok: neo topics ${pass} assertions`);
