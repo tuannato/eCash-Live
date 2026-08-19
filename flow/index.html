@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-Fu/M/ibqaMVO3MmizUt3CN+kDxCt7srh9jCcTwvDu8M=';
+  script-src 'self' 'sha256-eBojczd9nneonFWGpfkX3xYZQs8lxgxXj7UG5yAq+ks=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -1563,7 +1563,8 @@ import { parseTransactionCore, encodeOutputScript, validateCashAddress, parseOpR
 // segmentWords + normalize are new imports and need NO ?v bump: both have been
 // exported from match.js since before p5, so the copy a returning visitor holds
 // already has them.
-import { matchAny, matchEvery, findAllSpans, segmentWords, normalize as normalizeTerm } from '../vendor/core/match.js?v=7';
+import { matchAny, matchEvery, findAllSpans, segmentWords, findHashtags, normalize as normalizeTerm } from '../vendor/core/match.js?v=8';
+import { computeSuggestions as computeSuggestions_core } from '../vendor/core/suggest.js?v=1';
 import { createBackfill } from '../vendor/core/backfill.js?v=6';
 import { laneReach, laneWindows, shiftRangesForGrowth, inScope, scopeLabel, sanitizeScope, scopeCursorView, inRange, dayStart, rangeActive, senderOf, presetFrom, presetActive } from '../vendor/core/lane-cursor.js?v=1';
 import { createCorpus } from '../vendor/core/lane-corpus.js?v=1';
@@ -4620,25 +4621,11 @@ function lanePrefilter(txData, lokadId){
    per language, which is sixteen translations and a correctness trap in Thai
    and Vietnamese. A suggestion is a chip nobody has to tap, so the cost of one
    dull entry is low and the cost of a wrong stopword list is not. */
-const SUGGEST_MAX = 8;            // two comfortable rows on a phone; median term is 5 chars
-const SUGGEST_MIN_DF = 3;         // shout + words: three distinct messages
-const SUGGEST_MIN_DF_TAG = 2;     // a hashtag is already a declared topic
-const SUGGEST_DF_CEIL = 0.30;     // and not in more than a third of them
-const SUGGEST_MIN_SENDERS = 4;    // tier 3 only: written by four different people
-const SUGGEST_MIN_SENDERS_TAG = 2; // one bot repeating #casino must not take a slot
-const SUGGEST_TAG_SOFT = 4;       // at most half the row while tiers 2/3 still have anyone
-const SUGGEST_MAX_LEN = 20;       // beyond this it is an address or a URL, not a topic
-/* THE BOUNDARY IS "NOT A WORD CHARACTER", never a list of punctuation.
-   The first version enumerated [\s(\[,.!?;:] and missed the one delimiter this
-   page puts there itself: a message card wraps text in typographic quotes, so
-   a tag at the start of a message sits after “ and was not linkified — while
-   the same tag mid-sentence was. Worse, match.js's hashAt() already used the
-   correct rule, so the two disagreed: the search found `#firma` in a message
-   whose `#firma` the reader could not tap. I wrote the comment saying these two
-   must agree and then shipped two different rules. */
-const HASHTAG_RE = /(?:^|[^\p{L}\p{N}_])#([\p{L}\p{N}_]{2,30})/gu;
-const SHOUT_RE = /\b[A-Z][A-Z0-9]{2,11}\b/g;
-const SHOUT_ONE = /^[A-Z][A-Z0-9]{2,11}$/;   // /g is stateful — never .test() with it
+/* The ranking, its eight thresholds, the shout patterns and the hashtag
+   pattern all moved to vendor/core/suggest.js and vendor/core/match.js. Both
+   doors read the same corpus and both tell the reader the chips come "from
+   the {n} messages read so far" -- two rankings under one claim is soul #6
+   broken by duplication, and neo's did disagree with this one. */
 
 let laneSuggestCache = null, laneSuggestAt = -1;
 function laneSuggestInvalidate(){ laneSuggestCache = null; }
@@ -4648,70 +4635,17 @@ function laneSuggestInvalidate(){ laneSuggestCache = null; }
    repeats, and without that one broadcast repeated fifty times outvotes fifty
    people. */
 function computeSuggestions(){
-  const df = new Map(), senders = new Map(), shown = new Map();
-  const seenText = new Set();
-  let docs = 0;
-  const bump = (m, k) => m.set(k, (m.get(k) || 0) + 1);
-  const addSender = (k, s) => {
-    if (!s) return;
-    let set = senders.get(k); if (!set){ set = new Set(); senders.set(k, set); }
-    set.add(s);
-  };
-  for (const e of laneCorpus.values()){
-    if (!e.text || !inScope(e.lokad, state.laneScope)) continue;
-    const key = normalizeTerm(e.text);
-    const fresh = !seenText.has(key);
-    if (fresh){ seenText.add(key); docs++; }
-    const here = new Set();
-    HASHTAG_RE.lastIndex = 0;
-    let m;
-    while ((m = HASHTAG_RE.exec(e.text)) !== null) here.add('#' + m[1]);
-    for (const w of (e.text.match(SHOUT_RE) || [])) here.add(w);
-    for (const w of segmentWords(key)){
-      if (w.length > 1 && w.length <= SUGGEST_MAX_LEN) here.add(w);
-    }
-    for (const w of here){
-      if (fresh) bump(df, w);
-      addSender(w, e.from);
-      if (!shown.has(w)) shown.set(w, w);      // remember the cased form as written
-    }
-  }
-  if (!docs) return [];
-  const taken = new Set(state.terms.map(x => normalizeTerm(x.q)));
-  const qualify = (w, tier) => {
-    const n = df.get(w) || 0;
-    const minDf = tier === 1 ? SUGGEST_MIN_DF_TAG : SUGGEST_MIN_DF;
-    if (n < minDf || n / docs > SUGGEST_DF_CEIL) return null;
-    if (w.length > SUGGEST_MAX_LEN) return null;
-    const norm = normalizeTerm(w);
-    if (taken.has(norm)) return null;
-    const need = tier === 1 ? SUGGEST_MIN_SENDERS_TAG
-               : tier === 3 ? SUGGEST_MIN_SENDERS
-               : 0;
-    if (need && (senders.get(w) || { size: 0 }).size < need) return null;
-    return { term: shown.get(w) || w, n, tier, norm };
-  };
-  const rank = (pred) => [...df.keys()].filter(pred).sort((a, b) => df.get(b) - df.get(a));
-  const tags = [], shouts = [], words = [];
-  for (const w of rank(w => w[0] === '#')){ const row = qualify(w, 1); if (row) tags.push(row); }
-  for (const w of rank(w => w[0] !== '#' && SHOUT_ONE.test(w))){ const row = qualify(w, 2); if (row) shouts.push(row); }
-  for (const w of rank(w => w[0] !== '#' && w === w.toLowerCase())){ const row = qualify(w, 3); if (row) words.push(row); }
-  /* Soft cap: at most SUGGEST_TAG_SOFT hashtags while shout/word candidates
-     exist. Leftover slots refill from the remaining tags, so 8/8 hashtags
-     only happens when tiers 2 and 3 produced nobody. Fixed gates — no
-     self-raising threshold that would oscillate between two opens. */
-  const out = [];
-  const used = new Set();
-  const take = (row) => {
-    if (out.length >= SUGGEST_MAX || used.has(row.norm)) return;
-    used.add(row.norm);
-    out.push({ term: row.term, n: row.n, tier: row.tier });
-  };
-  for (const row of tags.slice(0, SUGGEST_TAG_SOFT)) take(row);
-  for (const row of shouts) take(row);
-  for (const row of words) take(row);
-  for (const row of tags.slice(SUGGEST_TAG_SOFT)) take(row);
-  return out;
+  /* THE RANKING LIVES IN vendor/core/suggest.js. What stays here is the two
+     things a shared module must not decide for a door: which rows count
+     (the scope picker's answer) and which terms are already taken. Both are
+     required arguments there, with no defaults -- an implicit "everything"
+     would mine protocols the reader deselected, and an implicit empty set
+     would offer back the words they already follow. */
+  return computeSuggestions_core({
+    rows: laneCorpus.values(),
+    wanted: (e) => inScope(e.lokad, state.laneScope),
+    taken: new Set(state.terms.map(x => normalizeTerm(x.q))),
+  });
 }
 // Recomputed on idle, and only when the corpus has actually moved: measured at
 // 101 ms per 1,000 messages, so a 5,000-row corpus is a third of a second and
@@ -5899,26 +5833,26 @@ function linkifyTags(root, focusable){
   }
   for (const node of targets){
     const s = node.nodeValue;
-    HASHTAG_RE.lastIndex = 0;
-    let m, pos = 0;
+    /* findHashtags() owns the offsets now. The old loop recomputed where the
+       tag starts (the pattern carries a leading boundary character, so the tag
+       is not at m.index) -- the same arithmetic in two places, and the shared
+       one is the tested one. */
     const frag = document.createDocumentFragment();
-    while ((m = HASHTAG_RE.exec(s)) !== null){
-      // The pattern carries a leading boundary character so "a#b" is not a tag;
-      // the tag itself therefore starts at the '#', not at the match index.
-      const start = m.index + m[0].length - (m[1].length + 1);
-      if (start > pos) frag.appendChild(document.createTextNode(s.slice(pos, start)));
-      const tag = document.createElement('span');
-      tag.className = 'tag';
-      tag.dataset.tag = '#' + m[1];
-      tag.textContent = '#' + m[1];
-      tag.setAttribute('title', tf('term.addTag', { q: '#' + m[1] }));
+    let pos = 0;
+    for (const [a, b, tag] of findHashtags(s)){
+      if (a > pos) frag.appendChild(document.createTextNode(s.slice(pos, a)));
+      const el = document.createElement('span');
+      el.className = 'tag';
+      el.dataset.tag = tag;
+      el.textContent = tag;
+      el.setAttribute('title', tf('term.addTag', { q: tag }));
       if (focusable){
-        tag.setAttribute('role', 'button');
-        tag.tabIndex = 0;
-        tag.setAttribute('aria-label', tf('term.addTag', { q: '#' + m[1] }));
+        el.setAttribute('role', 'button');
+        el.tabIndex = 0;
+        el.setAttribute('aria-label', tf('term.addTag', { q: tag }));
       }
-      frag.appendChild(tag);
-      pos = start + m[1].length + 1;
+      frag.appendChild(el);
+      pos = b;
     }
     if (!pos) continue;                       // nothing matched — leave the node alone
     if (pos < s.length) frag.appendChild(document.createTextNode(s.slice(pos)));

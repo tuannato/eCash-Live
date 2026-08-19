@@ -1030,11 +1030,17 @@ console.log('\n-- rows: highlight and hashtags --');
 // ever disagree, a tag one door makes tappable is not findable by the term it
 // creates. Byte-compare rather than trust.
 {
+  /* THIS USED TO BYTE-COMPARE Flow's inline copy against match.js, because two
+     copies of one rule is a drift hazard and comparing them was the best that
+     could be done while both existed. Flow imports it now, so there is one
+     copy and nothing to compare -- the hazard is gone rather than policed.
+     What is left to assert is that it stays gone. */
   const flowSrc = readFileSync(join(ROOT, 'flow/index.html'), 'utf8');
-  const flowRe = flowSrc.match(/const HASHTAG_RE = (\/.*\/gu);/);
-  const coreRe = readFileSync(join(ROOT, 'vendor/core/match.js'), 'utf8').match(/export const HASHTAG_RE = (\/.*\/gu);/);
-  ok('both doors declare the hashtag pattern', !!flowRe && !!coreRe);
-  eq('and it is the same pattern, byte for byte', flowRe[1], coreRe[1]);
+  ok('match.js owns the hashtag pattern',
+     /export const HASHTAG_RE = \/.*\/gu;/.test(readFileSync(join(ROOT, 'vendor/core/match.js'), 'utf8')));
+  ok('and Flow keeps no copy of its own', !/const HASHTAG_RE\s*=/.test(flowSrc));
+  ok('nor does neo', !/const HASHTAG_RE\s*=/.test(html));
+  ok('both reach it through the module', /findHashtags/.test(flowSrc) && /findHashtags/.test(mod));
 }
 
 // ===========================================================================

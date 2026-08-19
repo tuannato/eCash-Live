@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-3uFfyZL9ing6wK/rD4s5mnVnkOkyMaBRTSFjlXPYRUM=';
+  script-src 'self' 'sha256-6BOk8djJi5PNcG37MFLongvLsmT2ZLMhaY3NLEovLMU=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -14062,6 +14062,7 @@ const TOPICS_MODULES = [
   './vendor/core/lane-corpus.js?v=1',
   './vendor/core/lane-store.js?v=2',
   './vendor/core/result-store.js?v=2',
+  './vendor/core/suggest.js?v=1',
 ];
 let topicsCore = null, topicsLoading = null;
 /* DYNAMIC, NOT TOP-LEVEL, and the reason is in HANDOFF 08-18 constraint 6: a
@@ -15423,35 +15424,35 @@ function closeTermEditor() {
   const b = $('topics-body');
   if (b) b.hidden = false;
 }
-/* Suggestions are ranked by HOW MANY DIFFERENT SENDERS wrote a word, not by how
-   often it appears. Measured on 1,000 live Cashtab messages: 41% are exact
-   repeats, so counting occurrences lets one broadcast outvote fifty people --
-   by frequency the top of the list was one casino bot's script. */
+/* THE RANKING IS vendor/core/suggest.js, THE SAME ONE FLOW USES. This door had
+   its own: one tier, words of three characters or more written by four
+   different senders, top eight. Flow has three tiers with per-tier thresholds,
+   a document-frequency ceiling and a hashtag quota — so the two produced
+   different chips from the SAME corpus while both told the reader they came
+   "from the {n} messages read so far". Two answers under one claim.
+
+   What stays here is what a shared module must not decide for a door: which
+   rows count, and which terms are already taken. */
 function renderTermSuggestions() {
   const box = $('tp-ed-sugg'), wrap = $('tp-ed-sugg-wrap'), lbl = $('tp-ed-sugg-lbl');
   if (!box || !topicsEngineReady()) return;
-  const bySender = new Map();
+  const C = topicsCore;
+  let picks = [];
   let scanned = 0;
-  for (const row of tpCorpus.dump()) {
-    scanned++;
-    const from = row[4] || String(scanned);
-    for (const w of String(row[1]).toLowerCase().split(/[^\p{L}\p{N}#]+/u)) {
-      if (w.length < 3 || w.length > 20) continue;
-      let set = bySender.get(w);
-      if (!set) { set = new Set(); bySender.set(w, set); }
-      set.add(from);
-    }
-  }
-  const have = new Set(topicTerms.map(t => t.q.toLowerCase()));
-  const picks = [...bySender.entries()]
-    .filter(([w, set]) => set.size >= 4 && !have.has(w))
-    .sort((a, b) => b[1].size - a[1].size)
-    .slice(0, 8);
+  try {
+    for (const _ of tpCorpus.values()) scanned++;
+    picks = C.computeSuggestions({
+      rows: tpCorpus.values(),
+      wanted: (e) => C.inScope(e.lokad, topicScope),
+      taken: new Set(topicTerms.map(t => C.normalize(t.q))),
+    });
+  } catch (e) { console.error('[topics] suggestions failed', e); }
   if (!picks.length) { box.hidden = true; return; }
   box.hidden = false;
   lbl.textContent = topicsTf('term.fromRead', { n: scanned });
   wrap.innerHTML = '';
-  for (const [w] of picks) {
+  for (const row of picks) {
+    const w = row.term;
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'msg-filter';
     b.textContent = w;

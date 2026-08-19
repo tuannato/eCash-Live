@@ -15,7 +15,12 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { matchAny, matchEvery, matchTerm, findTermSpans, findAllSpans, segmentWords, normalize as normalizeTerm } from '../vendor/core/match.js';
+import { matchAny, matchEvery, matchTerm, findTermSpans, findAllSpans, segmentWords, findHashtags, normalize as normalizeTerm } from '../vendor/core/match.js';
+/* THE THRESHOLDS AND THE RANKING MOVED to vendor/core/suggest.js, so this
+   harness injects the module rather than quoting the eight numbers out of
+   the page. The suggestion assertions below are unchanged, and now exercise
+   the delegation AND the shared ranking together. */
+import { computeSuggestions as computeSuggestions_core } from '../vendor/core/suggest.js';
 import { MESSAGE_LOKADS, LOKAD, LOKAD_NAMES } from '../vendor/txparse.js';
 import {
   inScope as inScopeOf, sanitizeScope, scopeLabel as scopeLabelOf, laneReach as laneReachOf,
@@ -77,9 +82,7 @@ function makeLane(quotaChars = Infinity) {
   const factory = new Function(
     'MESSAGE_LOKADS', 'LOKAD', 'LOKAD_NAMES', 'matchAny', 'matchEvery',
     'CORPUS_MAX', 'LANE_CURSOR_KEY', 'localStorage', 'CMP_CHIP_MAX', 'CMP_CHIPS',
-    'segmentWords', 'normalizeTerm', 'SUGGEST_MAX', 'SUGGEST_MIN_DF', 'SUGGEST_DF_CEIL',
-    'SUGGEST_MIN_SENDERS', 'SUGGEST_MAX_LEN', 'HASHTAG_RE', 'SHOUT_RE', 'SHOUT_ONE',
-    'SUGGEST_MIN_DF_TAG', 'SUGGEST_MIN_SENDERS_TAG', 'SUGGEST_TAG_SOFT',
+    'segmentWords', 'normalizeTerm', 'computeSuggestions_core', 'findHashtags',
     'inScopeOf', 'sanitizeScope', 'scopeLabelOf', 'laneReachOf',
     'rangeActiveOf', 'inRangeOf', 'dayStart', 'senderTag',
     'createCorpus', 'createLaneStore', 'createResultStore',
@@ -155,10 +158,7 @@ function makeLane(quotaChars = Infinity) {
   const rx  = (n) => eval(mod.match(new RegExp('const ' + n + ' = (/.*?/[gu]*);'))[1]);
   return factory(MESSAGE_LOKADS, LOKAD, LOKAD_NAMES, matchAny, matchEvery,
                  CORPUS_MAX, LANE_CURSOR_KEY, localStorage, CMP_CHIP_MAX, CMP_CHIPS,
-                 segmentWords, normalizeTerm, num('SUGGEST_MAX'), num('SUGGEST_MIN_DF'),
-                 num('SUGGEST_DF_CEIL'), num('SUGGEST_MIN_SENDERS'), num('SUGGEST_MAX_LEN'),
-                 rx('HASHTAG_RE'), rx('SHOUT_RE'), rx('SHOUT_ONE'),
-                 num('SUGGEST_MIN_DF_TAG'), num('SUGGEST_MIN_SENDERS_TAG'), num('SUGGEST_TAG_SOFT'),
+                 segmentWords, normalizeTerm, computeSuggestions_core, findHashtags,
                  inScopeOf, sanitizeScope, scopeLabelOf, laneReachOf,
                  rangeActiveOf, inRangeOf, dayStart, senderTag,
                  createCorpus, createLaneStore, createResultStore);
@@ -715,16 +715,11 @@ const CT = LOKAD.CASHTAB_MSG, PB = LOKAD.PAYBUTTON, EC = LOKAD.ECASHCHAT_TX, AL 
      The offset matters: the pattern carries a leading boundary character, so the
      tag starts at the '#', not at match.index. */
   console.log('\n-- what counts as a hashtag --');
-  const RE = new RegExp(mod.match(/const HASHTAG_RE = (\/.*?\/[gu]+);/)[1].slice(1).replace(/\/[gu]+$/, ''), 'gu');
-  const tags = (s) => {
-    RE.lastIndex = 0;
-    const out = []; let m;
-    while ((m = RE.exec(s)) !== null){
-      const start = m.index + m[0].length - (m[1].length + 1);
-      out.push([s.slice(start, start + m[1].length + 1), start]);
-    }
-    return out;
-  };
+  /* WAS: the regex quoted out of flow/index.html, with the offset arithmetic
+     restated here. The pattern moved to match.js and findHashtags() owns that
+     arithmetic now, so this drives the helper both doors call instead of a
+     third copy of the same maths. Same cases, same expectations. */
+  const tags = (s) => findHashtags(s).map(([a, , tag]) => [tag, a]);
   eq('plain tag', tags('gm #firma today').map(x => x[0]), ['#firma']);
   eq('at the very start', tags('#firma rules').map(x => x[0]), ['#firma']);
   eq('the offset points at the #', tags('gm #firma').map(x => x[1]), [3]);
