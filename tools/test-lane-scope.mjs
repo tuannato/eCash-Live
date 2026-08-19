@@ -9,8 +9,9 @@
 // test of a copy passes when the copy is right; those fail when the page is
 // wrong.
 //
-// laneRematch (the hidden-id union), laneHold, loadTerms / saveTerms and the
-// mute trio live in tools/test-lane-corpus.mjs — also extracted, not copied.
+// laneRematch (the hidden-id union), loadTerms / saveTerms and the mute
+// trio live in tools/test-lane-corpus.mjs — also extracted, not copied.
+// laneHold / laneSetMatched live in vendor/core/result-store.js.
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -22,6 +23,7 @@ import {
 } from '../vendor/core/lane-cursor.js';
 import { createCorpus } from '../vendor/core/lane-corpus.js';
 import { createLaneStore } from '../vendor/core/lane-store.js';
+import { createResultStore } from '../vendor/core/result-store.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const html = readFileSync(join(ROOT, 'flow/index.html'), 'utf8');
@@ -49,7 +51,7 @@ function grab(name) {
 }
 
 const NAMES = ['cmpChipList', 'dayEnd',
-               'computeSuggestions', 'laneTsOf', 'txWhenMs', 'laneSetMatched',
+               'computeSuggestions', 'laneTsOf', 'txWhenMs',
                'reopenIndexIfUnanswered'];
 const bodies = NAMES.map(grab).join('\n\n');
 
@@ -80,7 +82,7 @@ function makeLane(quotaChars = Infinity) {
     'SUGGEST_MIN_DF_TAG', 'SUGGEST_MIN_SENDERS_TAG', 'SUGGEST_TAG_SOFT',
     'inScopeOf', 'sanitizeScope', 'scopeLabelOf', 'laneReachOf',
     'rangeActiveOf', 'inRangeOf', 'dayStart', 'senderTag',
-    'createCorpus', 'createLaneStore',
+    'createCorpus', 'createLaneStore', 'createResultStore',
     `
     "use strict";
     const state = { laneScope: [LOKAD.CASHTAB_MSG], termMode: 'any', terms: [] };
@@ -106,7 +108,18 @@ function makeLane(quotaChars = Infinity) {
       return s.cursor;
     }
     const MATCH_MAX = 200;
-    state.txs = new Map(); state.laneTxs = new Map(); state.matched = []; state.matchedTotal = 0;
+    state.txs = new Map(); state.matched = []; state.matchedTotal = 0;
+    const laneResults = createResultStore({
+      max: MATCH_MAX,
+      tsOf: (id, tx) => laneTsOf(id, tx),
+      wanted: (tx) => inScope(tx._lokad) && inRange(laneTsOf(tx.id, tx)) && true,
+    });
+    state.laneTxs = laneResults;
+    function laneSetMatched(ids){
+      laneResults.setMatched(ids);
+      state.matched = laneResults.matched;
+      state.matchedTotal = laneResults.matchedTotal;
+    }
     let laneBf = null, laneSavedCursor = null;
     let laneDeepDone = false, laneRangeDone = false;
     let laneRange = { from: null, to: null }, laneNoDate = 0;
@@ -148,7 +161,7 @@ function makeLane(quotaChars = Infinity) {
                  num('SUGGEST_MIN_DF_TAG'), num('SUGGEST_MIN_SENDERS_TAG'), num('SUGGEST_TAG_SOFT'),
                  inScopeOf, sanitizeScope, scopeLabelOf, laneReachOf,
                  rangeActiveOf, inRangeOf, dayStart, senderTag,
-                 createCorpus, createLaneStore);
+                 createCorpus, createLaneStore, createResultStore);
 }
 
 let pass = 0, fail = 0;

@@ -2,12 +2,12 @@
 //   node tools/test-lane-corpus.mjs
 //
 // The corpus store is imported from the shipped vendor/core/lane-corpus.js
-// (the same module Flow loads). Cursor/coverage math is imported from
-// vendor/core/lane-cursor.js. Door-owned functions are still extracted from
-// flow/index.html. The previous file at this path re-stated a copy (CORPUS_MAX
-// 3000, insertion-order corpus eviction, FIFO laneHold, no lokad/from) and
-// stayed green while the page diverged. A test of a copy passes when the copy
-// is right; those fail when the page is wrong.
+// (the same module Flow loads). The result hold is imported from
+// vendor/core/result-store.js — laneHold / laneSetMatched on the page are
+// thin wrappers, so grabbing those bodies would test a one-liner, not the
+// engine (the 6b33f1b lesson). Cursor/coverage math is imported from
+// vendor/core/lane-cursor.js. Remaining door-owned functions are still
+// extracted from flow/index.html.
 //
 // Constants (CORPUS_MAX, MATCH_MAX, TERM_MAX, TERMS_KEY) are read out of the
 // page. Hardcoding them is how the fossil rotted.
@@ -20,6 +20,7 @@ import {
   inScope as inScopeOf, sanitizeScope, rangeActive as rangeActiveOf, inRange as inRangeOf,
 } from '../vendor/core/lane-cursor.js';
 import { createCorpus } from '../vendor/core/lane-corpus.js';
+import { createResultStore } from '../vendor/core/result-store.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const html = readFileSync(join(ROOT, 'flow/index.html'), 'utf8');
@@ -56,7 +57,7 @@ const TERMS_KEY = mod.match(/const TERMS_KEY = '([^']+)'/)[1];
 const NAMES = [
   'txWhenMs', 'laneTsOf',
   'enabledTerms', 'activeMutes', 'matchTerms', 'txMatchesTerms', 'txIsMuted',
-  'laneHold', 'laneSetMatched', 'laneSuggestInvalidate', 'laneRematch',
+  'laneSuggestInvalidate', 'laneRematch',
   'muteApply', 'recountMutes', 'muteCount',
   'laneAdd', 'sessionCoverage',
   'loadTerms', 'saveTerms',
@@ -104,6 +105,18 @@ function makeLane(opts = {}) {
     'const rangeActive = () => rangeActiveOf(laneRange);',
     'const inRange = (ts) => inRangeOf(ts, laneRange);',
     bodies,
+    'const laneResults = createResultStore({',
+    '  max: MATCH_MAX,',
+    '  tsOf: (id, tx) => laneTsOf(id, tx),',
+    '  wanted: (tx) => inScope(tx._lokad) && inRange(laneTsOf(tx.id, tx)) && txMatchesTerms(tx),',
+    '});',
+    'state.laneTxs = laneResults;',
+    'function laneHold(tx){ laneResults.hold(tx); }',
+    'function laneSetMatched(ids){',
+    '  laneResults.setMatched(ids);',
+    '  state.matched = laneResults.matched;',
+    '  state.matchedTotal = laneResults.matchedTotal;',
+    '}',
     'return {',
     '  state, laneCorpus, muteCounts, localStorage,',
     '  inScope, corpusAdd, corpusMatches, laneTsOf, txWhenMs,',
@@ -128,7 +141,7 @@ function makeLane(opts = {}) {
     'CORPUS_MAX', 'MATCH_MAX', 'TERM_MAX', 'TERMS_KEY',
     'localStorage', 'scope', 'terms', 'termMode',
     'inScopeOf', 'sanitizeScope', 'rangeActiveOf', 'inRangeOf',
-    'createCorpus',
+    'createCorpus', 'createResultStore',
     src
   );
   return factory(
@@ -137,7 +150,7 @@ function makeLane(opts = {}) {
     CORPUS_MAX, MATCH_MAX, TERM_MAX, TERMS_KEY,
     localStorage, scope, terms, termMode,
     inScopeOf, sanitizeScope, rangeActiveOf, inRangeOf,
-    createCorpus
+    createCorpus, createResultStore
   );
 }
 
@@ -166,8 +179,12 @@ ok('TERM_MAX came from the page', Number.isFinite(TERM_MAX) && TERM_MAX >= 1, St
 ok('TERMS_KEY came from the page', typeof TERMS_KEY === 'string' && TERMS_KEY.length > 0, TERMS_KEY);
 ok('laneRematch body starts with function laneRematch',
   grab('laneRematch').startsWith('function laneRematch('));
-ok('laneHold body starts with function laneHold',
+ok('page still names a laneHold wrapper',
   grab('laneHold').startsWith('function laneHold('));
+ok('page still names a laneSetMatched wrapper',
+  grab('laneSetMatched').startsWith('function laneSetMatched('));
+ok('page imports createResultStore',
+  /import \{ createResultStore \}/.test(mod));
 ok('loadTerms body starts with function loadTerms',
   grab('loadTerms').startsWith('function loadTerms('));
 let factoryErr = null;
@@ -426,7 +443,7 @@ console.log('\n=== H. mute counts are incremental, not a re-walk ===');
   // recount walks state.txs only — mute is a stream defence. A held Lane
   // row that never entered the live map is not counted.
   const L = makeLane({ terms: [term('spam', { mute: true })] });
-  L.state.laneTxs.set('held', { id: 'held', _hay: 'spam held' });
+  L.laneHold({ id: 'held', _hay: 'spam held' });
   L.recountMutes();
   eq('recount does not walk laneTxs', L.muteCount('spam'), 0);
 }
@@ -542,9 +559,9 @@ console.log('\n=== laneRematch union: one hidden message counted ONCE ===');
   L.corpusAdd('c3', 'gm again', 12, EC);
   L.corpusAdd('c4', 'gm legacy', 13, null);
   L.corpusAdd('c5', 'nothing here', 14, CT);
-  L.state.laneTxs.set('c2', { id: 'c2', _hay: 'gm friends', _lokad: PB, ts: 11 });
-  L.state.laneTxs.set('c3', { id: 'c3', _hay: 'gm again', _lokad: EC, ts: 12 });
-  L.state.laneTxs.set('c9', { id: 'c9', _hay: 'gm extra', _lokad: PB, ts: 19 });
+  L.laneHold({ id: 'c2', _hay: 'gm friends', _lokad: PB, ts: 11 });
+  L.laneHold({ id: 'c3', _hay: 'gm again', _lokad: EC, ts: 12 });
+  L.laneHold({ id: 'c9', _hay: 'gm extra', _lokad: PB, ts: 19 });
   const cm = L.corpusMatches();
   eq('corpus alone hides 2 (c2, c3)', [...cm.hidden].sort(), ['c2', 'c3']);
   L.laneRematch();
@@ -571,7 +588,7 @@ console.log('\n=== laneRematch union: one hidden message counted ONCE ===');
   // txMatchesTerms, not a private copy of matchAny. This shipped wrong once.
   const L = makeLane({ terms: [term('gm'), term('buy', { mute: true })] });
   L.state.txs.set('seed', { id: 'seed', _hay: 'buy gm now', ts: 1 });
-  L.state.laneTxs.set('held', { id: 'held', _hay: 'buy gm held', ts: 2, _lokad: CT });
+  L.laneHold({ id: 'held', _hay: 'buy gm held', ts: 2, _lokad: CT });
   L.corpusAdd('corp', 'buy gm corp', 3, CT);
   L.laneRematch();
   eq('muted rows from every source stay out of matched', L.state.matched, []);

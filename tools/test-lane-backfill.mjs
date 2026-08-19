@@ -24,6 +24,7 @@ import { MESSAGE_LOKADS, LOKAD } from '../vendor/txparse.js';
 import { rangeActive, inRange, inScope, senderTag, senderOf } from '../vendor/core/lane-cursor.js';
 import { createCorpus } from '../vendor/core/lane-corpus.js';
 import { createLaneStore } from '../vendor/core/lane-store.js';
+import { createResultStore } from '../vendor/core/result-store.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const html = readFileSync(join(ROOT, 'flow/index.html'), 'utf8');
@@ -79,10 +80,9 @@ const TERM = { q: 'hello', on: true, mode: 'word', fold: false, mute: false };
 const LANE_FNS = [
   'enabledTerms', 'activeMutes', 'matchTerms', 'txMatchesTerms', 'txIsMuted',
   'laneTsOf', 'txWhenMs', 'stampTs',
-  'laneHold',
   'corpusAdd',
   'hayFromTx', 'ingestHistoryTx', 'lanePrefilter',
-  'corpusMatches', 'laneSetMatched', 'laneSuggestInvalidate', 'laneRematch',
+  'corpusMatches', 'laneSuggestInvalidate', 'laneRematch',
   'saveLaneStore',
   'laneParseTx',
   'laneHydrate',
@@ -228,6 +228,18 @@ function makeLane(opts = {}) {
     'const RANGE_KICK_MS = ' + RANGE_KICK_MS + ';',
     'const SCOPE_KICK_MS = ' + SCOPE_KICK_MS + ';',
     bodies,
+    'const laneResults = createResultStore({',
+    '  max: MATCH_MAX,',
+    '  tsOf: (id, tx) => laneTsOf(id, tx),',
+    '  wanted: (tx) => inScope(tx._lokad, state.laneScope) && inRange(laneTsOf(tx.id, tx), laneRange) && txMatchesTerms(tx),',
+    '});',
+    'state.laneTxs = laneResults;',
+    'function laneHold(tx){ laneResults.hold(tx); }',
+    'function laneSetMatched(ids){',
+    '  laneResults.setMatched(ids);',
+    '  state.matched = laneResults.matched;',
+    '  state.matchedTotal = laneResults.matchedTotal;',
+    '}',
     'const _hold = laneHold;',
     'laneHold = function(tx){',
     '  held.push(tx && tx.id);',
@@ -280,7 +292,7 @@ function makeLane(opts = {}) {
     'MATCH_MAX', 'CORPUS_MAX', 'LANE_PAGE', 'LANE_REQUESTS', 'LANE_CURSOR_KEY',
     'holdThrow', 'interruptAfterRun', 'opts',
     'rangeActive', 'inRange', 'inScope', 'senderTag', 'senderOf',
-    'createCorpus', 'createLaneStore',
+    'createCorpus', 'createLaneStore', 'createResultStore',
     src
   );
   return factory(
@@ -290,7 +302,7 @@ function makeLane(opts = {}) {
     MATCH_MAX, CORPUS_MAX, LANE_PAGE, requests, LANE_CURSOR_KEY,
     holdThrow, interruptAfterRun, opts,
     rangeActive, inRange, inScope, senderTag, senderOf,
-    createCorpus, createLaneStore
+    createCorpus, createLaneStore, createResultStore
   );
 }
 

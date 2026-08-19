@@ -8,7 +8,7 @@
      Forget it and the page renders blank. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-IGiKjJ6ccXZOYfwBW1rOSc7Bo//PMzyBvD9I7pegCow=';
+  script-src 'self' 'sha256-ARQ1WT1iZHoIwkbs3yJ+gXqQdlcEwDqxife3FEYkBpI=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -1568,6 +1568,7 @@ import { createBackfill } from '../vendor/core/backfill.js?v=6';
 import { laneReach, laneWindows, shiftRangesForGrowth, inScope, scopeLabel, sanitizeScope, scopeCursorView, inRange, dayStart, rangeActive, senderOf, presetFrom, presetActive } from '../vendor/core/lane-cursor.js?v=1';
 import { createCorpus } from '../vendor/core/lane-corpus.js?v=1';
 import { createLaneStore } from '../vendor/core/lane-store.js?v=2';
+import { createResultStore } from '../vendor/core/result-store.js?v=1';
 import { isCashtabExtension, requestAddress as ctRequestAddress, sendBip21 as ctSendBip21 } from '../vendor/cashtab-connect.js?v=1';
 "use strict";
 const $ = (id) => document.getElementById(id);
@@ -2185,9 +2186,8 @@ const state = {
      therefore advances the reported date about five times faster, on the one
      protocol that is dense, fully textual at every depth, and still active. */
   laneScope: [LOKAD.CASHTAB_MSG],
-  matched: [],             // txids matching an enabled term, newest last, cap MATCH_MAX
-  matchedTotal: 0,         // how many matched BEFORE that cap — disclosed, not hidden
-  laneTxs: new Map(),      // txid -> tx pulled by the retrospective backfill, cap MATCH_MAX.
+  // matched / matchedTotal are defined below as getters onto laneResults.
+  laneTxs: null,           // assigned to createResultStore; never a raw Map.
                            // Separate from .txs on purpose: a result that cost a
                            // network round trip must not be evicted by live churn.
   laneOpen: false,         // the topic overlay is covering the stream
@@ -4878,66 +4878,28 @@ function laneTsOf(id, tx){
   const c = laneCorpus.get(id);
   return (t && txWhenMs(t)) || (c && c.ts) || 0;
 }
+const laneResults = createResultStore({
+  max: MATCH_MAX,
+  tsOf: (id, tx) => laneTsOf(id, tx),
+  wanted: (tx) => inScope(tx._lokad, state.laneScope) && inRange(laneTsOf(tx.id, tx), laneRange) && txMatchesTerms(tx),
+});
+state.laneTxs = laneResults;
+/* GETTERS, NOT COPIES. These two were mirrors refreshed by hand inside
+   laneSetMatched, which works only for as long as nobody calls
+   laneResults.setMatched() directly -- and "two writers, one of them a copy
+   that can go stale" is the hazard this module was extracted to remove, moved
+   one layer up. A getter cannot drift: there is one value and one owner, and
+   every existing call site keeps reading state.matched unchanged. */
+Object.defineProperty(state, 'matched', { get: () => laneResults.matched });
+Object.defineProperty(state, 'matchedTotal', { get: () => laneResults.matchedTotal });
+// The hold and the answer live in createResultStore. These names stay so
+// call sites and the suites that still extract them keep working.
 function laneHold(tx){
-  if (!tx || !tx.id || state.laneTxs.has(tx.id)) return;
-  state.laneTxs.set(tx.id, tx);
-  /* EVICT WHAT THE ANSWER DOES NOT WANT, and only then the oldest.
-     Oldest-by-time alone was right while the Lane always looked at the newest
-     end, and it is exactly wrong the moment a date window points into the past:
-     every result the reader asked for IS the oldest thing held, so each one was
-     evicted the instant it was hydrated, in favour of recent rows the window
-     excludes. Measured live — a Jun 2023 window read four real pages, hydrated
-     95 transactions and rendered zero.
-
-     So the first candidates are entries that fail the CURRENT question — out of
-     scope, or outside the window. They are held only because they were fetched
-     under an earlier one, and dropping them costs the reader nothing they can
-     see. Oldest-by-time stays as the tiebreak, which is what laneSetMatched()
-     would have sliced off anyway. Linear over a 200-entry map and only when
-     full, so it costs nothing measurable. */
-  while (state.laneTxs.size > MATCH_MAX){
-    let victim = null, victimTs = Infinity, victimWanted = true;
-    for (const [id, held] of state.laneTxs){
-      const ts = laneTsOf(id, held);
-      const wanted = inScope(held._lokad, state.laneScope) && inRange(ts, laneRange) && txMatchesTerms(held);
-      // An unwanted entry always beats a wanted one, whatever their ages.
-      if (victimWanted && !wanted){ victim = id; victimTs = ts; victimWanted = false; continue; }
-      if (victimWanted !== wanted) continue;
-      if (ts < victimTs){ victimTs = ts; victim = id; }
-    }
-    if (victim == null) break;
-    state.laneTxs.delete(victim);
-  }
+  laneResults.hold(tx);
 }
-
-/* SINGLE owner of state.matched, and the only place the cap is applied. Two
-   writers with two different rules is what let a cheap live match evict a
-   backfilled one that had cost a request — the exact thing the design note
-   promised would not happen.
-
-   Newest first: a search result reads top-down, and the old insertion order
-   interleaved "two years ago" with "just now" by whichever code path ran. */
 function laneSetMatched(ids){
-  const seen = new Set();
-  const rows = [];
-  for (const id of ids){
-    if (seen.has(id)) continue;
-    seen.add(id);
-    rows.push([id, laneTsOf(id)]);   // same rule laneHold() evicts by
-  }
-  // Cap by RECENCY but display OLDEST FIRST. Those are two different decisions:
-  // when something has to go it should be the oldest, while the reading order
-  // follows the stream underneath — new arrivals appear at the bottom, so the
-  // Lane and the stream never scroll in opposite directions.
-  rows.sort((a, b) => b[1] - a[1]);
-  // The cap has to be SAID. The count beside the title reports rendered rows, so
-  // 1000 matches read as "200 found" — a coverage line that is otherwise
-  // scrupulous about holes, unread protocols, aged-out entries and a full cache
-  // was silent about the one limit the reader actually hits. Worse, it reproduces
-  // the exact symptom of a bug already fixed once (the reach date moves, the
-  // count does not), which nobody can tell apart from a fault.
-  state.matchedTotal = rows.length;
-  state.matched = rows.slice(0, MATCH_MAX).reverse().map((r) => r[0]);
+  laneResults.setMatched(ids);
+
 }
 
 /* Answer the current terms from everything ALREADY paid for: the live session,
