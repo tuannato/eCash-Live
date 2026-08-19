@@ -408,27 +408,31 @@ async function unreadOf(opts = {}) {
   const src = [
     'function topicsEngineReady(){ return true; }',
     'let tpBusy = false, tpDeepDone = false, tpRunToken = 1, tpAbort = null;',
-    'let tpHoles = 0, tpUnread = 0, tpSavedCursor = null;',
+    'let tpHoles = 0, tpUnread = 0, tpSavedCursor = null, tpRangeDone = false;',
+    // The walk now decides "window covered" too, so the driver owes it a window
+    // and a rangeActive. Default: no window, so rangeDone can never be claimed
+    // and every existing unread case keeps meaning what it meant.
+    'const topicRange = range;',
     'const topicFollows = () => [{ q: "gm", on: true }];',
     'const topicScope = scope;',
     'function $(id){ return { dataset: { topics: "open" } }; }',
     'const chronik = { lokadId(){} };',
-    'const topicsCore = {};',
+    'const topicsCore = { rangeActive: (r) => !!(r && (r.from != null || r.to != null)) };',
     'const TOPICS_REQUESTS = 6;',
     'function renderTopics(){}',
     'function topicsSaveStore(){}',
     'function topicsRematch(){}',
     'const tpBf = bf;',
     grab('runTopicsBackfill'),
-    'return (async () => { await runTopicsBackfill(); return { unread: tpUnread, holes: tpHoles }; })();',
+    'return (async () => { await runTopicsBackfill(); return { unread: tpUnread, holes: tpHoles, rangeDone: tpRangeDone }; })();',
   ].join('\n');
-  return new Function('scope', 'bf', src)(opts.scope || [CT], {
+  return new Function('scope', 'bf', 'range', src)(opts.scope || [CT], {
     get cursor() { return JSON.parse(JSON.stringify(internal)); },
     async run() {
       if (opts.mutate) opts.mutate(internal);
       return opts.cov(internal);
     },
-  });
+  }, opts.range || { from: null, to: null });
 }
 
 console.log('\n-- coverage: shipped topicsCoverage, same conditions as Flow --');
@@ -1085,6 +1089,122 @@ console.log('\n-- the hidden attribute actually hides --');
     });
     ok('[hidden] wins on ' + (id || classes.join('.')) + ' (an author display needs an !important guard)', guarded);
   }
+}
+
+// ===========================================================================
+// THE LAST TWO PARITY GAPS. Both are things the door could already DO and had
+// no way to be told: the mode was read, persisted and honoured with no control
+// to set it, and a covered date window had no state of its own so the button
+// would have claimed the whole index.
+// ===========================================================================
+console.log('\n-- mode chip and the covered window --');
+{
+  const chips = grab('renderTopicChips');
+  // With one topic, ANY and ALL are the same answer and a control that cannot
+  // change anything implies the result would differ.
+  ok('the mode chip appears only with two or more topics running',
+     /topicFollows\(\)\.length > 1/.test(chips));
+  ok('it shows which mode is active', /term\.all.*term\.any|term\.any.*term\.all/s.test(chips));
+  ok('it announces its state', /aria-pressed'?,\s*String\(topicMode === 'all'\)/.test(chips));
+  ok('it has an accessible name of its own', /'term\.modeAria'/.test(chips));
+  ok('flipping it persists', /topicMode = topicMode === 'all' \? 'any' : 'all';[\s\S]{0,80}saveTopicSettings/.test(chips));
+  // The mute half: a mode change re-decides which feed cards are hidden.
+  ok('and re-renders the feed', /renderMessages\(\)/.test(chips));
+
+  const render = grab('renderTopics');
+  ok('a covered window does not claim the whole index',
+     /tpRangeDone \? topicsT\('lane\.rangeEnd'\)/.test(render));
+  ok('and deepEnd still wins over it', render.indexOf('lane.deepEnd') < render.indexOf('lane.rangeEnd'));
+  ok('the button is disabled on a covered window', /tpBusy \|\| tpDeepDone \|\| tpRangeDone/.test(render));
+
+  const walk = grab('runTopicsBackfill');
+  ok('rangeDone is only claimed while a window is active',
+     /tpRangeDone = topicsCore\.rangeActive\(topicRange\) &&/.test(walk));
+  ok('and needs every selected protocol to have stopped',
+     /topicScope\.every\(\(id\) => \{[\s\S]{0,140}c\.done \|\| c\.rangeDone/.test(walk));
+
+  /* CHANGING THE WINDOW INVALIDATES THE ANSWER. Widen a covered window and a
+     stale flag leaves the button disabled, still saying "Window covered", over
+     a range nothing has read. One owner clears it; the two call sites go
+     through that owner and nothing else assigns topicRange. */
+  const setter = grab('setTopicRange');
+  ok('the window has one owner', /tpRangeDone = false;/.test(setter));
+  {
+    const assigns = (mod.match(/(?:^|[^.\w])topicRange\s*=/gm) || []).length;
+    ok('and nothing assigns the window around it (' + assigns + ' assignments)', assigns === 2);
+  }
+  ok('the presets go through it', /setTopicRange\(d === 0 \?/.test(grab('renderTopicPresets')));
+  ok('the date fields go through it', /setTopicRange\(\{ from, to \}\)/.test(grab('wireTopicDates')));
+  // Every path that drops the walk must drop this with it, or a covered window
+  // survives the change that invalidated it.
+  for (const [name, fn] of [['clear', 'topicsClearData'], ['a growth', 'topicsRefreshIndex']]) {
+    ok(name + ' clears the covered-window flag', /tpRangeDone = false/.test(grab(fn)));
+  }
+}
+// ...and driven through the shipped walk, because the interesting part is which
+// per-protocol field ends the window and which ends the index.
+{
+  const AL = '2e786563';
+  const win = { from: Date.parse('2023-06-01'), to: Date.parse('2023-06-30') };
+  const run = (cov, opts) => unreadOf(Object.assign({
+    cursor: { perLokad: {}, holes: [], holeCount: 0, done: false },
+    cov: () => cov,
+  }, opts));
+  const P = (o) => Object.assign({ pos: 4, pagesDone: 4, oldestTs: 1600000000 }, o);
+
+  eq('a window every protocol stopped inside is covered',
+     (await run({ perLokad: { [CT]: P({ rangeDone: true }) }, holes: [], holeCount: 0, done: false },
+       { range: win })).rangeDone, true);
+  // done (read to genesis) also stops it -- that protocol cannot hold the
+  // window open, so it must not veto the state either.
+  eq('a protocol read to genesis does not veto it',
+     (await run({ perLokad: { [CT]: P({ rangeDone: true }), [AL]: P({ done: true }) }, holes: [], holeCount: 0, done: false },
+       { range: win, scope: [CT, AL] })).rangeDone, true);
+  eq('one protocol still walking keeps it open',
+     (await run({ perLokad: { [CT]: P({ rangeDone: true }), [AL]: P({}) }, holes: [], holeCount: 0, done: false },
+       { range: win, scope: [CT, AL] })).rangeDone, false);
+  // THE ASSERTION THAT MATTERS: the same shape with NO window is not covered,
+  // it is simply unfinished -- otherwise the button would go quiet on a walk
+  // that has every right to go deeper.
+  eq('without a window, nothing is ever "covered"',
+     (await run({ perLokad: { [CT]: P({ rangeDone: true }) }, holes: [], holeCount: 0, done: false },
+       {})).rangeDone, false);
+}
+
+// ===========================================================================
+// THE THREE CHIP STATES. Following, saved-but-off and muting decide whether the
+// pane is collecting for a word at all, so a reader who cannot tell them apart
+// cannot tell why a topic found nothing. They must differ by SHAPE as well as
+// by hue -- hue alone excludes anyone who cannot separate cyan from grey.
+// ===========================================================================
+console.log('\n-- the chip states are tellable apart --');
+{
+  const css = html.match(/<style>([\s\S]*?)<\/style>/)[1];
+  const rule = (sel) => {
+    const i = css.indexOf(sel + ' {') !== -1 ? css.indexOf(sel + ' {') : css.indexOf(sel + '{');
+    return i === -1 ? '' : css.slice(i, css.indexOf('}', i));
+  };
+  ok('following is lit', /color:\s*var\(--cyan\)/.test(rule('.topic-chip.active')));
+  ok('muting is amber, never the match colour', /color:\s*var\(--amber\)/.test(rule('.topic-chip.mute')));
+  ok('and never the match colour', !/var\(--cyan\)/.test(rule('.topic-chip.mute')));
+  ok('off has a rule of its own rather than inheriting the row',
+     /color:\s*var\(--text-4\)/.test(rule('.topic-chip:not(.active):not(.mute)')));
+  ok('...and still reads as something you can turn on',
+     rule('.topic-chip:not(.active):not(.mute):hover').length > 0);
+
+  // THE SHAPE. A CSS box, not a glyph: font substitution on a symbol is a
+  // footgun this repo already paid for (the TTF eye and spinner are inline SVG
+  // for exactly that reason) and the vendored Fira Code subset is latin only.
+  const dot = rule('.topic-chip:not(.topic-mode)::before');
+  ok('the state carries a dot', dot.length > 0);
+  ok('the dot is a box, not a character', /content:\s*''/.test(dot) && /border-radius:\s*50%/.test(dot));
+  ok('and starts hollow', /background:\s*transparent/.test(dot));
+  ok('following fills it', /background:\s*var\(--cyan\)/.test(rule('.topic-chip.active::before')));
+  // A mute is ACTIVE -- it is doing something right now -- so its dot is filled
+  // too. A hollow one would group it with the off state it is the opposite of.
+  ok('muting fills it as well', /background:\s*var\(--amber\)/.test(rule('.topic-chip.mute::before')));
+  // The mode chip borrows the shape and is not a topic.
+  ok('the mode chip takes no dot', /:not\(\.topic-mode\)::before/.test(css));
 }
 
 console.log(fail ? `\nFAILED ${fail}/${pass + fail}` : `\nok: neo topics ${pass} assertions`);

@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-Diqst7iXID+dne/KC1VSXEm9PunUy5EhUXq/0wK9a2s=';
+  script-src 'self' 'sha256-nheYFgTjTznmcGoMe2HjSuBXz+Y/8nECRAfHxFxOKbY=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -2466,10 +2466,51 @@
   .msg-filters::-webkit-scrollbar { display: none; }
   .msg-filter { flex: none; display: inline-flex; align-items: center; gap: 6px; }
   .topics-add { border-style: dashed; color: var(--text-2); }
-  .topic-chip.active { color: var(--cyan); border-color: var(--cyan-dim); background: rgba(1,160,224,0.08); }
+  /* THREE STATES, AND THEY HAVE TO BE TELLABLE APART AT 9px UPPERCASE. A topic
+     is following, saved-but-off, or muting -- and the difference decides
+     whether the pane is collecting for it at all, so a reader who cannot see
+     which is which cannot tell why a word found nothing.
+
+     The dot is a CSS box, not a glyph: font substitution on a symbol character
+     is a footgun this repo has already paid for once (the TTF eye and spinner
+     became inline SVG for exactly that reason), and the vendored Fira Code
+     subset is latin only. It also means the states differ by SHAPE as well as
+     by hue, which is what a reader who cannot separate cyan from grey needs.
+
+     The mode chip is a .topic-chip for its shape only -- it is not a topic and
+     takes no dot. */
+  .topic-chip:not(.topic-mode)::before {
+    content: ''; width: 5px; height: 5px; border-radius: 50%;
+    flex: none; margin-right: 1px;
+    border: 1px solid currentColor; background: transparent;
+    transition: all 0.15s;
+  }
+  /* FOLLOWING: lit, filled, and the only state that glows. */
+  .topic-chip.active {
+    color: var(--cyan); border-color: var(--cyan);
+    background: rgba(1,160,224,0.14);
+    text-shadow: 0 0 10px rgba(1,160,224,0.45);
+  }
+  .topic-chip.active::before {
+    background: var(--cyan);
+    box-shadow: 0 0 6px rgba(1,160,224,0.8);
+  }
+  /* SAVED BUT OFF: dormant, not broken. Hollow dot, quieter than the row it
+     sits in, and it must still read as a control you can turn on -- hence a
+     real hover rather than a disabled look. */
+  .topic-chip:not(.active):not(.mute) {
+    color: var(--text-4); border-color: var(--line);
+    background: transparent;
+  }
+  .topic-chip:not(.active):not(.mute):hover {
+    color: var(--text-2); border-color: var(--line-2);
+  }
   /* A mute is a standing defence, not a match, so it never wears the match
-     colour. Amber is what this door already uses for a warn state. */
-  .topic-chip.mute { color: var(--amber); border-color: rgba(255,184,0,0.4); background: rgba(255,184,0,0.07); }
+     colour. Amber is what this door already uses for a warn state. The dot is
+     filled, because a mute is ACTIVE -- it is doing something right now, and a
+     hollow one would group it with the off state it is the opposite of. */
+  .topic-chip.mute { color: var(--amber); border-color: rgba(255,184,0,0.55); background: rgba(255,184,0,0.10); }
+  .topic-chip.mute::before { background: var(--amber); box-shadow: 0 0 6px rgba(255,184,0,0.6); }
   .topics-add:hover { color: var(--cyan); border-color: var(--cyan-dim); }
 
   #topics-body { flex: 1; overflow-y: auto; padding: 8px 0; }
@@ -13896,6 +13937,28 @@ function renderTopicChips() {
   const add = $('topics-add');
   if (!row || !add) return;
   row.querySelectorAll('.topic-chip').forEach(el => el.remove());
+  /* SHOWN ONLY WITH TWO OR MORE TOPICS RUNNING. With one, "any" and "all" are
+     the same answer and the control could not change what is on screen -- a
+     button that cannot do anything is noise, and worse, it implies the result
+     would differ. The MODE was already read, persisted and honoured here
+     (matchEvery vs matchAny); this door simply had no way to set it, so a
+     reader who chose "all" on Flow could not change their mind on neo. */
+  if (topicFollows().length > 1) {
+    const m = document.createElement('button');
+    m.type = 'button';
+    m.className = 'msg-filter topic-chip topic-mode' + (topicMode === 'all' ? ' active' : '');
+    m.textContent = topicsT(topicMode === 'all' ? 'term.all' : 'term.any');
+    m.setAttribute('aria-label', topicsT('term.modeAria'));
+    m.setAttribute('aria-pressed', String(topicMode === 'all'));
+    m.addEventListener('click', () => {
+      topicMode = topicMode === 'all' ? 'any' : 'all';
+      saveTopicSettings();
+      renderTopicChips();
+      if (topicsEngineReady()) { topicsRematch(); runTopicsBackfill(); }
+      renderMessages();
+    });
+    row.insertBefore(m, add.nextSibling);
+  }
   for (const t of topicTerms) {
     const b = document.createElement('button');
     b.type = 'button';
@@ -13978,6 +14041,11 @@ function closeTopics() {
 const TOPICS_I18N_V = '21';   // must equal Flow's I18N_V — asserted in CI
 const TOPICS_EN_BORROWED = {
   'lane.older': 'Search further back',
+  'lane.rangeEnd': 'Window covered',
+  'lane.aria': 'Saved topics',
+  'term.any': 'any word',
+  'term.all': 'all words',
+  'term.modeAria': 'Match any word or all words',
   'lane.refresh': 'Check for new',
   'lane.refreshing': 'Checking…',
   'lane.refreshFound': '{n} new — searching',
@@ -14259,7 +14327,7 @@ function topicSenderOf(txData) {
    CSP-pinned 22,000-line module is a blank page waiting for a typo. */
 let tpCorpus = null, tpStore = null, tpResults = null, tpBf = null;
 let tpBusy = false, tpRunToken = 0, tpAbort = null, tpSavedCursor = null;
-let tpDeepDone = false, tpHoles = 0, tpTrimmed = 0;
+let tpDeepDone = false, tpRangeDone = false, tpHoles = 0, tpTrimmed = 0;
 let tpUnread = 0, tpScopeHidden = 0, tpNoDate = 0;
 
 function topicsEngineReady() { return !!(topicsCore && tpCorpus && tpStore && tpResults); }
@@ -14392,7 +14460,7 @@ async function topicsRefreshIndex(auto) {
   if (grew > 0) {
     // The engine's cursor is stale in exactly the way just repaired, so it is
     // rebuilt from the saved one -- the same reason a scope change drops it.
-    tpBf = null; tpDeepDone = false;
+    tpBf = null; tpDeepDone = false; tpRangeDone = false;
     topicsSaveStore();
     tpRefreshMsg = ['lane.refreshFound', { n: grew }];
     renderTopicTools();
@@ -14452,7 +14520,7 @@ function topicsClearData() {
   tpCorpus.clear();
   tpStore.clear();          // the store owns its key; do not reach around it
   tpSavedCursor = null; tpBf = null;
-  tpDeepDone = false; tpHoles = 0; tpTrimmed = 0;
+  tpDeepDone = false; tpRangeDone = false; tpHoles = 0; tpTrimmed = 0;
   tpUnread = 0; tpScopeHidden = 0; tpNoDate = 0;
   /* BOTH CLOCKS ARE SET, NOT CLEARED, and the reason is worth the line: a fresh
      store is verified BY CONSTRUCTION -- there is no prefix left that could
@@ -14522,6 +14590,15 @@ async function runTopicsBackfill() {
   topicsSaveStore();
   if (cov) {
     tpHoles = cov.holeCount; tpDeepDone = cov.done;
+    /* A protocol that finished because a DATE bound stopped it reports
+       rangeDone, not done -- so `done` alone would leave the button offering to
+       search further back forever inside a covered window, and flipping `done`
+       for it would claim the whole index. Both, per protocol, and only while a
+       window is actually active. */
+    tpRangeDone = topicsCore.rangeActive(topicRange) && topicScope.every((id) => {
+      const c = cov.perLokad && cov.perLokad[id];
+      return !c || c.done || c.rangeDone;
+    });
     /* (a) this run advanced pos without pagesDone — a hole on a known protocol.
        (b) tried and still nothing: the exact input laneReach() reads as "never
        read", so the line would otherwise show no date and no reason.
@@ -14772,9 +14849,15 @@ function renderTopics() {
     '<div class="topics-cov">' + cov + '</div>' +
     '<div class="topics-foot">' +
     '<button class="msg-filter" id="topics-more" type="button"' +
-    (tpBusy || tpDeepDone ? ' disabled' : '') + '>' +
-    escapeHtml(tpDeepDone ? topicsTf('lane.deepEnd', { p: topicsScopeLabel() })
-      : tpBusy ? topicsT('lane.searching') : topicsT('lane.older')) + '</button>' +
+    (tpBusy || tpDeepDone || tpRangeDone ? ' disabled' : '') + '>' +
+    /* FINISHED THE WINDOW IS NOT FINISHED THE CHAIN. Every selected protocol
+       stopped, but a DATE BOUND is what stopped them -- so the button must not
+       read "Read all of Cashtab Msg", which claims an index it never reached
+       the end of. The same click without a window is still free to go deeper. */
+    escapeHtml(tpBusy ? topicsT('lane.searching')
+      : tpDeepDone ? topicsTf('lane.deepEnd', { p: topicsScopeLabel() })
+      : tpRangeDone ? topicsT('lane.rangeEnd')
+      : topicsT('lane.older')) + '</button>' +
     '<button class="msg-filter" id="topics-refresh" type="button"' +
     (tpRefreshBusy || tpBusy ? ' disabled' : '') + '>' +
     escapeHtml(topicsRefreshLabel()) + '</button>' +
@@ -14823,6 +14906,16 @@ try { loadTopicSettings(); renderTopicChips(); } catch (e) {}
    it, and the pane would read as broken rather than filtered. */
 const TOPICS_TERM_MAX = 8;
 let topicRange = { from: null, to: null };
+/* ONE OWNER FOR THE WINDOW, because changing it invalidates an answer computed
+   about the old one. "Window covered" is a fact about a SPECIFIC window: widen
+   it and the button would stay disabled, still claiming coverage, over a range
+   nothing has read. Cleared here rather than in topicsRematch(), which also
+   runs on every live match and would flicker the label back on each arrival. */
+function setTopicRange(next) {
+  topicRange = next;
+  tpRangeDone = false;
+  syncTopicDates(); renderTopicTools(); renderTopicPresets(); topicsRematch();
+}
 
 /* THE INVERSE OF dayStart(), AND IT MUST STAY THAT WAY. `dayStart('2026-07-16')`
    is local midnight; `toISOString()` is UTC, so east of Greenwich the round trip
@@ -14913,7 +15006,7 @@ function renderTopicScopePanel() {
       if (!next.length) { e.target.checked = true; return; }
       topicScope = C.sanitizeScope(next);
       saveTopicSettings();
-      tpBf = null; tpDeepDone = false; tpUnread = 0;  // unread counted protocols nobody is searching now
+      tpBf = null; tpDeepDone = false; tpRangeDone = false; tpUnread = 0;  // unread counted protocols nobody is searching now
       renderTopicTools(); renderTopicScopePanel(); topicsRematch();
     });
     box.appendChild(lab);
@@ -14932,8 +15025,7 @@ function renderTopicPresets() {
                        : C.presetActive(d, topicRange);
     b.classList.toggle('on', !!on);
     b.addEventListener('click', () => {
-      topicRange = d === 0 ? { from: null, to: null } : { from: C.presetFrom(d), to: null };
-      syncTopicDates(); renderTopicTools(); renderTopicPresets(); topicsRematch();
+      setTopicRange(d === 0 ? { from: null, to: null } : { from: C.presetFrom(d), to: null });
     });
     row.appendChild(b);
   }
@@ -14961,8 +15053,7 @@ function wireTopicDates() {
       return;
     }
     hint.textContent = '';
-    topicRange = { from, to };
-    renderTopicTools(); renderTopicPresets(); topicsRematch();
+    setTopicRange({ from, to });
   };
   f.addEventListener('change', () => apply('from'));
   t.addEventListener('change', () => apply('to'));
