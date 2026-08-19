@@ -28,7 +28,7 @@
      ================================================================= -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'self' 'sha256-FBXZpjeHIhhsCnDtHzyf0GsVCvKh7RBm5WYHy0+M+Zs=';
+  script-src 'self' 'sha256-3uFfyZL9ing6wK/rD4s5mnVnkOkyMaBRTSFjlXPYRUM=';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   img-src 'self' data: https://api.ecashlive.net https://icons.etokens.cash;
@@ -14305,6 +14305,7 @@ const TOPICS_EN_BORROWED = {
   'cmp.toPh': 'Recipient address',
   'cmp.close': 'Close',
   'cmp.myWallet': 'My wallet',
+  'cmp.tipJar': 'Tip jar',
   'cmp.msgPh': 'Message (optional)',
   'cmp.amtToggle': '+ XEC amount',
   'cmp.amount': 'Amount in XEC',
@@ -15566,9 +15567,10 @@ function saveTermFromEditor() {
      they already think in. */
   function renderPicks() {
     picks.innerHTML = '';
-    const add = (label, addr) => {
+    const add = (label, addr, isTip) => {
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'qs-pick'; b.textContent = label;
+      if (isTip) b.dataset.tip = '1';
       b.addEventListener('click', () => {
         to.value = addr; setHint('');
         picks.querySelectorAll('.qs-pick').forEach(x => x.classList.toggle('on', x === b));
@@ -15579,6 +15581,26 @@ function saveTermFromEditor() {
     try {
       const me = chatState && chatState.myAddr;
       if (me) add(topicsT('cmp.myWallet'), me);
+      /* THE TIP JAR, READ FROM THE LOCKED GLOBAL. Never a second copy of the
+         literal: TIP_ADDRESS is defineProperty'd writable:false and watched by
+         an interval precisely so there is ONE place an attacker would have to
+         reach, and pasting the string again here would quietly create a second.
+
+         AND THE TAMPER CHECK GETS SOMETHING TO PROTECT AGAIN. Its "refuse to
+         render" branch hides #tip-btn -- an element removed in v1.7.2, so that
+         half has been a no-op ever since, which SECURITY.md records as an open
+         gap. This pick is a live tip-jar surface, so it refuses to offer itself
+         if the global no longer matches the literal it was built from. */
+      /* FAILS CLOSED, ON ITS OWN. The literal is declared far below this
+         function -- safe today because renderPicks only runs on open, long
+         after module evaluation, but a future top-level call would put it in
+         the temporal dead zone. A security check that throws must not throw
+         into the caller's success path: its own try means the answer is "do not
+         offer the tip jar", never "offer it anyway" and never "lose the
+         watchlist picks that follow". */
+      let tipOk = false;
+      try { tipOk = typeof TIP_ADDRESS === 'string' && TIP_ADDRESS === _TIP_ADDRESS_LITERAL; } catch (e) { tipOk = false; }
+      if (tipOk) add(topicsT('cmp.tipJar'), TIP_ADDRESS, true);
       // loadWatchlist() fills the module-level `watchlist` and returns nothing,
       // so read the store rather than a return value. Addresses only: a token id
       // is not somewhere a message can be sent.
@@ -21199,6 +21221,13 @@ setInterval(() => {
       // extension or compromised dependency manages to bypass it, we
       // detect and refuse to let the wrong address be displayed.
       console.error('[tip-jar] tampering detected — refusing to render tip UI');
+      /* #tip-btn was removed in v1.7.2, so this branch protected nothing for
+         several releases -- SECURITY.md records that as an open gap. The quick
+         send now offers the tip jar as a one-tap recipient, which is a real
+         surface again: drop it, and re-render so it does not come back on the
+         next open. renderPicks() checks the same equality itself, so this is
+         the immediate half and that is the standing one. */
+      document.querySelectorAll('#qs-picks .qs-pick[data-tip="1"]').forEach(el => el.remove());
       const tipBtn = document.getElementById('tip-btn');
       if (tipBtn) tipBtn.style.display = 'none';
     }

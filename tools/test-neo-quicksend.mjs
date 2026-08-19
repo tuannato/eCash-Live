@@ -237,5 +237,50 @@ console.log('\n-- what it refuses, now that either will do --');
      /chatBuildBip21\(\[\{ addr: norm \}\], xec \|\| DUST_XEC_FLOOR, text\)/.test(send));
 }
 
+// ===========================================================================
+// THE TIP JAR. One address, protected in one place: defineProperty'd
+// writable:false and configurable:false, plus an interval that re-checks it.
+// A surface that offers it must read THAT, never a second copy of the string.
+// ===========================================================================
+console.log('\n-- the tip jar --');
+{
+  const picks = grab('renderPicks');
+  ok('the quick send offers the tip jar', /'cmp\.tipJar'/.test(picks));
+  /* THE LOCK EXISTS SO THERE IS ONE PLACE TO REACH. Pasting the literal again
+     here would quietly create a second, outside the lock and outside the
+     interval that watches it. */
+  ok('and reads the locked global, not a literal',
+     /add\(topicsT\('cmp\.tipJar'\), TIP_ADDRESS/.test(picks));
+  ok('with no second copy of the address anywhere in the panel',
+     !/ecash:qracka0/.test(picks));
+  ok('the address is still defined once', (mod.match(/ecash:qracka0[a-z0-9]+/g) || []).length === 1);
+  /* SCOPED TO THE TIP BLOCK. A bare /writable:\s*false/ over the whole module is
+     satisfied by any other defineProperty in the file -- loosening the tip lock
+     left it green, which is the same weak-gate shape as matching a key name
+     anywhere instead of at its call site. */
+  {
+    const at = mod.indexOf("defineProperty(globalThis, 'TIP_ADDRESS'");
+    const block = at === -1 ? '' : mod.slice(at, mod.indexOf('}', mod.indexOf('enumerable', at)));
+    ok('the lock is on TIP_ADDRESS itself', at !== -1);
+    ok('and it is not writable', /writable:\s*false/.test(block));
+    ok('and not configurable', /configurable:\s*false/.test(block));
+  }
+
+  /* IT REFUSES TO OFFER ITSELF IF THE GLOBAL NO LONGER MATCHES. And the check
+     fails CLOSED: its own try/catch means a throw answers "do not offer",
+     never "offer anyway", and never takes the watchlist picks down with it. */
+  ok('the pick is gated on the global matching the literal',
+     /TIP_ADDRESS === _TIP_ADDRESS_LITERAL/.test(picks));
+  ok('and the gate fails closed',
+     /catch \(e\) \{ tipOk = false; \}/.test(picks));
+
+  /* SECURITY.md records that the tamper check's "refuse to render" half has
+     been a no-op since v1.7.2, because the element it hides was removed. It
+     protects something that exists again. */
+  const guard = mod.slice(mod.indexOf('tampering detected'), mod.indexOf('tampering detected') + 700);
+  ok('the tamper check drops the live tip surface too', /qs-pick\[data-tip="1"\]/.test(guard));
+  ok('the pick carries the marker the check looks for', /b\.dataset\.tip = '1'/.test(picks));
+}
+
 console.log(fail ? `\nFAILED ${fail}/${pass + fail}` : `\nok: neo quick-send ${pass} assertions`);
 if (fail) process.exit(1);
